@@ -1,0 +1,7 @@
+add_subdirectory(duidemo)
+add_subdirectory(ADMonSetup)
+add_subdirectory(bdwallpaper)
+add_subdirectory(gamebox)
+add_subdirectory(HiDPITest)
+add_subdirectory(transwnd)
+add_subdirectory(xlgamebox)
