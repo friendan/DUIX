@@ -1,0 +1,93 @@
+#ifndef __UIACCORDION_H__
+#define __UIACCORDION_H__
+
+#pragma once
+
+namespace DuiLib
+{
+	class CAccordionItemUI;
+	class CLabelUI;
+	class CHorizontalLayoutUI;
+
+	class UILIB_API CAccordionUI : public CVerticalLayoutUI
+	{
+		DECLARE_DUICONTROL(CAccordionUI)
+	public:
+		CAccordionUI();
+		~CAccordionUI();
+
+		LPCTSTR GetClass() const;
+		LPVOID GetInterface(LPCTSTR pstrName);
+
+		void SetMode(bool bMultiple);
+		bool IsMultipleMode() const { return m_bMultiple; }
+		void SetDefaultHeaderHeight(int nHeight);
+		int GetDefaultHeaderHeight() const { return m_nDefaultHeaderHeight; }
+
+		void ToggleItem(CAccordionItemUI* pItem);
+		CAccordionItemUI* GetActiveItem();
+
+		bool Add(CControlUI* pControl) override;
+		bool AddAt(CControlUI* pControl, int iIndex) override;
+		SIZE EstimateSize(SIZE szAvailable) override;
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
+
+	protected:
+		bool m_bMultiple;
+		int m_nDefaultHeaderHeight;
+	};
+
+	class UILIB_API CAccordionItemUI : public CVerticalLayoutUI
+	{
+		DECLARE_DUICONTROL(CAccordionItemUI)
+		friend class CAccordionUI;
+	public:
+		CAccordionItemUI();
+		~CAccordionItemUI();
+
+		LPCTSTR GetClass() const;
+		LPVOID GetInterface(LPCTSTR pstrName);
+
+		void SetTitle(LPCTSTR pstrText);
+		CDuiString GetTitle() const;
+		bool IsActive() const { return m_bActive; }
+		bool IsDisabled() const { return m_bDisabled; }
+		void SetActive(bool bActive, bool bNotify = true);
+		void SetDisabled(bool bDisabled);
+		void ApplyDefaultHeaderHeight(int nHeight);
+		void OnHeaderClick();
+		void OnHeaderHotChanged(bool bHot);
+
+		bool Add(CControlUI* pControl) override;
+		bool AddAt(CControlUI* pControl, int iIndex) override;
+		SIZE EstimateSize(SIZE szAvailable) override;
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
+		void DoInit() override;
+
+	protected:
+		void EnsureHeader();
+		void ApplyContentPadding(CControlUI* pControl);
+		void SyncContentVisibility();
+		void SyncHeaderChrome();
+		void UpdateFixedHeight();
+		void RequestAncestorLayout();
+		CAccordionUI* GetOwnerAccordion() const;
+		static DWORD ParseColorValue(LPCTSTR pstrValue);
+
+		CHorizontalLayoutUI* m_pHeader;
+		CLabelUI* m_pTitle;
+		CLabelUI* m_pChevron;
+		bool m_bActive;
+		bool m_bDisabled;
+		bool m_bHeaderHot;
+		bool m_bHeaderHeightExplicit;
+		int m_nHeaderHeight;
+		RECT m_rcContentPadding;
+		DWORD m_dwHeaderBk;
+		DWORD m_dwHeaderHotBk;
+		DWORD m_dwHeaderActiveBk;
+		DWORD m_dwHeaderActiveHotBk;
+	};
+}
+
+#endif // __UIACCORDION_H__
