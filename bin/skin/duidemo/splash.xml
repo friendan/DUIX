@@ -1,0 +1,26 @@
+﻿<html caption="0,0,0,300" size="400,300" mininfo="400,300" sizebox="6,6,6,6" >
+  <vbox name="root">
+    <vbox name="body">
+      <Control />
+      <Ring name="ring" text="正在启动..."/>
+      <Control />
+    </vbox>
+  </vbox>
+</html>
+<style>
+  #root {
+    bkcolor: #FFF0F0F0;
+  }
+  #body {
+    bkcolor: #FF333333;
+    childalign: center;
+  }
+  #ring {
+    textcolor: #FF333333;
+    align: center;
+    valign: vcenter;
+    height: 200;
+    width: 200;
+    bkimage: common/ring.png;
+  }
+</style>

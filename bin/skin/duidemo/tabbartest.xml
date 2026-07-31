@@ -1,0 +1,62 @@
+<html>
+    <VBox name="root" bkcolor="#FFF0F0F0">
+        <HBox name="titlebar" height="40" bkcolor="#FF32323C" childvalign="vcenter" childpadding="8" inset="8,0,8,0">
+            <Label text="TabBar 测试" textcolor="#FFC8C8C8" font="font13" width="200" />
+            <Spacer />
+            <Button name="closebtn" text="✕" width="36" height="36" kind="none" bkcolor="#FF32323C" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FFE81123" action="close" />
+        </HBox>
+
+        <HBox height="44" childpadding="8" childvalign="vcenter" inset="10,0,10,0" bkcolor="#FFE8E8EC">
+            <Button name="btn_close_active" text="关闭当前" kind="danger" width="90" height="30" />
+            <Button name="btn_toggle_lock" text="锁定/解锁" kind="warning" width="100" height="30" />
+            <Button name="btn_remove_unlocked" text="清除未锁定" kind="default" width="110" height="30" />
+            <CheckBox name="chk_block_close" text="拦截关闭" />
+            <CheckBox name="chk_block_select" text="拦截切换" />
+            <CheckBox name="chk_flexible" text="弹性宽度" selected="true" />
+            <Spacer />
+            <Label text="锁定钉左；双击关闭；右键菜单；拖拽排序" textcolor="#FF666666" />
+        </HBox>
+
+        <TabBar name="tabbar" height="36" flexible="true" tab-min-width="100" tab-max-width="300" showadd="true" bindtablayoutname="pages" bkcolor="#FFF5F5F5"
+            tabbkcolor="#00000000" tabhotbkcolor="#FFD6EBFF" tabselectedbkcolor="#FFBAE0FF"
+            tabtextcolor="#FF8C8C8C" tabhottextcolor="#FF1677FF" tabselectedtextcolor="#FF1677FF"
+            tabselectedbordercolor="#FF1677FF" tabselectedbordersize="2"
+            closetextcolor="#FF8C8C8C" closehotbkcolor="#FFDC3C3C" closehottextcolor="#FFFFFFFF">
+            <TabButton text="概况" tabler-outline="home" />
+            <TabButton text="详情" locked="true" tabler-outline="info-circle" />
+            <TabButton text="设置" tabler-outline="settings" />
+            <TabButton text="日志" tabler-outline="notebook" />
+            <TabButton text="关于" tabler-outline="file-text" />
+            <TabButton text="更多一" />
+            <TabButton text="更多二" />
+            <TabButton text="更多三" />
+            <TabButton text="更多四" />
+            <TabButton text="更多五" />
+        </TabBar>
+
+        <TabLayout name="pages" selectedid="0" bkcolor="#FFFFFFFF">
+            <Label text="概况页 — 点击其它标签切换；点 ✕ 关闭（详情已锁定）" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="详情页 — 此标签 locked，关闭钮隐藏且不可删" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="设置页" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="日志页" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="关于页" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="更多一 — 拖窄窗口后两侧出现 ‹ ›，也可滚轮" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="更多二 — 左键按住拖到另一标签上可排序" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="更多三" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="更多四" align="center" textcolor="#FF333333" font="font13" />
+            <Label text="更多五" align="center" textcolor="#FF333333" font="font13" />
+        </TabLayout>
+
+        <HBox height="32" childvalign="vcenter" inset="10,0,10,0" bkcolor="#FFEDEDF0">
+            <Label name="status" text="就绪" textcolor="#FF555555" />
+        </HBox>
+    </VBox>
+</html>
+<style>
+  html {
+    size: 900,560;
+    caption: 0,0,0,40;
+    mininfo: 480,360;
+    shadowimage: main/shadow.png;
+  }
+</style>
