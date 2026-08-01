@@ -148,14 +148,23 @@ namespace DuiLib {
 		virtual int GetX() const;
 		virtual int GetY() const;
 		virtual RECT GetPadding() const;
-		virtual void SetPadding(RECT rcPadding); // 设置外边距，由上层窗口绘制
+		virtual void SetPadding(RECT rcPadding); // 外边距（属性 margin；根节点相对窗口）
+		virtual RECT GetInset() const;
+		virtual void SetInset(RECT rcInset);     // 内边距（属性 padding / inset；内容区相对边框）
 		virtual SIZE GetFixedXY() const;         // 实际大小位置使用GetPos获取，这里得到的是预设的参考值
 		virtual void SetFixedXY(SIZE szXY);      // 仅float为true时有效
 		virtual SIZE GetFixedSize() const;
 		virtual int GetFixedWidth() const;       // 实际大小位置使用GetPos获取，这里得到的是预设的参考值
-		virtual void SetFixedWidth(int cx);      // 预设的参考值
+		virtual void SetFixedWidth(int cx);      // 预设的参考值（像素）；会清除 width 百分比
 		virtual int GetFixedHeight() const;      // 实际大小位置使用GetPos获取，这里得到的是预设的参考值
-		virtual void SetFixedHeight(int cy);     // 预设的参考值
+		virtual void SetFixedHeight(int cy);     // 预设的参考值（像素）；会清除 height 百分比
+		/// 相对父级可用尺寸的百分比（0=未使用；1.0=100%）。与「未设固定尺寸→撑满剩余」不同：百分比按父级全量比例计算。
+		virtual float GetWidthPercent() const;
+		virtual void SetWidthPercent(float fPercent);
+		virtual float GetHeightPercent() const;
+		virtual void SetHeightPercent(float fPercent);
+		virtual bool IsWidthPercent() const;
+		virtual bool IsHeightPercent() const;
 		virtual int GetMinWidth() const;
 		virtual void SetMinWidth(int cx);
 		virtual int GetMaxWidth() const;
@@ -279,8 +288,11 @@ namespace DuiLib {
 		bool m_bMenuUsed;
 		RECT m_rcItem;
 		RECT m_rcPadding;
+		RECT m_rcInset;
 		SIZE m_cXY;
 		SIZE m_cxyFixed;
+		float m_fWidthPercent;   // >0 时 EstimateSize 按父级可用宽 * 百分比
+		float m_fHeightPercent;  // >0 时 EstimateSize 按父级可用高 * 百分比
 		SIZE m_cxyMin;
 		SIZE m_cxyMax;
 		bool m_bVisible;

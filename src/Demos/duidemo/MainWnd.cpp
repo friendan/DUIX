@@ -4,6 +4,7 @@
 #include "SkinFrame.h"
 #include "IconBrowserWnd.h"
 #include "TabBarTestWnd.h"
+#include "LayoutTestWnd.h"
 #include "Icons/BootstrapIconsData.h"
 #include "Icons/LucideIconsIconsData.h"
 #include "Icons/IconParkIconsData.h"
@@ -38,6 +39,17 @@ namespace {
 			(pUserData && *pUserData) ? _T(" · ") : _T(""),
 			(pUserData && *pUserData) ? pUserData : _T(""));
 		CToast::ShowInfo(s.GetData(), 3000);
+	}
+
+	void CALLBACK OnModalResult(bool ok, LPCTSTR pUserData, void* /*pUser*/)
+	{
+		CDuiString s;
+		s.Format(_T("Modal %s%s%s"),
+			ok ? _T("确定") : _T("取消"),
+			(pUserData && *pUserData) ? _T(" · ") : _T(""),
+			(pUserData && *pUserData) ? pUserData : _T(""));
+		if( ok ) CToast::ShowSuccess(s.GetData(), 3000);
+		else CToast::ShowInfo(s.GetData(), 3000);
 	}
 }
 
@@ -416,6 +428,10 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	{
 		CTabBarTestWnd::Open(m_hWnd);
 	}
+	else if(sName.CompareNoCase(_T("btn_layout_test")) == 0)
+	{
+		CLayoutTestWnd::Open(m_hWnd);
+	}
 	else if(sName.CompareNoCase(_T("btn_toast_success")) == 0)
 	{
 		RememberToast(CToast::ShowSuccess(_T("操作成功"), 3000));
@@ -576,6 +592,48 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		RememberToast(CToast::Show(_T("窗口右下（拖主窗跟随）"),
 			CToastOptions().Kind(CONTROLKIND_INFO).Duration(10000)
 				.Align(ToastAlign_WindowBottomRight).Owner(m_hWnd)));
+	}
+	else if(sName.CompareNoCase(_T("btn_modal_info")) == 0)
+	{
+		CModal::ShowInfo(_T("这是一条 Info 提示。"), OnModalResult);
+	}
+	else if(sName.CompareNoCase(_T("btn_modal_success")) == 0)
+	{
+		CModal::ShowSuccess(_T("操作已成功完成。"), OnModalResult);
+	}
+	else if(sName.CompareNoCase(_T("btn_modal_warning")) == 0)
+	{
+		CModal::ShowWarning(_T("请注意检查输入内容后再继续。"), OnModalResult);
+	}
+	else if(sName.CompareNoCase(_T("btn_modal_danger")) == 0)
+	{
+		CModal::ShowDanger(_T("发生错误，请稍后重试。"), OnModalResult);
+	}
+	else if(sName.CompareNoCase(_T("btn_modal_confirm")) == 0)
+	{
+		CModal::Confirm(_T("删除确认"), _T("确定删除该文件吗？此操作不可恢复。"),
+			OnModalResult);
+	}
+	else if(sName.CompareNoCase(_T("btn_modal_custom")) == 0)
+	{
+		CModal::Show(_T("保存失败"), _T("磁盘空间不足，请清理后重试。"),
+			CModalOptions()
+				.Kind(CONTROLKIND_DANGER)
+				.ShowCancel(true)
+				.OkText(_T("重试"))
+				.CancelText(_T("放弃"))
+				.Owner(m_hWnd)
+				.UserData(_T("save-retry"))
+				.OnResult(OnModalResult));
+	}
+	else if(sName.CompareNoCase(_T("btn_modal_nobackdrop")) == 0)
+	{
+		CModal::Show(_T("点遮罩不关"), _T("ClickBackdropToClose(false)：只能点确定/Esc 关闭。"),
+			CModalOptions()
+				.Kind(CONTROLKIND_WARNING)
+				.ClickBackdropToClose(false)
+				.Owner(m_hWnd)
+				.OnResult(OnModalResult));
 	}
 	else if(sName.CompareNoCase(_T("modal_popwnd_btn")) == 0)
 	{

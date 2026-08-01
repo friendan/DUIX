@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <Window size="600,700" sizebox="4,4,4,4" caption="0,0,0,-1" mininfo="600,500" showshadow="true" shadowimage="shadow2.png" shadowcorner="30,30,30,30" shadowsize="25" roundcorner="4,4">
   <Font name="微软雅黑" size="13" default="true" id="1"/>
   <Font name="微软雅黑" size="12" id="2"/>
@@ -31,28 +31,28 @@
         </HorizontalLayout>
       </HorizontalLayout>
       <HorizontalLayout height="50" bordercolor="#ffff00FF"  bordersize="0">
-        <Option group="DPIOption"  name="DPI96" padding="10,10,0,0" width="160" height="30"  text="DPI 96  100%" selectedtextcolor="#ff0000ff" textcolor="#FF666666"  bkcolor="#ffeeeeee" selected="true"/>
-        <Option group="DPIOption"  name="DPI120" padding="10,10,0,0" width="160" height="30"  text="DPI 120 125%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
-        <Option group="DPIOption"  name="DPI144" padding="10,10,0,0" width="160" height="30"  text="DPI 144 150%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
+        <Option group="DPIOption"  name="DPI96" margin="10,10,0,0" width="160" height="30"  text="DPI 96  100%" selectedtextcolor="#ff0000ff" textcolor="#FF666666"  bkcolor="#ffeeeeee" selected="true"/>
+        <Option group="DPIOption"  name="DPI120" margin="10,10,0,0" width="160" height="30"  text="DPI 120 125%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
+        <Option group="DPIOption"  name="DPI144" margin="10,10,0,0" width="160" height="30"  text="DPI 144 150%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
         <Control ></Control>
       </HorizontalLayout>
       <HorizontalLayout height="50" bordercolor="#ffff00FF"  bordersize="0">
-        <Option group="DPIOption"  name="DPI168" padding="10,10,0,0" width="160" height="30"  text="DPI 168 175%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
-        <Option group="DPIOption"  name="DPI192" padding="10,10,0,0" width="160" height="30"  text="DPI 192 200%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
+        <Option group="DPIOption"  name="DPI168" margin="10,10,0,0" width="160" height="30"  text="DPI 168 175%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
+        <Option group="DPIOption"  name="DPI192" margin="10,10,0,0" width="160" height="30"  text="DPI 192 200%"  selectedtextcolor="#ff0000ff" textcolor="#FF666666" bkcolor="#ffeeeeee"/>
         <Control ></Control>
       </HorizontalLayout>
       <VerticalLayout>
         <HorizontalLayout >
           <VerticalLayout padding="10,10,10,10" bordercolor="#ffff00FF"  bordersize="0">
             <HorizontalLayout height="30" >
-              <Text text="您的电脑已经" padding="2,5,0,0" autocalcwidth="true" height="23" textcolor="#ff000000" font="1" bkcolor="#ffeeeeee"/>
-              <Text text="40" padding="2,0,0,0" autocalcwidth="true" height="27" textcolor="#ffffffff" font="2" bkcolor="#ffee0000"/>
-              <Text text="天没有体检，建议立即体检！" padding="2,5,0,0" autocalcwidth="true" height="23" textcolor="#ff00ff00" font="1" bkcolor="#ff0000ee"/>
+              <Text text="您的电脑已经" margin="2,5,0,0" autocalcwidth="true" height="23" textcolor="#ff000000" font="1" bkcolor="#ffeeeeee"/>
+              <Text text="40" margin="2,0,0,0" autocalcwidth="true" height="27" textcolor="#ffffffff" font="2" bkcolor="#ffee0000"/>
+              <Text text="天没有体检，建议立即体检！" margin="2,5,0,0" autocalcwidth="true" height="23" textcolor="#ff00ff00" font="1" bkcolor="#ff0000ee"/>
               <Label name="LabelUI15"  text="Available disk space:" visible="true"  autocalcwidth="true" height="18" textcolor="#ff5a5e68" disabledtextcolor="#FFA7A6AA" bkcolor="#ffeeeeff"/>
               <Label name="Wizard_UsableSpaceLab4Page2" text="17G" visible="true" autocalcwidth="true"  height="18" textcolor="#ff5a5e68" disabledtextcolor="#FFA7A6AA" bkcolor="#ffffeeee"/>
             </HorizontalLayout>
-             <Progress name="progress"    padding="0,25,0,0"  height="10" bkimage="file='progress_bk.png' corner='5,4,4,5'" foreimage="file='progress_fore.png' corner='5,4,4,5'" min="0" max="100"  hor="true" value="50"/>  
-              <Slider name="progress"    padding="0,25,0,0"  height="20" thumbimage="file='checkbox.png'" thumbhotimage="file='checkbox.png'" thumbpushedimage="file='checkbox.png'" thumbsize="20,20" bkimage="file='progress_bk.png' corner='5,4,4,5'" foreimage="file='progress_fore.png' corner='5,4,4,5'" min="0" max="100"  hor="true" value="80"/>  
+             <Progress name="progress"    margin="0,25,0,0"  height="10" bkimage="file='progress_bk.png' corner='5,4,4,5'" foreimage="file='progress_fore.png' corner='5,4,4,5'" min="0" max="100"  hor="true" value="50"/>  
+              <Slider name="progress"    margin="0,25,0,0"  height="20" thumbimage="file='checkbox.png'" thumbhotimage="file='checkbox.png'" thumbpushedimage="file='checkbox.png'" thumbsize="20,20" bkimage="file='progress_bk.png' corner='5,4,4,5'" foreimage="file='progress_fore.png' corner='5,4,4,5'" min="0" max="100"  hor="true" value="80"/>  
 
              <Control height="10" />    
 
@@ -60,7 +60,7 @@
           </VerticalLayout>
         </HorizontalLayout>
         
-        <Button name="btnMenu" text="菜单测试" padding="30,0,0,20" width="100" height="40"   bkcolor="#ff888888"/>
+        <Button name="btnMenu" text="菜单测试" margin="30,0,0,20" width="100" height="40"   bkcolor="#ff888888"/>
         <Control height="30"></Control>
       </VerticalLayout>
     </VerticalLayout>

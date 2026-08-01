@@ -1,8 +1,20 @@
 ﻿<html>
     <VBox name="root">
-        <HBox name="titlebar" height="64" bkcolor="#FF333333">
-            <Label text="title" textcolor="#FFFFFFFF" textpadding="12,0,0,0" font="font13"/>
-            <Button text="Close" textcolor="#FF111111" textpadding="6,0,6,0" style="colorbtn_style" width="100" height="30" action="close"/>
+        <HBox name="titlebar" height="40" bkcolor="#FF333333" childvalign="vcenter" childpadding="0" inset="12,0,0,0" action="title">
+            <Label text="title" textcolor="#FFFFFFFF" font="font13"/>
+            <Spacer />
+            <Button name="minbtn" text="─" width="46" height="40" kind="none"
+                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FF505050"
+                tooltip="最小化" action="min" />
+            <Button name="maxbtn" text="□" width="46" height="40" kind="none"
+                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FF505050"
+                tooltip="最大化" action="max" />
+            <Button name="restorebtn" text="❐" width="46" height="40" kind="none" visible="false"
+                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FF505050"
+                tooltip="还原" action="max" />
+            <Button name="closebtn" text="✕" width="46" height="40" kind="none"
+                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FFE81123"
+                tooltip="关闭" />
         </HBox>
         <Spacer />
         <Accordion mode="single" headerheight="40">
@@ -97,6 +109,34 @@
                   <Label text="← 弹出后拖主窗验证跟随" textcolor="#FF666666" />
                 </HBox>
               </VBox>
+            </AccordionItem>
+            <AccordionItem title="Modal" active="false" header-align="left">
+              <VBox height="160" childpadding="4" inset="8,4,8,4">
+                <HBox height="40" childpadding="8" childvalign="vcenter">
+                  <Label text="快捷" width="70" textcolor="#FF666666" />
+                  <Button name="btn_modal_info" text="Info" kind="info" width="90" height="32" tooltip="仅确定" />
+                  <Button name="btn_modal_success" text="Success" kind="success" width="90" height="32" />
+                  <Button name="btn_modal_warning" text="Warning" kind="warning" width="90" height="32" />
+                  <Button name="btn_modal_danger" text="Danger" kind="danger" width="90" height="32" />
+                </HBox>
+                <HBox height="40" childpadding="8" childvalign="vcenter">
+                  <Label text="确认" width="70" textcolor="#FF666666" />
+                  <Button name="btn_modal_confirm" text="Confirm 确定/取消" kind="primary" width="160" height="32" tooltip="CModal::Confirm" />
+                  <Button name="btn_modal_custom" text="自定义按钮文案" kind="secondary" width="140" height="32" tooltip="OkText/CancelText + Kind" />
+                  <Label text="← 结果用 Toast 提示" textcolor="#FF666666" />
+                </HBox>
+                <HBox height="40" childpadding="8" childvalign="vcenter">
+                  <Label text="遮罩" width="70" textcolor="#FF666666" />
+                  <Button name="btn_modal_nobackdrop" text="点遮罩不关" kind="warning" width="120" height="32" tooltip="ClickBackdropToClose(false)" />
+                </HBox>
+              </VBox>
+            </AccordionItem>
+            <AccordionItem title="Layout" active="false" header-align="left">
+              <HBox height="48" childpadding="8" childvalign="vcenter" inset="8,0,8,0">
+                <Button name="btn_layout_test" text="打开 Layout 测试窗口" kind="primary" width="180" height="36"
+                    tooltip="打开 layouttest.htm，改皮肤后重新打开即可测布局" />
+                <Label text="加载 skin/duidemo/layouttest.htm" textcolor="#FF666666" />
+              </HBox>
             </AccordionItem>
         </Accordion>
     </VBox>

@@ -1216,6 +1216,16 @@ namespace DuiLib {
 								rcRoot.right -= m_rcLayeredInset.right;
 								rcRoot.bottom -= m_rcLayeredInset.bottom;
 							}
+							// 根节点 margin/padding：相对窗口缩进，露出 html(窗口) 背景
+							{
+								RECT rcPad = m_pRoot->GetPadding();
+								rcRoot.left += rcPad.left;
+								rcRoot.top += rcPad.top;
+								rcRoot.right -= rcPad.right;
+								rcRoot.bottom -= rcPad.bottom;
+								if( rcRoot.right < rcRoot.left ) rcRoot.right = rcRoot.left;
+								if( rcRoot.bottom < rcRoot.top ) rcRoot.bottom = rcRoot.top;
+							}
 							m_pRoot->SetPos(rcRoot, true);
 							bNeedSizeMsg = true;
 						}
@@ -1253,6 +1263,15 @@ namespace DuiLib {
 					rcRoot.top += m_rcLayeredInset.top;
 					rcRoot.right -= m_rcLayeredInset.right;
 					rcRoot.bottom -= m_rcLayeredInset.bottom;
+					{
+						RECT rcPad = m_pRoot->GetPadding();
+						rcRoot.left += rcPad.left;
+						rcRoot.top += rcPad.top;
+						rcRoot.right -= rcPad.right;
+						rcRoot.bottom -= rcPad.bottom;
+						if( rcRoot.right < rcRoot.left ) rcRoot.right = rcRoot.left;
+						if( rcRoot.bottom < rcRoot.top ) rcRoot.bottom = rcRoot.top;
+					}
 					m_pRoot->SetPos(rcRoot, true);
 				}
 
@@ -1300,6 +1319,12 @@ namespace DuiLib {
 					{
 						COwnedRenderContextScope renderScope(this, hOffscreenDC);
 						IRenderContext& renderCtx = renderScope.GetContext();
+						// 先铺 html/窗口背景，再画根控件（根有 margin 时四周可见）
+						if( m_dwWindowBkColor != 0 ) {
+							RECT rcBk = { 0 };
+							if( ::IntersectRect(&rcBk, &rcPaint, &rcClient) )
+								renderCtx.DrawColor(rcBk, m_dwWindowBkColor);
+						}
 						m_pRoot->Paint(renderCtx, rcPaint, NULL);
 
 					if( m_bLayered ) {
@@ -1467,19 +1492,25 @@ namespace DuiLib {
 			break;
 		case WM_GETMINMAXINFO:
 			{
-				MONITORINFO Monitor = {};
-				Monitor.cbSize = sizeof(Monitor);
-				::GetMonitorInfo(::MonitorFromWindow(m_hWndPaint, MONITOR_DEFAULTTOPRIMARY), &Monitor);
-				RECT rcWork = Monitor.rcWork;
-				if( Monitor.dwFlags != MONITORINFOF_PRIMARY ) {
-					::OffsetRect(&rcWork, -rcWork.left, -rcWork.top);
-				}
+				MONITORINFO mi = {};
+				mi.cbSize = sizeof(mi);
+				::GetMonitorInfo(::MonitorFromWindow(m_hWndPaint, MONITOR_DEFAULTTONEAREST), &mi);
+				const RECT& rcWork = mi.rcWork;
+				const RECT& rcMon = mi.rcMonitor;
+				const int cxWork = rcWork.right - rcWork.left;
+				const int cyWork = rcWork.bottom - rcWork.top;
 
 				LPMINMAXINFO lpMMI = (LPMINMAXINFO) lParam;
+				lpMMI->ptMaxPosition.x = rcWork.left - rcMon.left;
+				lpMMI->ptMaxPosition.y = rcWork.top - rcMon.top;
+				lpMMI->ptMaxSize.x = cxWork;
+				lpMMI->ptMaxSize.y = cyWork;
 				if( m_szMinWindow.cx > 0 ) lpMMI->ptMinTrackSize.x = m_szMinWindow.cx;
 				if( m_szMinWindow.cy > 0 ) lpMMI->ptMinTrackSize.y = m_szMinWindow.cy;
 				if( m_szMaxWindow.cx > 0 ) lpMMI->ptMaxTrackSize.x = m_szMaxWindow.cx;
+				else lpMMI->ptMaxTrackSize.x = cxWork;
 				if( m_szMaxWindow.cy > 0 ) lpMMI->ptMaxTrackSize.y = m_szMaxWindow.cy;
+				else lpMMI->ptMaxTrackSize.y = cyWork;
 				if( m_szMaxWindow.cx > 0 ) lpMMI->ptMaxSize.x = m_szMaxWindow.cx;
 				if( m_szMaxWindow.cy > 0 ) lpMMI->ptMaxSize.y = m_szMaxWindow.cy;
 			}

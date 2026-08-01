@@ -11,5 +11,6 @@
 |------|------|------|
 | TabBar / TabButton | [TabBar.md](TabBar.md) | `src/DuiLib/Control/UITabBar.*`、`UITabButton.*` |
 | Toast | [Toast.md](Toast.md) | `src/DuiLib/Control/UIToast.*` |
+| Modal | [Modal.md](Modal.md) | `src/DuiLib/Control/UIModal.*` |
 
 后续新控件在此表追加一行，并新增同名 md。

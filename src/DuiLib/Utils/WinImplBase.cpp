@@ -214,21 +214,24 @@ namespace DuiLib
 
 	LRESULT WindowImplBase::OnGetMinMaxInfo(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
-		MONITORINFO Monitor = {};
-		Monitor.cbSize = sizeof(Monitor);
-		::GetMonitorInfo(::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTOPRIMARY), &Monitor);
-		RECT rcWork = Monitor.rcWork;
-		if( Monitor.dwFlags != MONITORINFOF_PRIMARY ) {
-			::OffsetRect(&rcWork, -rcWork.left, -rcWork.top);
-		}
+		MONITORINFO mi = {};
+		mi.cbSize = sizeof(mi);
+		// 用窗口所在屏（多显示器）；勿用 PRIMARY，否则副屏最大化会套主屏工作区
+		::GetMonitorInfo(::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &mi);
+		const RECT& rcWork = mi.rcWork;
+		const RECT& rcMon = mi.rcMonitor;
+		const int cxWork = rcWork.right - rcWork.left;
+		const int cyWork = rcWork.bottom - rcWork.top;
+		// ptMaxPosition 相对当前显示器左上角；保留任务栏占用（含顶部任务栏）
+		// 旧逻辑对非主屏 OffsetRect 到 (0,0) 会抹掉 rcWork.top 偏移，标题栏被挡
 
 		LPMINMAXINFO lpMMI = (LPMINMAXINFO) lParam;
-		lpMMI->ptMaxPosition.x	= rcWork.left;
-		lpMMI->ptMaxPosition.y	= rcWork.top;
-		lpMMI->ptMaxSize.x = rcWork.right - rcWork.left;
-		lpMMI->ptMaxSize.y = rcWork.bottom - rcWork.top;
-		lpMMI->ptMaxTrackSize.x = m_pm.GetMaxInfo().cx == 0?rcWork.right - rcWork.left:m_pm.GetMaxInfo().cx;
-		lpMMI->ptMaxTrackSize.y = m_pm.GetMaxInfo().cy == 0?rcWork.bottom - rcWork.top:m_pm.GetMaxInfo().cy;
+		lpMMI->ptMaxPosition.x = rcWork.left - rcMon.left;
+		lpMMI->ptMaxPosition.y = rcWork.top - rcMon.top;
+		lpMMI->ptMaxSize.x = cxWork;
+		lpMMI->ptMaxSize.y = cyWork;
+		lpMMI->ptMaxTrackSize.x = m_pm.GetMaxInfo().cx == 0 ? cxWork : m_pm.GetMaxInfo().cx;
+		lpMMI->ptMaxTrackSize.y = m_pm.GetMaxInfo().cy == 0 ? cyWork : m_pm.GetMaxInfo().cy;
 		lpMMI->ptMinTrackSize.x = m_pm.GetMinInfo().cx;
 		lpMMI->ptMinTrackSize.y = m_pm.GetMinInfo().cy;
 

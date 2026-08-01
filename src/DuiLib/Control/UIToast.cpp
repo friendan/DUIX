@@ -157,6 +157,7 @@ namespace DuiLib {
 		void PlaceWindow();
 		void EnforceGroupMaxCount();
 		void ApplyStackOffset(int stackOffset);
+		void NoteUserMoved();
 		bool IsSameStackGroup(const CToastWnd* other) const;
 		bool IsWindowAlign() const;
 		void AttachOwnerTrack();
@@ -186,6 +187,7 @@ namespace DuiLib {
 		CLabelUI* m_pTimerLabel;
 		CButtonUI* m_pCloseBtn;
 		HWND m_hTrackedOwner;
+		RECT m_rcStackedPos;
 		int m_nLayoutW;
 		int m_nLayoutH;
 		int m_nRemaining;
@@ -195,6 +197,8 @@ namespace DuiLib {
 		bool m_bMouseTracking;
 		bool m_bClickFired;
 		bool m_bDismissFired;
+		bool m_bDetachedFromStack;
+		bool m_bApplyingStack;
 	};
 
 	CToastWnd::CToastWnd(const CToastOptions& opts)
@@ -212,7 +216,10 @@ namespace DuiLib {
 		, m_bMouseTracking(false)
 		, m_bClickFired(false)
 		, m_bDismissFired(false)
+		, m_bDetachedFromStack(false)
+		, m_bApplyingStack(false)
 	{
+		::ZeroMemory(&m_rcStackedPos, sizeof(m_rcStackedPos));
 		// 仅标题：当作单行正文
 		if( m_opts.m_sText.IsEmpty() && !m_opts.m_sTitle.IsEmpty() ) {
 			m_opts.m_sText = m_opts.m_sTitle;
@@ -622,6 +629,7 @@ namespace DuiLib {
 	void CToastWnd::ApplyStackOffset(int stackOffset)
 	{
 		if( m_hWnd == NULL || !::IsWindow(m_hWnd) || m_bDismissed ) return;
+		if( m_bDetachedFromStack ) return;
 
 		int w = ResolveWidth();
 		int h = ResolveHeight();
@@ -686,7 +694,23 @@ namespace DuiLib {
 			}
 		}
 
+		m_bApplyingStack = true;
 		::SetWindowPos(m_hWnd, HWND_TOPMOST, x, y, w, h, SWP_NOACTIVATE);
+		::GetWindowRect(m_hWnd, &m_rcStackedPos);
+		m_bApplyingStack = false;
+	}
+
+	void CToastWnd::NoteUserMoved()
+	{
+		if( m_bDismissed || m_bDetachedFromStack || m_bApplyingStack ) return;
+		if( m_hWnd == NULL || !::IsWindow(m_hWnd) ) return;
+
+		RECT rc = { 0 };
+		::GetWindowRect(m_hWnd, &rc);
+		const int kSlop = 2;
+		if( abs(rc.left - m_rcStackedPos.left) > kSlop ||
+			abs(rc.top - m_rcStackedPos.top) > kSlop )
+			m_bDetachedFromStack = true;
 	}
 
 	void CToastWnd::RelayoutAll()
@@ -695,12 +719,12 @@ namespace DuiLib {
 		const int stackGap = 8;
 		for( size_t i = 0; i < g_activeToasts.size(); ++i ) {
 			CToastWnd* p = FromHwnd(g_activeToasts[i]);
-			if( p == NULL || p->m_bDismissed ) continue;
+			if( p == NULL || p->m_bDismissed || p->m_bDetachedFromStack ) continue;
 
 			int offset = 0;
 			for( size_t j = 0; j < i; ++j ) {
 				CToastWnd* q = FromHwnd(g_activeToasts[j]);
-				if( q == NULL || q->m_bDismissed ) continue;
+				if( q == NULL || q->m_bDismissed || q->m_bDetachedFromStack ) continue;
 				if( !p->IsSameStackGroup(q) ) continue;
 				offset += q->ResolveHeight() + stackGap;
 			}
@@ -1002,6 +1026,18 @@ namespace DuiLib {
 			break;
 		case WM_NCHITTEST:
 			lRes = OnNcHitTest(uMsg, wParam, lParam, bHandled);
+			break;
+		case WM_WINDOWPOSCHANGED:
+			if( !m_bApplyingStack ) {
+				WINDOWPOS* wp = reinterpret_cast<WINDOWPOS*>(lParam);
+				if( wp == NULL || (wp->flags & SWP_NOMOVE) == 0 )
+					NoteUserMoved();
+			}
+			bHandled = FALSE;
+			break;
+		case WM_EXITSIZEMOVE:
+			NoteUserMoved();
+			bHandled = FALSE;
 			break;
 		case WM_KILLFOCUS:
 			return 0;

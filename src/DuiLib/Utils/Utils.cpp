@@ -1039,4 +1039,146 @@ namespace DuiLib
 		::SetCursor(m_hOrigCursor);
 	}
 
+
+	/////////////////////////////////////////////////////////////////////////////////////
+	//
+
+	namespace {
+		struct CssNamedColor { LPCTSTR name; DWORD argb; };
+
+		// CSS Color Module Level 3 命名色（含 grey 别名）；大小写不敏感匹配
+		static const CssNamedColor kCssNamedColors[] = {
+			{ _T("aliceblue"), 0xFFF0F8FF }, { _T("antiquewhite"), 0xFFFAEBD7 },
+			{ _T("aqua"), 0xFF00FFFF }, { _T("aquamarine"), 0xFF7FFFD4 },
+			{ _T("azure"), 0xFFF0FFFF }, { _T("beige"), 0xFFF5F5DC },
+			{ _T("bisque"), 0xFFFFE4C4 }, { _T("black"), 0xFF000000 },
+			{ _T("blanchedalmond"), 0xFFFFEBCD }, { _T("blue"), 0xFF0000FF },
+			{ _T("blueviolet"), 0xFF8A2BE2 }, { _T("brown"), 0xFFA52A2A },
+			{ _T("burlywood"), 0xFFDEB887 }, { _T("cadetblue"), 0xFF5F9EA0 },
+			{ _T("chartreuse"), 0xFF7FFF00 }, { _T("chocolate"), 0xFFD2691E },
+			{ _T("coral"), 0xFFFF7F50 }, { _T("cornflowerblue"), 0xFF6495ED },
+			{ _T("cornsilk"), 0xFFFFF8DC }, { _T("crimson"), 0xFFDC143C },
+			{ _T("cyan"), 0xFF00FFFF }, { _T("darkblue"), 0xFF00008B },
+			{ _T("darkcyan"), 0xFF008B8B }, { _T("darkgoldenrod"), 0xFFB8860B },
+			{ _T("darkgray"), 0xFFA9A9A9 }, { _T("darkgreen"), 0xFF006400 },
+			{ _T("darkgrey"), 0xFFA9A9A9 }, { _T("darkkhaki"), 0xFFBDB76B },
+			{ _T("darkmagenta"), 0xFF8B008B }, { _T("darkolivegreen"), 0xFF556B2F },
+			{ _T("darkorange"), 0xFFFF8C00 }, { _T("darkorchid"), 0xFF9932CC },
+			{ _T("darkred"), 0xFF8B0000 }, { _T("darksalmon"), 0xFFE9967A },
+			{ _T("darkseagreen"), 0xFF8FBC8F }, { _T("darkslateblue"), 0xFF483D8B },
+			{ _T("darkslategray"), 0xFF2F4F4F }, { _T("darkslategrey"), 0xFF2F4F4F },
+			{ _T("darkturquoise"), 0xFF00CED1 }, { _T("darkviolet"), 0xFF9400D3 },
+			{ _T("deeppink"), 0xFFFF1493 }, { _T("deepskyblue"), 0xFF00BFFF },
+			{ _T("dimgray"), 0xFF696969 }, { _T("dimgrey"), 0xFF696969 },
+			{ _T("dodgerblue"), 0xFF1E90FF }, { _T("firebrick"), 0xFFB22222 },
+			{ _T("floralwhite"), 0xFFFFFAF0 }, { _T("forestgreen"), 0xFF228B22 },
+			{ _T("fuchsia"), 0xFFFF00FF }, { _T("gainsboro"), 0xFFDCDCDC },
+			{ _T("ghostwhite"), 0xFFF8F8FF }, { _T("gold"), 0xFFFFD700 },
+			{ _T("goldenrod"), 0xFFDAA520 }, { _T("gray"), 0xFF808080 },
+			{ _T("green"), 0xFF008000 }, { _T("greenyellow"), 0xFFADFF2F },
+			{ _T("grey"), 0xFF808080 }, { _T("honeydew"), 0xFFF0FFF0 },
+			{ _T("hotpink"), 0xFFFF69B4 }, { _T("indianred"), 0xFFCD5C5C },
+			{ _T("indigo"), 0xFF4B0082 }, { _T("ivory"), 0xFFFFFFF0 },
+			{ _T("khaki"), 0xFFF0E68C }, { _T("lavender"), 0xFFE6E6FA },
+			{ _T("lavenderblush"), 0xFFFFF0F5 }, { _T("lawngreen"), 0xFF7CFC00 },
+			{ _T("lemonchiffon"), 0xFFFFFACD }, { _T("lightblue"), 0xFFADD8E6 },
+			{ _T("lightcoral"), 0xFFF08080 }, { _T("lightcyan"), 0xFFE0FFFF },
+			{ _T("lightgoldenrodyellow"), 0xFFFAFAD2 }, { _T("lightgray"), 0xFFD3D3D3 },
+			{ _T("lightgreen"), 0xFF90EE90 }, { _T("lightgrey"), 0xFFD3D3D3 },
+			{ _T("lightpink"), 0xFFFFB6C1 }, { _T("lightsalmon"), 0xFFFFA07A },
+			{ _T("lightseagreen"), 0xFF20B2AA }, { _T("lightskyblue"), 0xFF87CEFA },
+			{ _T("lightslategray"), 0xFF778899 }, { _T("lightslategrey"), 0xFF778899 },
+			{ _T("lightsteelblue"), 0xFFB0C4DE }, { _T("lightyellow"), 0xFFFFFFE0 },
+			{ _T("lime"), 0xFF00FF00 }, { _T("limegreen"), 0xFF32CD32 },
+			{ _T("linen"), 0xFFFAF0E6 }, { _T("magenta"), 0xFFFF00FF },
+			{ _T("maroon"), 0xFF800000 }, { _T("mediumaquamarine"), 0xFF66CDAA },
+			{ _T("mediumblue"), 0xFF0000CD }, { _T("mediumorchid"), 0xFFBA55D3 },
+			{ _T("mediumpurple"), 0xFF9370DB }, { _T("mediumseagreen"), 0xFF3CB371 },
+			{ _T("mediumslateblue"), 0xFF7B68EE }, { _T("mediumspringgreen"), 0xFF00FA9A },
+			{ _T("mediumturquoise"), 0xFF48D1CC }, { _T("mediumvioletred"), 0xFFC71585 },
+			{ _T("midnightblue"), 0xFF191970 }, { _T("mintcream"), 0xFFF5FFFA },
+			{ _T("mistyrose"), 0xFFFFE4E1 }, { _T("moccasin"), 0xFFFFE4B5 },
+			{ _T("navajowhite"), 0xFFFFDEAD }, { _T("navy"), 0xFF000080 },
+			{ _T("oldlace"), 0xFFFDF5E6 }, { _T("olive"), 0xFF808000 },
+			{ _T("olivedrab"), 0xFF6B8E23 }, { _T("orange"), 0xFFFFA500 },
+			{ _T("orangered"), 0xFFFF4500 }, { _T("orchid"), 0xFFDA70D6 },
+			{ _T("palegoldenrod"), 0xFFEEE8AA }, { _T("palegreen"), 0xFF98FB98 },
+			{ _T("paleturquoise"), 0xFFAFEEEE }, { _T("palevioletred"), 0xFFDB7093 },
+			{ _T("papayawhip"), 0xFFFFEFD5 }, { _T("peachpuff"), 0xFFFFDAB9 },
+			{ _T("peru"), 0xFFCD853F }, { _T("pink"), 0xFFFFC0CB },
+			{ _T("plum"), 0xFFDDA0DD }, { _T("powderblue"), 0xFFB0E0E6 },
+			{ _T("purple"), 0xFF800080 }, { _T("rebeccapurple"), 0xFF663399 },
+			{ _T("red"), 0xFFFF0000 }, { _T("rosybrown"), 0xFFBC8F8F },
+			{ _T("royalblue"), 0xFF4169E1 }, { _T("saddlebrown"), 0xFF8B4513 },
+			{ _T("salmon"), 0xFFFA8072 }, { _T("sandybrown"), 0xFFF4A460 },
+			{ _T("seagreen"), 0xFF2E8B57 }, { _T("seashell"), 0xFFFFF5EE },
+			{ _T("sienna"), 0xFFA0522D }, { _T("silver"), 0xFFC0C0C0 },
+			{ _T("skyblue"), 0xFF87CEEB }, { _T("slateblue"), 0xFF6A5ACD },
+			{ _T("slategray"), 0xFF708090 }, { _T("slategrey"), 0xFF708090 },
+			{ _T("snow"), 0xFFFFFAFA }, { _T("springgreen"), 0xFF00FF7F },
+			{ _T("steelblue"), 0xFF4682B4 }, { _T("tan"), 0xFFD2B48C },
+			{ _T("teal"), 0xFF008080 }, { _T("thistle"), 0xFFD8BFD8 },
+			{ _T("tomato"), 0xFFFF6347 }, { _T("transparent"), 0x00000000 },
+			{ _T("turquoise"), 0xFF40E0D0 }, { _T("violet"), 0xFFEE82EE },
+			{ _T("wheat"), 0xFFF5DEB3 }, { _T("white"), 0xFFFFFFFF },
+			{ _T("whitesmoke"), 0xFFF5F5F5 }, { _T("yellow"), 0xFFFFFF00 },
+			{ _T("yellowgreen"), 0xFF9ACD32 },
+		};
+
+		bool ParseHexColorDigits(LPCTSTR tok, DWORD& dwColor)
+		{
+			if( tok == NULL || *tok == _T('\0') ) return false;
+			size_t len = _tcslen(tok);
+			for( size_t i = 0; i < len; ++i ) {
+				TCHAR c = tok[i];
+				bool hex = (c >= _T('0') && c <= _T('9'))
+					|| (c >= _T('a') && c <= _T('f'))
+					|| (c >= _T('A') && c <= _T('F'));
+				if( !hex ) return false;
+			}
+			if( len == 3 ) {
+				auto nib = [](TCHAR c) -> unsigned {
+					if( c >= _T('0') && c <= _T('9') ) return (unsigned)(c - _T('0'));
+					if( c >= _T('a') && c <= _T('f') ) return (unsigned)(c - _T('a') + 10);
+					return (unsigned)(c - _T('A') + 10);
+				};
+				unsigned r = nib(tok[0]), g = nib(tok[1]), b = nib(tok[2]);
+				dwColor = 0xFF000000u | (r * 17u) << 16 | (g * 17u) << 8 | (b * 17u);
+				return true;
+			}
+			if( len == 6 ) {
+				LPTSTR pEnd = NULL;
+				dwColor = 0xFF000000u | _tcstoul(tok, &pEnd, 16);
+				return pEnd != tok;
+			}
+			if( len == 8 ) {
+				LPTSTR pEnd = NULL;
+				dwColor = _tcstoul(tok, &pEnd, 16);
+				return pEnd != tok;
+			}
+			return false;
+		}
+	} // namespace
+
+	bool ParseColorString(LPCTSTR pstrColor, DWORD& dwColor)
+	{
+		if( pstrColor == NULL ) return false;
+		while( *pstrColor == _T(' ') || *pstrColor == _T('\t') ) ++pstrColor;
+		if( *pstrColor == _T('\0') ) return false;
+
+		// 先匹配命名色（避免 "red" 等被误解析）
+		for( size_t i = 0; i < sizeof(kCssNamedColors) / sizeof(kCssNamedColors[0]); ++i ) {
+			if( _tcsicmp(pstrColor, kCssNamedColors[i].name) == 0 ) {
+				dwColor = kCssNamedColors[i].argb;
+				return true;
+			}
+		}
+
+		LPCTSTR tok = pstrColor;
+		if( *tok == _T('#') ) ++tok;
+		else if( _tcsnicmp(tok, _T("0x"), 2) == 0 ) tok += 2;
+
+		return ParseHexColorDigits(tok, dwColor);
+	}
+
 } // namespace DuiLib

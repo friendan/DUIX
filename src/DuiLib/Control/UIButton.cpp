@@ -436,66 +436,48 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("bindtablayoutname")) == 0 ) BindTabLayoutName(pstrValue);
 		else if( _tcsicmp(pstrName, _T("hotbkcolor")) == 0 )
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetHotBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetHotBkColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("pushedbkcolor")) == 0 )
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetPushedBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetPushedBkColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("disabledbkcolor")) == 0 )
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetDisabledBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetDisabledBkColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("hottextcolor")) == 0 )
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetHotTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetHotTextColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("pushedtextcolor")) == 0 )
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetPushedTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetPushedTextColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("focusedtextcolor")) == 0 )
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetFocusedTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetFocusedTextColor(clrColor);
 		}
 		else if (_tcscmp(pstrName, _T("hotbordercolor")) == 0)
 		{
-			if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetHotBorderColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetHotBorderColor(clrColor);
 		}
 		else if (_tcscmp(pstrName, _T("pushedbordercolor")) == 0)
 		{
-			if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetPushedBorderColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetPushedBorderColor(clrColor);
 		}
 		else if (_tcscmp(pstrName, _T("disabledbordercolor")) == 0)
 		{
-			if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetDisabledBorderColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetDisabledBorderColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("hotfont")) == 0 ) SetHotFont(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("pushedfont")) == 0 ) SetPushedFont(_ttoi(pstrValue));

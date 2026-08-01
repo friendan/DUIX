@@ -123,6 +123,11 @@ namespace DuiLib
 	SIZE CLabelUI::EstimateSize(SIZE szAvailable)
 	{
 		RECT rcTextPadding = GetTextPadding();
+		RECT rcInset = GetInset();
+		const int padL = rcInset.left + rcTextPadding.left;
+		const int padR = rcInset.right + rcTextPadding.right;
+		const int padT = rcInset.top + rcTextPadding.top;
+		const int padB = rcInset.bottom + rcTextPadding.bottom;
 		if (m_cxyFixed.cx > 0 && m_cxyFixed.cy > 0) {
 			return GetFixedSize();
 		}
@@ -141,7 +146,7 @@ namespace DuiLib
 				// 高度
 				if (m_cxyFixedLast.cy == 0) {
 					m_cxyFixedLast.cy = m_pManager->GetFontInfo(m_iFont)->tm.tmHeight + 8;
-					m_cxyFixedLast.cy += rcTextPadding.top + rcTextPadding.bottom;
+					m_cxyFixedLast.cy += padT + padB;
 				}
 				// 宽度
 				if (m_cxyFixedLast.cx == 0) {
@@ -152,7 +157,7 @@ namespace DuiLib
 							RenderMeasureHtmlText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
 						else
 							RenderMeasureText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
-						m_cxyFixedLast.cx = rcText.right - rcText.left + GetManager()->GetDPIObj()->Scale(m_rcTextPadding.left + m_rcTextPadding.right);
+						m_cxyFixedLast.cx = rcText.right - rcText.left + padL + padR;
 					}
 				}
 			}
@@ -160,14 +165,14 @@ namespace DuiLib
 			else if(m_cxyFixedLast.cy == 0) {
 				if(m_bAutoCalcHeight) {
 					RECT rcText = { 0, 0, m_cxyFixedLast.cx, 9999 };
-					rcText.left += rcTextPadding.left;
-					rcText.right -= rcTextPadding.right;
+					rcText.left += padL;
+					rcText.right -= padR;
 					UINT uStyle = DT_CALCRECT | m_uTextStyle & ~DT_RIGHT & ~DT_CENTER;
 					if( m_bShowHtml )
 						RenderMeasureHtmlText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
 					else
 						RenderMeasureText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
-					m_cxyFixedLast.cy = rcText.bottom - rcText.top + rcTextPadding.top + rcTextPadding.bottom;
+					m_cxyFixedLast.cy = rcText.bottom - rcText.top + padT + padB;
 				}
 			}
 
@@ -261,16 +266,12 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("font")) == 0 ) SetFont(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("textcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetTextColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("disabledtextcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetDisabledTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetDisabledTextColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("textpadding")) == 0 ) {
 			RECT rcTextPadding = { 0 };
@@ -300,12 +301,12 @@ namespace DuiLib
 		if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
 
 		RECT rc = m_rcItem;
-		RECT m_rcTextPadding = CLabelUI::m_rcTextPadding;
-		GetManager()->GetDPIObj()->Scale(&m_rcTextPadding);
-		rc.left += m_rcTextPadding.left;
-		rc.right -= m_rcTextPadding.right;
-		rc.top += m_rcTextPadding.top;
-		rc.bottom -= m_rcTextPadding.bottom;
+		RECT rcInset = GetInset();
+		RECT rcTextPadding = GetTextPadding();
+		rc.left += rcInset.left + rcTextPadding.left;
+		rc.right -= rcInset.right + rcTextPadding.right;
+		rc.top += rcInset.top + rcTextPadding.top;
+		rc.bottom -= rcInset.bottom + rcTextPadding.bottom;
 
 		CDuiString sText = GetText();
 		if( sText.IsEmpty() ) return;

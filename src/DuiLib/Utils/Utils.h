@@ -385,6 +385,10 @@ namespace DuiLib
 	//	bool	m_bTiledX;
 	//	bool	m_bTiledY;
 	//};
+	/////////////////////////////////////////////////////////////////////////////////////
+	// 颜色：#RGB / #RRGGBB / #AARRGGBB / 0x… / 纯十六进制；或 CSS 颜色名（red/Blue，大小写不敏感）
+	UILIB_API bool ParseColorString(LPCTSTR pstrColor, DWORD& dwColor);
+
 }// namespace DuiLib
 
 #endif // __UTILS_H__

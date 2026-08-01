@@ -131,6 +131,7 @@
 #include "Control/UILoading.h"
 #include "Control/UIPageControl.h"
 #include "Control/UIToast.h"
+#include "Control/UIModal.h"
 
 #pragma comment( lib, "comctl32.lib" )
 #pragma comment( lib, "GdiPlus.lib" )

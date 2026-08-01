@@ -22,7 +22,6 @@ namespace DuiLib
 		m_bShowScrollbar(true),
 		m_nUpdateLock(0)
 	{
-		::ZeroMemory(&m_rcInset, sizeof(m_rcInset));
 	}
 
 	CContainerUI::~CContainerUI()
@@ -157,12 +156,6 @@ namespace DuiLib
 	void CContainerUI::SetDelayedDestroy(bool bDelayed)
 	{
 		m_bDelayedDestroy = bDelayed;
-	}
-
-	RECT CContainerUI::GetInset() const
-	{
-		if(m_pManager) return m_pManager->GetDPIObj()->Scale(m_rcInset);
-		return m_rcInset;
 	}
 
 	void CContainerUI::SetInset(RECT rcInset)
@@ -700,13 +693,7 @@ namespace DuiLib
 
 	RECT CContainerUI::GetClientPos() const
 	{
-		RECT rc = m_rcItem;
-
-		RECT rcInset = GetInset();
-		rc.left += rcInset.left;
-		rc.top += rcInset.top;
-		rc.right -= rcInset.right;
-		rc.bottom -= rcInset.bottom;
+		RECT rc = CControlUI::GetClientPos();
 
 		if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() ) {
 			rc.top -= m_pVerticalScrollBar->GetScrollPos();
@@ -787,14 +774,23 @@ namespace DuiLib
 
 	void CContainerUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("inset")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("inset")) == 0 || _tcsicmp(pstrName, _T("padding")) == 0 ) {
+			// 走本类 SetInset（NeedUpdate）；解析与 CControlUI 相同
 			RECT rcInset = { 0 };
 			LPTSTR pstr = NULL;
-			rcInset.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			rcInset.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
-			rcInset.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
-			rcInset.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);    
-			SetInset(rcInset);
+			long v0 = _tcstol(pstrValue, &pstr, 10);
+			if( pstr != pstrValue ) {
+				if( pstr && (*pstr == _T(',') || *pstr == _T(' ')) ) {
+					rcInset.left = v0;
+					rcInset.top = _tcstol(pstr + 1, &pstr, 10);
+					rcInset.right = _tcstol(pstr + 1, &pstr, 10);
+					rcInset.bottom = _tcstol(pstr + 1, &pstr, 10);
+				}
+				else {
+					rcInset.left = rcInset.top = rcInset.right = rcInset.bottom = v0;
+				}
+				SetInset(rcInset);
+			}
 		}
 		else if( _tcsicmp(pstrName, _T("mousechild")) == 0 ) SetMouseChildEnabled(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("vscrollbar")) == 0 ) {
@@ -923,7 +919,20 @@ namespace DuiLib
 		RECT rcTemp = { 0 };
 		if( !::IntersectRect(&rcTemp, &rcPaint, &m_rcItem) ) return true;
 
+		// 有 BorderRound 时用圆角裁剪包住「自身 + 子控件」，否则子控件直角会盖住圆角透明区
+		SIZE cxyRound = GetBorderRound();
+		if( cxyRound.cx > 0 || cxyRound.cy > 0 ) {
+			CRenderClipScope roundClip(ctx, rcTemp, m_rcItem, cxyRound.cx, cxyRound.cy);
+			return DoPaintContent(ctx, rcPaint, pStopControl);
+		}
+
 		CRenderClipScope clip(ctx, rcTemp);
+		return DoPaintContent(ctx, rcPaint, pStopControl);
+	}
+
+	bool CContainerUI::DoPaintContent(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
+	{
+		RECT rcTemp = { 0 };
 		CControlUI::DoPaint(ctx, rcPaint, pStopControl);
 
 		if( m_items.GetSize() > 0 ) {

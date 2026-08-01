@@ -31,26 +31,7 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("linespacing")) == 0 ) {
 			SetLineSpacing(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("padding")) == 0 ) {
-			// CSS padding → 容器内边距（inset）
-			RECT rcInset = { 0 };
-			LPTSTR pstr = NULL;
-			rcInset.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
-			rcInset.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
-			rcInset.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);
-			rcInset.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
-			SetInset(rcInset);
-		}
-		else if( _tcsicmp(pstrName, _T("margin")) == 0 ) {
-			// CSS margin → 控件外边距（DuiLib padding）
-			RECT rcMargin = { 0 };
-			LPTSTR pstr = NULL;
-			rcMargin.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
-			rcMargin.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
-			rcMargin.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);
-			rcMargin.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
-			SetPadding(rcMargin);
-		}
+		// margin / padding：走 CControlUI / CContainerUI（margin=外边距，padding=内边距）
 		else if( _tcsicmp(pstrName, _T("align")) == 0 ) {
 			// 与 childalign 同义：每行内容水平对齐
 			if( _tcsicmp(pstrValue, _T("left")) == 0 ) SetChildAlign(DT_LEFT);
@@ -64,6 +45,17 @@ namespace DuiLib
 	{
 		SIZE szFixed = GetFixedSize();
 		if( szFixed.cx > 0 && szFixed.cy > 0 ) return szFixed;
+
+		// 与 LinearLayout 一致：自身无固定高且存在「撑满」子项时，向父级声明 cy=0
+		if( szFixed.cy <= 0 ) {
+			for( int i = 0; i < m_items.GetSize(); i++ ) {
+				CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
+				if( !pControl->IsVisible() || pControl->IsFloat() ) continue;
+				SIZE szItem = pControl->EstimateSize(szAvailable);
+				if( szItem.cy == 0 && pControl->GetFixedHeight() <= 0 )
+					return CControlUI::EstimateSize(szAvailable);
+			}
+		}
 
 		int cxAvailable = szAvailable.cx;
 		if( szFixed.cx > 0 ) cxAvailable = szFixed.cx;
@@ -86,8 +78,9 @@ namespace DuiLib
 			RECT rcPadding = pControl->GetPadding();
 			SIZE szItem = pControl->EstimateSize({cxContent, 0});
 			if( szItem.cx == 0 ) szItem.cx = cxContent;
+			// cy==0：撑满，估算时不占固有行高
 			int itemWidth = szItem.cx + rcPadding.left + rcPadding.right;
-			int itemHeight = szItem.cy + rcPadding.top + rcPadding.bottom;
+			int itemHeight = (szItem.cy > 0 ? szItem.cy : 0) + rcPadding.top + rcPadding.bottom;
 
 			if( m_bAutoWrap && !bFirstInLine && curX + itemWidth > cxContent ) {
 				totalHeight += curLineHeight + m_iLineSpacing;
@@ -132,6 +125,8 @@ namespace DuiLib
 
 		int cxContent = rc.right - rc.left;
 		if( cxContent < 0 ) cxContent = 0;
+		int cyContent = rc.bottom - rc.top;
+		if( cyContent < 0 ) cyContent = 0;
 		int iChildPadding = GetChildPadding();
 		UINT uAlign = GetChildAlign();
 		UINT uVAlign = GetChildVAlign();
@@ -140,11 +135,13 @@ namespace DuiLib
 		if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() )
 			startY -= m_pVerticalScrollBar->GetScrollPos();
 
-		struct LineInfo { int startIdx; int endIdx; int lineHeight; int lineWidth; };
+		// naturalHeight：固有行高；bStretch：行内有 EstimateSize.cy==0 的撑满项
+		struct LineInfo { int startIdx; int endIdx; int naturalHeight; int lineWidth; bool bStretch; };
 		CStdValArray lines(sizeof(LineInfo), 16);
 
 		int curX = 0;
-		int curLineHeight = 0;
+		int curNaturalH = 0;
+		bool bCurStretch = false;
 		int lineStart = 0;
 		bool bFirstInLine = true;
 
@@ -157,42 +154,72 @@ namespace DuiLib
 			}
 
 			RECT rcPadding = pControl->GetPadding();
-			SIZE szAvail = { cxContent - rcPadding.left - rcPadding.right, rc.bottom - rc.top };
+			SIZE szAvail = { cxContent - rcPadding.left - rcPadding.right, cyContent };
 			if( szAvail.cx < 0 ) szAvail.cx = 0;
 			SIZE szItem = pControl->EstimateSize(szAvail);
+			bool bStretchY = (szItem.cy == 0 && pControl->GetFixedHeight() <= 0);
 			if( szItem.cx == 0 ) szItem.cx = szAvail.cx;
 			if( szItem.cx < pControl->GetMinWidth() ) szItem.cx = pControl->GetMinWidth();
 			if( szItem.cx > pControl->GetMaxWidth() ) szItem.cx = pControl->GetMaxWidth();
-			if( szItem.cy < pControl->GetMinHeight() ) szItem.cy = pControl->GetMinHeight();
-			if( szItem.cy > pControl->GetMaxHeight() ) szItem.cy = pControl->GetMaxHeight();
+			if( !bStretchY ) {
+				if( szItem.cy < pControl->GetMinHeight() ) szItem.cy = pControl->GetMinHeight();
+				if( szItem.cy > pControl->GetMaxHeight() ) szItem.cy = pControl->GetMaxHeight();
+			}
 
 			int itemWidth = szItem.cx + rcPadding.left + rcPadding.right;
-			int itemHeight = szItem.cy + rcPadding.top + rcPadding.bottom;
+			// 撑满项：固有高度只计 padding；真正高度在分完剩余空间后确定
+			int itemNaturalH = rcPadding.top + rcPadding.bottom + (bStretchY ? 0 : szItem.cy);
 			int gap = bFirstInLine ? 0 : iChildPadding;
 
 			if( m_bAutoWrap && !bFirstInLine && curX + gap + itemWidth > cxContent ) {
-				LineInfo li = { lineStart, i, curLineHeight, curX };
+				LineInfo li = { lineStart, i, curNaturalH, curX, bCurStretch };
 				lines.Add(&li);
 				curX = 0;
-				curLineHeight = 0;
+				curNaturalH = 0;
+				bCurStretch = false;
 				bFirstInLine = true;
 				lineStart = i;
 				gap = 0;
 			}
 
 			curX += gap + itemWidth;
-			if( itemHeight > curLineHeight ) curLineHeight = itemHeight;
+			if( itemNaturalH > curNaturalH ) curNaturalH = itemNaturalH;
+			if( bStretchY ) bCurStretch = true;
 			bFirstInLine = false;
 		}
 		if( !bFirstInLine ) {
-			LineInfo li = { lineStart, m_items.GetSize(), curLineHeight, curX };
+			LineInfo li = { lineStart, m_items.GetSize(), curNaturalH, curX, bCurStretch };
 			lines.Add(&li);
 		}
 
-		// 自上而下逐行定位；每行按 childalign 水平对齐
-		int posY = startY;
+		// 把剩余高度分给带撑满子项的行（与 VerticalLayout 可伸缩子项一致）
+		int nStretchLines = 0;
+		int cyNatural = 0;
 		for( int ln = 0; ln < lines.GetSize(); ln++ ) {
 			LineInfo* pLine = (LineInfo*)lines.GetAt(ln);
+			cyNatural += pLine->naturalHeight;
+			if( pLine->bStretch ) nStretchLines++;
+		}
+		if( lines.GetSize() > 1 )
+			cyNatural += (lines.GetSize() - 1) * m_iLineSpacing;
+
+		int cyRemain = cyContent - cyNatural;
+		if( cyRemain < 0 ) cyRemain = 0;
+		int cyStretchEach = (nStretchLines > 0) ? (cyRemain / nStretchLines) : 0;
+		int cyStretchExtra = (nStretchLines > 0) ? (cyRemain % nStretchLines) : 0;
+
+		int posY = startY;
+		int iStretchLine = 0;
+		for( int ln = 0; ln < lines.GetSize(); ln++ ) {
+			LineInfo* pLine = (LineInfo*)lines.GetAt(ln);
+			int lineHeight = pLine->naturalHeight;
+			if( pLine->bStretch ) {
+				lineHeight += cyStretchEach;
+				if( iStretchLine == nStretchLines - 1 )
+					lineHeight += cyStretchExtra;
+				iStretchLine++;
+			}
+
 			int posX = rc.left;
 			if( uAlign == DT_CENTER )
 				posX = rc.left + (cxContent - pLine->lineWidth) / 2;
@@ -207,13 +234,15 @@ namespace DuiLib
 				if( pControl->IsFloat() ) continue;
 
 				RECT rcPadding = pControl->GetPadding();
-				SIZE szAvail = { cxContent - rcPadding.left - rcPadding.right, pLine->lineHeight - rcPadding.top - rcPadding.bottom };
+				SIZE szAvail = { cxContent - rcPadding.left - rcPadding.right,
+					lineHeight - rcPadding.top - rcPadding.bottom };
 				if( szAvail.cx < 0 ) szAvail.cx = 0;
 				if( szAvail.cy < 0 ) szAvail.cy = 0;
 				SIZE szItem = pControl->EstimateSize(szAvail);
 				if( szItem.cx == 0 ) szItem.cx = szAvail.cx;
 				if( szItem.cx < pControl->GetMinWidth() ) szItem.cx = pControl->GetMinWidth();
 				if( szItem.cx > pControl->GetMaxWidth() ) szItem.cx = pControl->GetMaxWidth();
+				// cy==0：撑满本行内容高度
 				if( szItem.cy == 0 ) szItem.cy = szAvail.cy;
 				if( szItem.cy < pControl->GetMinHeight() ) szItem.cy = pControl->GetMinHeight();
 				if( szItem.cy > pControl->GetMaxHeight() ) szItem.cy = pControl->GetMaxHeight();
@@ -222,7 +251,7 @@ namespace DuiLib
 				bFirst = false;
 
 				int itemTop = posY + rcPadding.top;
-				int contentH = pLine->lineHeight - rcPadding.top - rcPadding.bottom;
+				int contentH = lineHeight - rcPadding.top - rcPadding.bottom;
 				if( contentH < 0 ) contentH = 0;
 				if( uVAlign == DT_VCENTER && szItem.cy < contentH )
 					itemTop = posY + rcPadding.top + (contentH - szItem.cy) / 2;
@@ -238,7 +267,7 @@ namespace DuiLib
 				pControl->SetPos(rcPos, bNeedInvalidate);
 				posX = rcPos.right + rcPadding.right;
 			}
-			posY += pLine->lineHeight + m_iLineSpacing;
+			posY += lineHeight + m_iLineSpacing;
 		}
 
 		int cyNeeded = posY - startY - (lines.GetSize() > 0 ? m_iLineSpacing : 0);

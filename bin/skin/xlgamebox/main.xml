@@ -32,16 +32,16 @@
 
     <TabLayout name="toolbar" height="42" bkimage="file='toolbar/toolbar.bkg.png' corner='2,0,2,0'">
       <HorizontalLayout name="toolbar_main" visible="true" inset="78,0,0,0" >
-        <Button name="toolbar_main_gift" width="26" height="26" padding="0,8,0,8" bkimage="file='userinfo/market.png' source='0,0,26,26'"/>
+        <Button name="toolbar_main_gift" width="26" height="26" margin="0,8,0,8" bkimage="file='userinfo/market.png' source='0,0,26,26'"/>
         <Label name="toolbar_main_title" width="220" text="积分0"/>
         
-        <Control width="1" height="30" padding="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
+        <Control width="1" height="30" margin="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
         <Option name="gamehome" group="toolbar_main" userdata="main_web_home" selected="true" text="游戏首页" width="100" textpadding="22,0,0,0" normalimage="file='mainwnd/mainwnd.righttab.icon.home.png' source='0,0,16,16' dest='12,13,28,29'" hotimage="file='mainwnd/mainwnd.righttab.icon.home.png' source='17,0,33,16' dest='12,13,28,29'" pushedimage="file='mainwnd/mainwnd.righttab.icon.home.png' source='34,0,50,16' dest='12,13,28,29'" selectedimage="file='mainwnd/mainwnd.righttab.icon.home.png' source='34,0,50,16' dest='12,13,28,29'"/>
-        <Control width="1" height="30" padding="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
+        <Control width="1" height="30" margin="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
         <Option name="gamesearch" group="toolbar_main" userdata="main_web_search" text="寻找游戏" width="100" textpadding="22,0,0,0" normalimage="file='mainwnd/mainwnd.righttab.icon.searchgame.png' source='0,0,16,16' dest='12,13,28,29'" hotimage="file='mainwnd/mainwnd.righttab.icon.searchgame.png' source='17,0,33,16' dest='12,13,28,29'" pushedimage="file='mainwnd/mainwnd.righttab.icon.searchgame.png' source='34,0,50,16' dest='12,13,28,29'" selectedimage="file='mainwnd/mainwnd.righttab.icon.searchgame.png' source='34,0,50,16' dest='12,13,28,29'"/>
-        <Control width="1" height="30" padding="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
+        <Control width="1" height="30" margin="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
         <Option name="gamephone" group="toolbar_main" userdata="main_web_phone" text="手机游戏" width="100" textpadding="22,0,0,0" normalimage="file='mainwnd/mainwnd.righttab.icon.tiaozhan.png' source='0,0,16,16' dest='12,13,28,29'" hotimage="file='mainwnd/mainwnd.righttab.icon.tiaozhan.png' source='17,0,33,16' dest='12,13,28,29'" pushedimage="file='mainwnd/mainwnd.righttab.icon.tiaozhan.png' source='34,0,50,16' dest='12,13,28,29'" selectedimage="file='mainwnd/mainwnd.righttab.icon.tiaozhan.png' source='34,0,50,16' dest='12,13,28,29'"/>
-        <Control width="1" height="30" padding="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
+        <Control width="1" height="30" margin="0,8,0,8" bkimage="file='toolbar/splitterV.png' corner='0,2,0,2'"/>
 
       </HorizontalLayout>
 

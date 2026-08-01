@@ -70,7 +70,9 @@ namespace DuiLib
         INNER_REGISTER_DUICONTROL_EX(DUI_CTR_TAB_BOX, CTabLayoutUI);
         INNER_REGISTER_DUICONTROL_EX(DUI_CTR_TILE_BOX, CTileLayoutUI);
         INNER_REGISTER_DUICONTROL_EX(DUI_CTR_CHILD_BOX, CChildLayoutUI);
-        INNER_REGISTER_DUICONTROL_EX(DUI_CTR_BODY, CFlowLayoutUI);
+		// body：页面根容器，纵向堆叠（与 html>body 一致）；勿用 FlowLayout——
+		// VBox/HBox 的 EstimateSize 高为 0 表示撑满，Flow 会当成 0 高导致只剩标题栏
+        INNER_REGISTER_DUICONTROL_EX(DUI_CTR_BODY, CVerticalLayoutUI);
         INNER_REGISTER_DUICONTROL_EX(DUI_CTR_DIV, CFlowLayoutUI);
 		INNER_REGISTER_DUICONTROL_EX(_T("accordion"), CAccordionUI);
 		INNER_REGISTER_DUICONTROL_EX(_T("accordion-item"), CAccordionItemUI);

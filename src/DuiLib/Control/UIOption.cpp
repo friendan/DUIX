@@ -354,11 +354,12 @@ namespace DuiLib
 			if( sText.IsEmpty() ) return;
 			int nLinks = 0;
 			RECT rc = m_rcItem;
+			RECT rcInset = GetInset();
 			RECT rcTextPadding = GetTextPadding();
-			rc.left += rcTextPadding.left;
-			rc.right -= rcTextPadding.right;
-			rc.top += rcTextPadding.top;
-			rc.bottom -= rcTextPadding.bottom;
+			rc.left += rcInset.left + rcTextPadding.left;
+			rc.right -= rcInset.right + rcTextPadding.right;
+			rc.top += rcInset.top + rcTextPadding.top;
+			rc.bottom -= rcInset.bottom + rcTextPadding.bottom;
 
 			DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
 			
@@ -626,12 +627,13 @@ namespace DuiLib
 
 		SIZE szBox = GetBoxSize();
 		int nGap = GetBoxGap();
+		RECT rcInset = GetInset();
 		RECT rcPad = GetTextPadding();
 		RECT rc = m_rcItem;
-		rc.left += szBox.cx + nGap + rcPad.left;
-		rc.right -= rcPad.right;
-		rc.top += rcPad.top;
-		rc.bottom -= rcPad.bottom;
+		rc.left += rcInset.left + szBox.cx + nGap + rcPad.left;
+		rc.right -= rcInset.right + rcPad.right;
+		rc.top += rcInset.top + rcPad.top;
+		rc.bottom -= rcInset.bottom + rcPad.bottom;
 
 		DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
 		int nLinks = 0;

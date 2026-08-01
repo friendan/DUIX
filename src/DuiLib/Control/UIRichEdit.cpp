@@ -2138,17 +2138,22 @@ err:
 		}
 
 		if( m_pTwh != NULL ) {
+			RECT rcInset = GetInset();
 			RECT rcTextPadding = GetTextPadding();
+			const int padL = rcInset.left + rcTextPadding.left;
+			const int padR = rcInset.right + rcTextPadding.right;
+			const int padT = rcInset.top + rcTextPadding.top;
+			const int padB = rcInset.bottom + rcTextPadding.bottom;
 			RECT rcScrollTextView = rcScrollView;
-			rcScrollTextView.left += rcTextPadding.left;
-			rcScrollTextView.right -= rcTextPadding.right;
-			rcScrollTextView.top += rcTextPadding.top;
-			rcScrollTextView.bottom -= rcTextPadding.bottom;
+			rcScrollTextView.left += padL;
+			rcScrollTextView.right -= padR;
+			rcScrollTextView.top += padT;
+			rcScrollTextView.bottom -= padB;
 			RECT rcText = rc;
-			rcText.left += rcTextPadding.left;
-			rcText.right -= rcTextPadding.right;
-			rcText.top += rcTextPadding.top;
-			rcText.bottom -= rcTextPadding.bottom;
+			rcText.left += padL;
+			rcText.right -= padR;
+			rcText.top += padT;
+			rcText.bottom -= padB;
 			m_pTwh->SetClientRect(&rcScrollTextView);
 
 			if( bVScrollBarVisiable && (!m_pVerticalScrollBar->IsVisible() || m_bVScrollBarFixing) ) {
@@ -2348,11 +2353,12 @@ err:
 			DWORD dwTextColor = GetTipValueColor();
 			CDuiString sTipValue = GetTipValue();
 			RECT rc = m_rcItem;
+			RECT rcInset = GetInset();
 			RECT rcTextPadding = GetTextPadding();
-			rc.left += rcTextPadding.left;
-			rc.right -= rcTextPadding.right;
-			rc.top += rcTextPadding.top;
-			rc.bottom -= rcTextPadding.bottom;
+			rc.left += rcInset.left + rcTextPadding.left;
+			rc.right -= rcInset.right + rcTextPadding.right;
+			rc.top += rcInset.top + rcTextPadding.top;
+			rc.bottom -= rcInset.bottom + rcTextPadding.bottom;
 			UINT uTextAlign = GetTipValueAlign();
 			if(IsMultiLine()) uTextAlign |= DT_TOP;
 			else uTextAlign |= DT_VCENTER;

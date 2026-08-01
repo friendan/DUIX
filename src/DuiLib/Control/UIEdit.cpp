@@ -97,11 +97,12 @@ namespace DuiLib
 	RECT CEditWnd::CalPos()
 	{
 		CDuiRect rcPos = m_pOwner->GetPos();
-		RECT rcInset = m_pOwner->GetTextPadding();
-		rcPos.left += rcInset.left;
-		rcPos.top += rcInset.top;
-		rcPos.right -= rcInset.right;
-		rcPos.bottom -= rcInset.bottom;
+		RECT rcPad = m_pOwner->GetInset();
+		RECT rcTextPad = m_pOwner->GetTextPadding();
+		rcPos.left += rcPad.left + rcTextPad.left;
+		rcPos.top += rcPad.top + rcTextPad.top;
+		rcPos.right -= rcPad.right + rcTextPad.right;
+		rcPos.bottom -= rcPad.bottom + rcTextPad.bottom;
 		LONG lEditHeight = m_pOwner->GetManager()->GetFontInfo(m_pOwner->GetFont())->tm.tmHeight;
 		if( lEditHeight < rcPos.GetHeight() ) {
 			rcPos.top += (rcPos.GetHeight() - lEditHeight) / 2;

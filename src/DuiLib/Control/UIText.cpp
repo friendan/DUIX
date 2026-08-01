@@ -107,11 +107,16 @@ namespace DuiLib
 	SIZE CTextUI::EstimateSize(SIZE szAvailable)
 	{
 		CDuiString sText = GetText();
-		RECT m_rcTextPadding = GetTextPadding();
+		RECT rcTextPadding = GetTextPadding();
+		RECT rcInset = GetInset();
+		const int padL = rcInset.left + rcTextPadding.left;
+		const int padR = rcInset.right + rcTextPadding.right;
+		const int padT = rcInset.top + rcTextPadding.top;
+		const int padB = rcInset.bottom + rcTextPadding.bottom;
 
 		RECT rcText = { 0, 0, m_bAutoCalcWidth ? 9999 : GetManager()->GetDPIObj()->Scale(m_cxyFixed.cx), 9999 };
-		rcText.left += m_rcTextPadding.left;
-		rcText.right -= m_rcTextPadding.right;
+		rcText.left += padL;
+		rcText.right -= padR;
 
 		if( m_bShowHtml ) {
 			RenderMeasureHtmlText(m_pManager, rcText, sText, m_dwTextColor, m_iFont, DT_CALCRECT | m_uTextStyle);
@@ -119,8 +124,8 @@ namespace DuiLib
 		else {
 			RenderMeasureText(m_pManager, rcText, sText, m_dwTextColor, m_iFont, DT_CALCRECT | m_uTextStyle);
 		}
-		SIZE cXY = {rcText.right - rcText.left + m_rcTextPadding.left + m_rcTextPadding.right,
-			rcText.bottom - rcText.top + m_rcTextPadding.top + m_rcTextPadding.bottom};
+		SIZE cXY = {rcText.right - rcText.left + padL + padR,
+			rcText.bottom - rcText.top + padT + padB};
 		
 		if (m_bAutoCalcWidth)
 		{
@@ -143,10 +148,12 @@ namespace DuiLib
 
 		m_nLinks = lengthof(m_rcLinks);
 		RECT rc = m_rcItem;
-		rc.left += m_rcTextPadding.left;
-		rc.right -= m_rcTextPadding.right;
-		rc.top += m_rcTextPadding.top;
-		rc.bottom -= m_rcTextPadding.bottom;
+		RECT rcInset = GetInset();
+		RECT rcTextPadding = GetTextPadding();
+		rc.left += rcInset.left + rcTextPadding.left;
+		rc.right -= rcInset.right + rcTextPadding.right;
+		rc.top += rcInset.top + rcTextPadding.top;
+		rc.bottom -= rcInset.bottom + rcTextPadding.bottom;
 
 		DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
 		if( m_bShowHtml )

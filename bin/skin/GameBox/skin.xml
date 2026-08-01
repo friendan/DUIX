@@ -76,7 +76,7 @@
         <VerticalLayout height="140">
           <HorizontalLayout height="34" bkimage="file='header_bk.png' corner='4,4,4,4'" inset="6,0,0,0">
             <HorizontalLayout  width="60"/>
-            <HorizontalLayout height="27" width="250" bkimage="file='findedit.png' corner='20,8,100,8'" padding="0,4,0,3" inset="1,1,1,1">
+            <HorizontalLayout height="27" width="250" bkimage="file='findedit.png' corner='20,8,100,8'" margin="0,4,0,3" inset="1,1,1,1">
               <Edit visible="true" name="find_edit" inset="4,1,4,1" height="27" text="查找游戏" />
               <Button name="findbtn" showhtml="true" height="27" width="24" text="{i search_btn.png}{/i}" />
             </HorizontalLayout>

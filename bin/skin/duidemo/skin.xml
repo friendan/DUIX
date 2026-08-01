@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Window size="162,136" bktrans="true">
   <Style name="skinbtn_style" value="hotimage=&quot;res='skin/skin_mouseover.png' corner='4,4,4,4'&quot; pushedimage=&quot;res='skin/skin_mouseover.png' corner='4,4,4,4'&quot;" />
 
@@ -10,7 +10,7 @@
     </hbox>
 
     <AnimationTabLayout name="skin_tab">
-      <tilebox name="skin_image" itemsize="28,40" padding="0,12" childpadding="6">
+      <tilebox name="skin_image" itemsize="28,40" margin="0,12" childpadding="6">
         <Button name="skin_image_btn" style="skinbtn_style" userdata="main/0.jpg" bkimage="skin/0.png"/>
         <Button name="skin_image_btn" style="skinbtn_style" userdata="main/1.jpg" bkimage="skin/1.png"/>
         <Button name="skin_image_btn" style="skinbtn_style" userdata="main/2.jpg" bkimage="skin/2.png"/>
@@ -23,7 +23,7 @@
         <Button name="skin_image_btn" style="skinbtn_style" userdata="main/9.jpg" bkimage="skin/9.png"/>
       </tilebox>
 
-      <tilebox name="skin_color" itemsize="22,22" padding="0,12" childpadding="6">
+      <tilebox name="skin_color" itemsize="22,22" margin="0,12" childpadding="6">
         <Button name="skin_color_btn" option="true" width="22" height="22" bkcolor="#FF66BAEB" normalimage="file='skin\colour_001.bmp'" hotimage="file='skin\colour_001highlight.bmp'" pushedimage="file='skin\colour_001.bmp'" />
         <Button name="skin_color_btn" option="true" width="22" height="22" bkcolor="#FF76A8D0" normalimage="file='skin\colour_002.bmp'" hotimage="file='skin\colour_002highlight.bmp'" pushedimage="file='skin\colour_002.bmp'" />
         <Button name="skin_color_btn" option="true" width="22" height="22" bkcolor="#FFA138D8" normalimage="file='skin\colour_003.bmp'" hotimage="file='skin\colour_003highlight.bmp'" pushedimage="file='skin\colour_003.bmp'" />

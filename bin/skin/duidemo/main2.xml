@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Window size="1200,720" sizebox="4,4,6,6" roundcorner="0,0" caption="0,0,0,64" bktrans="false" mininfo="600,480" showshadow="true" shadowimage="main/shadow.png" shadowsize="6" shadowcorner="8,8,8,8">
   <Font shared="true" id="0" name="宋体" size="13" default="true"/>
   <Font shared="true" id="1" name="宋体" size="12" bold="false" underline="false"/>
@@ -19,7 +19,7 @@
   <Style name="list_style" value="headerbkimage=&quot;res='common/list_header_bg.png'&quot; itemalign=&quot;center&quot; itemlinecolor=&quot;#FF888888&quot; itemshowrowline=&quot;true&quot; itemshowcolumnline=&quot;true&quot;" />
   <Style name="edit_style" value="width=&quot;120&quot; height=&quot;26&quot; textpadding=&quot;6,6,6,6&quot; bkcolor=&quot;#FF666666&quot; nativebkcolor=&quot;#FF666666&quot; bkimage=&quot;res='common/edit_bk.png' corner='6,6,6,6'&quot;" />
   <Style name="btn_style" value="drag=&quot;false&quot; height=&quot;30&quot; textpadding=&quot;6,0,6,0&quot; normalimage=&quot;res='common/button_normal.png' corner='4,4,4,4'&quot; hotimage=&quot;res='common/button_hover.png' corner='4,4,4,4'&quot; pushedimage=&quot;res='common/button_pushed.png' corner='4,4,4,4'&quot; focusedimage1=&quot;res='common/button_pushed.png' corner='4,4,4,4'&quot; selectedimage=&quot;res='common/button_pushed.png' corner='4,4,4,4'&quot;"  />
-  <Style name="treenode_folder_style" value="padding=&quot;16,1,0,0&quot; width=&quot;16&quot; height=&quot;16&quot; normalimage=&quot;file='common/treeview_b.png' source='0,0,16,16' &quot; hotimage=&quot;file='common/treeview_b.png' source='16,0,32,16' &quot; selectedimage=&quot;file='common/treeview_a.png' source='0,0,16,16' &quot; selectedhotimage=&quot;file='common/treeview_a.png' source='16,0,32,16' &quot;"/>
+  <Style name="treenode_folder_style" value="margin=&quot;16,1,0,0&quot; width=&quot;16&quot; height=&quot;16&quot; normalimage=&quot;file='common/treeview_b.png' source='0,0,16,16' &quot; hotimage=&quot;file='common/treeview_b.png' source='16,0,32,16' &quot; selectedimage=&quot;file='common/treeview_a.png' source='0,0,16,16' &quot; selectedhotimage=&quot;file='common/treeview_a.png' source='16,0,32,16' &quot;"/>
   <Style name="treenode_checkbox_style" value="width=&quot;16&quot; height=&quot;16&quot; normalimage=&quot;file='common/unchecked.png' &quot; selectedimage=&quot;file='common/checked.png'&quot;" />
   <Style name="treeview_item_style" value="folderattr=&quot;treenode_folder_style&quot; checkboxattr=&quot;treenode_checkbox_style&quot;"/>
   <Style name="listex_item_style" value="checkboxwidth=&quot;16&quot; checkboxheight=&quot;16&quot; checkboxnormalimage=&quot;file='common/unchecked.png'&quot; checkboxselectedimage=&quot;file='common/checked.png'&quot;"/>
@@ -170,9 +170,9 @@
             <hbox height="100" childpadding="12" childvalign="vcenter">
               <Loading name="loading" width="64" height="64" time="50" color="0xffffff00" />
               <Ring name="ring" text="Ring" textcolor="#FF333333" align="center" valign="vcenter" height="80" width="80" bkimage="common/ring.png"/>
-              <Progress name="progress" padding="0,40" textcolor="#FF333333" valign="vcenter" height="18" width="160" bkcolor="#FFFFFF33" forecolor="#FFFF0000" value="50" min="0" max="100"/>
+              <Progress name="progress" margin="0,40" textcolor="#FF333333" valign="vcenter" height="18" width="160" bkcolor="#FFFFFF33" forecolor="#FFFF0000" value="50" min="0" max="100"/>
               <CircleProgress name="circle_progress" textcolor="#FF333333" valign="vcenter" height="100" width="100" bkcolor="#FFFFFF33" forecolor="#FFFF0000" value="50" min="0" max="100" bordercolor="#FF666666" bordersize="2" borderround="100,100"/>
-              <Slider name="slider" enabled="true" padding="0,40" width="124" height="19" value="50" min="0" max="100" bkimage="res='common/SliderBar_BK.bmp' mask='#ffff00ff'" thumbimage="file='common/SliderBar_Thumb.png' mask='0xffffffff'" thumbhotimage="file='common/SliderBar_Thumb.png' mask='0xffffffff'" thumbpushedimage="file='common/SliderBar_Thumb.png' mask='0xffffffff'" thumbsize="12,20" />
+              <Slider name="slider" enabled="true" margin="0,40" width="124" height="19" value="50" min="0" max="100" bkimage="res='common/SliderBar_BK.bmp' mask='#ffff00ff'" thumbimage="file='common/SliderBar_Thumb.png' mask='0xffffffff'" thumbhotimage="file='common/SliderBar_Thumb.png' mask='0xffffffff'" thumbpushedimage="file='common/SliderBar_Thumb.png' mask='0xffffffff'" thumbsize="12,20" />
             </hbox>
           </hbox>
 
@@ -289,8 +289,8 @@
             <hbox >
               <Label text="图表控件" textcolor="#FF111111" glowsize="0" font="font13" width="80"/>
               <vbox>
-                <ChartView name="ChartView_Histpgram" padding="10,10,10,10" view="histpgram" shadowimage="file='common/Histogram_Shadow.png' corner='10,0,10,0'" shadowimageheight="8" pillarimage="file='common/Histogram_Pillar.png' corner='0,7,0,7'" pillarimagewidth="19" showhtml="true" />
-                <ChartView name="ChartView_Pie" padding="10,10,10,10" view="pie" showhtml="true" />
+                <ChartView name="ChartView_Histpgram" margin="10,10,10,10" view="histpgram" shadowimage="file='common/Histogram_Shadow.png' corner='10,0,10,0'" shadowimageheight="8" pillarimage="file='common/Histogram_Pillar.png' corner='0,7,0,7'" pillarimagewidth="19" showhtml="true" />
+                <ChartView name="ChartView_Pie" margin="10,10,10,10" view="pie" showhtml="true" />
               </vbox>
             </hbox>
 

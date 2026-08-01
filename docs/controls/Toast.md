@@ -108,5 +108,6 @@ CToast::Show(_T("订单已支付"), _T("点击查看详情"),
 - `OnDismiss`：关闭时回调原因（超时 / 手动含×与 Dismiss / 被顶掉）
 - 悬停默认暂停倒计时；× 仍只关闭
 - 同屏多条按对齐方向堆叠；关闭后同组重排填补空位
-- `Window*` 对齐：主窗移动/缩放时 Toast 跟随（`SetWindowSubclass`）
-- 圆角：`SetWindowRgn` + kind 背景色
+- 用户拖走过的 Toast 脱离堆叠，之后重排/主窗跟随不再吸回原位
+- `Window*` 对齐：主窗移动/缩放时 Toast 跟随（`SetWindowSubclass`）；已拖离的不跟随堆叠重排
+- 圆角：`SetWindowRgn` + kind 背景色；阴影若开启会跟 `GetWindowRgn`（无 RGN 则跟 `SetRoundCorner`）

@@ -359,12 +359,21 @@ void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 	// Apply modified (with blur effect) morphologic dilation to make the blurred border
 	// The algorithm is optimized by assuming parent window is just "one piece" and without "wholes" on it
 
-	// Get the region of parent window,
-	HRGN hParentRgn = CreateRectRgn(0, 0, abs(rcParent->right - rcParent->left), abs(rcParent->bottom - rcParent->top));
-	GetWindowRgn(hParent, hParentRgn);
-
-	// Determine the Start and end point of each horizontal scan line
+	// Determine parent size first (needed for RoundCorner fallback)
 	SIZE szParent = {rcParent->right - rcParent->left, rcParent->bottom - rcParent->top};
+
+	// 父窗外形：优先用 SetWindowRgn；若无 RGN（分层 + BorderRound 常见），回退到 PaintManager RoundCorner
+	HRGN hParentRgn = CreateRectRgn(0, 0, szParent.cx, szParent.cy);
+	if( GetWindowRgn(hParent, hParentRgn) == ERROR ) {
+		SIZE szRound = { 0, 0 };
+		if( m_pManager != NULL ) szRound = m_pManager->GetRoundCorner();
+		if( szRound.cx > 0 || szRound.cy > 0 ) {
+			DeleteObject(hParentRgn);
+			// CreateRoundRectRgn 右/下为开区间，与 Toast/Menu OnSize 一致 +1
+			hParentRgn = CreateRoundRectRgn(0, 0, szParent.cx + 1, szParent.cy + 1,
+				szRound.cx, szRound.cy);
+		}
+	}
 	SIZE szShadow = {szParent.cx + 2 * m_nSize, szParent.cy + 2 * m_nSize};
 	// Extra 2 lines (set to be empty) in ptAnchors are used in dilation
 	int nAnchors = max(szParent.cy, szShadow.cy);	// # of anchor points pares

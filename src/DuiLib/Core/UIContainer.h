@@ -54,8 +54,8 @@ namespace DuiLib {
 		void SetEnabled(bool bEnabled);
 		void SetMouseEnabled(bool bEnable = true);
 
-		virtual RECT GetInset() const;
-		virtual void SetInset(RECT rcInset); // 设置内边距，相当于设置客户区
+		// margin / padding / inset：见 CControlUI（CSS：margin 外、padding/inset 内）
+		virtual void SetInset(RECT rcInset);
 		virtual int GetChildPadding() const;
 		virtual void SetChildPadding(int iPadding);
 		virtual UINT GetChildAlign() const;
@@ -128,10 +128,10 @@ namespace DuiLib {
 		virtual void SetFloatPos(int iIndex);
 		virtual void ProcessScrollBar(RECT rc, int cxRequired, int cyRequired);
 		void DestroyChild(CControlUI* pControl);
+		bool DoPaintContent(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 
 	protected:
 		CStdPtrArray m_items;
-		RECT m_rcInset;
 		int m_iChildPadding;
 		UINT m_iChildAlign;
 		UINT m_iChildVAlign;

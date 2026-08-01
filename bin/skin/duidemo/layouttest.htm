@@ -1,0 +1,78 @@
+<html>
+    <body name="root" bkcolor="#FFE8F5E9" margin="30">
+        <HBox name="titlebar" height="40" bkcolor="#FF32323C" childvalign="vcenter" childpadding="8" inset="8,0,8,0">
+            <Label text="Layout 测试" textcolor="#FFC8C8C8" font="font13" width="200" />
+            <Spacer />
+            <Button name="closebtn" text="✕" width="36" height="36" kind="none"
+                bkcolor="#FF32323C" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FFE81123"
+                action="close" />
+        </HBox>
+
+        <!-- 下面区域按需改布局；改完保存本文件后重新打开窗口即可验证 -->
+        <VBox name="content" padding="12" childpadding="12" bkcolor="#FFFFFFFF">
+            <Label text="html 外圈 / body margin=30 / content padding=12"
+                textcolor="#FF555555" height="24" />
+
+            <HBox height="80" childpadding="8" bkcolor="#FFFFFFFF">
+                <Control width="80" bkcolor="#FF0D6EFD" />
+                <Control bkcolor="#FF198754" />
+                <Control width="120" bkcolor="#FFDC3545" />
+            </HBox>
+
+            <!-- border CSS 简写：宽/样式/颜色；容器与叶子控件均可 -->
+            <HBox height="56" childpadding="12" childvalign="vcenter" padding="8"
+                border="1px solid gray" bkcolor="white">
+                <Label text="border=1px solid gray / red / Blue" textcolor="black" />
+                <Button text="dashed" kind="secondary" width="90" height="32"
+                    border="2px dashed Blue" />
+                <Control width="40" height="32" bkcolor="lemonchiffon" border="1px solid red" />
+            </HBox>
+
+            <!-- 百分比：按父级可用尺寸比例；「不写 height」仍是撑满剩余 -->
+            <HBox height="48" childpadding="8" childvalign="vcenter" bkcolor="#FFFFFFFF">
+                <Label text="width%" width="70" textcolor="#FF666666" />
+                <Control width="30%" bkcolor="#FF0D6EFD" />
+                <Control width="50%" bkcolor="#FF198754" />
+                <Control width="20%" bkcolor="#FFDC3545" />
+            </HBox>
+
+            <HBox height="60" childpadding="8" childvalign="vcenter" bkcolor="#FFFFFFFF">
+                <Label text="左" width="60" align="center" bkcolor="#FFE9ECEF" />
+                <Spacer />
+                <Label text="中（Spacer 撑开）" align="center" textcolor="#FF666666" />
+                <Spacer />
+                <Label text="右" width="60" align="center" bkcolor="#FFE9ECEF" />
+            </HBox>
+
+            <HBox>
+                <VBox width="200" childpadding="8" bkcolor="#FFFFFFFF" inset="8,8,8,8">
+                    <Label text="左栏固定 200" textcolor="#FF333333" height="24" />
+                    <Control bkcolor="#FFCFE2FF" />
+                    <Control height="40" bkcolor="#FF9EC5FE" />
+                </VBox>
+                <VBox childpadding="8" bkcolor="#FFFFFFFF" inset="8,8,8,8">
+                    <Label text="右栏弹性" textcolor="#FF333333" height="24" />
+                    <Control bkcolor="#FFD1E7DD" />
+                    <HBox height="40" childpadding="8">
+                        <Button text="示例按钮" kind="primary" width="100" height="32" />
+                        <Button text="Secondary" kind="secondary" width="100" height="32" />
+                    </HBox>
+                </VBox>
+            </HBox>
+        </VBox>
+    </body>
+</html>
+<style>
+  html {
+    size: 720,480;
+    caption: 0,0,0,70;
+    mininfo: 480,320;
+    sizebox: 4,4,4,4;
+    shadowimage: main/shadow.png;
+    bkcolor: #FFFFCDD2;
+  }
+  body {
+    bkcolor: #FFE8F5E9;
+    margin: 30;
+  }
+</style>

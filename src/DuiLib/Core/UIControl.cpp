@@ -121,11 +121,14 @@ namespace DuiLib {
 	{
 		m_cXY.cx = m_cXY.cy = 0;
 		m_cxyFixed.cx = m_cxyFixed.cy = 0;
+		m_fWidthPercent = 0.0f;
+		m_fHeightPercent = 0.0f;
 		m_cxyMin.cx = m_cxyMin.cy = 0;
 		m_cxyMax.cx = m_cxyMax.cy = 9999;
 		m_cxyBorderRound.cx = m_cxyBorderRound.cy = 0;
 
 		::ZeroMemory(&m_rcPadding, sizeof(RECT));
+		::ZeroMemory(&m_rcInset, sizeof(RECT));
 		::ZeroMemory(&m_rcItem, sizeof(RECT));
 		::ZeroMemory(&m_rcPaint, sizeof(RECT));
 		::ZeroMemory(&m_rcBorderSize,sizeof(RECT));
@@ -458,7 +461,13 @@ namespace DuiLib {
 
 	RECT CControlUI::GetClientPos() const 
 	{
-		return m_rcItem;
+		RECT rc = m_rcItem;
+		RECT rcInset = GetInset();
+		rc.left += rcInset.left;
+		rc.top += rcInset.top;
+		rc.right -= rcInset.right;
+		rc.bottom -= rcInset.bottom;
+		return rc;
 	}
 
 	void CControlUI::SetPos(RECT rc, bool bNeedInvalidate)
@@ -535,6 +544,19 @@ namespace DuiLib {
 		NeedParentUpdate();
 	}
 
+	RECT CControlUI::GetInset() const
+	{
+		RECT rcInset = m_rcInset;
+		if(m_pManager != NULL) m_pManager->GetDPIObj()->Scale(&rcInset);
+		return rcInset;
+	}
+
+	void CControlUI::SetInset(RECT rcInset)
+	{
+		m_rcInset = rcInset;
+		NeedParentUpdate();
+	}
+
 	SIZE CControlUI::GetFixedXY() const
 	{
 		SIZE cXY = m_cXY;
@@ -566,7 +588,8 @@ namespace DuiLib {
 
 	void CControlUI::SetFixedWidth(int cx)
 	{
-		if( cx < 0 ) return; 
+		if( cx < 0 ) return;
+		m_fWidthPercent = 0.0f;
 		m_cxyFixed.cx = cx;
 		NeedParentUpdate();
 	}
@@ -581,9 +604,46 @@ namespace DuiLib {
 
 	void CControlUI::SetFixedHeight(int cy)
 	{
-		if( cy < 0 ) return; 
+		if( cy < 0 ) return;
+		m_fHeightPercent = 0.0f;
 		m_cxyFixed.cy = cy;
 		NeedParentUpdate();
+	}
+
+	float CControlUI::GetWidthPercent() const
+	{
+		return m_fWidthPercent;
+	}
+
+	void CControlUI::SetWidthPercent(float fPercent)
+	{
+		if( fPercent < 0.0f ) fPercent = 0.0f;
+		m_fWidthPercent = fPercent;
+		if( fPercent > 0.0f ) m_cxyFixed.cx = 0;
+		NeedParentUpdate();
+	}
+
+	float CControlUI::GetHeightPercent() const
+	{
+		return m_fHeightPercent;
+	}
+
+	void CControlUI::SetHeightPercent(float fPercent)
+	{
+		if( fPercent < 0.0f ) fPercent = 0.0f;
+		m_fHeightPercent = fPercent;
+		if( fPercent > 0.0f ) m_cxyFixed.cy = 0;
+		NeedParentUpdate();
+	}
+
+	bool CControlUI::IsWidthPercent() const
+	{
+		return m_fWidthPercent > 0.0f;
+	}
+
+	bool CControlUI::IsHeightPercent() const
+	{
+		return m_fHeightPercent > 0.0f;
 	}
 
 	int CControlUI::GetMinWidth() const
@@ -1083,6 +1143,113 @@ namespace DuiLib {
 		m_mCustomAttrHash.Resize();
 	}
 
+	namespace {
+
+	bool MapBorderStyleKeyword(LPCTSTR tok, int& nStyle, bool& bNone)
+	{
+		bNone = false;
+		if( tok == NULL || *tok == _T('\0') ) return false;
+		if( _tcsicmp(tok, _T("none")) == 0 || _tcsicmp(tok, _T("hidden")) == 0 ) {
+			bNone = true;
+			nStyle = PS_SOLID;
+			return true;
+		}
+		if( _tcsicmp(tok, _T("solid")) == 0 ) { nStyle = PS_SOLID; return true; }
+		if( _tcsicmp(tok, _T("dashed")) == 0 || _tcsicmp(tok, _T("dash")) == 0 ) { nStyle = PS_DASH; return true; }
+		if( _tcsicmp(tok, _T("dotted")) == 0 || _tcsicmp(tok, _T("dot")) == 0 ) { nStyle = PS_DOT; return true; }
+		if( _tcsicmp(tok, _T("dashdot")) == 0 ) { nStyle = PS_DASHDOT; return true; }
+		if( _tcsicmp(tok, _T("dashdotdot")) == 0 ) { nStyle = PS_DASHDOTDOT; return true; }
+		return false;
+	}
+
+	bool ParseBorderWidthToken(LPCTSTR tok, int& nWidth)
+	{
+		if( tok == NULL || *tok == _T('\0') ) return false;
+		if( *tok < _T('0') || *tok > _T('9') ) return false;
+		LPTSTR pEnd = NULL;
+		long v = _tcstol(tok, &pEnd, 10);
+		if( pEnd == tok ) return false;
+		if( *pEnd == _T('\0') || _tcsicmp(pEnd, _T("px")) == 0 ) {
+			nWidth = (int)v;
+			return true;
+		}
+		return false;
+	}
+
+	bool ParseBorderColorToken(LPCTSTR tok, DWORD& dwColor)
+	{
+		return ParseColorString(tok, dwColor);
+	}
+
+	void ApplyBorderShorthand(CControlUI* pControl, LPCTSTR pstrValue)
+	{
+		if( pControl == NULL || pstrValue == NULL ) return;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( *pstrValue == _T('\0') ) return;
+
+		if( _tcsicmp(pstrValue, _T("none")) == 0 || _tcsicmp(pstrValue, _T("0")) == 0 ) {
+			RECT rcClear = { 0, 0, 0, 0 };
+			pControl->SetBorderSize(0);
+			pControl->SetBorderSize(rcClear);
+			pControl->SetBorderColor(0);
+			return;
+		}
+
+		int nWidth = -1;
+		int nStyle = PS_SOLID;
+		bool bHasStyle = false;
+		bool bNoneStyle = false;
+		DWORD dwColor = 0;
+		bool bHasColor = false;
+
+		LPCTSTR p = pstrValue;
+		while( *p != _T('\0') ) {
+			while( *p == _T(' ') || *p == _T('\t') ) ++p;
+			if( *p == _T('\0') ) break;
+			TCHAR tok[64];
+			int n = 0;
+			while( *p != _T('\0') && *p != _T(' ') && *p != _T('\t') && n < 63 )
+				tok[n++] = *p++;
+			tok[n] = _T('\0');
+
+			bool isNone = false;
+			int style = PS_SOLID;
+			int w = 0;
+			DWORD c = 0;
+			if( MapBorderStyleKeyword(tok, style, isNone) ) {
+				if( isNone ) bNoneStyle = true;
+				else { nStyle = style; bHasStyle = true; }
+			}
+			else if( ParseBorderWidthToken(tok, w) ) {
+				nWidth = w;
+			}
+			else if( ParseBorderColorToken(tok, c) ) {
+				dwColor = c;
+				bHasColor = true;
+			}
+		}
+
+		if( bNoneStyle || nWidth == 0 ) {
+			RECT rcClear = { 0, 0, 0, 0 };
+			pControl->SetBorderSize(0);
+			pControl->SetBorderSize(rcClear);
+			if( bNoneStyle ) pControl->SetBorderColor(0);
+			return;
+		}
+
+		// CSS：省略宽度时默认 1；省略样式默认 solid
+		if( nWidth < 0 ) nWidth = bHasColor ? 1 : 0;
+		if( nWidth <= 0 ) return;
+
+		if( bHasColor ) pControl->SetBorderColor(dwColor);
+		pControl->SetBorderStyle(bHasStyle ? nStyle : PS_SOLID);
+		pControl->SetBorderSize(nWidth);
+		RECT rcClear = { 0, 0, 0, 0 };
+		pControl->SetBorderSize(rcClear);
+	}
+
+	} // namespace
+
 	void CControlUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
 		// 鏍峰紡琛?
@@ -1179,57 +1346,68 @@ namespace DuiLib {
 			else if( _tcsicmp(pstrValue, _T("vcenter")) == 0 ) SetVAlign(DT_VCENTER);
 			else if( _tcsicmp(pstrValue, _T("bottom")) == 0 ) SetVAlign(DT_BOTTOM);
 		}
-		else if( _tcsicmp(pstrName, _T("padding")) == 0 ) {
-			RECT rcPadding = { 0 };
+		else if( _tcsicmp(pstrName, _T("margin")) == 0 ) {
+			// CSS margin → 相对父级外边距（根节点相对窗口客户区）；RECT 顺序 left,top,right,bottom
+			RECT rcMargin = { 0 };
 			LPTSTR pstr = NULL;
-			rcPadding.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			rcPadding.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
-			rcPadding.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
-			rcPadding.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);    
-			SetPadding(rcPadding);
+			long v0 = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
+			if( pstr && (*pstr == _T(',') || *pstr == _T(' ')) ) {
+				rcMargin.left = v0;
+				rcMargin.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
+				rcMargin.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);
+				rcMargin.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
+			}
+			else {
+				rcMargin.left = rcMargin.top = rcMargin.right = rcMargin.bottom = v0;
+			}
+			SetPadding(rcMargin);
+		}
+		else if( _tcsicmp(pstrName, _T("padding")) == 0 || _tcsicmp(pstrName, _T("inset")) == 0 ) {
+			// CSS padding / inset → 内边距（内容区相对控件边框）
+			RECT rcInset = { 0 };
+			LPTSTR pstr = NULL;
+			long v0 = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
+			if( pstr && (*pstr == _T(',') || *pstr == _T(' ')) ) {
+				rcInset.left = v0;
+				rcInset.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
+				rcInset.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);
+				rcInset.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
+			}
+			else {
+				rcInset.left = rcInset.top = rcInset.right = rcInset.bottom = v0;
+			}
+			SetInset(rcInset);
 		}
 		else if( _tcsicmp(pstrName, _T("gradient")) == 0 ) SetGradient(pstrValue);
 		else if( _tcsicmp(pstrName, _T("bkcolor")) == 0 || _tcsicmp(pstrName, _T("bkcolor1")) == 0 ) {
-			while( *pstrValue > _T('\0') && *pstrValue <= _T(' ') ) pstrValue = ::CharNext(pstrValue);
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetBkColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("bkcolor2")) == 0 ) {
-			while( *pstrValue > _T('\0') && *pstrValue <= _T(' ') ) pstrValue = ::CharNext(pstrValue);
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetBkColor2(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetBkColor2(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("bkcolor3")) == 0 ) {
-			while( *pstrValue > _T('\0') && *pstrValue <= _T(' ') ) pstrValue = ::CharNext(pstrValue);
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetBkColor3(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetBkColor3(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("forecolor")) == 0 ) {
-			while( *pstrValue > _T('\0') && *pstrValue <= _T(' ') ) pstrValue = ::CharNext(pstrValue);
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetForeColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetForeColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("bordercolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetBorderColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetBorderColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("focusbordercolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetFocusBorderColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetFocusBorderColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("colorhsl")) == 0 ) SetColorHSL(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("border")) == 0 ) {
+			// HTML/CSS 简写：border="1px solid #DDD"；顺序可任意；none/0 清除
+			ApplyBorderShorthand(this, pstrValue);
+		}
 		else if( _tcsicmp(pstrName, _T("bordersize")) == 0 ) {
 			CDuiString nValue = pstrValue;
 			if(nValue.Find(',') < 0) {
@@ -1251,7 +1429,19 @@ namespace DuiLib {
 		else if( _tcsicmp(pstrName, _T("topbordersize")) == 0 ) SetTopBorderSize(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("rightbordersize")) == 0 ) SetRightBorderSize(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("bottombordersize")) == 0 ) SetBottomBorderSize(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("borderstyle")) == 0 ) SetBorderStyle(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("borderstyle")) == 0 ) {
+			int nStyle = PS_SOLID;
+			bool bNone = false;
+			if( MapBorderStyleKeyword(pstrValue, nStyle, bNone) ) {
+				if( bNone ) {
+					RECT rcClear = { 0, 0, 0, 0 };
+					SetBorderSize(0);
+					SetBorderSize(rcClear);
+				}
+				else SetBorderStyle(nStyle);
+			}
+			else SetBorderStyle(_ttoi(pstrValue));
+		}
 		else if( _tcsicmp(pstrName, _T("borderround")) == 0 ) {
 			SIZE cxyRound = { 0 };
 			LPTSTR pstr = NULL;
@@ -1261,8 +1451,29 @@ namespace DuiLib {
 		}
 		else if( _tcsicmp(pstrName, _T("bkimage")) == 0 ) SetBkImage(pstrValue);
 		else if( _tcsicmp(pstrName, _T("foreimage")) == 0 ) SetForeImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("width")) == 0 ) SetFixedWidth(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("height")) == 0 ) SetFixedHeight(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("width")) == 0 ) {
+			// "120" 像素；"50%" / "100%" 相对父级可用宽
+			LPCTSTR p = pstrValue;
+			while( p && (*p == _T(' ') || *p == _T('\t')) ) ++p;
+			LPTSTR pEnd = NULL;
+			double v = _tcstod(p, &pEnd);
+			if( pEnd != p ) {
+				while( *pEnd == _T(' ') || *pEnd == _T('\t') ) ++pEnd;
+				if( *pEnd == _T('%') ) SetWidthPercent((float)(v / 100.0));
+				else SetFixedWidth((int)v);
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("height")) == 0 ) {
+			LPCTSTR p = pstrValue;
+			while( p && (*p == _T(' ') || *p == _T('\t')) ) ++p;
+			LPTSTR pEnd = NULL;
+			double v = _tcstod(p, &pEnd);
+			if( pEnd != p ) {
+				while( *pEnd == _T(' ') || *pEnd == _T('\t') ) ++pEnd;
+				if( *pEnd == _T('%') ) SetHeightPercent((float)(v / 100.0));
+				else SetFixedHeight((int)v);
+			}
+		}
 		else if( _tcsicmp(pstrName, _T("minwidth")) == 0 ) SetMinWidth(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("minheight")) == 0 ) SetMinHeight(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("maxwidth")) == 0 ) SetMaxWidth(_ttoi(pstrValue));
@@ -1391,9 +1602,22 @@ namespace DuiLib {
 
 	SIZE CControlUI::EstimateSize(SIZE szAvailable)
 	{
-		if(m_pManager != NULL)
-			return m_pManager->GetDPIObj()->Scale(m_cxyFixed);
-		return m_cxyFixed;
+		SIZE sz = { 0, 0 };
+		if( m_fWidthPercent > 0.0f ) {
+			if( szAvailable.cx > 0 )
+				sz.cx = (int)(szAvailable.cx * (double)m_fWidthPercent + 0.5);
+		}
+		else {
+			sz.cx = GetFixedWidth();
+		}
+		if( m_fHeightPercent > 0.0f ) {
+			if( szAvailable.cy > 0 )
+				sz.cy = (int)(szAvailable.cy * (double)m_fHeightPercent + 0.5);
+		}
+		else {
+			sz.cy = GetFixedHeight();
+		}
+		return sz;
 	}
 
 	bool CControlUI::Paint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
@@ -1452,22 +1676,11 @@ namespace DuiLib {
 			}
 		}
 		else {
-			SIZE cxyRound = GetBorderRound();
 			DWORD color = GetAdjustColor(m_dwBackColor);
-			// kind 样式默认应有圆角；若 borderround 未被设置则回退（直径 12 → 半径 6）
-			if( (cxyRound.cx <= 0 && cxyRound.cy <= 0) &&
-				m_controlKind != CONTROLKIND_NONE && m_controlKind != CONTROLKIND_LINK ) {
-				cxyRound.cx = cxyRound.cy = 12;
-				if( m_pManager != NULL ) m_pManager->GetDPIObj()->Scale(&cxyRound);
-			}
-			if( cxyRound.cx > 0 || cxyRound.cy > 0 ) {
-				RECT rcFill = (m_dwBackColor >= 0xFF000000) ? m_rcPaint : m_rcItem;
-				// 与 m_rcItem 求交，避免脏区矩形撑破圆角
-				RECT rc = { 0 };
-				if( !::IntersectRect(&rc, &rcFill, &m_rcItem) ) return;
-				ctx.FillRoundRect(m_rcItem, cxyRound.cx, cxyRound.cy, color);
-			}
-			else if( m_dwBackColor >= 0xFF000000 ) ctx.DrawColor(m_rcPaint, color);
+			// 有 BorderRound 时 DoPaint 已 PushRoundClip：这里用直角填充，
+			// 避免 FillRoundRect 与 clip 几何不一致在角上漏出灰/透明底。
+			// 按钮等自行 override PaintBkColor 仍可用 FillRoundRect。
+			if( m_dwBackColor >= 0xFF000000 ) ctx.DrawColor(m_rcPaint, color);
 			else ctx.DrawColor(m_rcItem, color);
 		}
 	}
