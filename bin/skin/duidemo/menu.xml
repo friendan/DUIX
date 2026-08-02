@@ -31,7 +31,7 @@
 
     <MenuElement height="30" >
       <vbox bkcolor="#FFFFFFFE">
-        <Button name="menuitembtn" height="30" text="菜单按钮" normalimage="res='button_normal.png' corner='4,4,4,4'" hotimage="res='button_hover.png' corner='4,4,4,4'" pushedimage="res='button_pushed.png' corner='4,4,4,4'"/>
+        <Button name="menuitembtn" height="30" text="菜单按钮" kind="default" />
       </vbox>
     </MenuElement>
 
