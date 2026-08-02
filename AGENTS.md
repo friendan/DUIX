@@ -13,7 +13,7 @@
 ```
 src/           CMake 源码目录（顶层 CMakeLists.txt）
   DuiLib/      DuiLib 库源码
-  Demos/       示例程序（duidemo, HiDPITest, transwnd 等）
+  Demos/       示例程序（duidemo, HiDPITest 等）
 bin/           编译输出 + 运行时资源（skin 目录）
 docs/controls/ 控件用法知识库（按控件一篇，勿堆本文件）
 ```
@@ -132,9 +132,8 @@ build_clang_ninja_release.bat
 | 1 | `duidemo_dbg.exe` | 启动非黑屏；主界面皮肤/按钮圆角/文字正常；切换 Tab/列表滚动无明显花屏 |
 | 2 | `duidemo_dbg.exe` | 含 Html 文本、图片按钮的页面；悬停/按下态图正常 |
 | 3 | `HiDPITest_dbg.exe` | 启动有内容（非大块空白）；改 DPI/缩放后控件与文字不错位、不整区空白 |
-| 4 | `transwnd_dbg.exe` | 分层窗半透明正常（非黑方块）；最小化/最大化/关闭按钮悬停态；拖动/缩放后仍正确 |
-| 5 | （若有）ColorPalette 相关页 | 色板/滑条绘制正常（走 D2D `StretchBlit`，勿再整帧 Flush） |
+| 4 | （若有）ColorPalette 相关页 | 色板/滑条绘制正常（走 D2D `StretchBlit`，勿再整帧 Flush） |
 
 **失败信号**：整窗黑色、客户区大块空白、分层变不透明黑块、悬停图不刷新、HiDPI 裁剪后空白 → 先怀疑 EndFrame sync / Present / GetDC Interop / RoundClip，而不是单个控件逻辑。
 
-建议顺序：先 1+4（最快暴露黑屏与分层问题），再 3，最后 2/5。
+建议顺序：先 1（最快暴露黑屏），再 3，最后 2/4。
