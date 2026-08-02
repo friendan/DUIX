@@ -527,6 +527,110 @@ namespace DuiLib {
 		}
 	}
 
+	// :hover / :active / :disabled → 映射到控件已有状态属性（解析期，全控件通用）
+	enum CssPseudoKind { CSS_PSEUDO_NONE = 0, CSS_PSEUDO_HOVER, CSS_PSEUDO_ACTIVE, CSS_PSEUDO_DISABLED };
+
+	static CssPseudoKind SplitCssSelectorPseudo(CDuiString& sSelector)
+	{
+		sSelector.Trim();
+		const int nColon = sSelector.ReverseFind(_T(':'));
+		if( nColon < 0 ) return CSS_PSEUDO_NONE;
+		CDuiString sPseudo = sSelector.Mid(nColon + 1);
+		sPseudo.Trim();
+		sPseudo.MakeLower();
+		CssPseudoKind kind = CSS_PSEUDO_NONE;
+		if( sPseudo == _T("hover") ) kind = CSS_PSEUDO_HOVER;
+		else if( sPseudo == _T("active") ) kind = CSS_PSEUDO_ACTIVE;
+		else if( sPseudo == _T("disabled") ) kind = CSS_PSEUDO_DISABLED;
+		else return CSS_PSEUDO_NONE;
+		sSelector = sSelector.Left(nColon);
+		sSelector.Trim();
+		return kind;
+	}
+
+	static bool CssAttrLooksAlreadyStateful(LPCTSTR pstrKey)
+	{
+		if( pstrKey == NULL || *pstrKey == _T('\0') ) return false;
+		if( _tcsnicmp(pstrKey, _T("hot"), 3) == 0 ) return true;
+		if( _tcsnicmp(pstrKey, _T("pushed"), 6) == 0 ) return true;
+		if( _tcsnicmp(pstrKey, _T("disabled"), 8) == 0 ) return true;
+		if( _tcsnicmp(pstrKey, _T("focused"), 7) == 0 ) return true;
+		if( _tcsnicmp(pstrKey, _T("selected"), 8) == 0 ) return true;
+		if( _tcsnicmp(pstrKey, _T("color-"), 6) == 0 ) return true;
+		if( _tcsnicmp(pstrKey, _T("fill-"), 5) == 0 ) return true;
+		return false;
+	}
+
+	static CDuiString RemapCssAttrKeyForPseudo(LPCTSTR pstrKey, CssPseudoKind pseudo)
+	{
+		CDuiString sKey = pstrKey ? pstrKey : _T("");
+		sKey.Trim();
+		if( sKey.IsEmpty() ) return sKey;
+
+		// fill-* → color-*（SvgBox）
+		if( _tcsicmp(sKey.GetData(), _T("fill-hover")) == 0 ) return _T("color-hover");
+		if( _tcsicmp(sKey.GetData(), _T("fill-active")) == 0 ) return _T("color-active");
+		if( _tcsicmp(sKey.GetData(), _T("fill-disabled")) == 0 ) return _T("color-disabled");
+		if( _tcsicmp(sKey.GetData(), _T("fill")) == 0 ) sKey = _T("color");
+
+		if( CssAttrLooksAlreadyStateful(sKey.GetData()) )
+			return sKey;
+
+		if( pseudo == CSS_PSEUDO_NONE ) {
+			if( _tcsicmp(sKey.GetData(), _T("color")) == 0 ) return _T("color");
+			return sKey;
+		}
+
+		// SvgBox：color → color-hover / color-active / color-disabled
+		if( _tcsicmp(sKey.GetData(), _T("color")) == 0 ) {
+			switch( pseudo ) {
+			case CSS_PSEUDO_HOVER: return _T("color-hover");
+			case CSS_PSEUDO_ACTIVE: return _T("color-active");
+			case CSS_PSEUDO_DISABLED: return _T("color-disabled");
+			default: return _T("color");
+			}
+		}
+
+		struct TCssStateMap {
+			LPCTSTR pBase;
+			LPCTSTR pHover;
+			LPCTSTR pActive;
+			LPCTSTR pDisabled; // NULL = 伪类下不改写
+		};
+		static const TCssStateMap kMap[] = {
+			{ _T("bkcolor"),     _T("hotbkcolor"),      _T("pushedbkcolor"),      _T("disabledbkcolor") },
+			{ _T("textcolor"),   _T("hottextcolor"),    _T("pushedtextcolor"),    _T("disabledtextcolor") },
+			{ _T("bordercolor"), _T("hotbordercolor"),  _T("pushedbordercolor"),  _T("disabledbordercolor") },
+			{ _T("image"),       _T("hotimage"),        _T("pushedimage"),        _T("disabledimage") },
+			{ _T("bkimage"),     _T("hotimage"),        _T("pushedimage"),        _T("disabledimage") },
+			{ _T("foreimage"),   _T("hotforeimage"),    _T("pushedforeimage"),    NULL },
+			{ _T("font"),        _T("hotfont"),         _T("pushedfont"),         NULL },
+		};
+		for( int i = 0; i < (int)(sizeof(kMap) / sizeof(kMap[0])); ++i ) {
+			if( _tcsicmp(sKey.GetData(), kMap[i].pBase) != 0 ) continue;
+			LPCTSTR pMapped = NULL;
+			switch( pseudo ) {
+			case CSS_PSEUDO_HOVER: pMapped = kMap[i].pHover; break;
+			case CSS_PSEUDO_ACTIVE: pMapped = kMap[i].pActive; break;
+			case CSS_PSEUDO_DISABLED: pMapped = kMap[i].pDisabled; break;
+			default: break;
+			}
+			if( pMapped != NULL ) return pMapped;
+			return sKey;
+		}
+		return sKey;
+	}
+
+	static void AppendCssAttr(CDuiString& sAttrList, LPCTSTR pstrKey, LPCTSTR pstrVal)
+	{
+		if( pstrKey == NULL || *pstrKey == _T('\0') || pstrVal == NULL || *pstrVal == _T('\0') ) return;
+		if( !sAttrList.IsEmpty() ) sAttrList += _T(' ');
+		sAttrList += pstrKey;
+		sAttrList += _T("=\"");
+		sAttrList += pstrVal;
+		sAttrList += _T("\"");
+	}
+
 	static void ParseCssBlock(CPaintManagerUI* pManager, LPCTSTR pCssText)
 	{
 		if (pManager == NULL || pCssText == NULL) return;
@@ -546,7 +650,9 @@ namespace DuiLib {
 			sSelector.Trim();
 			if (*p != _T('{')) break;
 			p++;
-			CDuiString sAttrList;
+
+			struct TCssDecl { CDuiString sKey; CDuiString sVal; };
+			CStdPtrArray aDecls;
 			while (*p != _T('\0') && *p != _T('}')) {
 				SkipCssCommentsAndSpace(p);
 				if (*p == _T('\0') || *p == _T('}')) break;
@@ -576,17 +682,45 @@ namespace DuiLib {
 				if (*p == _T(';')) p++;
 				SkipCssCommentsAndSpace(p); // 吃掉分号后的 // / /* 注释
 				if (!sKey.IsEmpty() && !sVal.IsEmpty()) {
-					if (!sAttrList.IsEmpty()) sAttrList += _T(' ');
-					sAttrList += sKey;
-					sAttrList += _T("=\"");
-					sAttrList += sVal;
-					sAttrList += _T("\"");
+					TCssDecl* pDecl = new TCssDecl;
+					pDecl->sKey = sKey;
+					pDecl->sVal = sVal;
+					aDecls.Add(pDecl);
 				}
 			}
 			if (*p == _T('}')) p++;
-			if (!sSelector.IsEmpty() && !sAttrList.IsEmpty()) {
-				pManager->AddCssRule(sSelector, sAttrList);
+
+			if (!sSelector.IsEmpty() && aDecls.GetSize() > 0) {
+				// 逗号分隔选择器列表
+				LPCTSTR pSel = sSelector.GetData();
+				while (*pSel != _T('\0')) {
+					CDuiString sOne;
+					while (*pSel != _T('\0') && *pSel != _T(','))
+						sOne += *pSel++;
+					if (*pSel == _T(',')) ++pSel;
+					sOne.Trim();
+					if (sOne.IsEmpty()) continue;
+
+					const CssPseudoKind pseudo = SplitCssSelectorPseudo(sOne);
+					if (sOne.IsEmpty()) continue;
+
+					CDuiString sAttrList;
+					for (int i = 0; i < aDecls.GetSize(); ++i) {
+						TCssDecl* pDecl = static_cast<TCssDecl*>(aDecls.GetAt(i));
+						if (pDecl == NULL) continue;
+						CDuiString sMapped = RemapCssAttrKeyForPseudo(pDecl->sKey.GetData(), pseudo);
+						AppendCssAttr(sAttrList, sMapped.GetData(), pDecl->sVal.GetData());
+					}
+					if (!sAttrList.IsEmpty())
+						pManager->AddCssRule(sOne, sAttrList);
+				}
 			}
+
+			for (int i = 0; i < aDecls.GetSize(); ++i) {
+				TCssDecl* pDecl = static_cast<TCssDecl*>(aDecls.GetAt(i));
+				delete pDecl;
+			}
+			aDecls.Empty();
 		}
 	}
 

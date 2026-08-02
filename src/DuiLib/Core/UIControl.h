@@ -102,6 +102,20 @@ namespace DuiLib {
 		LPCTSTR GetForeImage() const;
 		void SetForeImage(LPCTSTR pStrImage);
 
+		// 通用状态色（容器 / 基类控件；Button 等子类可自有同名属性覆盖绘制）
+		DWORD GetHotBkColor() const;
+		void SetHotBkColor(DWORD dwColor);
+		DWORD GetPushedBkColor() const;
+		void SetPushedBkColor(DWORD dwColor);
+		DWORD GetDisabledBkColor() const;
+		void SetDisabledBkColor(DWORD dwColor);
+		DWORD GetHotBorderColor() const;
+		void SetHotBorderColor(DWORD dwColor);
+		DWORD GetPushedBorderColor() const;
+		void SetPushedBorderColor(DWORD dwColor);
+		DWORD GetDisabledBorderColor() const;
+		void SetDisabledBorderColor(DWORD dwColor);
+
 		DWORD GetFocusBorderColor() const;
 		void SetFocusBorderColor(DWORD dwBorderColor);
 		bool IsColorHSL() const;
@@ -271,6 +285,10 @@ namespace DuiLib {
 		CEventSource OnNotify;
 
 	protected:
+		bool HasStateVisual() const;
+		DWORD GetPaintBkColor() const;
+		DWORD GetPaintBorderColor() const;
+
 		CPaintManagerUI* m_pManager;
 		CControlUI* m_pParent;
 		CDuiString m_sVirtualWnd;
@@ -322,6 +340,13 @@ namespace DuiLib {
 		CDuiString m_sForeImage;
 		DWORD m_dwBorderColor;
 		DWORD m_dwFocusBorderColor;
+		DWORD m_dwHotBkColor;
+		DWORD m_dwPushedBkColor;
+		DWORD m_dwDisabledBkColor;
+		DWORD m_dwHotBorderColor;
+		DWORD m_dwPushedBorderColor;
+		DWORD m_dwDisabledBorderColor;
+		UINT m_uControlState;
 		bool m_bColorHSL;
 		int m_nBorderSize;
 		int m_nBorderStyle;

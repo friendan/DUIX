@@ -112,6 +112,13 @@ namespace DuiLib {
 		m_dwForeColor(0),
 		m_dwBorderColor(0),
 		m_dwFocusBorderColor(0),
+		m_dwHotBkColor(0),
+		m_dwPushedBkColor(0),
+		m_dwDisabledBkColor(0),
+		m_dwHotBorderColor(0),
+		m_dwPushedBorderColor(0),
+		m_dwDisabledBorderColor(0),
+		m_uControlState(0),
 		m_bColorHSL(false),
 		m_nBorderSize(0),
 		m_nBorderStyle(PS_SOLID),
@@ -373,6 +380,113 @@ namespace DuiLib {
 
 		m_dwBorderColor = dwBorderColor;
 		Invalidate();
+	}
+
+	DWORD CControlUI::GetHotBkColor() const
+	{
+		return m_dwHotBkColor;
+	}
+
+	void CControlUI::SetHotBkColor(DWORD dwColor)
+	{
+		if( m_dwHotBkColor == dwColor ) return;
+		m_dwHotBkColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CControlUI::GetPushedBkColor() const
+	{
+		return m_dwPushedBkColor;
+	}
+
+	void CControlUI::SetPushedBkColor(DWORD dwColor)
+	{
+		if( m_dwPushedBkColor == dwColor ) return;
+		m_dwPushedBkColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CControlUI::GetDisabledBkColor() const
+	{
+		return m_dwDisabledBkColor;
+	}
+
+	void CControlUI::SetDisabledBkColor(DWORD dwColor)
+	{
+		if( m_dwDisabledBkColor == dwColor ) return;
+		m_dwDisabledBkColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CControlUI::GetHotBorderColor() const
+	{
+		return m_dwHotBorderColor;
+	}
+
+	void CControlUI::SetHotBorderColor(DWORD dwColor)
+	{
+		if( m_dwHotBorderColor == dwColor ) return;
+		m_dwHotBorderColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CControlUI::GetPushedBorderColor() const
+	{
+		return m_dwPushedBorderColor;
+	}
+
+	void CControlUI::SetPushedBorderColor(DWORD dwColor)
+	{
+		if( m_dwPushedBorderColor == dwColor ) return;
+		m_dwPushedBorderColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CControlUI::GetDisabledBorderColor() const
+	{
+		return m_dwDisabledBorderColor;
+	}
+
+	void CControlUI::SetDisabledBorderColor(DWORD dwColor)
+	{
+		if( m_dwDisabledBorderColor == dwColor ) return;
+		m_dwDisabledBorderColor = dwColor;
+		Invalidate();
+	}
+
+	bool CControlUI::HasStateVisual() const
+	{
+		return m_dwHotBkColor != 0 || m_dwPushedBkColor != 0 || m_dwDisabledBkColor != 0
+			|| m_dwHotBorderColor != 0 || m_dwPushedBorderColor != 0 || m_dwDisabledBorderColor != 0;
+	}
+
+	DWORD CControlUI::GetPaintBkColor() const
+	{
+		if( !IsEnabled() || (m_uControlState & UISTATE_DISABLED) != 0 ) {
+			if( m_dwDisabledBkColor != 0 ) return m_dwDisabledBkColor;
+		}
+		else if( (m_uControlState & UISTATE_PUSHED) != 0 && m_dwPushedBkColor != 0 ) {
+			return m_dwPushedBkColor;
+		}
+		else if( (m_uControlState & UISTATE_HOT) != 0 && m_dwHotBkColor != 0 ) {
+			return m_dwHotBkColor;
+		}
+		return m_dwBackColor;
+	}
+
+	DWORD CControlUI::GetPaintBorderColor() const
+	{
+		if( !IsEnabled() || (m_uControlState & UISTATE_DISABLED) != 0 ) {
+			if( m_dwDisabledBorderColor != 0 ) return m_dwDisabledBorderColor;
+		}
+		else if( (m_uControlState & UISTATE_PUSHED) != 0 && m_dwPushedBorderColor != 0 ) {
+			return m_dwPushedBorderColor;
+		}
+		else if( (m_uControlState & UISTATE_HOT) != 0 && m_dwHotBorderColor != 0 ) {
+			return m_dwHotBorderColor;
+		}
+		if( IsFocused() && m_dwFocusBorderColor != 0 ) return m_dwFocusBorderColor;
+		return m_dwBorderColor;
 	}
 
 	DWORD CControlUI::GetFocusBorderColor() const
@@ -887,6 +1001,8 @@ namespace DuiLib {
 		if( m_bEnabled == bEnabled ) return;
 
 		m_bEnabled = bEnabled;
+		if( bEnabled ) m_uControlState &= ~UISTATE_DISABLED;
+		else m_uControlState |= UISTATE_DISABLED;
 		Invalidate();
 	}
 
@@ -1064,6 +1180,46 @@ namespace DuiLib {
 		{
 			if( IsContextMenuUsed() ) {
 				m_pManager->SendNotify(this, DUI_MSGTYPE_MENU, event.wParam, event.lParam);
+				return;
+			}
+		}
+
+		// 仅当配置了状态色时跟踪热态，避免无样式控件改变冒泡行为
+		if( HasStateVisual() && IsMouseEnabled() ) {
+			if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK ) {
+				if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() ) {
+					m_uControlState |= UISTATE_PUSHED | UISTATE_CAPTURED;
+					Invalidate();
+				}
+				return;
+			}
+			if( event.Type == UIEVENT_MOUSEMOVE ) {
+				if( (m_uControlState & UISTATE_CAPTURED) != 0 ) {
+					if( ::PtInRect(&m_rcItem, event.ptMouse) )
+						m_uControlState |= UISTATE_PUSHED;
+					else
+						m_uControlState &= ~UISTATE_PUSHED;
+					Invalidate();
+				}
+				return;
+			}
+			if( event.Type == UIEVENT_BUTTONUP ) {
+				if( (m_uControlState & UISTATE_CAPTURED) != 0 ) {
+					m_uControlState &= ~(UISTATE_PUSHED | UISTATE_CAPTURED);
+					Invalidate();
+				}
+				return;
+			}
+			if( event.Type == UIEVENT_MOUSEENTER ) {
+				if( IsEnabled() ) {
+					m_uControlState |= UISTATE_HOT;
+					Invalidate();
+				}
+				return;
+			}
+			if( event.Type == UIEVENT_MOUSELEAVE ) {
+				m_uControlState &= ~UISTATE_HOT;
+				Invalidate();
 				return;
 			}
 		}
@@ -1420,6 +1576,30 @@ namespace DuiLib {
 			DWORD clrColor = 0;
 			if( ParseColorString(pstrValue, clrColor) ) SetBkColor3(clrColor);
 		}
+		else if( _tcsicmp(pstrName, _T("hotbkcolor")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetHotBkColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("pushedbkcolor")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetPushedBkColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("disabledbkcolor")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetDisabledBkColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("hotbordercolor")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetHotBorderColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("pushedbordercolor")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetPushedBorderColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("disabledbordercolor")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetDisabledBorderColor(clrColor);
+		}
 		else if( _tcsicmp(pstrName, _T("forecolor")) == 0 ) {
 			DWORD clrColor = 0;
 			if( ParseColorString(pstrValue, clrColor) ) SetForeColor(clrColor);
@@ -1687,11 +1867,16 @@ namespace DuiLib {
 
 	void CControlUI::PaintBkColor(IRenderContext& ctx)
 	{
-		if( m_dwBackColor == 0 ) return;
+		if( !IsEnabled() ) m_uControlState |= UISTATE_DISABLED;
+		else m_uControlState &= ~UISTATE_DISABLED;
 
+		const DWORD dwPaintBk = GetPaintBkColor();
+		if( dwPaintBk == 0 ) return;
 
+		// 状态色（非常态）时忽略渐变，直接铺纯色
+		const bool bStateFill = (dwPaintBk != m_dwBackColor);
 		bool bVer = (m_sGradient.CompareNoCase(_T("hor")) != 0);
-		if( m_dwBackColor2 != 0 ) {
+		if( !bStateFill && m_dwBackColor2 != 0 ) {
 			if( m_dwBackColor3 != 0 ) {
 				RECT rc = m_rcItem;
 				rc.bottom = (rc.bottom + rc.top) / 2;
@@ -1705,11 +1890,11 @@ namespace DuiLib {
 			}
 		}
 		else {
-			DWORD color = GetAdjustColor(m_dwBackColor);
+			DWORD color = GetAdjustColor(dwPaintBk);
 			// 有 BorderRound 时 DoPaint 已 PushRoundClip：这里用直角填充，
 			// 避免 FillRoundRect 与 clip 几何不一致在角上漏出灰/透明底。
 			// 按钮等自行 override PaintBkColor 仍可用 FillRoundRect。
-			if( m_dwBackColor >= 0xFF000000 ) ctx.DrawColor(m_rcPaint, color);
+			if( dwPaintBk >= 0xFF000000 ) ctx.DrawColor(m_rcPaint, color);
 			else ctx.DrawColor(m_rcItem, color);
 		}
 	}
@@ -1747,48 +1932,42 @@ namespace DuiLib {
 		int nBorderSize = GetBorderSize();
 		SIZE cxyBorderRound = GetBorderRound();
 		RECT rcBorderSize = GetBorderRectSize();
-		
-		if(m_dwBorderColor != 0 || m_dwFocusBorderColor != 0) {
+		const DWORD dwBorder = GetPaintBorderColor();
 
+		if(dwBorder != 0) {
 			//画圆角边框
 			if(nBorderSize > 0 && ( cxyBorderRound.cx > 0 || cxyBorderRound.cy > 0 )) {
-				if (IsFocused() && m_dwFocusBorderColor != 0)
-					ctx.DrawRoundRect(m_rcItem, nBorderSize, cxyBorderRound.cx, cxyBorderRound.cy, GetAdjustColor(m_dwFocusBorderColor), m_nBorderStyle);
-				else
-					ctx.DrawRoundRect(m_rcItem, nBorderSize, cxyBorderRound.cx, cxyBorderRound.cy, GetAdjustColor(m_dwBorderColor), m_nBorderStyle);
+				ctx.DrawRoundRect(m_rcItem, nBorderSize, cxyBorderRound.cx, cxyBorderRound.cy, GetAdjustColor(dwBorder), m_nBorderStyle);
 			}
 			else {
-				if (IsFocused() && m_dwFocusBorderColor != 0 && nBorderSize > 0) { 
-					ctx.DrawRect(m_rcItem, nBorderSize, GetAdjustColor(m_dwFocusBorderColor), m_nBorderStyle);
-				}
-				else if(rcBorderSize.left > 0 || rcBorderSize.top > 0 || rcBorderSize.right > 0 || rcBorderSize.bottom > 0) {
+				if(rcBorderSize.left > 0 || rcBorderSize.top > 0 || rcBorderSize.right > 0 || rcBorderSize.bottom > 0) {
 					RECT rcBorder;
 
 					if(rcBorderSize.left > 0){
 						rcBorder		= m_rcItem;
 						rcBorder.right	= rcBorder.left;
-						ctx.DrawLine(rcBorder,rcBorderSize.left,GetAdjustColor(m_dwBorderColor),m_nBorderStyle);
+						ctx.DrawLine(rcBorder,rcBorderSize.left,GetAdjustColor(dwBorder),m_nBorderStyle);
 					}
 					if(rcBorderSize.top > 0){
 						rcBorder		= m_rcItem;
 						rcBorder.bottom	= rcBorder.top;
-						ctx.DrawLine(rcBorder,rcBorderSize.top,GetAdjustColor(m_dwBorderColor),m_nBorderStyle);
+						ctx.DrawLine(rcBorder,rcBorderSize.top,GetAdjustColor(dwBorder),m_nBorderStyle);
 					}
 					if(rcBorderSize.right > 0){
 						rcBorder		= m_rcItem;
 						rcBorder.right -= 1;
 						rcBorder.left	= rcBorder.right;
-						ctx.DrawLine(rcBorder,rcBorderSize.right,GetAdjustColor(m_dwBorderColor),m_nBorderStyle);
+						ctx.DrawLine(rcBorder,rcBorderSize.right,GetAdjustColor(dwBorder),m_nBorderStyle);
 					}
 					if(rcBorderSize.bottom > 0){
 						rcBorder		= m_rcItem;
 						rcBorder.bottom -= 1;
 						rcBorder.top	= rcBorder.bottom;
-						ctx.DrawLine(rcBorder,rcBorderSize.bottom,GetAdjustColor(m_dwBorderColor),m_nBorderStyle);
+						ctx.DrawLine(rcBorder,rcBorderSize.bottom,GetAdjustColor(dwBorder),m_nBorderStyle);
 					}
 				}
 				else if(nBorderSize > 0) {
-					ctx.DrawRect(m_rcItem, nBorderSize, GetAdjustColor(m_dwBorderColor), m_nBorderStyle);
+					ctx.DrawRect(m_rcItem, nBorderSize, GetAdjustColor(dwBorder), m_nBorderStyle);
 				}
 			}
 		}

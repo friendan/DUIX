@@ -30,7 +30,7 @@
             </HBox>
             </AccordionItem>
             <AccordionItem title="SvgBox" active="false" header-align="left">
-              <VBox height="160" childpadding="8" inset="8,4,8,4">
+              <VBox height="240" childpadding="8" inset="8,4,8,4">
                 <HBox height="40" childpadding="8" childvalign="vcenter">
                   <Button name="btn_bsicon" text="bsicon" kind="info" width="90" height="32" tooltip="打开 Bootstrap Icons 浏览器" />
                   <Button name="btn_iconpark" text="iconpark" kind="warning" width="90" height="32" tooltip="打开 IconPark 图标浏览器" />
@@ -41,18 +41,26 @@
                   <Button name="btn_twicon" text="twicon" kind="info" width="90" height="32" tooltip="打开 Twemoji 图标浏览器" />
                 </HBox>
                 <HBox height="40" childpadding="12" childvalign="vcenter">
-                  <Svg lucide="circle-check" width="32" height="32" tint="#FF1677FF" />
-                  <Svg bsicon="check-circle" width="32" height="32" tint="#FF52C41A" />
-                  <Svg iconpark="check-one" width="32" height="32" tint="#FFFAAD14" />
-                  <Svg tabler-outline="circle-check" width="32" height="32" tint="#FFFF4D4F" />
-                  <Svg tabler-filled="circle-check" width="32" height="32" tint="#FF722ED1" />
-                  <Svg remixicon="checkbox-circle-line" width="32" height="32" tint="#FF13C2C2" />
+                  <Svg lucide="circle-check" width="32" height="32" color="#FF1677FF" color-hover="#FF69B1FF" color-active="#FF0958D9" />
+                  <Svg bsicon="check-circle" width="32" height="32" color="#FF52C41A" color-hover="#FF95DE64" color-active="#FF389E0D" />
+                  <Svg iconpark="check-one" width="32" height="32" color="#FFFAAD14" color-hover="#FFFFD666" color-active="#FFD48806" />
+                  <Svg tabler-outline="circle-check" width="32" height="32" color="#FFFF4D4F" color-hover="#FFFF7875" color-active="#FFCF1322" />
+                  <Svg tabler-filled="circle-check" width="32" height="32" color="#FF722ED1" color-hover="#FFB37FEB" color-active="#FF531DAB" />
+                  <Svg remixicon="checkbox-circle-line" width="32" height="32" color="#FF13C2C2" color-hover="#FF5CDBD3" color-active="#FF08979C" />
                   <Svg twicon="2705" width="32" height="32" />
-                  <Label text="内置图标包" textcolor="#FF666666" />
+                  <Label text="内联 color / color-hover / color-active" textcolor="#FF666666" />
                 </HBox>
                 <HBox height="40" childpadding="12" childvalign="vcenter">
-                  <Svg src="svg/check.svg" width="32" height="32" tint="#FF1677FF" />
-                  <Label text="src 文件" textcolor="#FF666666" />
+                  <Svg name="svg_css_demo" lucide="heart" width="32" height="32" />
+                  <Svg src="svg/check.svg" width="32" height="32" color="#FF1677FF" color-hover="#FF69B1FF" />
+                  <Label text="左：#id:hover color；右：内联 color-hover" textcolor="#FF666666" />
+                </HBox>
+                <HBox height="40" childpadding="12" childvalign="vcenter">
+                  <Button name="btn_css_hover" text="Button:hover" width="120" height="32" />
+                  <HBox name="box_css_hover" width="120" height="32" childvalign="vcenter">
+                    <Label text="HBox:hover" align="center" width="120" mouse="false" />
+                  </HBox>
+                  <Label text="通用伪类：bkcolor/textcolor → hot*" textcolor="#FF666666" />
                 </HBox>
               </VBox>
             </AccordionItem>
@@ -147,5 +155,40 @@
     caption: 0,0,0,64;
     mininfo: 600,480;
     shadowimage: main/shadow.png;
+  }
+  /* 伪类解析期映射为状态属性（全控件通用） */
+  #svg_css_demo {
+    color: #eb2f96;
+  }
+  #svg_css_demo:hover {
+    color: #ff85c0;
+  }
+  #svg_css_demo:active {
+    color: #c41d7f;
+  }
+  #btn_css_hover {
+    bkcolor: #1677ff;
+    textcolor: #ffffff;
+    borderround: 6,6;
+  }
+  #btn_css_hover:hover {
+    bkcolor: #4096ff;
+    textcolor: #ffffff;
+  }
+  #btn_css_hover:active {
+    bkcolor: #0958d9;
+  }
+  #box_css_hover {
+    bkcolor: #f5f5f5;
+    bordercolor: #d9d9d9;
+    bordersize: 1;
+    borderround: 6,6;
+  }
+  #box_css_hover:hover {
+    bkcolor: #e6f4ff;
+    bordercolor: #1677ff;
+  }
+  #box_css_hover:active {
+    bkcolor: #bae0ff;
   }
 </style>

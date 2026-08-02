@@ -4128,21 +4128,32 @@ namespace DuiLib {
 	{
 		CDuiString sSelector = pstrSelector;
 		sSelector.Trim();
-		if (sSelector.IsEmpty() || pstrAttrList == NULL) return;
+		if (sSelector.IsEmpty() || pstrAttrList == NULL || *pstrAttrList == _T('\0')) return;
 
-		CDuiString* pAttr = new CDuiString(pstrAttrList);
+		CStdStringPtrMap* pMap = NULL;
+		CDuiString sKey;
 		if (sSelector[0] == _T('#')) {
-			CDuiString sId = sSelector.Mid(1);
-			sId.MakeLower();
-			if (!m_ResInfo.m_CssIdRules.Insert(sId, pAttr)) {
-				delete pAttr;
-			}
+			sKey = sSelector.Mid(1);
+			sKey.MakeLower();
+			pMap = &m_ResInfo.m_CssIdRules;
 		}
 		else {
-			sSelector.MakeLower();
-			if (!m_ResInfo.m_CssTypeRules.Insert(sSelector, pAttr)) {
-				delete pAttr;
-			}
+			sKey = sSelector;
+			sKey.MakeLower();
+			pMap = &m_ResInfo.m_CssTypeRules;
+		}
+
+		CDuiString* pExisting = static_cast<CDuiString*>(pMap->Find(sKey));
+		if (pExisting != NULL) {
+			// 同选择器合并；后写属性排在后面，ApplyAttributeList 时覆盖同名
+			if (!pExisting->IsEmpty()) *pExisting += _T(' ');
+			*pExisting += pstrAttrList;
+			return;
+		}
+
+		CDuiString* pAttr = new CDuiString(pstrAttrList);
+		if (!pMap->Insert(sKey, pAttr)) {
+			delete pAttr;
 		}
 	}
 

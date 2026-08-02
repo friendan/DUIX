@@ -58,6 +58,10 @@ namespace DuiLib
 
 	CSvgBoxUI::CSvgBoxUI()
 		: m_dwTintColor(0)
+		, m_dwHotTintColor(0)
+		, m_dwPushedTintColor(0)
+		, m_dwDisabledTintColor(0)
+		, m_uButtonState(0)
 		, m_hCacheBitmap(NULL)
 		, m_nCacheW(0)
 		, m_nCacheH(0)
@@ -96,6 +100,8 @@ namespace DuiLib
 	DWORD CSvgBoxUI::ParseColorValue(LPCTSTR pstrValue)
 	{
 		if( pstrValue == NULL || *pstrValue == _T('\0') ) return 0;
+		DWORD clr = 0;
+		if( ParseColorString(pstrValue, clr) ) return clr;
 		if( *pstrValue == _T('#') ) pstrValue = ::CharNext(pstrValue);
 		LPTSTR pstr = NULL;
 		return _tcstoul(pstrValue, &pstr, 16);
@@ -143,13 +149,124 @@ namespace DuiLib
 	{
 		if( m_dwTintColor == dwColor ) return;
 		m_dwTintColor = dwColor;
-		ClearCache();
 		Invalidate();
 	}
 
 	DWORD CSvgBoxUI::GetTintColor() const
 	{
 		return m_dwTintColor;
+	}
+
+	void CSvgBoxUI::SetHotTintColor(DWORD dwColor)
+	{
+		if( m_dwHotTintColor == dwColor ) return;
+		m_dwHotTintColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CSvgBoxUI::GetHotTintColor() const
+	{
+		return m_dwHotTintColor;
+	}
+
+	void CSvgBoxUI::SetPushedTintColor(DWORD dwColor)
+	{
+		if( m_dwPushedTintColor == dwColor ) return;
+		m_dwPushedTintColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CSvgBoxUI::GetPushedTintColor() const
+	{
+		return m_dwPushedTintColor;
+	}
+
+	void CSvgBoxUI::SetDisabledTintColor(DWORD dwColor)
+	{
+		if( m_dwDisabledTintColor == dwColor ) return;
+		m_dwDisabledTintColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CSvgBoxUI::GetDisabledTintColor() const
+	{
+		return m_dwDisabledTintColor;
+	}
+
+	void CSvgBoxUI::SetEnabled(bool bEnable)
+	{
+		CControlUI::SetEnabled(bEnable);
+		if( bEnable ) m_uButtonState &= ~UISTATE_DISABLED;
+		else m_uButtonState |= UISTATE_DISABLED;
+		Invalidate();
+	}
+
+	DWORD CSvgBoxUI::GetPaintTintColor() const
+	{
+		if( !IsEnabled() || (m_uButtonState & UISTATE_DISABLED) != 0 ) {
+			if( m_dwDisabledTintColor != 0 ) return m_dwDisabledTintColor;
+			return m_dwTintColor;
+		}
+		if( (m_uButtonState & UISTATE_PUSHED) != 0 && m_dwPushedTintColor != 0 )
+			return m_dwPushedTintColor;
+		if( (m_uButtonState & UISTATE_HOT) != 0 && m_dwHotTintColor != 0 )
+			return m_dwHotTintColor;
+		return m_dwTintColor;
+	}
+
+	void CSvgBoxUI::DoEvent(TEventUI& event)
+	{
+		if( !IsMouseEnabled() && event.Type > UIEVENT__MOUSEBEGIN && event.Type < UIEVENT__MOUSEEND ) {
+			if( !BubbleEvent(event) ) CControlUI::DoEvent(event);
+			return;
+		}
+
+		if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK )
+		{
+			if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() ) {
+				m_uButtonState |= UISTATE_PUSHED | UISTATE_CAPTURED;
+				Invalidate();
+			}
+			return;
+		}
+		if( event.Type == UIEVENT_MOUSEMOVE )
+		{
+			if( (m_uButtonState & UISTATE_CAPTURED) != 0 ) {
+				if( ::PtInRect(&m_rcItem, event.ptMouse) )
+					m_uButtonState |= UISTATE_PUSHED;
+				else
+					m_uButtonState &= ~UISTATE_PUSHED;
+				Invalidate();
+			}
+			return;
+		}
+		if( event.Type == UIEVENT_BUTTONUP )
+		{
+			if( (m_uButtonState & UISTATE_CAPTURED) != 0 ) {
+				m_uButtonState &= ~(UISTATE_PUSHED | UISTATE_CAPTURED);
+				Invalidate();
+				if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() && m_pManager != NULL )
+					m_pManager->SendNotify(this, DUI_MSGTYPE_CLICK);
+			}
+			return;
+		}
+		if( event.Type == UIEVENT_MOUSEENTER )
+		{
+			if( IsEnabled() ) {
+				m_uButtonState |= UISTATE_HOT;
+				Invalidate();
+			}
+			return;
+		}
+		if( event.Type == UIEVENT_MOUSELEAVE )
+		{
+			if( IsEnabled() ) {
+				m_uButtonState &= ~UISTATE_HOT;
+				Invalidate();
+			}
+			return;
+		}
+		CControlUI::DoEvent(event);
 	}
 
 	void CSvgBoxUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -181,18 +298,31 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("twicon")) == 0 ) {
 			LoadFromUtf8Data(TwemojiIcons::GetIcon(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tint")) == 0 || _tcsicmp(pstrName, _T("tintcolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("color")) == 0 || _tcsicmp(pstrName, _T("fill")) == 0
+			|| _tcsicmp(pstrName, _T("tint")) == 0 || _tcsicmp(pstrName, _T("tintcolor")) == 0 ) {
 			SetTintColor(ParseColorValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("color-hover")) == 0 || _tcsicmp(pstrName, _T("fill-hover")) == 0
+			|| _tcsicmp(pstrName, _T("hottint")) == 0 || _tcsicmp(pstrName, _T("hottintcolor")) == 0 ) {
+			SetHotTintColor(ParseColorValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("color-active")) == 0 || _tcsicmp(pstrName, _T("fill-active")) == 0
+			|| _tcsicmp(pstrName, _T("pushedtint")) == 0 || _tcsicmp(pstrName, _T("pushedtintcolor")) == 0 ) {
+			SetPushedTintColor(ParseColorValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 || _tcsicmp(pstrName, _T("fill-disabled")) == 0
+			|| _tcsicmp(pstrName, _T("disabledtint")) == 0 || _tcsicmp(pstrName, _T("disabledtintcolor")) == 0 ) {
+			SetDisabledTintColor(ParseColorValue(pstrValue));
 		}
 		else {
 			CControlUI::SetAttribute(pstrName, pstrValue);
 		}
 	}
 
-	bool CSvgBoxUI::EnsureCache(int w, int h)
+	bool CSvgBoxUI::EnsureCache(int w, int h, DWORD dwTint)
 	{
 		if( w <= 0 || h <= 0 ) return false;
-		if( m_hCacheBitmap != NULL && m_nCacheW == w && m_nCacheH == h && m_dwCacheTint == m_dwTintColor )
+		if( m_hCacheBitmap != NULL && m_nCacheW == w && m_nCacheH == h && m_dwCacheTint == dwTint )
 			return true;
 
 		ClearCache();
@@ -211,10 +341,10 @@ namespace DuiLib
 		}
 		if( !document ) return false;
 
-		if( m_dwTintColor != 0 ) {
-			const BYTE r = (BYTE)((m_dwTintColor >> 16) & 0xFF);
-			const BYTE g = (BYTE)((m_dwTintColor >> 8) & 0xFF);
-			const BYTE b = (BYTE)(m_dwTintColor & 0xFF);
+		if( dwTint != 0 ) {
+			const BYTE r = (BYTE)((dwTint >> 16) & 0xFF);
+			const BYTE g = (BYTE)((dwTint >> 8) & 0xFF);
+			const BYTE b = (BYTE)(dwTint & 0xFF);
 			char style[256];
 			sprintf_s(style, sizeof(style),
 				"* { fill: #%02x%02x%02x; stroke: #%02x%02x%02x; }",
@@ -229,15 +359,19 @@ namespace DuiLib
 		if( m_hCacheBitmap == NULL ) return false;
 		m_nCacheW = w;
 		m_nCacheH = h;
-		m_dwCacheTint = m_dwTintColor;
+		m_dwCacheTint = dwTint;
 		return true;
 	}
 
 	void CSvgBoxUI::PaintStatusImage(IRenderContext& ctx)
 	{
+		if( !IsEnabled() ) m_uButtonState |= UISTATE_DISABLED;
+		else m_uButtonState &= ~UISTATE_DISABLED;
+
 		const int w = (int)(m_rcItem.right - m_rcItem.left);
 		const int h = (int)(m_rcItem.bottom - m_rcItem.top);
-		if( !EnsureCache(w, h) || m_hCacheBitmap == NULL ) return;
+		const DWORD dwTint = GetPaintTintColor();
+		if( !EnsureCache(w, h, dwTint) || m_hCacheBitmap == NULL ) return;
 
 		RECT rcBmpPart = { 0, 0, m_nCacheW, m_nCacheH };
 		RECT rcCorners = { 0, 0, 0, 0 };
