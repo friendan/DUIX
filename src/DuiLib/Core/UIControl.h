@@ -11,18 +11,6 @@ namespace DuiLib {
 	class IRenderContext;
 	typedef CControlUI* (CALLBACK* FINDCONTROLPROC)(CControlUI*, LPVOID);
 
-	// 控件行为（对齐 EZUI 的 action 属性）
-	enum UIAction
-	{
-		UIACTION_NONE = 0,
-		UIACTION_CLOSE,      // 关闭窗口
-		UIACTION_MIN,        // 最小化
-		UIACTION_MAX,        // 最大化/还原切换
-		UIACTION_TITLE,      // 标题栏：拖动 + 双击最大化
-		UIACTION_MOVEWINDOW, // 拖动窗口
-		UIACTION_COPY,       // 复制文本到剪贴板
-	};
-
 	// Bootstrap 5.3.8 风格枚举
 	enum ControlKind
 	{

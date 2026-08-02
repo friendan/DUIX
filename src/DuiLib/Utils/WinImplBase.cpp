@@ -179,7 +179,7 @@ namespace DuiLib
 					return HTCAPTION;
 				}
 				// 叶子控件没有自己的 action 时，向上查找容器的 action
-			// 但交互控件（按钮等）不应继承父容器的拖拽行为
+				// 但交互控件（按钮等）不应继承父容器的拖拽行为
 				if (leafAct == UIACTION_NONE && !(pHitCtrl->GetControlFlags() & UIFLAG_SETCURSOR)) {
 					CControlUI* pWalk = pHitCtrl->GetParent();
 					while (pWalk != NULL) {
@@ -190,7 +190,17 @@ namespace DuiLib
 						if (parentAct != UIACTION_NONE) break;
 						pWalk = pWalk->GetParent();
 					}
+					// html { action: title }：点到非交互区时用窗口级 action
+					UIAction winAct = m_pm.GetWindowAction();
+					if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW)
+						return HTCAPTION;
 				}
+			}
+			else {
+				// 点在 root margin / 无控件区（FindControl 为空）
+				UIAction winAct = m_pm.GetWindowAction();
+				if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW)
+					return HTCAPTION;
 			}
 		}
 

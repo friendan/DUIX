@@ -107,6 +107,19 @@ namespace DuiLib {
 			if( ParseColorString(pstrValue, clrColor) )
 				pManager->SetWindowBkColor(clrColor);
 		}
+		else if( _tcsicmp(pstrName, _T("action")) == 0 ) {
+			// html/Window：title/move 等落到窗口级，Attach 后赋给 root（见 SetWindowAction）
+			UIAction act = UIACTION_NONE;
+			if( _tcsicmp(pstrValue, _T("close")) == 0 )         act = UIACTION_CLOSE;
+			else if( _tcsicmp(pstrValue, _T("min")) == 0
+			      || _tcsicmp(pstrValue, _T("mini")) == 0 )     act = UIACTION_MIN;
+			else if( _tcsicmp(pstrValue, _T("max")) == 0 )      act = UIACTION_MAX;
+			else if( _tcsicmp(pstrValue, _T("title")) == 0 )    act = UIACTION_TITLE;
+			else if( _tcsicmp(pstrValue, _T("move")) == 0
+			      || _tcsicmp(pstrValue, _T("movewindow")) == 0) act = UIACTION_MOVEWINDOW;
+			else if( _tcsicmp(pstrValue, _T("copy")) == 0 )     act = UIACTION_COPY;
+			pManager->SetWindowAction(act);
+		}
 		else if( _tcsicmp(pstrName, _T("shadowsize")) == 0 ) {
 			pManager->GetShadow()->SetSize(_ttoi(pstrValue));
 		}

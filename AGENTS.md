@@ -83,6 +83,7 @@ build_clang_ninja_release.bat
 - 旧皮肤里把 `padding` 当外边距用的，需改成 `margin`
 - `border` 支持 CSS 简写：`border="1px solid red"`（宽/样式/颜色顺序任意；`none`/`0` 清除）；细项仍可用 `bordersize` / `bordercolor` / `borderstyle` / `borderround`
 - 颜色值：`ParseColorString` — `#RGB`/`#RRGGBB`/`#AARRGGBB`，以及 CSS 命名色（`red`/`Blue`/`lightgray` 等，大小写不敏感）；`bkcolor`/`bordercolor`/`textcolor`/`border` 等均可用
+- `html { action: title; }`：窗口级拖拽（落到 root；按钮等带 SETCURSOR 的控件不继承）；控件上仍可用 `action="title"`
 
 ## 渲染后端
 

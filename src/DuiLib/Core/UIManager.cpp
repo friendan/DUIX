@@ -281,6 +281,7 @@ namespace DuiLib {
 		m_nOpacity(0xFF),
 		m_dwWindowBkColor(0xFFF0F0F0),
 		m_bWindowBkColorCustom(false),
+		m_windowAction(UIACTION_NONE),
 		m_bLayered(false),
 		m_bLayeredChanged(false),
 		m_bShowUpdateRect(false),
@@ -892,6 +893,26 @@ namespace DuiLib {
 		if( m_dwWindowBkColor == 0 ) return;
 		if( m_pRoot->GetBkColor() != 0 ) return;
 		m_pRoot->SetBkColor(m_dwWindowBkColor);
+	}
+
+	UIAction CPaintManagerUI::GetWindowAction() const
+	{
+		return m_windowAction;
+	}
+
+	void CPaintManagerUI::SetWindowAction(UIAction action)
+	{
+		m_windowAction = action;
+		ApplyDefaultWindowAction();
+	}
+
+	void CPaintManagerUI::ApplyDefaultWindowAction()
+	{
+		if( m_pRoot == NULL ) return;
+		if( m_windowAction == UIACTION_NONE ) return;
+		// body 内联/CSS 已设 action 时不覆盖
+		if( m_pRoot->GetAction() != UIACTION_NONE ) return;
+		m_pRoot->SetAction(m_windowAction);
 	}
 
 	bool CPaintManagerUI::IsLayered()
@@ -2135,6 +2156,7 @@ namespace DuiLib {
 		// Set the dialog root element
 		m_pRoot = pControl;
 		ApplyDefaultWindowBkColor();
+		ApplyDefaultWindowAction();
 		// Go ahead...
 		m_bUpdateNeeded = true;
 		m_bFirstLayout = true;

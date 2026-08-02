@@ -21,6 +21,19 @@ namespace DuiLib {
 		UILIB_RESOURCE,		// 来自资源
 		UILIB_ZIPRESOURCE,	// 来自资源的zip压缩包
 	};
+
+	// 控件/窗口行为（对齐 EZUI 的 action 属性；html { action: title } 亦用此枚举）
+	enum UIAction
+	{
+		UIACTION_NONE = 0,
+		UIACTION_CLOSE,      // 关闭窗口
+		UIACTION_MIN,        // 最小化
+		UIACTION_MAX,        // 最大化/还原切换
+		UIACTION_TITLE,      // 标题栏：拖动 + 双击最大化
+		UIACTION_MOVEWINDOW, // 拖动窗口
+		UIACTION_COPY,       // 复制文本到剪贴板
+	};
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 
@@ -307,6 +320,10 @@ namespace DuiLib {
 		DWORD GetWindowBkColor() const;
 		void SetWindowBkColor(DWORD dwColor);
 
+		// html/Window 的 action（如 title）；Attach 后落到 root（root 已有 action 则不覆盖）
+		UIAction GetWindowAction() const;
+		void SetWindowAction(UIAction action);
+
 		bool IsLayered();
 		void SetLayered(bool bLayered);
 		RECT& GetLayeredInset();
@@ -518,6 +535,7 @@ namespace DuiLib {
 		void AdjustImagesHSL();
 		void PostAsyncNotify();
 		void ApplyDefaultWindowBkColor();
+		void ApplyDefaultWindowAction();
 
 	private:
 		CDuiString m_sName;
@@ -559,6 +577,7 @@ namespace DuiLib {
 		BYTE m_nOpacity;
 		DWORD m_dwWindowBkColor;
 		bool m_bWindowBkColorCustom;
+		UIAction m_windowAction;
 		bool m_bLayered;
 		RECT m_rcLayeredInset;
 		bool m_bLayeredChanged;
