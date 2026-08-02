@@ -103,10 +103,9 @@ namespace DuiLib {
 			pManager->SetDefaultSelectedBkColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("bkcolor")) == 0 || _tcsicmp(pstrName, _T("bkcolor1")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			pManager->SetWindowBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				pManager->SetWindowBkColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("shadowsize")) == 0 ) {
 			pManager->GetShadow()->SetSize(_ttoi(pstrValue));
@@ -490,15 +489,45 @@ namespace DuiLib {
 		delete[] pBuf;
 	}
 
+	static void SkipCssCommentsAndSpace(LPCTSTR& p)
+	{
+		for (;;) {
+			while (*p != _T('\0') && (*p == _T(' ') || *p == _T('\t') || *p == _T('\r') || *p == _T('\n')))
+				++p;
+			// /* ... */（含跨行）；不支持嵌套
+			if (p[0] == _T('/') && p[1] == _T('*')) {
+				p += 2;
+				while (*p != _T('\0') && !(p[0] == _T('*') && p[1] == _T('/')))
+					++p;
+				if (p[0] == _T('*') && p[1] == _T('/'))
+					p += 2;
+				continue;
+			}
+			// // 行注释
+			if (p[0] == _T('/') && p[1] == _T('/')) {
+				p += 2;
+				while (*p != _T('\0') && *p != _T('\r') && *p != _T('\n'))
+					++p;
+				continue;
+			}
+			break;
+		}
+	}
+
 	static void ParseCssBlock(CPaintManagerUI* pManager, LPCTSTR pCssText)
 	{
 		if (pManager == NULL || pCssText == NULL) return;
 		LPCTSTR p = pCssText;
 		while (*p != _T('\0')) {
-			while (*p != _T('\0') && (*p == _T(' ') || *p == _T('\t') || *p == _T('\r') || *p == _T('\n'))) p++;
+			SkipCssCommentsAndSpace(p);
 			if (*p == _T('\0')) break;
 			CDuiString sSelector;
 			while (*p != _T('\0') && *p != _T('{')) {
+				// 选择器列表前的注释
+				if (p[0] == _T('/') && (p[1] == _T('*') || p[1] == _T('/'))) {
+					SkipCssCommentsAndSpace(p);
+					continue;
+				}
 				sSelector += *p++;
 			}
 			sSelector.Trim();
@@ -506,21 +535,33 @@ namespace DuiLib {
 			p++;
 			CDuiString sAttrList;
 			while (*p != _T('\0') && *p != _T('}')) {
-				CDuiString sKey, sVal;
-				while (*p != _T('\0') && *p != _T('}') && (*p == _T(' ') || *p == _T('\t') || *p == _T('\r') || *p == _T('\n'))) p++;
+				SkipCssCommentsAndSpace(p);
 				if (*p == _T('\0') || *p == _T('}')) break;
-				while (*p != _T('\0') && *p != _T(':') && *p != _T('}')) {
+				CDuiString sKey, sVal;
+				while (*p != _T('\0') && *p != _T(':') && *p != _T('}') && *p != _T(';')) {
+					if (p[0] == _T('/') && (p[1] == _T('*') || p[1] == _T('/'))) {
+						SkipCssCommentsAndSpace(p);
+						continue;
+					}
 					sKey += *p++;
 				}
 				sKey.Trim();
-				if (*p != _T(':')) break;
+				if (*p != _T(':')) {
+					// 容错：跳过损坏声明直到 ; 或 }
+					while (*p != _T('\0') && *p != _T(';') && *p != _T('}')) ++p;
+					if (*p == _T(';')) ++p;
+					continue;
+				}
 				p++;
-				while (*p != _T('\0') && (*p == _T(' ') || *p == _T('\t'))) p++;
+				SkipCssCommentsAndSpace(p);
 				while (*p != _T('\0') && *p != _T(';') && *p != _T('}')) {
+					// 值后同行注释：bkcolor: #F00; // test  或  bkcolor: #F00 // test
+					if (p[0] == _T('/') && (p[1] == _T('*') || p[1] == _T('/'))) break;
 					sVal += *p++;
 				}
 				sVal.Trim();
 				if (*p == _T(';')) p++;
+				SkipCssCommentsAndSpace(p); // 吃掉分号后的 // / /* 注释
 				if (!sKey.IsEmpty() && !sVal.IsEmpty()) {
 					if (!sAttrList.IsEmpty()) sAttrList += _T(' ');
 					sAttrList += sKey;

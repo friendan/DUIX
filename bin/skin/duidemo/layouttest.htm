@@ -1,5 +1,5 @@
 <html>
-    <body name="root" bkcolor="#FFE8F5E9" margin="30">
+    <body name="root">
         <HBox name="titlebar" height="40" bkcolor="#FF32323C" childvalign="vcenter" childpadding="8" inset="8,0,8,0">
             <Label text="Layout 测试" textcolor="#FFC8C8C8" font="font13" width="200" />
             <Spacer />
@@ -7,6 +7,9 @@
                 bkcolor="#FF32323C" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FFE81123"
                 action="close" />
         </HBox>
+
+        <!-- 直接挂在 body 下：无底色时透出 body 背景 -->
+        <HBox width="100" height="100" />
 
         <!-- 下面区域按需改布局；改完保存本文件后重新打开窗口即可验证 -->
         <VBox name="content" padding="12" childpadding="12" bkcolor="#FFFFFFFF">
@@ -73,6 +76,7 @@
   }
   body {
     bkcolor: #FFE8F5E9;
+    /*bkcolor: #FFFF0000;*/
     margin: 30;
   }
 </style>
