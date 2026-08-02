@@ -1,6 +1,6 @@
 <html>
     <VBox name="root" bkcolor="#FFF0F0F0">
-        <HBox name="titlebar" height="40" bkcolor="#FF32323C" childvalign="vcenter" childpadding="8" inset="8,0,8,0">
+        <HBox name="titlebar" height="40" bkcolor="#FF32323C" childvalign="vcenter" childpadding="8" inset="8,0,8,0" action="title">
             <Label text="TabBar 测试" textcolor="#FFC8C8C8" font="font13" width="200" />
             <Spacer />
             <Button name="closebtn" text="✕" width="36" height="36" kind="none" bkcolor="#FF32323C" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FFE81123" action="close" />
@@ -14,10 +14,12 @@
             <CheckBox name="chk_block_select" text="拦截切换" />
             <CheckBox name="chk_flexible" text="弹性宽度" selected="true" />
             <Spacer />
-            <Label text="锁定钉左；双击关闭；右键菜单；拖拽排序" textcolor="#FF666666" />
+            <Label text="锁定钉左；双击关闭；右键菜单；拖拽排序；TabBar 空白可拖窗" textcolor="#FF666666" />
         </HBox>
 
-        <TabBar name="tabbar" height="36" flexible="true" tab-min-width="100" tab-max-width="300" showadd="true" bindtablayoutname="pages" bkcolor="#FFF5F5F5"
+        <!-- action=title：空白区拖窗；标签 / + / 滚动钮仍可点 -->
+        <TabBar name="tabbar" height="36" flexible="true" tab-min-width="100" tab-max-width="300" showadd="true"
+            action="title" bindtablayoutname="pages" bkcolor="#FFF5F5F5"
             tabbkcolor="#00000000" tabhotbkcolor="#FFD6EBFF" tabselectedbkcolor="#FFBAE0FF"
             tabtextcolor="#FF8C8C8C" tabhottextcolor="#FF1677FF" tabselectedtextcolor="#FF1677FF"
             tabselectedbordercolor="#FF1677FF" tabselectedbordersize="2"

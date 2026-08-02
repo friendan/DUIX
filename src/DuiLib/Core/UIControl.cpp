@@ -168,6 +168,12 @@ namespace DuiLib {
 		return 0;
 	}
 
+	bool CControlUI::IsCaptionDragHit(POINT /*pt*/) const
+	{
+		UIAction a = GetAction();
+		return (a == UIACTION_TITLE || a == UIACTION_MOVEWINDOW);
+	}
+
 	bool CControlUI::Activate()
 	{
 		if( !IsVisible() ) return false;
@@ -1377,6 +1383,29 @@ namespace DuiLib {
 				rcInset.left = rcInset.top = rcInset.right = rcInset.bottom = v0;
 			}
 			SetInset(rcInset);
+		}
+		else if( _tcsnicmp(pstrName, _T("margin-"), 7) == 0
+			|| _tcsnicmp(pstrName, _T("padding-"), 8) == 0 ) {
+			// 单边 / 轴向：margin-top、padding-left、padding-x 等（值支持 30 或 30px）
+			LPTSTR pEnd = NULL;
+			long v = _tcstol(pstrValue, &pEnd, 10);
+			if( pEnd != pstrValue ) {
+				const bool bMargin = (_tcsnicmp(pstrName, _T("margin-"), 7) == 0);
+				LPCTSTR pSide = pstrName + (bMargin ? 7 : 8);
+				RECT rc = bMargin ? m_rcPadding : m_rcInset;
+				bool bApplied = true;
+				if( _tcsicmp(pSide, _T("left")) == 0 ) rc.left = (int)v;
+				else if( _tcsicmp(pSide, _T("top")) == 0 ) rc.top = (int)v;
+				else if( _tcsicmp(pSide, _T("right")) == 0 ) rc.right = (int)v;
+				else if( _tcsicmp(pSide, _T("bottom")) == 0 ) rc.bottom = (int)v;
+				else if( _tcsicmp(pSide, _T("x")) == 0 ) { rc.left = rc.right = (int)v; }
+				else if( _tcsicmp(pSide, _T("y")) == 0 ) { rc.top = rc.bottom = (int)v; }
+				else bApplied = false;
+				if( bApplied ) {
+					if( bMargin ) SetPadding(rc);
+					else SetInset(rc); // 虚函数：容器走 CContainerUI::SetInset→NeedUpdate
+				}
+			}
 		}
 		else if( _tcsicmp(pstrName, _T("gradient")) == 0 ) SetGradient(pstrValue);
 		else if( _tcsicmp(pstrName, _T("bkcolor")) == 0 || _tcsicmp(pstrName, _T("bkcolor1")) == 0 ) {

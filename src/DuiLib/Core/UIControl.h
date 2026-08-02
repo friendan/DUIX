@@ -57,6 +57,9 @@ namespace DuiLib {
 		virtual LPCTSTR GetClass() const;
 		virtual LPVOID GetInterface(LPCTSTR pstrName);
 		virtual UINT GetControlFlags() const;
+		/// action=title/move 时：该点是否应作为标题栏拖拽（HTCAPTION）。
+		/// 默认整控件可拖；含交互子区域的控件（如 TabBar）可重写，仅空白区返回 true。
+		virtual bool IsCaptionDragHit(POINT pt) const;
 
 		virtual bool Activate();
 		virtual CPaintManagerUI* GetManager() const;

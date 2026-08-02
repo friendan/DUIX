@@ -131,6 +131,8 @@ namespace DuiLib
 		void DoEvent(TEventUI& event) override;
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl) override;
+		// action=title 时仅空白区拖窗；标签 / + / 滚动钮保持可点
+		bool IsCaptionDragHit(POINT pt) const override;
 
 		// 标签可视区（‹ › / + 之间）
 		RECT GetTabViewportRect() const;

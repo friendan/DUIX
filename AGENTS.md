@@ -78,7 +78,8 @@ build_clang_ninja_release.bat
 
 - `margin` → 外边距（`SetPadding` / `m_rcPadding`；根节点相对窗口）
 - `padding` / `inset` → 内边距（`SetInset` / `m_rcInset`；内容区相对边框）
-- RECT 值顺序仍为 DuiLib 习惯：`left,top,right,bottom`（不是 CSS 的 top/right/bottom/left）
+- 单边 / 轴向：`margin-top/right/bottom/left/x/y`、`padding-*` 同理（值可为 `30` 或 `30px`）；新代码优先用 `padding`，`inset` 仅作简写别名兼容旧皮肤
+- RECT 简写顺序仍为 DuiLib 习惯：`left,top,right,bottom`（不是 CSS 的 top/right/bottom/left）
 - `textpadding` 仍是文字区额外缩进，与 `padding` 叠加
 - 旧皮肤里把 `padding` 当外边距用的，需改成 `margin`
 - `border` 支持 CSS 简写：`border="1px solid red"`（宽/样式/颜色顺序任意；`none`/`0` 清除）；细项仍可用 `bordersize` / `bordercolor` / `borderstyle` / `borderround`

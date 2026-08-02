@@ -170,34 +170,33 @@ namespace DuiLib
 			if (pt.x > rcClient.right - rcSizeBox.right) return HTRIGHT;
 		}
 
-		// action 属性驱动的拖拽：不受 caption rect 限制，向上遍历 parent 链
+		// action 属性驱动的拖拽：不受 caption rect 限制；IsCaptionDragHit 区分空白/交互区
 		{
 			CControlUI* pHitCtrl = m_pm.FindControl(pt);
 			if (pHitCtrl != NULL) {
-				UIAction leafAct = pHitCtrl->GetAction();
-				if (leafAct == UIACTION_TITLE || leafAct == UIACTION_MOVEWINDOW) {
+				if (pHitCtrl->IsCaptionDragHit(pt))
 					return HTCAPTION;
-				}
-				// 叶子控件没有自己的 action 时，向上查找容器的 action
-				// 但交互控件（按钮等）不应继承父容器的拖拽行为
+
+				UIAction leafAct = pHitCtrl->GetAction();
+				// 自身有 title 但点在交互区（如 TabBar 标签/+）：保持 HTCLIENT，不向上/窗口级拖拽
 				if (leafAct == UIACTION_NONE && !(pHitCtrl->GetControlFlags() & UIFLAG_SETCURSOR)) {
 					CControlUI* pWalk = pHitCtrl->GetParent();
 					while (pWalk != NULL) {
-						UIAction parentAct = pWalk->GetAction();
-						if (parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW) {
+						if (pWalk->IsCaptionDragHit(pt))
 							return HTCAPTION;
-						}
+						UIAction parentAct = pWalk->GetAction();
+						// 父级是 title 但该点不可拖（交互区）→ 停止向上，留给客户区点击
+						if (parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW)
+							break;
 						if (parentAct != UIACTION_NONE) break;
 						pWalk = pWalk->GetParent();
 					}
-					// html { action: title }：点到非交互区时用窗口级 action
 					UIAction winAct = m_pm.GetWindowAction();
 					if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW)
 						return HTCAPTION;
 				}
 			}
 			else {
-				// 点在 root margin / 无控件区（FindControl 为空）
 				UIAction winAct = m_pm.GetWindowAction();
 				if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW)
 					return HTCAPTION;

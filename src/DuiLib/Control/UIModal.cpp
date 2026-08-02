@@ -507,14 +507,16 @@ namespace DuiLib {
 
 		CControlUI* pHitCtrl = m_pm.FindControl(pt);
 		if( pHitCtrl != NULL ) {
-			UIAction leafAct = pHitCtrl->GetAction();
-			if( leafAct == UIACTION_TITLE || leafAct == UIACTION_MOVEWINDOW )
+			if( pHitCtrl->IsCaptionDragHit(pt) )
 				return HTCAPTION;
+			UIAction leafAct = pHitCtrl->GetAction();
 			if( leafAct == UIACTION_NONE && !(pHitCtrl->GetControlFlags() & UIFLAG_SETCURSOR) ) {
 				for( CControlUI* pWalk = pHitCtrl->GetParent(); pWalk != NULL; pWalk = pWalk->GetParent() ) {
+					if( pWalk->IsCaptionDragHit(pt) )
+						return HTCAPTION;
 					UIAction parentAct = pWalk->GetAction();
 					if( parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW )
-						return HTCAPTION;
+						break;
 					if( parentAct != UIACTION_NONE ) break;
 				}
 			}

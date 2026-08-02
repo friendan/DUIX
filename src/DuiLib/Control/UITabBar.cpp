@@ -1852,6 +1852,17 @@ namespace DuiLib
 		}
 	}
 
+	bool CTabBarUI::IsCaptionDragHit(POINT pt) const
+	{
+		UIAction a = GetAction();
+		if( a != UIACTION_TITLE && a != UIACTION_MOVEWINDOW ) return false;
+		// 标签、添加、滚动由 TabBar 自绘命中，子控件 MouseEnabled=false，须在此排除
+		if( HitTestAddButton(pt) ) return false;
+		if( HitTestScrollButton(pt) != 0 ) return false;
+		if( HitTestTab(pt) != NULL ) return false;
+		return true;
+	}
+
 	CTabButtonUI* CTabBarUI::HitTestTab(POINT pt) const
 	{
 		if( HitTestScrollButton(pt) != 0 ) return NULL;
