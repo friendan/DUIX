@@ -75,17 +75,11 @@
     <None Include="Res\duidemo.ico">
       <Filter>Resources</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\skin.xml">
-      <Filter>Resources\xmls</Filter>
-    </None>
     <None Include="..\..\bin\skin\duidemo\main.xml">
       <Filter>Resources\xmls</Filter>
     </None>
     <None Include="Flash11.tlb">
       <Filter>Header Files</Filter>
-    </None>
-    <None Include="..\..\bin\skin\duidemo\popup.xml">
-      <Filter>Resources\xmls</Filter>
     </None>
     <None Include="..\..\bin\skin\duidemo\menu.xml">
       <Filter>Resources\xmls</Filter>
@@ -99,25 +93,19 @@
     <None Include="..\..\bin\skin\duidemo\msg.xml">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\treeitem.xml">
-      <Filter>Resources\xmls</Filter>
-    </None>
-    <None Include="..\..\bin\skin\duidemo\listitem.xml">
-      <Filter>Resources\xmls</Filter>
-    </None>
     <None Include="..\..\bin\skin\duidemo\lan_cn.xml">
       <Filter>Resources\xmls</Filter>
     </None>
     <None Include="..\..\bin\skin\duidemo\lan_en.xml">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\splash.xml">
+    <None Include="..\..\bin\skin\duidemo\iconbrowser.xml">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\tileitem.xml">
+    <None Include="..\..\bin\skin\duidemo\tabbartest.xml">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\color.xml">
+    <None Include="..\..\bin\skin\duidemo\layouttest.htm">
       <Filter>Resources\xmls</Filter>
     </None>
   </ItemGroup>

@@ -981,14 +981,14 @@
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\bin\skin\duidemo\color.xml" />
+    <None Include="..\..\bin\skin\duidemo\iconbrowser.xml">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="..\..\bin\skin\duidemo\lan_cn.xml">
       <SubType>Designer</SubType>
     </None>
     <None Include="..\..\bin\skin\duidemo\lan_en.xml" />
-    <None Include="..\..\bin\skin\duidemo\listitem.xml">
-      <SubType>Designer</SubType>
-    </None>
+    <None Include="..\..\bin\skin\duidemo\layouttest.htm" />
     <None Include="..\..\bin\skin\duidemo\main.xml">
       <SubType>Designer</SubType>
     </None>
@@ -998,18 +998,8 @@
     <None Include="..\..\bin\skin\duidemo\msg.xml">
       <SubType>Designer</SubType>
     </None>
-    <None Include="..\..\bin\skin\duidemo\popup.xml">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="..\..\bin\skin\duidemo\res.xml" />
-    <None Include="..\..\bin\skin\duidemo\skin.xml">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="..\..\bin\skin\duidemo\splash.xml">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="..\..\bin\skin\duidemo\tileitem.xml" />
-    <None Include="..\..\bin\skin\duidemo\treeitem.xml">
+    <None Include="..\..\bin\skin\duidemo\tabbartest.xml">
       <SubType>Designer</SubType>
     </None>
     <None Include="Flash11.tlb" />
