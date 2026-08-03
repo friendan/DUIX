@@ -1,11 +1,11 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIProgress.h"
 
 namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CProgressUI)
 
-	CProgressUI::CProgressUI() : m_bShowText(false), m_bHorizontal(true), m_nMin(0), m_nMax(100), m_nValue(0), m_bStretchForeImage(true)
+	CProgressUI::CProgressUI() : m_bShowText(false), m_bHorizontal(true), m_nMin(0), m_nMax(100), m_nValue(0), m_bStretchForegroundImage(true)
 	{
 		m_uTextStyle = DT_SINGLELINE | DT_CENTER;
 		SetFixedHeight(12);
@@ -86,12 +86,12 @@ namespace DuiLib
 
 	void CProgressUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("hor")) == 0 ) SetHorizontal(_tcsicmp(pstrValue, _T("true")) == 0);
+		if( _tcsicmp(pstrName, _T("horizontal")) == 0 ) SetHorizontal(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("min")) == 0 ) SetMinValue(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("max")) == 0 ) SetMaxValue(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("value")) == 0 ) SetValue(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("isstretchfore"))==0) SetStretchForeImage(_tcsicmp(pstrValue, _T("true")) == 0? true : false);
-		else if( _tcsicmp(pstrName, _T("showtext"))==0) SetShowText(_tcsicmp(pstrValue, _T("true")) == 0? true : false);
+		else if( _tcsicmp(pstrName, _T("stretch-foreground"))==0) SetStretchForegroundImage(_tcsicmp(pstrValue, _T("true")) == 0? true : false);
+		else if( _tcsicmp(pstrName, _T("show-text"))==0) SetShowText(_tcsicmp(pstrValue, _T("true")) == 0? true : false);
 		else CLabelUI::SetAttribute(pstrName, pstrValue);
 	}
 
@@ -115,7 +115,7 @@ namespace DuiLib
 		ctx.DrawColor(rc, GetAdjustColor(m_dwForeColor));
 	}
 
-	void CProgressUI::PaintForeImage(IRenderContext& ctx)
+	void CProgressUI::PaintForegroundImage(IRenderContext& ctx)
 	{
 		if( m_nMax <= m_nMin ) m_nMax = m_nMin + 1;
 		if( m_nValue > m_nMax ) m_nValue = m_nMax;
@@ -132,35 +132,35 @@ namespace DuiLib
 			rc.bottom = m_rcItem.bottom - m_rcItem.top;
 		}
 
-		if( !m_sForeImage.IsEmpty() ) {
-			m_sForeImageModify.Empty();
+		if( !m_sForegroundImage.IsEmpty() ) {
+			m_sForegroundImageModify.Empty();
 			int sw = MulDiv(rc.right - rc.left, 100, GetManager()->GetDPIObj()->GetScale());
 			int sh = MulDiv(rc.bottom - rc.top, 100, GetManager()->GetDPIObj()->GetScale());
 			rc.left = MulDiv(rc.left, 100, GetManager()->GetDPIObj()->GetScale());
 			rc.top = MulDiv(rc.top, 100, GetManager()->GetDPIObj()->GetScale());
 			rc.right = rc.left + sw;
 			rc.bottom = rc.top + sh;
-			if (m_bStretchForeImage) {
-				m_sForeImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rc.left, rc.top, rc.right, rc.bottom);
+			if (m_bStretchForegroundImage) {
+				m_sForegroundImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rc.left, rc.top, rc.right, rc.bottom);
 			}
 			else {
-				m_sForeImageModify.SmallFormat(_T("dest='%d,%d,%d,%d' source='%d,%d,%d,%d'"), rc.left, rc.top, rc.right, rc.bottom, rc.left, rc.top, rc.right, rc.bottom);
+				m_sForegroundImageModify.SmallFormat(_T("dest='%d,%d,%d,%d' source='%d,%d,%d,%d'"), rc.left, rc.top, rc.right, rc.bottom, rc.left, rc.top, rc.right, rc.bottom);
 			}
 
-			if( !DrawImage(ctx, (LPCTSTR)m_sForeImage, (LPCTSTR)m_sForeImageModify) ) {}
+			if( !DrawImage(ctx, (LPCTSTR)m_sForegroundImage, (LPCTSTR)m_sForegroundImageModify) ) {}
 			else return;
 		}
 	}
 
-	bool CProgressUI::IsStretchForeImage()
+	bool CProgressUI::IsStretchForegroundImage()
 	{
-		return m_bStretchForeImage;
+		return m_bStretchForegroundImage;
 	}
 
-	void CProgressUI::SetStretchForeImage( bool bStretchForeImage /*= true*/ )
+	void CProgressUI::SetStretchForegroundImage( bool bStretchForegroundImage /*= true*/ )
 	{
-		if (m_bStretchForeImage==bStretchForeImage)		return;
-		m_bStretchForeImage=bStretchForeImage;
+		if (m_bStretchForegroundImage==bStretchForegroundImage)		return;
+		m_bStretchForegroundImage=bStretchForegroundImage;
 		Invalidate();
 	}
 

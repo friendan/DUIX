@@ -1,4 +1,4 @@
-﻿#ifndef __IRENDERRESOURCE_H__
+#ifndef __IRENDERRESOURCE_H__
 #define __IRENDERRESOURCE_H__
 
 #pragma once
@@ -24,8 +24,8 @@ namespace DuiLib {
 #endif
 
 	// 布局测量：按当前 Device 建临时 Context（不绑定 Manager、不 BeginFrame）
-	UILIB_API void RenderMeasureText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle);
-	UILIB_API void RenderMeasureHtmlText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle);
+	UILIB_API void RenderMeasureText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle);
+	UILIB_API void RenderMeasureHtmlText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle);
 	UILIB_API SIZE RenderMeasureTextSize(CPaintManagerUI* pManager, LPCTSTR pstrText, int iFont, UINT uStyle);
 
 } // namespace DuiLib

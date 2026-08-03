@@ -20,7 +20,7 @@ namespace DuiLib
 
 	void CVerticalLayoutUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("sepheight")) == 0 ) SetSepSize(_ttoi(pstrValue));
+		if( _tcsicmp(pstrName, _T("sep-height")) == 0 ) SetSepSize(_ttoi(pstrValue));
 		else CLinearLayoutUI::SetAttribute(pstrName, pstrValue);
 	}
 }

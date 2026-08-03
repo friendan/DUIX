@@ -1,4 +1,4 @@
-﻿#ifndef __UIHOTKEY_H__
+#ifndef __UIHOTKEY_H__
 #define __UIHOTKEY_H__
 #pragma once
 
@@ -43,16 +43,16 @@ namespace DuiLib{
 		UINT GetControlFlags() const;
 		void SetEnabled(bool bEnable = true);
 		void SetText(LPCTSTR pstrText);
-		LPCTSTR GetNormalImage();
-		void SetNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetHotImage();
-		void SetHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetFocusedImage();
-		void SetFocusedImage(LPCTSTR pStrImage);
+		LPCTSTR GetImage();
+		void SetImage(LPCTSTR pStrImage);
+		LPCTSTR GetHoverImage();
+		void SetHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetFocusImage();
+		void SetFocusImage(LPCTSTR pStrImage);
 		LPCTSTR GetDisabledImage();
 		void SetDisabledImage(LPCTSTR pStrImage);
-		void SetNativeBkColor(DWORD dwBkColor);
-		DWORD GetNativeBkColor() const;
+		void SetNativeBackgroundColor(DWORD dwBackgroundColor);
+		DWORD GetNativeBackgroundColor() const;
 
 		void SetPos(RECT rc);
 		void SetVisible(bool bVisible = true);
@@ -71,9 +71,9 @@ namespace DuiLib{
 	protected:
 		CHotKeyWnd * m_pWindow;
 		UINT m_uButtonState;
-		CDuiString m_sNormalImage;
-		CDuiString m_sHotImage;
-		CDuiString m_sFocusedImage;
+		CDuiString m_sImage;
+		CDuiString m_sHoverImage;
+		CDuiString m_sFocusImage;
 		CDuiString m_sDisabledImage;
 		DWORD m_dwHotKeybkColor;
 

@@ -1,4 +1,4 @@
-﻿#ifndef __IRENDERCONTEXT_H__
+#ifndef __IRENDERCONTEXT_H__
 #define __IRENDERCONTEXT_H__
 
 #pragma once
@@ -25,6 +25,7 @@ namespace DuiLib {
 
 		// 裁剪栈（后端可用 HRGN / D2D layer / SkCanvas clip）
 		virtual void PushClip(const RECT& rc) = 0;
+		// width/height：CSS 圆角半径
 		virtual void PushRoundClip(const RECT& rcClip, const RECT& rcRound, int width, int height) = 0;
 		virtual void PopClip() = 0;
 		// 临时恢复到压入前裁剪（浮层子控件绘制前后）
@@ -41,13 +42,13 @@ namespace DuiLib {
 		virtual void DrawLine(const RECT& rc, int nSize, DWORD dwPenColor, int nStyle = PS_SOLID) = 0;
 		virtual void DrawRect(const RECT& rc, int nSize, DWORD dwPenColor, int nStyle = PS_SOLID) = 0;
 		virtual void DrawRoundRect(const RECT& rc, int nSize, int width, int height, DWORD dwPenColor, int nStyle = PS_SOLID) = 0;
-		// 填充圆角矩形（kind 按钮背景等）；width/height 为圆角椭圆直径，与 DrawRoundRect 一致
+		// 填充圆角矩形；width/height 为 CSS 圆角半径
 		virtual void FillRoundRect(const RECT& rc, int width, int height, DWORD dwColor) = 0;
 
 		// 文字
-		virtual void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle) = 0;
-		virtual void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle, DWORD dwTextBKColor) = 0;
-		virtual void DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle) = 0;
+		virtual void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle) = 0;
+		virtual void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle, DWORD dwTextBKColor) = 0;
+		virtual void DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle) = 0;
 		virtual SIZE GetTextSize(LPCTSTR pstrText, int iFont, UINT uStyle) = 0;
 
 		// 图片（走 PaintManager 缓存 / 皮肤字符串）

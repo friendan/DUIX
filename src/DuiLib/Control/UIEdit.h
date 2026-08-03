@@ -1,4 +1,4 @@
-﻿#ifndef __UIEDIT_H__
+#ifndef __UIEDIT_H__
 #define __UIEDIT_H__
 
 #pragma once
@@ -32,18 +32,18 @@ namespace DuiLib
 		bool IsNumberOnly() const;
 		int GetWindowStyls() const;
 
-		LPCTSTR GetNormalImage();
-		void SetNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetHotImage();
-		void SetHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetFocusedImage();
-		void SetFocusedImage(LPCTSTR pStrImage);
+		LPCTSTR GetImage();
+		void SetImage(LPCTSTR pStrImage);
+		LPCTSTR GetHoverImage();
+		void SetHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetFocusImage();
+		void SetFocusImage(LPCTSTR pStrImage);
 		LPCTSTR GetDisabledImage();
 		void SetDisabledImage(LPCTSTR pStrImage);
-		void SetNativeEditBkColor(DWORD dwBkColor);
-		DWORD GetNativeEditBkColor() const;
-		void SetNativeEditTextColor( LPCTSTR pStrColor );
-		DWORD GetNativeEditTextColor() const;
+		void SetNativeEditBackgroundColor(DWORD dwBackgroundColor);
+		DWORD GetNativeEditBackgroundColor() const;
+		void SetNativeEditColor( LPCTSTR pStrColor );
+		DWORD GetNativeEditColor() const;
 
 		bool IsAutoSelAll();
 		void SetAutoSelAll(bool bAutoSelAll);
@@ -51,10 +51,10 @@ namespace DuiLib
 		void SetSelAll();
 		void SetReplaceSel(LPCTSTR lpszReplace);
 
-		void SetTipValue(LPCTSTR pStrTipValue);
-		LPCTSTR GetTipValue();
-		void SetTipValueColor(LPCTSTR pStrColor);
-		DWORD GetTipValueColor();
+		void SetPlaceholder(LPCTSTR pStrPlaceholder);
+		LPCTSTR GetPlaceholder();
+		void SetPlaceholderColor(LPCTSTR pStrColor);
+		DWORD GetPlaceholderColor();
 
 		HWND GetHWND();
 
@@ -78,12 +78,12 @@ namespace DuiLib
 		bool m_bAutoSelAll;
 		TCHAR m_cPasswordChar;
 		UINT m_uButtonState;
-		CDuiString m_sNormalImage;
-		CDuiString m_sHotImage;
-		CDuiString m_sFocusedImage;
+		CDuiString m_sImage;
+		CDuiString m_sHoverImage;
+		CDuiString m_sFocusImage;
 		CDuiString m_sDisabledImage;
-		CDuiString m_sTipValue;
-		DWORD m_dwTipValueColor;
+		CDuiString m_sPlaceholder;
+		DWORD m_dwPlaceholderColor;
 		DWORD m_dwEditbkColor;
 		DWORD m_dwEditTextColor;
 		int m_iWindowStyls;

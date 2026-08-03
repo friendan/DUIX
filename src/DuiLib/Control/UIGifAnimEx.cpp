@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #ifdef USE_XIMAGE_EFFECT
 #include "UIGifAnimEx.h"
 #include "../../3rd/CxImage/ximage.h"
@@ -46,7 +46,7 @@ namespace DuiLib
 		inline bool IsLoadImage(){return m_bLoadImg;}
 		virtual void LoadGifImage()
 		{
-			CDuiString sImag = m_pOwer->GetBkImage();
+			CDuiString sImag = m_pOwer->GetBackgroundImage();
 			m_bLoadImg = true;
 			m_pGifImage	=	CRenderEngine::LoadGifImageX(STRINGorID(sImag),0, 0);
 			if ( NULL == m_pGifImage ) return;
@@ -144,7 +144,7 @@ namespace DuiLib
 	}
 	void CGifAnimExUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcscmp(pstrName, _T("auto")) == 0 ) 
+		if( _tcscmp(pstrName, _T("auto-play")) == 0 ) 
 			m_pImp->SetAutoStart(_tcscmp(pstrValue, _T("true")) == 0);
 		else
 			__super::SetAttribute(pstrName, pstrValue);

@@ -25,18 +25,28 @@ namespace DuiLib
 
 	void CFlowLayoutUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("autowrap")) == 0 || _tcsicmp(pstrName, _T("wrap")) == 0 ) {
-			SetAutoWrap(_tcsicmp(pstrValue, _T("true")) == 0);
+		if( _tcsicmp(pstrName, _T("wrap")) == 0 || _tcsicmp(pstrName, _T("flex-wrap")) == 0 ) {
+			bool bWrap = true;
+			if( _tcsicmp(pstrValue, _T("nowrap")) == 0 || _tcsicmp(pstrValue, _T("false")) == 0
+				|| _tcscmp(pstrValue, _T("0")) == 0 )
+				bWrap = false;
+			else if( _tcsicmp(pstrValue, _T("wrap")) == 0 || _tcsicmp(pstrValue, _T("true")) == 0
+				|| _tcscmp(pstrValue, _T("1")) == 0 )
+				bWrap = true;
+			SetAutoWrap(bWrap);
 		}
-		else if( _tcsicmp(pstrName, _T("linespacing")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("line-spacing")) == 0 || _tcsicmp(pstrName, _T("row-gap")) == 0 ) {
 			SetLineSpacing(_ttoi(pstrValue));
 		}
 		// margin / padding：走 CControlUI / CContainerUI（margin=外边距，padding=内边距）
-		else if( _tcsicmp(pstrName, _T("align")) == 0 ) {
-			// 与 childalign 同义：每行内容水平对齐
-			if( _tcsicmp(pstrValue, _T("left")) == 0 ) SetChildAlign(DT_LEFT);
-			else if( _tcsicmp(pstrValue, _T("center")) == 0 ) SetChildAlign(DT_CENTER);
-			else if( _tcsicmp(pstrValue, _T("right")) == 0 ) SetChildAlign(DT_RIGHT);
+		else if( _tcsicmp(pstrName, _T("justify-content")) == 0 || _tcsicmp(pstrName, _T("align")) == 0 ) {
+			// 主轴（行内）水平对齐；align 为旧别名
+			if( _tcsicmp(pstrValue, _T("left")) == 0 || _tcsicmp(pstrValue, _T("flex-start")) == 0 )
+				SetJustifyContent(DT_LEFT);
+			else if( _tcsicmp(pstrValue, _T("center")) == 0 )
+				SetJustifyContent(DT_CENTER);
+			else if( _tcsicmp(pstrValue, _T("right")) == 0 || _tcsicmp(pstrValue, _T("flex-end")) == 0 )
+				SetJustifyContent(DT_RIGHT);
 		}
 		else CContainerUI::SetAttribute(pstrName, pstrValue);
 	}
@@ -50,7 +60,7 @@ namespace DuiLib
 		if( szFixed.cy <= 0 ) {
 			for( int i = 0; i < m_items.GetSize(); i++ ) {
 				CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
-				if( !pControl->IsVisible() || pControl->IsFloat() ) continue;
+				if( !pControl->IsVisible() || pControl->IsAbsolute() ) continue;
 				SIZE szItem = pControl->EstimateSize(szAvailable);
 				if( szItem.cy == 0 && pControl->GetFixedHeight() <= 0 )
 					return CControlUI::EstimateSize(szAvailable);
@@ -60,10 +70,10 @@ namespace DuiLib
 		int cxAvailable = szAvailable.cx;
 		if( szFixed.cx > 0 ) cxAvailable = szFixed.cx;
 
-		RECT rcInset = GetInset();
-		int cxContent = cxAvailable - rcInset.left - rcInset.right;
+		RECT rcPadding = GetPadding();
+		int cxContent = cxAvailable - rcPadding.left - rcPadding.right;
 		if( cxContent < 0 ) cxContent = 0;
-		int iChildPadding = GetChildPadding();
+		int iGap = GetGap();
 
 		int curX = 0;
 		int curLineHeight = 0;
@@ -73,14 +83,14 @@ namespace DuiLib
 		for( int i = 0; i < m_items.GetSize(); i++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) continue;
+			if( pControl->IsAbsolute() ) continue;
 
-			RECT rcPadding = pControl->GetPadding();
+			RECT rcMargin = pControl->GetMargin();
 			SIZE szItem = pControl->EstimateSize({cxContent, 0});
 			if( szItem.cx == 0 ) szItem.cx = cxContent;
 			// cy==0：撑满，估算时不占固有行高
-			int itemWidth = szItem.cx + rcPadding.left + rcPadding.right;
-			int itemHeight = (szItem.cy > 0 ? szItem.cy : 0) + rcPadding.top + rcPadding.bottom;
+			int itemWidth = szItem.cx + rcMargin.left + rcMargin.right;
+			int itemHeight = (szItem.cy > 0 ? szItem.cy : 0) + rcMargin.top + rcMargin.bottom;
 
 			if( m_bAutoWrap && !bFirstInLine && curX + itemWidth > cxContent ) {
 				totalHeight += curLineHeight + m_iLineSpacing;
@@ -89,7 +99,7 @@ namespace DuiLib
 				bFirstInLine = true;
 			}
 
-			curX += itemWidth + (bFirstInLine ? 0 : iChildPadding);
+			curX += itemWidth + (bFirstInLine ? 0 : iGap);
 			if( itemHeight > curLineHeight ) curLineHeight = itemHeight;
 			bFirstInLine = false;
 		}
@@ -97,7 +107,7 @@ namespace DuiLib
 
 		SIZE szResult = {0, 0};
 		szResult.cx = szFixed.cx > 0 ? szFixed.cx : cxAvailable;
-		szResult.cy = szFixed.cy > 0 ? szFixed.cy : totalHeight + rcInset.top + rcInset.bottom;
+		szResult.cy = szFixed.cy > 0 ? szFixed.cy : totalHeight + rcPadding.top + rcPadding.bottom;
 		return szResult;
 	}
 
@@ -106,12 +116,12 @@ namespace DuiLib
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		rc = m_rcItem;
 
-		// 容器内边距（inset / padding）
-		RECT rcInset = GetInset();
-		rc.left += rcInset.left;
-		rc.top += rcInset.top;
-		rc.right -= rcInset.right;
-		rc.bottom -= rcInset.bottom;
+		// 容器内边距（padding / SetPadding）
+		RECT rcPadding = GetPadding();
+		rc.left += rcPadding.left;
+		rc.top += rcPadding.top;
+		rc.right -= rcPadding.right;
+		rc.bottom -= rcPadding.bottom;
 
 		if( m_items.GetSize() == 0 ) {
 			ProcessScrollBar(rc, 0, 0);
@@ -127,9 +137,9 @@ namespace DuiLib
 		if( cxContent < 0 ) cxContent = 0;
 		int cyContent = rc.bottom - rc.top;
 		if( cyContent < 0 ) cyContent = 0;
-		int iChildPadding = GetChildPadding();
-		UINT uAlign = GetChildAlign();
-		UINT uVAlign = GetChildVAlign();
+		int iGap = GetGap();
+		UINT uAlign = GetJustifyContent();
+		UINT uVAlign = GetAlignItems();
 
 		int startY = rc.top;
 		if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() )
@@ -148,13 +158,13 @@ namespace DuiLib
 		for( int i = 0; i < m_items.GetSize(); i++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) {
-				SetFloatPos(i);
+			if( pControl->IsAbsolute() ) {
+				SetAbsolutePos(i);
 				continue;
 			}
 
-			RECT rcPadding = pControl->GetPadding();
-			SIZE szAvail = { cxContent - rcPadding.left - rcPadding.right, cyContent };
+			RECT rcMargin = pControl->GetMargin();
+			SIZE szAvail = { cxContent - rcMargin.left - rcMargin.right, cyContent };
 			if( szAvail.cx < 0 ) szAvail.cx = 0;
 			SIZE szItem = pControl->EstimateSize(szAvail);
 			bool bStretchY = (szItem.cy == 0 && pControl->GetFixedHeight() <= 0);
@@ -166,10 +176,10 @@ namespace DuiLib
 				if( szItem.cy > pControl->GetMaxHeight() ) szItem.cy = pControl->GetMaxHeight();
 			}
 
-			int itemWidth = szItem.cx + rcPadding.left + rcPadding.right;
+			int itemWidth = szItem.cx + rcMargin.left + rcMargin.right;
 			// 撑满项：固有高度只计 padding；真正高度在分完剩余空间后确定
-			int itemNaturalH = rcPadding.top + rcPadding.bottom + (bStretchY ? 0 : szItem.cy);
-			int gap = bFirstInLine ? 0 : iChildPadding;
+			int itemNaturalH = rcMargin.top + rcMargin.bottom + (bStretchY ? 0 : szItem.cy);
+			int gap = bFirstInLine ? 0 : iGap;
 
 			if( m_bAutoWrap && !bFirstInLine && curX + gap + itemWidth > cxContent ) {
 				LineInfo li = { lineStart, i, curNaturalH, curX, bCurStretch };
@@ -231,11 +241,11 @@ namespace DuiLib
 			for( int i = pLine->startIdx; i < pLine->endIdx; i++ ) {
 				CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
 				if( !pControl->IsVisible() ) continue;
-				if( pControl->IsFloat() ) continue;
+				if( pControl->IsAbsolute() ) continue;
 
-				RECT rcPadding = pControl->GetPadding();
-				SIZE szAvail = { cxContent - rcPadding.left - rcPadding.right,
-					lineHeight - rcPadding.top - rcPadding.bottom };
+				RECT rcMargin = pControl->GetMargin();
+				SIZE szAvail = { cxContent - rcMargin.left - rcMargin.right,
+					lineHeight - rcMargin.top - rcMargin.bottom };
 				if( szAvail.cx < 0 ) szAvail.cx = 0;
 				if( szAvail.cy < 0 ) szAvail.cy = 0;
 				SIZE szItem = pControl->EstimateSize(szAvail);
@@ -247,25 +257,25 @@ namespace DuiLib
 				if( szItem.cy < pControl->GetMinHeight() ) szItem.cy = pControl->GetMinHeight();
 				if( szItem.cy > pControl->GetMaxHeight() ) szItem.cy = pControl->GetMaxHeight();
 
-				if( !bFirst ) posX += iChildPadding;
+				if( !bFirst ) posX += iGap;
 				bFirst = false;
 
-				int itemTop = posY + rcPadding.top;
-				int contentH = lineHeight - rcPadding.top - rcPadding.bottom;
+				int itemTop = posY + rcMargin.top;
+				int contentH = lineHeight - rcMargin.top - rcMargin.bottom;
 				if( contentH < 0 ) contentH = 0;
 				if( uVAlign == DT_VCENTER && szItem.cy < contentH )
-					itemTop = posY + rcPadding.top + (contentH - szItem.cy) / 2;
+					itemTop = posY + rcMargin.top + (contentH - szItem.cy) / 2;
 				else if( uVAlign == DT_BOTTOM && szItem.cy < contentH )
-					itemTop = posY + rcPadding.top + (contentH - szItem.cy);
+					itemTop = posY + rcMargin.top + (contentH - szItem.cy);
 
 				RECT rcPos = {
-					posX + rcPadding.left,
+					posX + rcMargin.left,
 					itemTop,
-					posX + rcPadding.left + szItem.cx,
+					posX + rcMargin.left + szItem.cx,
 					itemTop + szItem.cy
 				};
 				pControl->SetPos(rcPos, bNeedInvalidate);
-				posX = rcPos.right + rcPadding.right;
+				posX = rcPos.right + rcMargin.right;
 			}
 			posY += lineHeight + m_iLineSpacing;
 		}

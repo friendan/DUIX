@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIShadow.h"
 #include "math.h"
 #include "crtdbg.h"
@@ -362,16 +362,16 @@ void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 	// Determine parent size first (needed for RoundCorner fallback)
 	SIZE szParent = {rcParent->right - rcParent->left, rcParent->bottom - rcParent->top};
 
-	// 父窗外形：优先用 SetWindowRgn；若无 RGN（分层 + BorderRound 常见），回退到 PaintManager RoundCorner
+	// 父窗外形：优先用 SetWindowRgn；若无 RGN（分层 + BorderRadius 常见），回退到 PaintManager RoundCorner
 	HRGN hParentRgn = CreateRectRgn(0, 0, szParent.cx, szParent.cy);
 	if( GetWindowRgn(hParent, hParentRgn) == ERROR ) {
 		SIZE szRound = { 0, 0 };
-		if( m_pManager != NULL ) szRound = m_pManager->GetRoundCorner();
+		if( m_pManager != NULL ) szRound = m_pManager->GetBorderRadius();
 		if( szRound.cx > 0 || szRound.cy > 0 ) {
 			DeleteObject(hParentRgn);
 			// CreateRoundRectRgn 右/下为开区间，与 Toast/Menu OnSize 一致 +1
 			hParentRgn = CreateRoundRectRgn(0, 0, szParent.cx + 1, szParent.cy + 1,
-				szRound.cx, szRound.cy);
+				szRound.cx * 2, szRound.cy * 2);
 		}
 	}
 	SIZE szShadow = {szParent.cx + 2 * m_nSize, szParent.cy + 2 * m_nSize};

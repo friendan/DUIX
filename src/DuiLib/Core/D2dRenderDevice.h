@@ -1,4 +1,4 @@
-﻿#ifndef __D2DRENDERDEVICE_H__
+#ifndef __D2DRENDERDEVICE_H__
 #define __D2DRENDERDEVICE_H__
 
 #pragma once
@@ -79,9 +79,9 @@ namespace DuiLib {
 		void DrawRoundRect(const RECT& rc, int nSize, int width, int height, DWORD dwPenColor, int nStyle = PS_SOLID) override;
 		void FillRoundRect(const RECT& rc, int width, int height, DWORD dwColor) override;
 
-		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle) override;
-		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle, DWORD dwTextBKColor) override;
-		void DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle) override;
+		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle) override;
+		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle, DWORD dwTextBKColor) override;
+		void DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle) override;
 		SIZE GetTextSize(LPCTSTR pstrText, int iFont, UINT uStyle) override;
 
 		bool DrawImageInfo(const RECT& rcItem, const RECT& rcPaint, const TDrawInfo* pDrawInfo, HINSTANCE instance = NULL) override;
@@ -117,7 +117,7 @@ namespace DuiLib {
 		bool MeasureTextDWrite(RECT& rc, LPCTSTR pstrText, IDWriteTextFormat* pFormat, UINT uStyle) const;
 		IDWriteTextFormat* CreateTextFormat(int iFont) const;
 		static bool TextLooksLikeHtml(LPCTSTR pstrText);
-		bool DrawHtmlTextDWrite(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle);
+		bool DrawHtmlTextDWrite(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle);
 
 		CGdiRenderContext m_gdiFallback;
 		ID2D1Factory* m_pFactory;

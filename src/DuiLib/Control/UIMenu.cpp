@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 #include "UIMenu.h"
 
@@ -426,7 +426,7 @@ namespace DuiLib {
 
 		SetForegroundWindow(m_hWnd);
 		MoveWindow(m_hWnd, rc.left, rc.top, rc.GetWidth(), rc.GetHeight(), FALSE);
-		SetWindowPos(m_hWnd, HWND_TOPMOST, rc.left, rc.top, rc.GetWidth(), rc.GetHeight() + pMenuRoot->GetInset().bottom + pMenuRoot->GetInset().top, SWP_SHOWWINDOW);
+		SetWindowPos(m_hWnd, HWND_TOPMOST, rc.left, rc.top, rc.GetWidth(), rc.GetHeight() + pMenuRoot->GetPadding().bottom + pMenuRoot->GetPadding().top, SWP_SHOWWINDOW);
 	}
 
 	void CMenuWnd::ResizeSubMenu()
@@ -525,7 +525,7 @@ namespace DuiLib {
 			rc.right = rc.left + cxFixed;
 		}
 
-		MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top + m_pLayout->GetInset().top + m_pLayout->GetInset().bottom, FALSE);
+		MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top + m_pLayout->GetPadding().top + m_pLayout->GetPadding().bottom, FALSE);
 	}
 
 	void CMenuWnd::setDPI(int DPI) {
@@ -561,13 +561,14 @@ namespace DuiLib {
 	}
 	LRESULT CMenuWnd::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
-		SIZE szRoundCorner = m_pm.GetRoundCorner();
+		SIZE szBorderRadius = m_pm.GetBorderRadius();
 		if( !::IsIconic(*this) ) {
 			CDuiRect rcWnd;
 			::GetWindowRect(*this, &rcWnd);
 			rcWnd.Offset(-rcWnd.left, -rcWnd.top);
 			rcWnd.right++; rcWnd.bottom++;
-			HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom, szRoundCorner.cx, szRoundCorner.cy);
+			SIZE szEllipse = CssRadiusToEllipse(szBorderRadius);
+			HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom, szEllipse.cx, szEllipse.cy);
 			::SetWindowRgn(*this, hRgn, TRUE);
 			::DeleteObject(hRgn);
 		}
@@ -695,11 +696,11 @@ namespace DuiLib {
 			if( m_items.GetSize() > 0 ) {
 				RECT rc = m_rcItem;
 
-				RECT rcInset = GetInset();
-				rc.left += rcInset.left;
-				rc.top += rcInset.top;
-				rc.right -= rcInset.right;
-				rc.bottom -= rcInset.bottom;
+				RECT rcPadding = GetPadding();
+				rc.left += rcPadding.left;
+				rc.top += rcPadding.top;
+				rc.right -= rcPadding.right;
+				rc.bottom -= rcPadding.bottom;
 				if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() ) rc.right -= m_pVerticalScrollBar->GetFixedWidth();
 				if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() ) rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 
@@ -710,7 +711,7 @@ namespace DuiLib {
 						if( !pControl->IsVisible() ) continue;
 						if( pControl->GetInterface(_T("MenuElement")) != NULL ) continue;
 						if( !::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos()) ) continue;
-						if( pControl->IsFloat() ) {
+						if( pControl->IsAbsolute() ) {
 							if( !::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos()) ) continue;
 							if( !pControl->Paint(ctx, rcPaint, pStopControl) ) return false;
 						}
@@ -724,7 +725,7 @@ namespace DuiLib {
 						if( !pControl->IsVisible() ) continue;
 						if( pControl->GetInterface(_T("MenuElement")) != NULL ) continue;
 						if( !::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos()) ) continue;
-						if( pControl->IsFloat() ) {
+						if( pControl->IsAbsolute() ) {
 							if( !::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos()) ) continue;
 							ctx.SuspendClip();
 							if( !pControl->Paint(ctx, rcPaint, pStopControl) ) return false;
@@ -785,7 +786,7 @@ namespace DuiLib {
 	{
 		if (m_bShowExplandIcon) {
 			CDuiString strExplandIcon;
-			strExplandIcon = GetManager()->GetDefaultAttributeList(_T("ExplandIcon"));
+			strExplandIcon = GetManager()->GetDefaultAttributeList(_T("ExpandIcon"));
 			if (strExplandIcon.IsEmpty()) {
 				return;
 			}
@@ -817,15 +818,15 @@ namespace DuiLib {
 
 		if( m_pOwner == NULL ) return;
 		TListInfoUI* pInfo = m_pOwner->GetListInfo();
-		DWORD iTextColor = pInfo->dwTextColor;
+		DWORD iTextColor = pInfo->dwColor;
 		if( (m_uButtonState & UISTATE_HOT) != 0 ) {
-			iTextColor = pInfo->dwHotTextColor;
+			iTextColor = pInfo->dwHoverColor;
 		}
 		if( IsSelected() ) {
-			iTextColor = pInfo->dwSelectedTextColor;
+			iTextColor = pInfo->dwSelectedColor;
 		}
 		if( !IsEnabled() ) {
-			iTextColor = pInfo->dwDisabledTextColor;
+			iTextColor = pInfo->dwDisabledColor;
 		}
 		int nLinks = 0;
 		RECT rcText = rcItem;
@@ -871,7 +872,7 @@ namespace DuiLib {
 			}
 			else if( m_pOwner != NULL ) {
 				TListInfoUI* pInfo = m_pOwner->GetListInfo();
-				DWORD iTextColor = pInfo->dwTextColor;
+				DWORD iTextColor = pInfo->dwColor;
 				// 用足够大的上限量真实文字宽，不把工作区宽度当初值
 				RECT rcText = { 0, 0, 9999, 9999 };
 				RECT rcTextPadding = GetManager()->GetDPIObj()->Scale(pInfo->rcTextPadding);
@@ -1071,9 +1072,9 @@ namespace DuiLib {
 	{
 		return m_dwLineColor;
 	}
-	void CMenuElementUI::SetLinePadding(RECT rcPadding)
+	void CMenuElementUI::SetLinePadding(RECT rcMargin)
 	{
-		m_rcLinePadding = rcPadding;
+		m_rcLinePadding = rcMargin;
 	}
 
 	RECT CMenuElementUI::GetLinePadding() const
@@ -1144,17 +1145,17 @@ namespace DuiLib {
 		if( _tcsicmp(pstrName, _T("icon")) == 0){
 			SetIcon(pstrValue);
 		}
-		else if( _tcsicmp(pstrName, _T("iconsize")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("icon-size")) == 0 ) {
 			LPTSTR pstr = NULL;
 			LONG cx = 0, cy = 0;
 			cx = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
 			cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);   
 			SetIconSize(cx, cy);
 		}
-		else if( _tcsicmp(pstrName, _T("checkitem")) == 0 ) {		
+		else if( _tcsicmp(pstrName, _T("check-item")) == 0 ) {		
 			SetCheckItem(_tcsicmp(pstrValue, _T("true")) == 0 ? true : false);		
 		}
-		else if( _tcsicmp(pstrName, _T("ischeck")) == 0 ) {		
+		else if( _tcsicmp(pstrName, _T("checked")) == 0 ) {		
 			CStdStringPtrMap* mCheckInfos = CMenuWnd::GetGlobalContextMenuObserver().GetMenuCheckInfo();
 			if (mCheckInfos != NULL)
 			{
@@ -1169,26 +1170,22 @@ namespace DuiLib {
 				if(!bFind) SetChecked(_tcsicmp(pstrValue, _T("true")) == 0 ? true : false);
 			}
 		}	
-		else if( _tcsicmp(pstrName, _T("linetype")) == 0){
+		else if( _tcsicmp(pstrName, _T("line-type")) == 0){
 			if (_tcsicmp(pstrValue, _T("true")) == 0)
 				SetLineType();
 		}
-		else if( _tcsicmp(pstrName, _T("expland")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("expand")) == 0 ) {
 			SetShowExplandIcon(_tcsicmp(pstrValue, _T("true")) == 0 ? true : false);
 		}
-		else if( _tcsicmp(pstrName, _T("linecolor")) == 0){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			SetLineColor(_tcstoul(pstrValue, &pstr, 16));
+		else if( _tcsicmp(pstrName, _T("line-color")) == 0){
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				SetLineColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("linepadding")) == 0 ) {
-			RECT rcInset = { 0 };
-			LPTSTR pstr = NULL;
-			rcInset.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			rcInset.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
-			rcInset.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
-			rcInset.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);    
-			SetLinePadding(rcInset);
+		else if( _tcsicmp(pstrName, _T("line-padding")) == 0 ) {
+			RECT rcPadding = { 0 };
+			if( ParseCssBoxToRect(pstrValue, rcPadding) )
+				SetLinePadding(rcPadding);
 		}
 		else if	( _tcsicmp(pstrName, _T("height")) == 0){
 			SetFixedHeight(_ttoi(pstrValue));

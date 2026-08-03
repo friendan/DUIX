@@ -90,6 +90,13 @@ namespace DuiLib
 #define DUI_MSGTYPE_TABMOVE                (_T("tabmove"))
 #define DUI_MSGTYPE_TABADD                 (_T("tabadd"))
 
+#define DUI_MSGTYPE_TITLEBARMIN            (_T("titlebarmin"))
+#define DUI_MSGTYPE_TITLEBARMINING         (_T("titlebarmining"))
+#define DUI_MSGTYPE_TITLEBARMAX            (_T("titlebarmax"))
+#define DUI_MSGTYPE_TITLEBARMAXING         (_T("titlebarmaxing"))
+#define DUI_MSGTYPE_TITLEBARCLOSE          (_T("titlebarclose"))
+#define DUI_MSGTYPE_TITLEBARCLOSING        (_T("titlebarclosing"))
+
 #define DUI_MSGTYPE_ITEMSELECT 		   	   (_T("itemselect"))
 #define DUI_MSGTYPE_ITEMEXPAND             (_T("itemexpand"))
 #define DUI_MSGTYPE_WINDOWINIT             (_T("windowinit"))
@@ -124,6 +131,7 @@ namespace DuiLib
 #define DUI_MSGTYPE_LISTPAGECHANGED			(_T("listpagechanged"))
 
 #define DUI_MSGTYPE_PAGECHANED				(_T("page_selected_changed"))
+#define DUI_MSGTYPE_SLIDECHANGED			(_T("slidechanged"))
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -289,9 +297,14 @@ protected:                                                                \
 #define  DUI_CTR_SPACER                          (_T("Spacer"))
 #define  DUI_CTR_ACCORDION                       (_T("Accordion"))
 #define  DUI_CTR_ACCORDIONITEM                   (_T("AccordionItem"))
+#define  DUI_CTR_CAROUSEL                        (_T("Carousel"))
+#define  DUI_CTR_CAROUSELITEM                    (_T("CarouselItem"))
 #define  DUI_CTR_SVGBOX                          (_T("SvgBox"))
 #define  DUI_CTR_TABBAR                          (_T("TabBar"))
 #define  DUI_CTR_TABBUTTON                       (_T("TabButton"))
+#define  DUI_CTR_TITLEBAR                        (_T("TitleBar"))
+#define  DUI_CTR_TITLEBARLEFT                    (_T("TitleBarLeft"))
+#define  DUI_CTR_TITLEBARSYS                     (_T("TitleBarSys"))
 #define  DUI_CTR_CONTROL                         (_T("Control"))
 #define  DUI_CTR_ACTIVEX                         (_T("ActiveX"))
 #define  DUI_CTR_GIFANIM                         (_T("GifAnim"))

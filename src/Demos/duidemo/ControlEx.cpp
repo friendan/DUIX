@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "ControlEx.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -16,8 +16,8 @@ m_ViewStyle(CHARTVIEW_PIE),
 	m_ShadowImageHeight(0), 
 	m_sPillarImage(_T("")), 
 	m_PillarImageWidth(0), 
-	m_dwTextColor(0), 
-	m_dwDisabledTextColor(0), 
+	m_dwColor(0), 
+	m_dwDisabledColor(0), 
 	m_bShowHtml(false), 
 	m_bShowText(true), 
 	m_iFont(-1)
@@ -95,10 +95,29 @@ void CChartViewUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
 		m_bShowText = (_tcscmp(pstrValue, _T("true")) == 0);
 	}
-	else if (_tcscmp(pstrName, _T("font")) == 0)
+	else if (_tcscmp(pstrName, _T("font-size")) == 0)
 	{
 		LPTSTR pstr = NULL;
-		m_iFont = _tcstol(pstrValue, &pstr, 10);
+		m_iFont = -1;
+		int nSize = (int)_tcstol(pstrValue, &pstr, 10);
+		if (m_pManager != NULL && nSize > 0) {
+			CDuiString sFamily = _T("Microsoft YaHei UI");
+			TFontInfo* pInfo = m_pManager->GetDefaultFontInfo();
+			if (pInfo != NULL) sFamily = pInfo->sFontName;
+			int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+			if (id >= 0) m_iFont = id;
+		}
+	}
+	else if (_tcscmp(pstrName, _T("font-family")) == 0)
+	{
+		if (m_pManager != NULL && pstrValue && *pstrValue) {
+			int nSize = 12;
+			TFontInfo* pInfo = m_pManager->GetFontInfo(m_iFont);
+			if (pInfo == NULL) pInfo = m_pManager->GetDefaultFontInfo();
+			if (pInfo != NULL) nSize = pInfo->iSize;
+			int id = m_pManager->EnsureFont(pstrValue, nSize, false, false, false, false);
+			if (id >= 0) m_iFont = id;
+		}
 	}
 }
 
@@ -218,7 +237,7 @@ void CChartViewUI::DoPaintPie(HDC hDC, const RECT& rcPaint)
 
 				rcText.left += drawTextHeight + 5; // 因为在文字前面画了一个色块， 所以文字要在色块后面输出, 5为文字和色块的间距
 				int nLinks = 0;
-				DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+				DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 				if(clrColor << 8 == 0) clrColor = 1;
 				if( m_bShowHtml )
 				{
@@ -308,7 +327,7 @@ void CChartViewUI::DoPaintHistogram(HDC hDC, const RECT& rcPaint)
 			rcText.bottom = m_rcItem.bottom;
 
 			int nLinks = 0;
-			DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+			DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 			if(clrColor << 8 == 0) clrColor = 1;
 			if( m_bShowHtml )
 			{

@@ -194,6 +194,15 @@ namespace DuiLib
 		pRect->bottom = pRect->top + sh;
 	}
 
+	void CDPI::Scale(CDuiBox *pBox)
+	{
+		if( pBox == NULL ) return;
+		pBox->top = Scale(pBox->top);
+		pBox->right = Scale(pBox->right);
+		pBox->bottom = Scale(pBox->bottom);
+		pBox->left = Scale(pBox->left);
+	}
+
 	void CDPI::ScaleBack(RECT *pRect)
 	{
 		int sw = ScaleBack(pRect->right - pRect->left);

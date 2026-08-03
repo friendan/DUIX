@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include <Shlwapi.h>
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -238,8 +238,8 @@ namespace DuiLib
 
     void CIPAddressExUI::PaintText(IRenderContext& ctx)
     {
-        if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-        if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+        if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+        if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 
         if( m_sText.IsEmpty() ) return;
 
@@ -249,10 +249,10 @@ namespace DuiLib
         rc.top += m_rcTextPadding.top;
         rc.bottom -= m_rcTextPadding.bottom;
 
-        DWORD dwTextColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+        DWORD dwColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
         UINT uStyle = DT_SINGLELINE | m_uTextStyle | DT_NOPREFIX;
         const DWORD dwSelTextColor = 0xFFFFFFFF;
-        const DWORD dwSelBkColor = 0xFF3399FF;
+        const DWORD dwSelBkColor = 0x3399FFFF;
 
         CDuiString sFirst, sSecond, sThird, sFourth;
         sFirst.Format(_T("%d"), m_nFirst);
@@ -268,7 +268,7 @@ namespace DuiLib
         {
             rcPoint.left += nPointPos;
             RECT rcDot = rcPoint;
-            ctx.DrawText(rcDot, _T("."), dwTextColor, m_iFont, uStyle);
+            ctx.DrawText(rcDot, _T("."), dwColor, m_iFont, uStyle);
         }
 
         if (m_nFirst == 0 &&
@@ -290,7 +290,7 @@ namespace DuiLib
             ctx.DrawText(rcIP, sFirst.GetData(), dwSelTextColor, m_iFont, uStyle);
         }
         else
-            ctx.DrawText(rcIP, sFirst.GetData(), dwTextColor, m_iFont, uStyle);
+            ctx.DrawText(rcIP, sFirst.GetData(), dwColor, m_iFont, uStyle);
         rc.left += nPointPos;
 
         rcIP.left = rc.left + nIPPos;
@@ -301,7 +301,7 @@ namespace DuiLib
             ctx.DrawText(rcIP, sSecond.GetData(), dwSelTextColor, m_iFont, uStyle);
         }
         else
-            ctx.DrawText(rcIP, sSecond.GetData(), dwTextColor, m_iFont, uStyle);
+            ctx.DrawText(rcIP, sSecond.GetData(), dwColor, m_iFont, uStyle);
         rc.left += nPointPos;
 
         rcIP.left = rc.left + nIPPos;
@@ -312,7 +312,7 @@ namespace DuiLib
             ctx.DrawText(rcIP, sThird.GetData(), dwSelTextColor, m_iFont, uStyle);
         }
         else
-            ctx.DrawText(rcIP, sThird.GetData(), dwTextColor, m_iFont, uStyle);
+            ctx.DrawText(rcIP, sThird.GetData(), dwColor, m_iFont, uStyle);
         rc.left += nPointPos;
 
         rcIP.left = rc.left + nIPPos;
@@ -323,7 +323,7 @@ namespace DuiLib
             ctx.DrawText(rcIP, sFourth.GetData(), dwSelTextColor, m_iFont, uStyle);
         }
         else
-            ctx.DrawText(rcIP, sFourth.GetData(), dwTextColor, m_iFont, uStyle);
+            ctx.DrawText(rcIP, sFourth.GetData(), dwColor, m_iFont, uStyle);
     }
 
     void CIPAddressExUI::SetIP(LPCTSTR lpIP)

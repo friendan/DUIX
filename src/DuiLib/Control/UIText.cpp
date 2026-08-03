@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIText.h"
 
 namespace DuiLib
@@ -108,21 +108,21 @@ namespace DuiLib
 	{
 		CDuiString sText = GetText();
 		RECT rcTextPadding = GetTextPadding();
-		RECT rcInset = GetInset();
-		const int padL = rcInset.left + rcTextPadding.left;
-		const int padR = rcInset.right + rcTextPadding.right;
-		const int padT = rcInset.top + rcTextPadding.top;
-		const int padB = rcInset.bottom + rcTextPadding.bottom;
+		RECT rcPadding = GetPadding();
+		const int padL = rcPadding.left + rcTextPadding.left;
+		const int padR = rcPadding.right + rcTextPadding.right;
+		const int padT = rcPadding.top + rcTextPadding.top;
+		const int padB = rcPadding.bottom + rcTextPadding.bottom;
 
 		RECT rcText = { 0, 0, m_bAutoCalcWidth ? 9999 : GetManager()->GetDPIObj()->Scale(m_cxyFixed.cx), 9999 };
 		rcText.left += padL;
 		rcText.right -= padR;
 
 		if( m_bShowHtml ) {
-			RenderMeasureHtmlText(m_pManager, rcText, sText, m_dwTextColor, m_iFont, DT_CALCRECT | m_uTextStyle);
+			RenderMeasureHtmlText(m_pManager, rcText, sText, m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
 		}
 		else {
-			RenderMeasureText(m_pManager, rcText, sText, m_dwTextColor, m_iFont, DT_CALCRECT | m_uTextStyle);
+			RenderMeasureText(m_pManager, rcText, sText, m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
 		}
 		SIZE cXY = {rcText.right - rcText.left + padL + padR,
 			rcText.bottom - rcText.top + padT + padB};
@@ -143,19 +143,19 @@ namespace DuiLib
 			return;
 		}
 
-		if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-		if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 
 		m_nLinks = lengthof(m_rcLinks);
 		RECT rc = m_rcItem;
-		RECT rcInset = GetInset();
+		RECT rcPadding = GetPadding();
 		RECT rcTextPadding = GetTextPadding();
-		rc.left += rcInset.left + rcTextPadding.left;
-		rc.right -= rcInset.right + rcTextPadding.right;
-		rc.top += rcInset.top + rcTextPadding.top;
-		rc.bottom -= rcInset.bottom + rcTextPadding.bottom;
+		rc.left += rcPadding.left + rcTextPadding.left;
+		rc.right -= rcPadding.right + rcTextPadding.right;
+		rc.top += rcPadding.top + rcTextPadding.top;
+		rc.bottom -= rcPadding.bottom + rcTextPadding.bottom;
 
-		DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		if( m_bShowHtml )
 			ctx.DrawHtmlText(rc, sText, clrColor, m_rcLinks, m_sLinks, m_nLinks, m_iFont, m_uTextStyle);
 		else

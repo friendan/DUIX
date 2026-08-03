@@ -57,15 +57,15 @@ namespace DuiLib
 	}
 
 	CSvgBoxUI::CSvgBoxUI()
-		: m_dwTintColor(0)
-		, m_dwHotTintColor(0)
-		, m_dwPushedTintColor(0)
-		, m_dwDisabledTintColor(0)
+		: m_dwColor(0)
+		, m_dwHoverColor(0)
+		, m_dwActiveColor(0)
+		, m_dwDisabledColor(0)
 		, m_uButtonState(0)
 		, m_hCacheBitmap(NULL)
 		, m_nCacheW(0)
 		, m_nCacheH(0)
-		, m_dwCacheTint(0)
+		, m_dwCacheColor(0)
 	{
 	}
 
@@ -85,6 +85,21 @@ namespace DuiLib
 		return CControlUI::GetInterface(pstrName);
 	}
 
+	UINT CSvgBoxUI::GetControlFlags() const
+	{
+		// 与 PreferClientHit 对齐：有热态时带 SETCURSOR，供 WM_SETCURSOR；勿回调 PreferClientHit
+		if( !IsEnabled() ) return 0;
+		if( m_dwHoverColor != 0 || m_dwActiveColor != 0 ) return UIFLAG_SETCURSOR;
+		return 0;
+	}
+
+	bool CSvgBoxUI::PreferClientHit() const
+	{
+		if( !IsEnabled() ) return false;
+		if( m_dwHoverColor != 0 || m_dwActiveColor != 0 ) return true;
+		return CControlUI::PreferClientHit();
+	}
+
 	CDuiString CSvgBoxUI::ResolveFilePath(LPCTSTR pstrPath)
 	{
 		if( pstrPath == NULL || *pstrPath == _T('\0') ) return CDuiString();
@@ -99,12 +114,35 @@ namespace DuiLib
 
 	DWORD CSvgBoxUI::ParseColorValue(LPCTSTR pstrValue)
 	{
-		if( pstrValue == NULL || *pstrValue == _T('\0') ) return 0;
 		DWORD clr = 0;
-		if( ParseColorString(pstrValue, clr) ) return clr;
-		if( *pstrValue == _T('#') ) pstrValue = ::CharNext(pstrValue);
-		LPTSTR pstr = NULL;
-		return _tcstoul(pstrValue, &pstr, 16);
+		if( pstrValue != NULL && ParseColorString(pstrValue, clr) ) return clr;
+		return 0;
+	}
+
+	CSvgBoxUI::TintMode CSvgBoxUI::DetectTintMode(const std::string& svgUtf8)
+	{
+		if( svgUtf8.empty() ) return TintBoth;
+
+		auto has = [&](const char* s) -> bool {
+			return svgUtf8.find(s) != std::string::npos;
+		};
+
+		// Twemoji 等多色图标：保留原色，不单色着色
+		if( (has("fill=\"#") || has("fill='#")) && !has("currentColor") )
+			return TintSkip;
+
+		const bool bFillNone = has("fill=\"none\"") || has("fill='none'");
+		const bool bStrokeCurrent = has("stroke=\"currentColor\"") || has("stroke='currentColor'");
+		const bool bFillCurrent = has("fill=\"currentColor\"") || has("fill='currentColor'");
+		const bool bHasStroke = has("stroke=") || has("stroke:");
+
+		// Lucide / Tabler Outline / IconPark：描边为主
+		if( bStrokeCurrent || (bFillNone && bHasStroke) )
+			return TintStroke;
+		// Bootstrap / Remix / Tabler Filled：填充为主
+		if( bFillCurrent || !bHasStroke )
+			return TintFill;
+		return TintBoth;
 	}
 
 	void CSvgBoxUI::ClearCache()
@@ -115,7 +153,7 @@ namespace DuiLib
 		}
 		m_nCacheW = 0;
 		m_nCacheH = 0;
-		m_dwCacheTint = 0;
+		m_dwCacheColor = 0;
 	}
 
 	void CSvgBoxUI::LoadFromFile(LPCTSTR pstrPath)
@@ -145,52 +183,52 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	void CSvgBoxUI::SetTintColor(DWORD dwColor)
+	void CSvgBoxUI::SetColor(DWORD dwColor)
 	{
-		if( m_dwTintColor == dwColor ) return;
-		m_dwTintColor = dwColor;
+		if( m_dwColor == dwColor ) return;
+		m_dwColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CSvgBoxUI::GetTintColor() const
+	DWORD CSvgBoxUI::GetColor() const
 	{
-		return m_dwTintColor;
+		return m_dwColor;
 	}
 
-	void CSvgBoxUI::SetHotTintColor(DWORD dwColor)
+	void CSvgBoxUI::SetHoverColor(DWORD dwColor)
 	{
-		if( m_dwHotTintColor == dwColor ) return;
-		m_dwHotTintColor = dwColor;
+		if( m_dwHoverColor == dwColor ) return;
+		m_dwHoverColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CSvgBoxUI::GetHotTintColor() const
+	DWORD CSvgBoxUI::GetHoverColor() const
 	{
-		return m_dwHotTintColor;
+		return m_dwHoverColor;
 	}
 
-	void CSvgBoxUI::SetPushedTintColor(DWORD dwColor)
+	void CSvgBoxUI::SetActiveColor(DWORD dwColor)
 	{
-		if( m_dwPushedTintColor == dwColor ) return;
-		m_dwPushedTintColor = dwColor;
+		if( m_dwActiveColor == dwColor ) return;
+		m_dwActiveColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CSvgBoxUI::GetPushedTintColor() const
+	DWORD CSvgBoxUI::GetActiveColor() const
 	{
-		return m_dwPushedTintColor;
+		return m_dwActiveColor;
 	}
 
-	void CSvgBoxUI::SetDisabledTintColor(DWORD dwColor)
+	void CSvgBoxUI::SetDisabledColor(DWORD dwColor)
 	{
-		if( m_dwDisabledTintColor == dwColor ) return;
-		m_dwDisabledTintColor = dwColor;
+		if( m_dwDisabledColor == dwColor ) return;
+		m_dwDisabledColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CSvgBoxUI::GetDisabledTintColor() const
+	DWORD CSvgBoxUI::GetDisabledColor() const
 	{
-		return m_dwDisabledTintColor;
+		return m_dwDisabledColor;
 	}
 
 	void CSvgBoxUI::SetEnabled(bool bEnable)
@@ -201,17 +239,17 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	DWORD CSvgBoxUI::GetPaintTintColor() const
+	DWORD CSvgBoxUI::GetPaintColor() const
 	{
 		if( !IsEnabled() || (m_uButtonState & UISTATE_DISABLED) != 0 ) {
-			if( m_dwDisabledTintColor != 0 ) return m_dwDisabledTintColor;
-			return m_dwTintColor;
+			if( m_dwDisabledColor != 0 ) return m_dwDisabledColor;
+			return m_dwColor;
 		}
-		if( (m_uButtonState & UISTATE_PUSHED) != 0 && m_dwPushedTintColor != 0 )
-			return m_dwPushedTintColor;
-		if( (m_uButtonState & UISTATE_HOT) != 0 && m_dwHotTintColor != 0 )
-			return m_dwHotTintColor;
-		return m_dwTintColor;
+		if( (m_uButtonState & UISTATE_PUSHED) != 0 && m_dwActiveColor != 0 )
+			return m_dwActiveColor;
+		if( (m_uButtonState & UISTATE_HOT) != 0 && m_dwHoverColor != 0 )
+			return m_dwHoverColor;
+		return m_dwColor;
 	}
 
 	void CSvgBoxUI::DoEvent(TEventUI& event)
@@ -298,31 +336,27 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("twicon")) == 0 ) {
 			LoadFromUtf8Data(TwemojiIcons::GetIcon(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("color")) == 0 || _tcsicmp(pstrName, _T("fill")) == 0
-			|| _tcsicmp(pstrName, _T("tint")) == 0 || _tcsicmp(pstrName, _T("tintcolor")) == 0 ) {
-			SetTintColor(ParseColorValue(pstrValue));
+		else if( _tcsicmp(pstrName, _T("color")) == 0 ) {
+			SetColor(ParseColorValue(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("color-hover")) == 0 || _tcsicmp(pstrName, _T("fill-hover")) == 0
-			|| _tcsicmp(pstrName, _T("hottint")) == 0 || _tcsicmp(pstrName, _T("hottintcolor")) == 0 ) {
-			SetHotTintColor(ParseColorValue(pstrValue));
+		else if( _tcsicmp(pstrName, _T("color-hover")) == 0 ) {
+			SetHoverColor(ParseColorValue(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("color-active")) == 0 || _tcsicmp(pstrName, _T("fill-active")) == 0
-			|| _tcsicmp(pstrName, _T("pushedtint")) == 0 || _tcsicmp(pstrName, _T("pushedtintcolor")) == 0 ) {
-			SetPushedTintColor(ParseColorValue(pstrValue));
+		else if( _tcsicmp(pstrName, _T("color-active")) == 0 ) {
+			SetActiveColor(ParseColorValue(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 || _tcsicmp(pstrName, _T("fill-disabled")) == 0
-			|| _tcsicmp(pstrName, _T("disabledtint")) == 0 || _tcsicmp(pstrName, _T("disabledtintcolor")) == 0 ) {
-			SetDisabledTintColor(ParseColorValue(pstrValue));
+		else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 ) {
+			SetDisabledColor(ParseColorValue(pstrValue));
 		}
 		else {
 			CControlUI::SetAttribute(pstrName, pstrValue);
 		}
 	}
 
-	bool CSvgBoxUI::EnsureCache(int w, int h, DWORD dwTint)
+	bool CSvgBoxUI::EnsureCache(int w, int h, DWORD dwColor)
 	{
 		if( w <= 0 || h <= 0 ) return false;
-		if( m_hCacheBitmap != NULL && m_nCacheW == w && m_nCacheH == h && m_dwCacheTint == dwTint )
+		if( m_hCacheBitmap != NULL && m_nCacheW == w && m_nCacheH == h && m_dwCacheColor == dwColor )
 			return true;
 
 		ClearCache();
@@ -341,15 +375,57 @@ namespace DuiLib
 		}
 		if( !document ) return false;
 
-		if( dwTint != 0 ) {
-			const BYTE r = (BYTE)((dwTint >> 16) & 0xFF);
-			const BYTE g = (BYTE)((dwTint >> 8) & 0xFF);
-			const BYTE b = (BYTE)(dwTint & 0xFF);
-			char style[256];
-			sprintf_s(style, sizeof(style),
-				"* { fill: #%02x%02x%02x; stroke: #%02x%02x%02x; }",
-				r, g, b, r, g, b);
-			document->applyStyleSheet(style);
+		if( dwColor != 0 ) {
+			std::string sProbe;
+			if( !m_sSvgUtf8.empty() ) {
+				sProbe = m_sSvgUtf8;
+			}
+			else if( !m_sSvgData.IsEmpty() ) {
+				sProbe = DuiStringToUtf8(m_sSvgData.GetData());
+			}
+			else if( !m_sSvgPath.IsEmpty() ) {
+				CDuiString sPath = ResolveFilePath(m_sSvgPath.GetData());
+				FILE* fp = NULL;
+#ifdef _UNICODE
+				_wfopen_s(&fp, sPath.GetData(), L"rb");
+#else
+				fopen_s(&fp, sPath.GetData(), "rb");
+#endif
+				if( fp != NULL ) {
+					fseek(fp, 0, SEEK_END);
+					long nLen = ftell(fp);
+					fseek(fp, 0, SEEK_SET);
+					if( nLen > 0 && nLen < 2 * 1024 * 1024 ) {
+						sProbe.resize((size_t)nLen);
+						fread(&sProbe[0], 1, (size_t)nLen, fp);
+					}
+					fclose(fp);
+				}
+			}
+
+			const TintMode mode = sProbe.empty() ? TintBoth : DetectTintMode(sProbe);
+			if( mode != TintSkip ) {
+				const BYTE r = (BYTE)((dwColor >> 16) & 0xFF);
+				const BYTE g = (BYTE)((dwColor >> 8) & 0xFF);
+				const BYTE b = (BYTE)(dwColor & 0xFF);
+				char style[256];
+				if( mode == TintStroke ) {
+					// 描边图标：保持 fill:none，只改 stroke，避免 fill 把线标糊成色块
+					sprintf_s(style, sizeof(style),
+						"* { fill: none; stroke: #%02x%02x%02x; }", r, g, b);
+				}
+				else if( mode == TintFill ) {
+					// 填充图标：清掉 stroke，避免描边导致「加粗」
+					sprintf_s(style, sizeof(style),
+						"* { fill: #%02x%02x%02x; stroke: none; }", r, g, b);
+				}
+				else {
+					sprintf_s(style, sizeof(style),
+						"* { fill: #%02x%02x%02x; stroke: #%02x%02x%02x; }",
+						r, g, b, r, g, b);
+				}
+				document->applyStyleSheet(style);
+			}
 		}
 
 		lunasvg::Bitmap bitmap = document->renderToBitmap(w, h);
@@ -359,7 +435,7 @@ namespace DuiLib
 		if( m_hCacheBitmap == NULL ) return false;
 		m_nCacheW = w;
 		m_nCacheH = h;
-		m_dwCacheTint = dwTint;
+		m_dwCacheColor = dwColor;
 		return true;
 	}
 
@@ -370,8 +446,8 @@ namespace DuiLib
 
 		const int w = (int)(m_rcItem.right - m_rcItem.left);
 		const int h = (int)(m_rcItem.bottom - m_rcItem.top);
-		const DWORD dwTint = GetPaintTintColor();
-		if( !EnsureCache(w, h, dwTint) || m_hCacheBitmap == NULL ) return;
+		const DWORD dwColor = GetPaintColor();
+		if( !EnsureCache(w, h, dwColor) || m_hCacheBitmap == NULL ) return;
 
 		RECT rcBmpPart = { 0, 0, m_nCacheW, m_nCacheH };
 		RECT rcCorners = { 0, 0, 0, 0 };

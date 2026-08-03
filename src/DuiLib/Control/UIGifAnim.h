@@ -1,4 +1,4 @@
-﻿#ifndef GifAnimUI_h__
+#ifndef GifAnimUI_h__
 #define GifAnimUI_h__
 
 #pragma once
@@ -23,8 +23,8 @@ namespace DuiLib
 		void	DoEvent(TEventUI& event);
 		void	SetVisible(bool bVisible = true );
 		void	SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-		void	SetBkImage(LPCTSTR pStrImage);
-		LPCTSTR GetBkImage();
+		void	SetBackgroundImage(LPCTSTR pStrImage);
+		LPCTSTR GetBackgroundImage();
 
 		void	SetAutoPlay(bool bIsAuto = true );
 		bool	IsAutoPlay() const;
@@ -46,7 +46,7 @@ namespace DuiLib
 		UINT			m_nFramePosition;			// 当前放到第几帧
 		Gdiplus::PropertyItem*	m_pPropertyItem;	// 帧与帧之间间隔时间
 
-		CDuiString		m_sBkImage;
+		CDuiString		m_sBackgroundImage;
 		bool			m_bIsAutoPlay;				// 是否自动播放gif
 		bool			m_bIsAutoSize;				// 是否自动根据图片设置大小
 		bool			m_bIsPlaying;

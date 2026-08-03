@@ -1,4 +1,4 @@
-﻿#ifndef __GDIRENDERCONTEXT_H__
+#ifndef __GDIRENDERCONTEXT_H__
 #define __GDIRENDERCONTEXT_H__
 
 #pragma once
@@ -35,9 +35,9 @@ namespace DuiLib {
 		void DrawRoundRect(const RECT& rc, int nSize, int width, int height, DWORD dwPenColor, int nStyle = PS_SOLID) override;
 		void FillRoundRect(const RECT& rc, int width, int height, DWORD dwColor) override;
 
-		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle) override;
-		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle, DWORD dwTextBKColor) override;
-		void DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle) override;
+		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle) override;
+		void DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle, DWORD dwTextBKColor) override;
+		void DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle) override;
 		SIZE GetTextSize(LPCTSTR pstrText, int iFont, UINT uStyle) override;
 
 		bool DrawImageInfo(const RECT& rcItem, const RECT& rcPaint, const TDrawInfo* pDrawInfo, HINSTANCE instance = NULL) override;

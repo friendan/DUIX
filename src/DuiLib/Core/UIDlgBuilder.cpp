@@ -17,7 +17,17 @@ namespace DuiLib {
 			int cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
 			pManager->SetInitSize(pManager->GetDPIObj()->Scale(cx), pManager->GetDPIObj()->Scale(cy));
 		}
-		else if( _tcsicmp(pstrName, _T("sizebox")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("width")) == 0 ) {
+			SIZE sz = pManager->GetInitSize();
+			int cx = _ttoi(pstrValue);
+			pManager->SetInitSize(pManager->GetDPIObj()->Scale(cx), sz.cy);
+		}
+		else if( _tcsicmp(pstrName, _T("height")) == 0 ) {
+			SIZE sz = pManager->GetInitSize();
+			int cy = _ttoi(pstrValue);
+			pManager->SetInitSize(sz.cx, pManager->GetDPIObj()->Scale(cy));
+		}
+		else if( _tcsicmp(pstrName, _T("size-box")) == 0 ) {
 			RECT rcSizeBox = { 0 };
 			LPTSTR pstr = NULL;
 			rcSizeBox.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
@@ -35,77 +45,120 @@ namespace DuiLib {
 			rcCaption.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
 			pManager->SetCaptionRect(rcCaption);
 		}
-		else if( _tcsicmp(pstrName, _T("roundcorner")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("border-radius")) == 0 ) {
+			SIZE szRound = { 0 };
+			if( ParseBorderRadiusValue(pstrValue, szRound) )
+				pManager->SetBorderRadius(szRound.cx, szRound.cy);
+		}
+		else if( _tcsicmp(pstrName, _T("min-size")) == 0 ) {
 			LPTSTR pstr = NULL;
 			int cx = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
 			int cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
-			pManager->SetRoundCorner(cx, cy);
+			pManager->SetMinSize(cx, cy);
 		}
-		else if( _tcsicmp(pstrName, _T("mininfo")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("min-width")) == 0 ) {
+			SIZE sz = pManager->GetMinSize();
+			CDPI* pDpi = pManager->GetDPIObj();
+			int cy = (pDpi != NULL) ? pDpi->ScaleBack(sz.cy) : sz.cy;
+			pManager->SetMinSize(_ttoi(pstrValue), cy);
+		}
+		else if( _tcsicmp(pstrName, _T("min-height")) == 0 ) {
+			SIZE sz = pManager->GetMinSize();
+			CDPI* pDpi = pManager->GetDPIObj();
+			int cx = (pDpi != NULL) ? pDpi->ScaleBack(sz.cx) : sz.cx;
+			pManager->SetMinSize(cx, _ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("max-size")) == 0 ) {
 			LPTSTR pstr = NULL;
 			int cx = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
 			int cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
-			pManager->SetMinInfo(cx, cy);
+			pManager->SetMaxSize(cx, cy);
 		}
-		else if( _tcsicmp(pstrName, _T("maxinfo")) == 0 ) {
-			LPTSTR pstr = NULL;
-			int cx = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
-			int cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
-			pManager->SetMaxInfo(cx, cy);
+		else if( _tcsicmp(pstrName, _T("max-width")) == 0 ) {
+			SIZE sz = pManager->GetMaxSize();
+			CDPI* pDpi = pManager->GetDPIObj();
+			int cy = (pDpi != NULL) ? pDpi->ScaleBack(sz.cy) : sz.cy;
+			pManager->SetMaxSize(_ttoi(pstrValue), cy);
 		}
-		else if( _tcsicmp(pstrName, _T("showdirty")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("max-height")) == 0 ) {
+			SIZE sz = pManager->GetMaxSize();
+			CDPI* pDpi = pManager->GetDPIObj();
+			int cx = (pDpi != NULL) ? pDpi->ScaleBack(sz.cx) : sz.cx;
+			pManager->SetMaxSize(cx, _ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("show-dirty")) == 0 ) {
 			pManager->SetShowUpdateRect(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
 		else if( _tcsicmp(pstrName, _T("opacity")) == 0 || _tcsicmp(pstrName, _T("alpha")) == 0 ) {
-			pManager->SetOpacity(_ttoi(pstrValue));
+			BYTE nOpacity = 255;
+			if( ParseCssOpacity(pstrValue, nOpacity) )
+				pManager->SetOpacity(nOpacity);
+			else
+				pManager->SetOpacity((BYTE)_ttoi(pstrValue));
 		}
-		else if( _tcscmp(pstrName, _T("layeredopacity")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("layered-opacity")) == 0 ) {
 			pManager->SetLayeredOpacity(_ttoi(pstrValue));
 		}
-		else if( _tcscmp(pstrName, _T("layered")) == 0 || _tcscmp(pstrName, _T("bktrans")) == 0) {
+		else if( _tcsicmp(pstrName, _T("layered")) == 0 ) {
 			pManager->SetLayered(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcscmp(pstrName, _T("layeredimage")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("layered-image")) == 0 ) {
 			pManager->SetLayered(true);
 			pManager->SetLayeredImage(pstrValue);
 		}
-		else if( _tcscmp(pstrName, _T("noactivate")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("no-activate")) == 0 ) {
 			pManager->SetNoActivate(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("disabledfontcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			pManager->SetDefaultDisabledColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("defaultfontcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			pManager->SetDefaultFontColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("linkfontcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			pManager->SetDefaultLinkFontColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("linkhoverfontcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			pManager->SetDefaultLinkHoverFontColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("selectedcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			pManager->SetDefaultSelectedBkColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("bkcolor")) == 0 || _tcsicmp(pstrName, _T("bkcolor1")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("disabled-font-color")) == 0 ) {
 			DWORD clrColor = 0;
 			if( ParseColorString(pstrValue, clrColor) )
-				pManager->SetWindowBkColor(clrColor);
+				pManager->SetDefaultDisabledColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("default-font-color")) == 0 || _tcsicmp(pstrName, _T("color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				pManager->SetDefaultFontColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("link-font-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				pManager->SetDefaultLinkFontColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("link-hover-font-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				pManager->SetDefaultLinkHoverFontColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("selected-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				pManager->SetDefaultSelectedBackgroundColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("background-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				pManager->SetWindowBackgroundColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("font-family")) == 0
+			|| _tcsicmp(pstrName, _T("font-size")) == 0
+			|| _tcsicmp(pstrName, _T("font-weight")) == 0
+			|| _tcsicmp(pstrName, _T("font-style")) == 0
+			|| _tcsicmp(pstrName, _T("text-decoration")) == 0 ) {
+			TFontInfo* pFi = pManager->GetDefaultFontInfo();
+			if( pFi != NULL ) {
+				CDuiString sName = pFi->sFontName;
+				int nSize = pFi->iSize;
+				bool bBold = pFi->bBold;
+				bool bUnderline = pFi->bUnderline;
+				bool bItalic = pFi->bItalic;
+				bool bStrikeout = pFi->bStrikeout;
+				if( _tcsicmp(pstrName, _T("font-family")) == 0 ) sName = pstrValue;
+				else if( _tcsicmp(pstrName, _T("font-size")) == 0 ) nSize = _ttoi(pstrValue);
+				else if( _tcsicmp(pstrName, _T("font-weight")) == 0 ) ParseCssFontWeightBold(pstrValue, bBold);
+				else if( _tcsicmp(pstrName, _T("font-style")) == 0 ) ParseCssFontStyleItalic(pstrValue, bItalic);
+				else if( _tcsicmp(pstrName, _T("text-decoration")) == 0 ) ParseCssTextDecoration(pstrValue, bUnderline, bStrikeout);
+				pManager->SetDefaultFont(sName.GetData(), nSize, bBold, bUnderline, bItalic, bStrikeout);
+			}
 		}
 		else if( _tcsicmp(pstrName, _T("action")) == 0 ) {
 			// html/Window：title/move 等落到窗口级，Attach 后赋给 root（见 SetWindowAction）
@@ -136,10 +189,9 @@ namespace DuiLib {
 			pManager->GetShadow()->SetPosition(cx, cy);
 		}
 		else if( _tcsicmp(pstrName, _T("shadowcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			pManager->GetShadow()->SetColor(clrColor);
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) )
+				pManager->GetShadow()->SetColor(DuiColorToCOLORREF(clrColor));
 		}
 		else if( _tcsicmp(pstrName, _T("shadowcorner")) == 0 ) {
 			RECT rcCorner = { 0 };
@@ -156,13 +208,13 @@ namespace DuiLib {
 		else if( _tcsicmp(pstrName, _T("showshadow")) == 0 ) {
 			pManager->GetShadow()->ShowShadow(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("gdiplustext")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("gdiplus-text")) == 0 ) {
 			pManager->SetUseGdiplusText(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("textrenderinghint")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("text-rendering-hint")) == 0 ) {
 			pManager->SetGdiplusTextRenderingHint(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tooltiphovertime")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("tooltip-hover-time")) == 0 ) {
 			pManager->SetHoverTime(_ttoi(pstrValue));
 		}
 	}
@@ -287,7 +339,7 @@ namespace DuiLib {
 						if( _tcsicmp(pstrName, _T("name")) == 0 ) {
 							pImageName = pstrValue;
 						}
-						else if( _tcsicmp(pstrName, _T("restype")) == 0 ) {
+						else if( _tcsicmp(pstrName, _T("res-type")) == 0 ) {
 							pImageResType = pstrValue;
 						}
 						else if( _tcsicmp(pstrName, _T("mask")) == 0 ) {
@@ -317,14 +369,17 @@ namespace DuiLib {
 						if( _tcsicmp(pstrName, _T("id")) == 0 ) {
 							id = _tcstol(pstrValue, &pstr, 10);
 						}
-						else if( _tcsicmp(pstrName, _T("name")) == 0 ) {
+						else if( _tcsicmp(pstrName, _T("font-family")) == 0 ) {
 							pFontName = pstrValue;
 						}
-						else if( _tcsicmp(pstrName, _T("size")) == 0 ) {
+						else if( _tcsicmp(pstrName, _T("font-size")) == 0 ) {
 							size = _tcstol(pstrValue, &pstr, 10);
 						}
 						else if( _tcsicmp(pstrName, _T("bold")) == 0 ) {
 							bold = (_tcsicmp(pstrValue, _T("true")) == 0);
+						}
+						else if( _tcsicmp(pstrName, _T("font-weight")) == 0 ) {
+							ParseCssFontWeightBold(pstrValue, bold);
 						}
 						else if( _tcsicmp(pstrName, _T("underline")) == 0 ) {
 							underline = (_tcsicmp(pstrValue, _T("true")) == 0);
@@ -332,8 +387,14 @@ namespace DuiLib {
 						else if( _tcsicmp(pstrName, _T("italic")) == 0 ) {
 							italic = (_tcsicmp(pstrValue, _T("true")) == 0);
 						}
+						else if( _tcsicmp(pstrName, _T("font-style")) == 0 ) {
+							ParseCssFontStyleItalic(pstrValue, italic);
+						}
 						else if (_tcsicmp(pstrName, _T("strikeout")) == 0) {
 							strikeout = (_tcsicmp(pstrValue, _T("true")) == 0);
+						}
+						else if( _tcsicmp(pstrName, _T("text-decoration")) == 0 ) {
+							ParseCssTextDecoration(pstrValue, underline, strikeout);
 						}
 						else if( _tcsicmp(pstrName, _T("default")) == 0 ) {
 							defaultfont = (_tcsicmp(pstrValue, _T("true")) == 0);
@@ -403,7 +464,7 @@ namespace DuiLib {
 					for (int i = 0; i < nAttributes; i++) {
 						pstrName = node.GetAttributeName(i);
 						pstrValue = node.GetAttributeValue(i);
-						if (_tcsicmp(pstrName, _T("fontfile")) == 0) {
+						if (_tcsicmp(pstrName, _T("font-file")) == 0) {
 							pstrPath = pstrValue;
 						}
 					}
@@ -527,8 +588,15 @@ namespace DuiLib {
 		}
 	}
 
-	// :hover / :active / :disabled → 映射到控件已有状态属性（解析期，全控件通用）
-	enum CssPseudoKind { CSS_PSEUDO_NONE = 0, CSS_PSEUDO_HOVER, CSS_PSEUDO_ACTIVE, CSS_PSEUDO_DISABLED };
+	// :hover / :active / :disabled / :focus / :checked|:selected → 状态属性（解析期）
+	enum CssPseudoKind {
+		CSS_PSEUDO_NONE = 0,
+		CSS_PSEUDO_HOVER,
+		CSS_PSEUDO_ACTIVE,
+		CSS_PSEUDO_DISABLED,
+		CSS_PSEUDO_FOCUS,
+		CSS_PSEUDO_CHECKED
+	};
 
 	static CssPseudoKind SplitCssSelectorPseudo(CDuiString& sSelector)
 	{
@@ -542,6 +610,8 @@ namespace DuiLib {
 		if( sPseudo == _T("hover") ) kind = CSS_PSEUDO_HOVER;
 		else if( sPseudo == _T("active") ) kind = CSS_PSEUDO_ACTIVE;
 		else if( sPseudo == _T("disabled") ) kind = CSS_PSEUDO_DISABLED;
+		else if( sPseudo == _T("focus") ) kind = CSS_PSEUDO_FOCUS;
+		else if( sPseudo == _T("checked") || sPseudo == _T("selected") ) kind = CSS_PSEUDO_CHECKED;
 		else return CSS_PSEUDO_NONE;
 		sSelector = sSelector.Left(nColon);
 		sSelector.Trim();
@@ -551,13 +621,18 @@ namespace DuiLib {
 	static bool CssAttrLooksAlreadyStateful(LPCTSTR pstrKey)
 	{
 		if( pstrKey == NULL || *pstrKey == _T('\0') ) return false;
-		if( _tcsnicmp(pstrKey, _T("hot"), 3) == 0 ) return true;
-		if( _tcsnicmp(pstrKey, _T("pushed"), 6) == 0 ) return true;
-		if( _tcsnicmp(pstrKey, _T("disabled"), 8) == 0 ) return true;
+		size_t nLen = _tcslen(pstrKey);
+		auto endsWith = [&](LPCTSTR suf, size_t nSuf) -> bool {
+			return nLen >= nSuf && _tcsicmp(pstrKey + (nLen - nSuf), suf) == 0;
+		};
+		if( endsWith(_T("-hover"), 6) ) return true;
+		if( endsWith(_T("-active"), 7) ) return true;
+		if( endsWith(_T("-disabled"), 9) ) return true;
+		if( endsWith(_T("-focus"), 6) ) return true;
+		if( endsWith(_T("-selected"), 9) ) return true;
 		if( _tcsnicmp(pstrKey, _T("focused"), 7) == 0 ) return true;
 		if( _tcsnicmp(pstrKey, _T("selected"), 8) == 0 ) return true;
 		if( _tcsnicmp(pstrKey, _T("color-"), 6) == 0 ) return true;
-		if( _tcsnicmp(pstrKey, _T("fill-"), 5) == 0 ) return true;
 		return false;
 	}
 
@@ -567,12 +642,6 @@ namespace DuiLib {
 		sKey.Trim();
 		if( sKey.IsEmpty() ) return sKey;
 
-		// fill-* → color-*（SvgBox）
-		if( _tcsicmp(sKey.GetData(), _T("fill-hover")) == 0 ) return _T("color-hover");
-		if( _tcsicmp(sKey.GetData(), _T("fill-active")) == 0 ) return _T("color-active");
-		if( _tcsicmp(sKey.GetData(), _T("fill-disabled")) == 0 ) return _T("color-disabled");
-		if( _tcsicmp(sKey.GetData(), _T("fill")) == 0 ) sKey = _T("color");
-
 		if( CssAttrLooksAlreadyStateful(sKey.GetData()) )
 			return sKey;
 
@@ -581,12 +650,14 @@ namespace DuiLib {
 			return sKey;
 		}
 
-		// SvgBox：color → color-hover / color-active / color-disabled
+		// color → color-hover / … / color-focus / color-selected
 		if( _tcsicmp(sKey.GetData(), _T("color")) == 0 ) {
 			switch( pseudo ) {
 			case CSS_PSEUDO_HOVER: return _T("color-hover");
 			case CSS_PSEUDO_ACTIVE: return _T("color-active");
 			case CSS_PSEUDO_DISABLED: return _T("color-disabled");
+			case CSS_PSEUDO_FOCUS: return _T("color-focus");
+			case CSS_PSEUDO_CHECKED: return _T("color-selected");
 			default: return _T("color");
 			}
 		}
@@ -595,16 +666,16 @@ namespace DuiLib {
 			LPCTSTR pBase;
 			LPCTSTR pHover;
 			LPCTSTR pActive;
-			LPCTSTR pDisabled; // NULL = 伪类下不改写
+			LPCTSTR pDisabled;
+			LPCTSTR pFocus;
+			LPCTSTR pChecked;
 		};
 		static const TCssStateMap kMap[] = {
-			{ _T("bkcolor"),     _T("hotbkcolor"),      _T("pushedbkcolor"),      _T("disabledbkcolor") },
-			{ _T("textcolor"),   _T("hottextcolor"),    _T("pushedtextcolor"),    _T("disabledtextcolor") },
-			{ _T("bordercolor"), _T("hotbordercolor"),  _T("pushedbordercolor"),  _T("disabledbordercolor") },
-			{ _T("image"),       _T("hotimage"),        _T("pushedimage"),        _T("disabledimage") },
-			{ _T("bkimage"),     _T("hotimage"),        _T("pushedimage"),        _T("disabledimage") },
-			{ _T("foreimage"),   _T("hotforeimage"),    _T("pushedforeimage"),    NULL },
-			{ _T("font"),        _T("hotfont"),         _T("pushedfont"),         NULL },
+			{ _T("background-color"),   _T("background-color-hover"),   _T("background-color-active"),   _T("background-color-disabled"), _T("background-color-focus"), _T("background-color-selected") },
+			{ _T("border-color"),       _T("border-color-hover"),       _T("border-color-active"),       _T("border-color-disabled"),     _T("border-color-focus"),     NULL },
+			{ _T("image"),              _T("image-hover"),              _T("image-active"),              _T("image-disabled"),            _T("image-focus"),            _T("image-selected") },
+			{ _T("background-image"),   _T("background-image-hover"),   _T("background-image-active"),   _T("background-image-disabled"), _T("background-image-focus"), _T("background-image-selected") },
+			{ _T("foreground-image"),   _T("foreground-image-hover"),   _T("foreground-image-active"),   NULL,                            NULL,                       _T("foreground-image-selected") },
 		};
 		for( int i = 0; i < (int)(sizeof(kMap) / sizeof(kMap[0])); ++i ) {
 			if( _tcsicmp(sKey.GetData(), kMap[i].pBase) != 0 ) continue;
@@ -613,10 +684,13 @@ namespace DuiLib {
 			case CSS_PSEUDO_HOVER: pMapped = kMap[i].pHover; break;
 			case CSS_PSEUDO_ACTIVE: pMapped = kMap[i].pActive; break;
 			case CSS_PSEUDO_DISABLED: pMapped = kMap[i].pDisabled; break;
+			case CSS_PSEUDO_FOCUS: pMapped = kMap[i].pFocus; break;
+			case CSS_PSEUDO_CHECKED: pMapped = kMap[i].pChecked; break;
 			default: break;
 			}
 			if( pMapped != NULL ) return pMapped;
-			return sKey;
+			// 未实现的伪类态：跳过，避免写回基属性覆盖常态
+			return _T("");
 		}
 		return sKey;
 	}
@@ -674,7 +748,7 @@ namespace DuiLib {
 				p++;
 				SkipCssCommentsAndSpace(p);
 				while (*p != _T('\0') && *p != _T(';') && *p != _T('}')) {
-					// 值后同行注释：bkcolor: #F00; // test  或  bkcolor: #F00 // test
+					// 值后同行注释：background-color: #F00; // test  或  background-color: #F00 // test
 					if (p[0] == _T('/') && (p[1] == _T('*') || p[1] == _T('/'))) break;
 					sVal += *p++;
 				}

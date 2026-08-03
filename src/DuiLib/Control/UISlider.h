@@ -1,4 +1,4 @@
-﻿#ifndef __UISLIDER_H__
+#ifndef __UISLIDER_H__
 #define __UISLIDER_H__
 
 #pragma once
@@ -23,14 +23,14 @@ namespace DuiLib
 		RECT GetThumbRect() const;
 		LPCTSTR GetThumbImage() const;
 		void SetThumbImage(LPCTSTR pStrImage);
-		LPCTSTR GetThumbHotImage() const;
-		void SetThumbHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetThumbPushedImage() const;
-		void SetThumbPushedImage(LPCTSTR pStrImage);
+		LPCTSTR GetThumbHoverImage() const;
+		void SetThumbHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetThumbActiveImage() const;
+		void SetThumbActiveImage(LPCTSTR pStrImage);
 
 		void DoEvent(TEventUI& event);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-		void PaintForeImage(IRenderContext& ctx);
+		void PaintForegroundImage(IRenderContext& ctx);
 
 		void SetValue(int nValue);
 		void SetCanSendMove(bool bCanSend);
@@ -41,8 +41,8 @@ namespace DuiLib
 		int m_nStep;
 
 		CDuiString m_sThumbImage;
-		CDuiString m_sThumbHotImage;
-		CDuiString m_sThumbPushedImage;
+		CDuiString m_sThumbHoverImage;
+		CDuiString m_sThumbActiveImage;
 
 		CDuiString m_sImageModify;
 		bool	   m_bSendMove;

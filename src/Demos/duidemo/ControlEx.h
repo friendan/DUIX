@@ -1,4 +1,4 @@
-﻿#ifndef __CONTROLEX_H__
+#ifndef __CONTROLEX_H__
 #define __CONTROLEX_H__
 
 
@@ -15,7 +15,7 @@ public:
 		return _T("CircleProgress" );
 	}
 
-	void PaintBkColor(IRenderContext& ctx)
+	void PaintBackgroundColor(IRenderContext& ctx)
 	{
 
 	}
@@ -47,7 +47,7 @@ public:
 		g.ReleaseHDC(hDC);
 	}
 
-	void PaintForeImage(IRenderContext& ctx)
+	void PaintForegroundImage(IRenderContext& ctx)
 	{
 		
 	}
@@ -67,7 +67,7 @@ public:
 		return _T("MyCombo" );
 	}
 
-	void PaintBkColor(IRenderContext& ctx)
+	void PaintBackgroundColor(IRenderContext& ctx)
 	{
 		HDC hDC = ctx.GetDC();
 		Gdiplus::Graphics g(hDC);
@@ -111,8 +111,8 @@ private:
 	int m_ShadowImageHeight;
 	CDuiString m_sPillarImage;
 	int m_PillarImageWidth;
-	DWORD m_dwTextColor;
-	DWORD m_dwDisabledTextColor;
+	DWORD m_dwColor;
+	DWORD m_dwDisabledColor;
 	bool m_bShowHtml;
 	bool m_bShowText;
 	int m_iFont;
@@ -131,7 +131,7 @@ public:
 		return _T("CircleProgressEx");
 	}
 
-	void PaintBkColor(IRenderContext& ctx)
+	void PaintBackgroundColor(IRenderContext& ctx)
 	{
 		HDC hDC = ctx.GetDC();
 		Gdiplus::Graphics g(hDC);
@@ -159,7 +159,7 @@ public:
 		g.ReleaseHDC(hDC);
 	}
 
-	void PaintForeImage(IRenderContext& ctx)
+	void PaintForegroundImage(IRenderContext& ctx)
 	{
 		
 	}

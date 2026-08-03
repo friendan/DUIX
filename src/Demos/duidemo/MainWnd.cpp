@@ -1,9 +1,11 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "resource.h"
 #include "MainWnd.h"
 #include "SkinFrame.h"
 #include "IconBrowserWnd.h"
 #include "TabBarTestWnd.h"
+#include "BrowserWnd.h"
+#include "CarouselTestWnd.h"
 #include "LayoutTestWnd.h"
 #include "Icons/BootstrapIconsData.h"
 #include "Icons/LucideIconsIconsData.h"
@@ -122,7 +124,7 @@ void CMainWnd::InitWindow()
 {
 	SetIcon(IDR_MAINFRAME);
 	CResourceManager::GetInstance()->SetTextQueryInterface(this);
-	CResourceManager::GetInstance()->LoadLanguage(_T("lan_cn.xml"));
+	CResourceManager::GetInstance()->LoadLanguage(_T("lan_cn.html"));
 	CSkinManager::GetSkinManager()->AddReceiver(this);
 
 	m_pCloseBtn = static_cast<CButtonUI*>(m_pm.FindControl(_T("closebtn")));
@@ -139,12 +141,12 @@ BOOL CMainWnd::Receive(SkinChangedParam param)
 	CControlUI* pRoot = m_pm.FindControl(_T("root"));
 	if( pRoot != NULL ) {
 		if( param.bColor ) {
-			pRoot->SetBkColor(param.bkcolor);
-			pRoot->SetBkImage(_T(""));
+			pRoot->SetBackgroundColor(param.backgroundColor);
+			pRoot->SetBackgroundImage(_T(""));
 		}
 		else {
-			pRoot->SetBkColor(0);
-			pRoot->SetBkImage(param.bgimage);
+			pRoot->SetBackgroundColor(0);
+			pRoot->SetBackgroundImage(param.bgimage);
 			//m_pm.SetLayeredImage(param.bgimage);
 		}
 	}
@@ -221,8 +223,17 @@ LPCTSTR CMainWnd::QueryControlText(LPCTSTR lpstrId, LPCTSTR lpstrType)
 
 void CMainWnd::Notify(TNotifyUI& msg)
 {
-	CDuiString name = msg.pSender->GetName();
+	CDuiString name = msg.pSender ? msg.pSender->GetName() : CDuiString();
 	if(msg.sType == _T("windowinit")) {
+	}
+	else if( msg.sType == DUI_MSGTYPE_TITLEBARCLOSING )
+	{
+		CTitleBarUI* pBar = static_cast<CTitleBarUI*>(msg.pSender->GetInterface(DUI_CTR_TITLEBAR));
+		if(MSGID_OK != CMsgWnd::MessageBox(m_hWnd, _T("Duilib旗舰版"), _T("确定退出duidemo演示程序？")))
+		{
+			if( pBar != NULL ) pBar->CancelNotify();
+		}
+		return;
 	}
 	else if( msg.sType == _T("textchanged") )
 	{
@@ -233,8 +244,8 @@ void CMainWnd::Notify(TNotifyUI& msg)
 		CControlUI* pRoot = m_pm.FindControl(_T("root"));
 		if( pRoot != NULL ) {
 			CColorPaletteUI* pColorPalette = (CColorPaletteUI*)m_pm.FindControl(_T("Pallet"));
-			pRoot->SetBkColor(pColorPalette->GetSelectColor());
-			pRoot->SetBkImage(_T(""));
+			pRoot->SetBackgroundColor(pColorPalette->GetSelectColor());
+			pRoot->SetBackgroundImage(_T(""));
 		}
 	}
 	else if(msg.sType == DUI_MSGTYPE_ITEMACTIVATE) {
@@ -265,24 +276,12 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	}
 	else if( msg.sType == _T("click") )
 	{
-		if( name.CompareNoCase(_T("closebtn")) == 0 ) 
+		// TitleBar 系统按钮由控件自身处理（可取消 titlebarclosing 等）
+		if( name.CompareNoCase(_T("closebtn")) == 0
+			|| name.CompareNoCase(_T("minbtn")) == 0
+			|| name.CompareNoCase(_T("maxbtn")) == 0
+			|| name.CompareNoCase(_T("restorebtn")) == 0 )
 		{
-			if(MSGID_OK == CMsgWnd::MessageBox(m_hWnd, _T("Duilib旗舰版"), _T("确定退出duidemo演示程序？")))
-			{
-				::DestroyWindow(m_hWnd);
-			}
-			return; 
-		}
-		else if( msg.pSender == m_pMinBtn ) {
-			SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
-			return;
-		}
-		else if( msg.pSender == m_pMaxBtn ) { 
-			SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0); 
-			return; 
-		}
-		else if( msg.pSender == m_pRestoreBtn ) { 
-			SendMessage(WM_SYSCOMMAND, SC_RESTORE, 0); 
 			return;
 		}
 		else if( msg.pSender == m_pSkinBtn ) {
@@ -336,7 +335,7 @@ void CMainWnd::Notify(TNotifyUI& msg)
 		m_pMenu = new CMenuWnd();
 		CDuiPoint point;
 		::GetCursorPos(&point);
-		m_pMenu->Init(NULL, _T("menu.xml"), point, &m_pm);
+		m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
 	}
 
 	return WindowImplBase::Notify(msg);
@@ -349,7 +348,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		//
 		//CListUI* pList = static_cast<CListUI*>(m_pm.FindControl(_T("listview")));
 		//CListContainerElementUI* pListItem  = new CListContainerElementUI();
-		//pListItem->SetChildVAlign(DT_VCENTER);
+		//pListItem->SetAlignItems(DT_VCENTER);
 		//pListItem->SetFixedHeight(30);
 		//pListItem->SetManager(&m_pm, NULL, false);
 		//pListItem->SetFixedWidth(100);
@@ -427,6 +426,14 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("btn_tabbar_test")) == 0)
 	{
 		CTabBarTestWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_browser_test")) == 0)
+	{
+		CBrowserWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_carousel_test")) == 0)
+	{
+		CCarouselTestWnd::Open(m_hWnd);
 	}
 	else if(sName.CompareNoCase(_T("btn_layout_test")) == 0)
 	{
@@ -670,7 +677,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		m_pMenu = new CMenuWnd();
 		CDuiPoint point;
 		::GetCursorPos(&point);
-		m_pMenu->Init(NULL, _T("menu.xml"), point, &m_pm);
+		m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
 		// 设置状态
 		CMenuWnd::SetMenuItemInfo(_T("qianting"), true);
 
@@ -767,11 +774,11 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 				static bool bEn = false;
 				if(!bEn) {
 					CResourceManager::GetInstance()->SetLanguage(_T("en"));
-					CResourceManager::GetInstance()->LoadLanguage(_T("lan_en.xml"));
+					CResourceManager::GetInstance()->LoadLanguage(_T("lan_en.html"));
 				}
 				else {
 					CResourceManager::GetInstance()->SetLanguage(_T("cn_zh"));
-					CResourceManager::GetInstance()->LoadLanguage(_T("lan_cn.xml"));
+					CResourceManager::GetInstance()->LoadLanguage(_T("lan_cn.html"));
 				}
 				bEn = !bEn;
 				CResourceManager::GetInstance()->ReloadText();
@@ -816,7 +823,7 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 			CDuiPoint point;
 			::GetCursorPos(&point);
 			point.y -= 100;
-			m_pMenu->Init(NULL, _T("menu.xml"), point, &m_pm);
+			m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
 			// 动态添加后重新设置菜单的大小
 			m_pMenu->ResizeMenu();
 		}

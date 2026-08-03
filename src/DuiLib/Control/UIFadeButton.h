@@ -1,4 +1,4 @@
-﻿#ifndef __UIFADEBUTTON_H__
+#ifndef __UIFADEBUTTON_H__
 #define __UIFADEBUTTON_H__
 
 #include "UIAnimation.h"
@@ -15,7 +15,7 @@ namespace DuiLib {
 
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
-		void SetNormalImage(LPCTSTR pStrImage);
+		void SetImage(LPCTSTR pStrImage);
 
 		void DoEvent(TEventUI& event);
 		void OnTimer( int nTimerID );

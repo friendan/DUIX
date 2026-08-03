@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIPageControl.h"
 
 #pragma warning(disable:4996)
@@ -18,34 +18,34 @@ namespace DuiLib
         , m_ConCurSel(nullptr)
         , m_nMaxPage(0)
         , m_nSelPageNo(-1)
-        , m_dwHotBkColor(0xffc3c3c3)
-        , m_dwSelTextColor(0xff00ff00)
-        , m_dwNormalTextColor(0xff000000)
-        , m_dwNormalBkColor(0)
-        , m_dwHotTextColor(0xff000000)
-        , m_dwSelectedBkColor(0)
+        , m_dwHoverBackgroundColor(0xC3C3C3FF)
+        , m_dwSelTextColor(0x00FF00FF)
+        , m_dwNormalTextColor(0x000000FF)
+        , m_dwNormalBackgroundColor(0)
+        , m_dwHoverColor(0x000000FF)
+        , m_dwSelectedBackgroundColor(0)
         , m_nFont(-1)
     {
         SetPageNoSize();
         SetGotoEditSize();
 
         m_BtnPrevious->SetText(_T("<"));
-        m_BtnPrevious->SetHotBkColor(m_dwHotBkColor);
+        m_BtnPrevious->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnPrevious->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnPrevious);
 
         m_BtnNext->SetText(_T(">"));
-        m_BtnNext->SetHotBkColor(m_dwHotBkColor);
+        m_BtnNext->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnNext->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnNext);
 
         m_BtnNextMore->SetText(_T("..."));
-        m_BtnNextMore->SetHotBkColor(m_dwHotBkColor);
+        m_BtnNextMore->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnNextMore->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnNextMore);
 
         m_BtnGoto->SetText(_T("Go to"));
-        m_BtnGoto->SetHotBkColor(m_dwHotBkColor);
+        m_BtnGoto->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnGoto->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnGoto);
         Add(m_EdtPageNo);
@@ -92,73 +92,73 @@ namespace DuiLib
         }
     }
 
-    void DuiLib::CPageControlUI::SetPageSelectedTextColor(DWORD cr /*= 0xff00ff00*/)
+    void DuiLib::CPageControlUI::SetPageSelectedColor(DWORD cr /*= 0x00FF00FF*/)
     {
         m_dwSelTextColor = cr;
         for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
         {
             COptionUI* page = (COptionUI*)m_OptPageNoArr[i];
-            page->SetSelectedTextColor(cr);
+            page->SetSelectedColor(cr);
         }
     }
 
-    void DuiLib::CPageControlUI::SetPageSelectedBkColor(DWORD cr)
+    void DuiLib::CPageControlUI::SetPageSelectedBackgroundColor(DWORD cr)
     {
-        m_dwSelectedBkColor = cr;
+        m_dwSelectedBackgroundColor = cr;
         for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
         {
             COptionUI* page = (COptionUI*)m_OptPageNoArr[i];
-            page->SetSelectedBkColor(m_dwSelectedBkColor);
+            page->SetSelectedBackgroundColor(m_dwSelectedBackgroundColor);
         }
     }
 
-    void DuiLib::CPageControlUI::SetPageNormalTextColor(DWORD cr /*= 0xff000000*/)
+    void DuiLib::CPageControlUI::SetPageNormalTextColor(DWORD cr /*= 0x000000FF*/)
     {
         m_dwNormalTextColor = cr;
         for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
         {
             COptionUI* page = (COptionUI*)m_OptPageNoArr[i];
-            page->SetTextColor(cr);
+            page->SetColor(cr);
         }
     }
 
-    void DuiLib::CPageControlUI::SetPageBkColor(DWORD cr /*= 0x00000000*/)
+    void DuiLib::CPageControlUI::SetPageBackgroundColor(DWORD cr /*= 0x00000000*/)
     {
-        m_dwNormalBkColor = cr;
+        m_dwNormalBackgroundColor = cr;
         for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
         {
             COptionUI* page = (COptionUI*)m_OptPageNoArr[i];
-            page->SetBkColor(cr);
+            page->SetBackgroundColor(cr);
         }
     }
 
-    void DuiLib::CPageControlUI::SetPageHotBkColor(DWORD cr)
+    void DuiLib::CPageControlUI::SetPageHoverBackgroundColor(DWORD cr)
     {
-        m_dwHotBkColor = cr;
-        m_BtnPrevious->SetHotBkColor(m_dwHotBkColor);
-        m_BtnNext->SetHotBkColor(m_dwHotBkColor);
-        m_BtnGoto->SetHotBkColor(m_dwHotBkColor);
-        m_BtnNextMore->SetHotBkColor(m_dwHotBkColor);
-
-        for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
-        {
-            COptionUI* page = (COptionUI*)m_OptPageNoArr[i];
-            page->SetHotBkColor(m_dwHotBkColor);
-        }
-    }
-
-    void DuiLib::CPageControlUI::SetPageHotTextColor(DWORD cr)
-    {
-        m_dwHotTextColor = cr;
-        m_BtnPrevious->SetHotTextColor(m_dwHotTextColor);
-        m_BtnNext->SetHotTextColor(m_dwHotTextColor);
-        m_BtnGoto->SetHotTextColor(m_dwHotTextColor);
-        m_BtnNextMore->SetHotTextColor(m_dwHotTextColor);
+        m_dwHoverBackgroundColor = cr;
+        m_BtnPrevious->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
+        m_BtnNext->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
+        m_BtnGoto->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
+        m_BtnNextMore->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
 
         for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
         {
             COptionUI* page = (COptionUI*)m_OptPageNoArr[i];
-            page->SetHotTextColor(m_dwHotTextColor);
+            page->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
+        }
+    }
+
+    void DuiLib::CPageControlUI::SetPageHoverColor(DWORD cr)
+    {
+        m_dwHoverColor = cr;
+        m_BtnPrevious->SetHoverColor(m_dwHoverColor);
+        m_BtnNext->SetHoverColor(m_dwHoverColor);
+        m_BtnGoto->SetHoverColor(m_dwHoverColor);
+        m_BtnNextMore->SetHoverColor(m_dwHoverColor);
+
+        for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
+        {
+            COptionUI* page = (COptionUI*)m_OptPageNoArr[i];
+            page->SetHoverColor(m_dwHoverColor);
         }
     }
 
@@ -183,14 +183,14 @@ namespace DuiLib
         m_EdtPageNo->SetBorderColor(cr);
     }
 
-    void DuiLib::CPageControlUI::SetGotoEditBorderSize(int size /*= 1*/)
+    void DuiLib::CPageControlUI::SetGotoEditBorderWidth(int size /*= 1*/)
     {
-        m_EdtPageNo->SetBorderSize(size);
+        m_EdtPageNo->SetBorderWidth(size);
     }
 
     void DuiLib::CPageControlUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
     {
-        if (_tcsicmp(pstrName, _T("maxpage")) == 0)
+        if (_tcsicmp(pstrName, _T("max-page")) == 0)
         {
             LPTSTR pstr = NULL;
             int nMaxPageNo = _tcstol(pstrValue, &pstr, 10); ASSERT(pstr);
@@ -199,84 +199,94 @@ namespace DuiLib
             return;
 
         }
-        else if (_tcsicmp(pstrName, _T("font")) == 0)
+        else if (_tcsicmp(pstrName, _T("font-family")) == 0 || _tcsicmp(pstrName, _T("font-size")) == 0)
         {
-            LPTSTR pstr = NULL;
-            int nFont = _tcstol(pstrValue, &pstr, 10);
-            SetFont(nFont);
+            CDuiString sFamily;
+            int nSize = 0;
+            if (_tcsicmp(pstrName, _T("font-family")) == 0) sFamily = pstrValue ? pstrValue : _T("");
+            else {
+                LPTSTR pEnd = NULL;
+                long v = _tcstol(pstrValue, &pEnd, 10);
+                if (pEnd != pstrValue && v > 0) nSize = (int)v;
+            }
+            if (m_pManager != NULL) {
+                TFontInfo* pInfo = m_pManager->GetFontInfo(m_nFont);
+                if (pInfo == NULL) pInfo = m_pManager->GetDefaultFontInfo();
+                if (pInfo != NULL) {
+                    if (sFamily.IsEmpty()) sFamily = pInfo->sFontName;
+                    if (nSize <= 0) nSize = pInfo->iSize;
+                }
+                if (sFamily.IsEmpty()) sFamily = _T("Microsoft YaHei UI");
+                if (nSize <= 0) nSize = 12;
+                int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+                if (id >= 0) SetFont(id);
+            }
             return;
         }
-        else if (_tcsicmp(pstrName, _T("pageselectedtextcolor")) == 0)
+        else if (_tcsicmp(pstrName, _T("page-color-selected")) == 0)
         {
             while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-            if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-            LPTSTR pstr = NULL;
-            DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-            SetPageSelectedTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+            SetPageSelectedColor(clrColor);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("pageselectedbkcolor")) == 0)
+        else if (_tcsicmp(pstrName, _T("page-background-color-selected")) == 0)
         {
             while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-            if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-            LPTSTR pstr = NULL;
-            DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-            SetPageSelectedBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+            SetPageSelectedBackgroundColor(clrColor);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("pagetextcolor")) == 0)
+        else if (_tcsicmp(pstrName, _T("page-color")) == 0)
         {
             while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-            if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-            LPTSTR pstr = NULL;
-            DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
             SetPageNormalTextColor(clrColor);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("pagebkcolor")) == 0)
+        else if (_tcsicmp(pstrName, _T("page-background-color")) == 0)
         {
             while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-            if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-            LPTSTR pstr = NULL;
-            DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-            SetPageBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+            SetPageBackgroundColor(clrColor);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("pagehotbkcolor")) == 0)
+        else if (_tcsicmp(pstrName, _T("page-background-color-hover")) == 0)
         {
             while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-            if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-            LPTSTR pstr = NULL;
-            DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-            SetPageHotBkColor(clrColor);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+            SetPageHoverBackgroundColor(clrColor);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("pagehottextcolor")) == 0)
+        else if (_tcsicmp(pstrName, _T("page-color-hover")) == 0)
         {
             while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-            if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-            LPTSTR pstr = NULL;
-            DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-            SetPageHotTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+            SetPageHoverColor(clrColor);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("gotoeditbordercolor")) == 0)
+        else if (_tcsicmp(pstrName, _T("goto-edit-border-color")) == 0)
         {
             while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-            if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-            LPTSTR pstr = NULL;
-            DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
             SetGotoEditBorderColor(clrColor);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("gotoeditbordersize")) == 0)
+        else if (_tcsicmp(pstrName, _T("goto-edit-border-width")) == 0)
         {
             LPTSTR pstr = NULL;
             int nFont = _tcstol(pstrValue, &pstr, 10);
-            SetGotoEditBorderSize(nFont);
+            SetGotoEditBorderWidth(nFont);
             return;
         }
-        else if (_tcsicmp(pstrName, _T("editmaxchar")) == 0)
+        else if (_tcsicmp(pstrName, _T("edit-maxlength")) == 0)
         {
             LPTSTR pstr = NULL;
             int nNum = _tcstol(pstrValue, &pstr, 10);
@@ -301,12 +311,12 @@ namespace DuiLib
                 page->OnNotify += MakeDelegate(this, &CPageControlUI::OnOptionSelChanged);
                 page->SetTag(i);
                 page->SetFont(m_nFont);
-                page->SetTextColor(m_dwNormalTextColor);
-                page->SetBkColor(m_dwNormalBkColor);
-                page->SetSelectedTextColor(m_dwSelTextColor);
-                page->SetSelectedBkColor(m_dwSelectedBkColor);
-                page->SetHotTextColor(m_dwHotTextColor);
-                page->SetHotBkColor(m_dwHotBkColor);
+                page->SetColor(m_dwNormalTextColor);
+                page->SetBackgroundColor(m_dwNormalBackgroundColor);
+                page->SetSelectedColor(m_dwSelTextColor);
+                page->SetSelectedBackgroundColor(m_dwSelectedBackgroundColor);
+                page->SetHoverColor(m_dwHoverColor);
+                page->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
 
                 m_OptPageNoArr.Add(page);
                 Add(page);
@@ -362,16 +372,16 @@ namespace DuiLib
         m_BtnNext->SetFixedWidth(m_szPage.cx);
         m_BtnNext->SetFixedHeight(m_szPage.cy);
         controlWidth += m_szPage.cx;
-		m_BtnGoto->SetPadding(CDuiRect(m_szPage.cx + 10,0,0,0));
+		m_BtnGoto->SetMargin(CDuiBox(0, 0, 0, m_szPage.cx + 10));
         m_BtnGoto->SetFixedWidth(m_szPage.cx + 10);
         m_BtnGoto->SetFixedHeight(m_szPage.cy);
         controlWidth += m_szPage.cx + m_szPage.cx + 10 + 10;	
-        m_EdtPageNo->SetPadding(CDuiRect(5,(m_szPage.cy - m_szGotoEdit.cy) / 2,0,0));
+        m_EdtPageNo->SetMargin(CDuiBox((m_szPage.cy - m_szGotoEdit.cy) / 2, 0, 0, 5));
         m_EdtPageNo->SetFixedWidth(m_szGotoEdit.cx);
         m_EdtPageNo->SetFixedHeight(m_szGotoEdit.cy);
         controlWidth += m_szGotoEdit.cx + 5;
 
-        SetFixedWidth(controlWidth + GetBorderSize() * 2);
+        SetFixedWidth(controlWidth + GetBorderWidth() * 2);
     }
 
 

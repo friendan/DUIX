@@ -1,4 +1,4 @@
-﻿#ifndef __UIPageControl_H
+#ifndef __UIPageControl_H
 #define __UIPageControl_H
 
 #pragma once
@@ -10,36 +10,36 @@ namespace DuiLib
     public:
         CPageControlUI();
         ~CPageControlUI();
-        //maxpage="20,6"
+        //max-page="20,6"
         void SetMaxPages(int nPages, int nShowNum = 6);
         void SetMaxChar(int nNum = 2);
-        //设置字体[font="1"]
+        //设置字体[font-family / font-size]
         void SetFont(int nFont);
 
         //设置页码选中的颜色[pageselectedtextcolor]
-        void SetPageSelectedTextColor(DWORD cr = 0xFF4EB857);
-        //设置选中的页按钮背景色[pageselectedbkcolor]
-        void SetPageSelectedBkColor(DWORD cr = 0x00000000);
+        void SetPageSelectedColor(DWORD cr = 0x4EB857FF);
+        //设置选中的页按钮背景色[page-background-color-selected]
+        void SetPageSelectedBackgroundColor(DWORD cr = 0x00000000);
 
         //设置页码文字颜色[pagetextcolor]
-        void SetPageNormalTextColor(DWORD cr = 0xff000000);
-        //设置按钮背景颜色[pagebkcolor]
-        void SetPageBkColor(DWORD cr = 0x00000000);
+        void SetPageNormalTextColor(DWORD cr = 0x000000FF);
+        //设置按钮背景颜色[page-background-color]
+        void SetPageBackgroundColor(DWORD cr = 0x00000000);
 
-        //设置hot按钮背景色[pagehotbkcolor]
-        void SetPageHotBkColor(DWORD cr = 0x00000000);
-        //设置hot字体颜色[pagehottextcolor]
-        void SetPageHotTextColor(DWORD cr = 0x00000000);
+        //设置hover按钮背景色[page-background-color-hover]
+        void SetPageHoverBackgroundColor(DWORD cr = 0x00000000);
+        //设置hover字体颜色[page-color-hover]
+        void SetPageHoverColor(DWORD cr = 0x00000000);
 
 
         //设置页码按钮的大小[pagesize="30,30"]
         void SetPageNoSize(int w = 30, int h = 30);
         //设置goto按钮的大小[gotoeditsize="1,1"]
         void SetGotoEditSize(int w = 30, int h = 26);
-        //设置GotoEdit边框颜色[gotoeditbordercolor="0x00000000"]
+        //设置GotoEdit边框颜色[goto-edit-border-color="0x00000000"]
         void SetGotoEditBorderColor(DWORD cr = 0x00000000);
-        //设置GotoEdit边框的大小[gotoeditbordersize="1"]
-        void SetGotoEditBorderSize(int size = 1);
+        //设置GotoEdit边框的大小[goto-edit-border-width="1"]
+        void SetGotoEditBorderWidth(int size = 1);
 
     public:
         void GotoPage(int nPageNo, bool bAutoGotoOneWhenError = true);
@@ -74,11 +74,11 @@ namespace DuiLib
         int m_nSelPageNo;
 
         DWORD m_dwSelTextColor;
-        DWORD m_dwSelectedBkColor;
+        DWORD m_dwSelectedBackgroundColor;
         DWORD m_dwNormalTextColor;
-        DWORD m_dwNormalBkColor;
-        DWORD m_dwHotBkColor;
-        DWORD m_dwHotTextColor;
+        DWORD m_dwNormalBackgroundColor;
+        DWORD m_dwHoverBackgroundColor;
+        DWORD m_dwHoverColor;
 
         CButtonUI* m_BtnPrevious;
         CButtonUI* m_BtnNext;

@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "PopWnd.h"
 #include "MsgWnd.h"
 #include <ShellAPI.h>
@@ -27,7 +27,7 @@ void CPopWnd::OnFinalMessage( HWND hWnd)
 
 DuiLib::CDuiString CPopWnd::GetSkinFile()
 {
-	return _T("popup.xml");
+	return _T("popup.html");
 }
 
 LPCTSTR CPopWnd::GetWindowClassName( void ) const

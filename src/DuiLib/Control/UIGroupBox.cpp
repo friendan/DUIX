@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIGroupBox.h"
 
 namespace DuiLib
@@ -7,10 +7,10 @@ namespace DuiLib
 
 	//////////////////////////////////////////////////////////////////////////
 	//
-	CGroupBoxUI::CGroupBoxUI(): m_uTextStyle(DT_SINGLELINE | DT_VCENTER | DT_CENTER), m_dwTextColor(0), 
-		m_dwDisabledTextColor(0), m_iFont(-1)
+	CGroupBoxUI::CGroupBoxUI(): m_uTextStyle(DT_SINGLELINE | DT_VCENTER | DT_CENTER), m_dwColor(0), 
+		m_dwDisabledColor(0), m_iFont(-1)
 	{
-		SetInset(CDuiRect(20, 25, 20, 20));
+		SetPadding(CDuiBox(25, 20, 20, 20));
 	}
 
 	CGroupBoxUI::~CGroupBoxUI()
@@ -27,25 +27,25 @@ namespace DuiLib
 		if( _tcsicmp(pstrName, _T("GroupBox")) == 0 ) return static_cast<CGroupBoxUI*>(this);
 		return CVerticalLayoutUI::GetInterface(pstrName);
 	}
-	void CGroupBoxUI::SetTextColor(DWORD dwTextColor)
+	void CGroupBoxUI::SetColor(DWORD dwColor)
 	{
-		m_dwTextColor = dwTextColor;
+		m_dwColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CGroupBoxUI::GetTextColor() const
+	DWORD CGroupBoxUI::GetColor() const
 	{
-		return m_dwTextColor;
+		return m_dwColor;
 	}
-	void CGroupBoxUI::SetDisabledTextColor(DWORD dwTextColor)
+	void CGroupBoxUI::SetDisabledColor(DWORD dwColor)
 	{
-		m_dwDisabledTextColor = dwTextColor;
+		m_dwDisabledColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CGroupBoxUI::GetDisabledTextColor() const
+	DWORD CGroupBoxUI::GetDisabledColor() const
 	{
-		return m_dwDisabledTextColor;
+		return m_dwDisabledColor;
 	}
 	void CGroupBoxUI::SetFont(int index)
 	{
@@ -64,8 +64,8 @@ namespace DuiLib
 			return;
 		}
 
-		if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-		if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 		if( sText.IsEmpty() ) return;
 
 		CDuiRect rcText = m_rcItem;
@@ -79,44 +79,44 @@ namespace DuiLib
 		rcText.right = rcText.left + sz.cx;
 		rcText.bottom = rcText.top + sz.cy;
 
-		DWORD dwTextColor = m_dwTextColor;
-		if(!IsEnabled()) dwTextColor = m_dwDisabledTextColor;
-		ctx.DrawText(rcText, sText, dwTextColor, m_iFont, m_uTextStyle, GetAdjustColor(m_dwBackColor));
+		DWORD dwColor = m_dwColor;
+		if(!IsEnabled()) dwColor = m_dwDisabledColor;
+		ctx.DrawText(rcText, sText, dwColor, m_iFont, m_uTextStyle, GetAdjustColor(m_dwBackColor));
 	}
 	void CGroupBoxUI::PaintBorder(IRenderContext& ctx)
 	{
-		int nBorderSize;
-		SIZE cxyBorderRound;
-		RECT rcBorderSize;
+		int nBorderWidth;
+		SIZE cxyBorderRadius;
+		RECT rcBorderWidth;
 		if (m_pManager) {
-			nBorderSize = GetManager()->GetDPIObj()->Scale(m_nBorderSize);
-			cxyBorderRound = GetManager()->GetDPIObj()->Scale(m_cxyBorderRound);
-			rcBorderSize = GetManager()->GetDPIObj()->Scale(m_rcBorderSize);
+			nBorderWidth = GetManager()->GetDPIObj()->Scale(m_nBorderWidth);
+			cxyBorderRadius = GetManager()->GetDPIObj()->Scale(m_cxyBorderRadius);
+			rcBorderWidth = GetManager()->GetDPIObj()->Scale(m_rcBorderWidth);
 		}
 		else {
-			nBorderSize = m_nBorderSize;
-			cxyBorderRound = m_cxyBorderRound;
-			rcBorderSize = m_rcBorderSize;
+			nBorderWidth = m_nBorderWidth;
+			cxyBorderRadius = m_cxyBorderRadius;
+			rcBorderWidth = m_rcBorderWidth;
 		}
 
-		if( nBorderSize > 0 )
+		if( nBorderWidth > 0 )
 		{
 			CDuiRect rcItem = m_rcItem;
 			rcItem.Deflate(5, 5);
 
-			if( cxyBorderRound.cx > 0 || cxyBorderRound.cy > 0 )//画圆角边框
+			if( cxyBorderRadius.cx > 0 || cxyBorderRadius.cy > 0 )//画圆角边框
 			{
 				if (IsFocused() && m_dwFocusBorderColor != 0)
-					ctx.DrawRoundRect(rcItem, nBorderSize, cxyBorderRound.cx, cxyBorderRound.cy, GetAdjustColor(m_dwFocusBorderColor));
+					ctx.DrawRoundRect(rcItem, nBorderWidth, cxyBorderRadius.cx, cxyBorderRadius.cy, GetAdjustColor(m_dwFocusBorderColor));
 				else
-					ctx.DrawRoundRect(rcItem, nBorderSize, cxyBorderRound.cx, cxyBorderRound.cy, GetAdjustColor(m_dwBorderColor));
+					ctx.DrawRoundRect(rcItem, nBorderWidth, cxyBorderRadius.cx, cxyBorderRadius.cy, GetAdjustColor(m_dwBorderColor));
 			}
 			else
 			{
 				if (IsFocused() && m_dwFocusBorderColor != 0)
-					ctx.DrawRect(rcItem, nBorderSize, GetAdjustColor(m_dwFocusBorderColor));
+					ctx.DrawRect(rcItem, nBorderWidth, GetAdjustColor(m_dwFocusBorderColor));
 				else
-					ctx.DrawRect(rcItem, nBorderSize, GetAdjustColor(m_dwBorderColor));
+					ctx.DrawRect(rcItem, nBorderWidth, GetAdjustColor(m_dwBorderColor));
 			}
 		}
 
@@ -130,29 +130,46 @@ namespace DuiLib
 		
 		CDuiString sText = GetText();
 
-		RenderMeasureText(m_pManager, rcText, sText, m_dwTextColor, m_iFont, DT_CALCRECT | m_uTextStyle);
+		RenderMeasureText(m_pManager, rcText, sText, m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
 		SIZE cXY = {rcText.right - rcText.left, rcText.bottom - rcText.top};
 		return cXY;
 	}
 	void CGroupBoxUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("textcolor")) == 0 ) 
+		if( _tcsicmp(pstrName, _T("color")) == 0 ) 
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("disabledtextcolor")) == 0 ) 
+		else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 ) 
 		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetDisabledTextColor(clrColor);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetDisabledColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("font")) == 0 ) 
+		else if( _tcsicmp(pstrName, _T("font-family")) == 0 || _tcsicmp(pstrName, _T("font-size")) == 0 )
 		{
-			SetFont(_ttoi(pstrValue));
+			CDuiString sFamily;
+			int nSize = 0;
+			if( _tcsicmp(pstrName, _T("font-family")) == 0 ) sFamily = pstrValue ? pstrValue : _T("");
+			else {
+				LPTSTR pEnd = NULL;
+				long v = _tcstol(pstrValue, &pEnd, 10);
+				if( pEnd != pstrValue && v > 0 ) nSize = (int)v;
+			}
+			if( m_pManager != NULL ) {
+				TFontInfo* pInfo = m_pManager->GetFontInfo(m_iFont);
+				if( pInfo == NULL ) pInfo = m_pManager->GetDefaultFontInfo();
+				if( pInfo != NULL ) {
+					if( sFamily.IsEmpty() ) sFamily = pInfo->sFontName;
+					if( nSize <= 0 ) nSize = pInfo->iSize;
+				}
+				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
+				if( nSize <= 0 ) nSize = 12;
+				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				if( id >= 0 ) SetFont(id);
+			}
 		}
 
 		CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);

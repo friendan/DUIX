@@ -54,14 +54,16 @@ namespace DuiLib {
 		void SetEnabled(bool bEnabled);
 		void SetMouseEnabled(bool bEnable = true);
 
-		// margin / padding / inset：见 CControlUI（CSS：margin 外、padding/inset 内）
-		virtual void SetInset(RECT rcInset);
-		virtual int GetChildPadding() const;
-		virtual void SetChildPadding(int iPadding);
-		virtual UINT GetChildAlign() const;
-		virtual void SetChildAlign(UINT iAlign);
-		virtual UINT GetChildVAlign() const;
-		virtual void SetChildVAlign(UINT iVAlign);
+		// margin / padding：见 CControlUI（CSS：margin 外、padding 内）
+		virtual void SetPadding(CDuiBox rcPadding);
+		virtual int GetGap() const;
+		virtual void SetGap(int iPadding);
+		/// 主轴对齐（CSS justify-content）；内部按布局方向映射到水平/竖直
+		virtual UINT GetJustifyContent() const;
+		virtual void SetJustifyContent(UINT uAlign);
+		/// 交叉轴对齐（CSS align-items）
+		virtual UINT GetAlignItems() const;
+		virtual void SetAlignItems(UINT uAlign);
 		virtual bool IsAutoDestroy() const;
 		virtual void SetAutoDestroy(bool bAuto);
 		virtual bool IsDelayedDestroy() const;
@@ -125,16 +127,17 @@ namespace DuiLib {
 		virtual CScrollBarUI* GetHorizontalScrollBar() const;
 
 	protected:
-		virtual void SetFloatPos(int iIndex);
+		bool IsMainAxisVertical() const;
+		virtual void SetAbsolutePos(int iIndex);
 		virtual void ProcessScrollBar(RECT rc, int cxRequired, int cyRequired);
 		void DestroyChild(CControlUI* pControl);
 		bool DoPaintContent(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 
 	protected:
 		CStdPtrArray m_items;
-		int m_iChildPadding;
-		UINT m_iChildAlign;
-		UINT m_iChildVAlign;
+		int m_iGap;
+		UINT m_iChildAlign;   // 水平子对齐（HBox 主轴 / VBox 交叉轴）
+		UINT m_iChildVAlign;  // 竖直子对齐（HBox 交叉轴 / VBox 主轴）
 		bool m_bAutoDestroy;
 		bool m_bDelayedDestroy;
 		bool m_bMouseChildEnabled;

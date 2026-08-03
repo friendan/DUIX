@@ -20,7 +20,7 @@ namespace DuiLib
 
 	void CHorizontalLayoutUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("sepwidth")) == 0 ) SetSepSize(_ttoi(pstrValue));
+		if( _tcsicmp(pstrName, _T("sep-width")) == 0 ) SetSepSize(_ttoi(pstrValue));
 		else CLinearLayoutUI::SetAttribute(pstrName, pstrValue);
 	}
 }

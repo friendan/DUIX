@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "SkinManager.h"
 
@@ -54,7 +54,7 @@ public:
 		{
 			SkinChangedParam skin;
 			skin.bColor = true;
-			skin.bkcolor = pControl->GetBkColor();
+			skin.backgroundColor = pControl->GetBackgroundColor();
 			CSkinManager::GetSkinManager()->Broadcast(skin);
 		}
 		else if(sName.CompareNoCase(_T("skin_color")) == 0)
@@ -80,7 +80,7 @@ public:
 
 		m_pm.Init(m_hWnd);
 		CDialogBuilder builder;
-		CControlUI* pRoot = builder.Create(_T("skin.xml"), (UINT)0, NULL, &m_pm);
+		CControlUI* pRoot = builder.Create(_T("skin.html"), (UINT)0, NULL, &m_pm);
 		ASSERT(pRoot && "Failed to parse XML");
 		m_pm.AttachDialog(pRoot);
 		m_pm.AddNotifier(this);

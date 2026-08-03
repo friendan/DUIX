@@ -69,6 +69,27 @@ namespace DuiLib
 		void Union(CDuiRect& rc);
 	};
 
+	/// margin / padding 等 inset：字段与四参构造均为 CSS 顺序 top,right,bottom,left
+	class UILIB_API CDuiBox
+	{
+	public:
+		int top;
+		int right;
+		int bottom;
+		int left;
+
+		CDuiBox();
+		explicit CDuiBox(int iAll);
+		CDuiBox(int iTop, int iRight, int iBottom, int iLeft);
+		/// 按字段名映射（src.left→left …），不是按聚合初始化顺序重排
+		CDuiBox(const RECT& src);
+
+		void Empty();
+		bool IsNull() const;
+		RECT ToRect() const;
+		operator RECT() const { return ToRect(); }
+	};
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 
@@ -386,8 +407,58 @@ namespace DuiLib
 	//	bool	m_bTiledY;
 	//};
 	/////////////////////////////////////////////////////////////////////////////////////
-	// 颜色：#RGB / #RRGGBB / #AARRGGBB / 0x… / 纯十六进制；或 CSS 颜色名（red/Blue，大小写不敏感）
+	/////////////////////////////////////////////////////////////////////////////////////
+	// 颜色 DWORD = CSS RRGGBBAA（与 #RRGGBBAA / 0xRRGGBBAA 字面量一致）
+	// C++：0x1677FFFF；属性串同序。像素缓冲里的 ARGB 内存布局不在此列。
+	inline BYTE DuiColorR(DWORD c) { return (BYTE)((c >> 24) & 0xFF); }
+	inline BYTE DuiColorG(DWORD c) { return (BYTE)((c >> 16) & 0xFF); }
+	inline BYTE DuiColorB(DWORD c) { return (BYTE)((c >> 8) & 0xFF); }
+	inline BYTE DuiColorA(DWORD c) { return (BYTE)(c & 0xFF); }
+	inline COLORREF DuiColorToCOLORREF(DWORD c) { return RGB(DuiColorR(c), DuiColorG(c), DuiColorB(c)); }
+	inline DWORD DuiColorFromRGB(BYTE r, BYTE g, BYTE b, BYTE a = 0xFF)
+	{
+		return ((DWORD)r << 24) | ((DWORD)g << 16) | ((DWORD)b << 8) | (DWORD)a;
+	}
+	inline DWORD DuiColorSetA(DWORD c, BYTE a) { return (c & 0xFFFFFF00u) | (DWORD)a; }
+	inline bool DuiColorIsOpaque(DWORD c) { return DuiColorA(c) >= 0xFFu; }
+
+	// 颜色：#RGB / #RRGGBB / #RRGGBBAA / #RGBA；0x 同序；rgb()/rgba()/hsl()/hsla()；命名色
 	UILIB_API bool ParseColorString(LPCTSTR pstrColor, DWORD& dwColor);
+	/// 从流中解析一个色值 token 并前进指针（供 showhtml `<c …>` 等）
+	UILIB_API bool ParseColorStringToken(LPCTSTR& pstrInOut, DWORD& dwColor);
+	/// CSS opacity：`0.5` / `50%` / `128`（0–255 字节）→ 0–255
+	UILIB_API bool ParseCssOpacity(LPCTSTR pstrValue, BYTE& nOpacity);
+	/// CSS font-weight → 是否粗体（bold/700+ / normal/400…）
+	UILIB_API bool ParseCssFontWeightBold(LPCTSTR pstrValue, bool& bBold);
+	/// CSS font-style → 是否斜体（italic/oblique / normal）
+	UILIB_API bool ParseCssFontStyleItalic(LPCTSTR pstrValue, bool& bItalic);
+	/// CSS text-decoration：可含 underline / line-through；none 清零。未识别返回 false
+	UILIB_API bool ParseCssTextDecoration(LPCTSTR pstrValue, bool& bUnderline, bool& bStrikeout);
+	/// CSS pointer-events：none→false；auto→true
+	UILIB_API bool ParseCssPointerEventsEnabled(LPCTSTR pstrValue, bool& bEnabled);
+	/// CSS box shorthand top[,right[,bottom[,left]]] → CDuiBox
+	UILIB_API bool ParseCssBox(LPCTSTR pstrValue, CDuiBox& box);
+	/// 兼容：解析为 CDuiBox 再写入 RECT 字段（.left=left …）
+	UILIB_API bool ParseCssBoxToRect(LPCTSTR pstrValue, RECT& rc);
+	/// border-radius：CSS 半径 `12` / `12px` → cx=cy；`12,8` / `12px 8px` → 椭圆两轴半径
+	UILIB_API bool ParseBorderRadiusValue(LPCTSTR pstrValue, SIZE& szRound);
+	/// CSS 半径 → GDI RoundRect / CreateRoundRectRgn 椭圆直径
+	inline SIZE CssRadiusToEllipse(SIZE szRadius)
+	{
+		SIZE sz = { szRadius.cx * 2, szRadius.cy * 2 };
+		return sz;
+	}
+	inline void CssRadiusToEllipse(int radiusX, int radiusY, int& ellipseW, int& ellipseH)
+	{
+		ellipseW = radiusX * 2;
+		ellipseH = radiusY * 2;
+	}
+	/// `url(path)` / `url('path')` / `url("path")` → 裸路径；非 url 原样返回 false
+	UILIB_API bool ParseCssUrlImage(LPCTSTR pstrValue, CDuiString& sPath);
+	/// CSS overflow 值：`auto`/`scroll`/`true` → 启用滚动条；`hidden`/`clip`/`visible`/`false` → 关闭
+	UILIB_API bool ParseCssOverflowEnablesScroll(LPCTSTR pstrValue, bool& bEnable);
+	/// `overflow` 简写：1 值双轴；2 值按 CSS 为 overflow-x overflow-y
+	UILIB_API bool ParseCssOverflowShorthand(LPCTSTR pstrValue, bool& bEnableX, bool& bEnableY);
 
 }// namespace DuiLib
 

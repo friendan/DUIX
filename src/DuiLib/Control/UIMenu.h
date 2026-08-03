@@ -1,4 +1,4 @@
-﻿#ifndef __UIMENU_H__
+#ifndef __UIMENU_H__
 #define __UIMENU_H__
 
 #pragma once
@@ -51,7 +51,7 @@ enum MenuItemDefaultInfo
 	DEFAULT_LINE_LEFT_INSET = ITEM_DEFAULT_ICON_WIDTH + 3,	//默认分隔线的左边距
 	DEFAULT_LINE_RIGHT_INSET = 7,	//默认分隔线的右边距
 	DEFAULT_LINE_HEIGHT = 6,		//默认分隔线所占高度
-	DEFAULT_LINE_COLOR = 0xFFBCBFC4	//默认分隔线颜色
+	DEFAULT_LINE_COLOR = 0xBCBFC4FF	//默认分隔线颜色
 
 };
 
@@ -357,7 +357,7 @@ public:
 	void SetLineType();
 	void SetLineColor(DWORD color);
 	DWORD GetLineColor() const;
-	void SetLinePadding(RECT rcInset);
+	void SetLinePadding(RECT rcPadding);
 	RECT GetLinePadding() const;
 	void SetIcon(LPCTSTR strIcon);
 	void SetIconSize(LONG cx, LONG cy);

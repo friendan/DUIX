@@ -41,26 +41,26 @@ namespace {
 			if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK ) {
 				if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() ) {
 					m_bPushed = true;
-					SetBkColor(0xFFDCDCE1);
+					SetBackgroundColor(0xDCDCE1FF);
 				}
 				return;
 			}
 			if( event.Type == UIEVENT_BUTTONUP ) {
 				bool bClick = m_bPushed && ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled();
 				m_bPushed = false;
-				SetBkColor(m_bHot ? 0xFFDCDCE1 : 0);
+				SetBackgroundColor(m_bHot ? 0xDCDCE1FF : 0);
 				if( bClick ) Activate();
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSEENTER ) {
 				m_bHot = true;
-				if( !m_bPushed ) SetBkColor(0xFFDCDCE1);
+				if( !m_bPushed ) SetBackgroundColor(0xDCDCE1FF);
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSELEAVE ) {
 				m_bHot = false;
 				m_bPushed = false;
-				SetBkColor(0);
+				SetBackgroundColor(0);
 				return;
 			}
 			CVerticalLayoutUI::DoEvent(event);
@@ -114,7 +114,7 @@ void CIconBrowserWnd::OnFinalMessage(HWND hWnd)
 
 CDuiString CIconBrowserWnd::GetSkinFile()
 {
-	return _T("iconbrowser.xml");
+	return _T("iconbrowser.html");
 }
 
 LPCTSTR CIconBrowserWnd::GetWindowClassName() const
@@ -213,7 +213,7 @@ CControlUI* CIconBrowserWnd::CreateHeaderRow(LPCTSTR pstrText)
 {
 	CHorizontalLayoutUI* pHeader = new CHorizontalLayoutUI;
 	pHeader->SetFixedHeight(ROW_HEADER_H);
-	pHeader->SetBkColor(0xFFE6E6EB);
+	pHeader->SetBackgroundColor(0xE6E6EBFF);
 
 	CControlUI* pPad = new CControlUI;
 	pPad->SetFixedWidth(10);
@@ -221,8 +221,8 @@ CControlUI* CIconBrowserWnd::CreateHeaderRow(LPCTSTR pstrText)
 
 	CLabelUI* pHdr = new CLabelUI;
 	pHdr->SetText(pstrText);
-	pHdr->SetTextColor(0xFF3C3C46);
-	pHdr->SetAttribute(_T("align"), _T("left"));
+	pHdr->SetColor(0x3C3C46FF);
+	pHdr->SetAttribute(_T("text-align"), _T("left"));
 	pHeader->Add(pHdr);
 	return pHeader;
 }
@@ -234,8 +234,8 @@ CControlUI* CIconBrowserWnd::CreateIconCell(const IconEntry* pEntry)
 	CIconCellUI* pCell = new CIconCellUI;
 	pCell->SetFixedWidth(120);
 	pCell->SetFixedHeight(ROW_ICON_H);
-	pCell->SetChildAlign(DT_CENTER);
-	pCell->SetChildVAlign(DT_VCENTER);
+	pCell->SetAlignItems(DT_CENTER);
+	pCell->SetJustifyContent(DT_VCENTER);
 	pCell->SetAttribute(_T("action"), _T("copy"));
 
 	CDuiString sCopy;
@@ -253,9 +253,9 @@ CControlUI* CIconBrowserWnd::CreateIconCell(const IconEntry* pEntry)
 	pLabel->SetFixedHeight(22);
 	pLabel->SetText(pEntry->name);
 	pLabel->SetMouseEnabled(false);
-	pLabel->SetAttribute(_T("align"), _T("center"));
-	pLabel->SetAttribute(_T("endellipsis"), _T("true"));
-	pLabel->SetTextColor(0xFF50505A);
+	pLabel->SetAttribute(_T("text-align"), _T("center"));
+	pLabel->SetAttribute(_T("text-overflow"), _T("ellipsis"));
+	pLabel->SetColor(0x50505AFF);
 	pCell->Add(pLabel);
 	return pCell;
 }
@@ -359,8 +359,8 @@ void CIconBrowserWnd::RefreshViewport(bool bForce)
 		CLabelUI* pEmpty = new CLabelUI;
 		pEmpty->SetFixedHeight(40);
 		pEmpty->SetText(_T("没有匹配的图标"));
-		pEmpty->SetTextColor(0xFF999999);
-		pEmpty->SetAttribute(_T("align"), _T("center"));
+		pEmpty->SetColor(0x999999FF);
+		pEmpty->SetAttribute(_T("text-align"), _T("center"));
 		m_pIconList->Add(pEmpty);
 		m_nVisFirst = m_nVisLast = -1;
 		CDuiString sExtra;

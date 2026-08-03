@@ -1,4 +1,4 @@
-﻿#ifndef __UILINEARLAYOUT_H__
+#ifndef __UILINEARLAYOUT_H__
 #define __UILINEARLAYOUT_H__
 
 #pragma once
@@ -56,7 +56,7 @@ namespace DuiLib
 		UINT CrossAlignEnd() const;
 		virtual UINT ResolveCrossAlign(CControlUI* pControl) const;
 		void PositionChildCrossAxis(CControlUI* pControl, UINT iCrossAlign,
-			const RECT& rc, const RECT& rcPadding, int iMainPos,
+			const RECT& rc, const RECT& rcMargin, int iMainPos,
 			int szMainChild, int szCrossChild, CScrollBarUI* pCrossScroll);
 		int CtrlMainMin(CControlUI* p) const;
 		int CtrlMainMax(CControlUI* p) const;

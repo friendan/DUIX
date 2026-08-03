@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include <math.h>
 
 namespace DuiLib {
@@ -106,7 +106,11 @@ namespace DuiLib {
 	* nSat HSL saturation value		[0 - 200]
 	* nLue HSL luminance value		[0 - 200]
 	*/
-#define _HSLToRGB(h,s,l) (0xFF << 24 | HSLToRGB((float)h / 360.0f,(float)s / 200.0f,l / 200.0f))
+	static DWORD HSLParamsToDuiColor(int nHue, int nSat, int nLue)
+	{
+		COLORREF c = HSLToRGB((float)nHue / 360.0f, (float)nSat / 200.0f, (float)nLue / 200.0f);
+		return DuiColorFromRGB(GetRValue(c), GetGValue(c), GetBValue(c));
+	}
 
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -141,14 +145,13 @@ namespace DuiLib {
 
 	DWORD CColorPaletteUI::GetSelectColor()
 	{
-		DWORD dwColor = _HSLToRGB(m_nCurH, m_nCurS, m_nCurB);
-		return 0xFF << 24 | GetRValue(dwColor) << 16 | GetGValue(dwColor) << 8 | GetBValue(dwColor);
+		return HSLParamsToDuiColor(m_nCurH, m_nCurS, m_nCurB);
 	}
 
 	void CColorPaletteUI::SetSelectColor(DWORD dwColor) 
 	{
 		float H = 0, S = 0, B = 0;
-		COLORREF dwBkClr = RGB(GetBValue(dwColor),GetGValue(dwColor),GetRValue(dwColor));
+		COLORREF dwBkClr = DuiColorToCOLORREF(dwColor);
 		RGBToHSL(dwBkClr, &H, &S, &B);
 		m_nCurH = (int)(H*360);
 		m_nCurS = (int)(S*200);
@@ -204,9 +207,9 @@ namespace DuiLib {
 
 	void CColorPaletteUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if (_tcscmp(pstrName, _T("palletheight")) == 0) SetPalletHeight(_ttoi(pstrValue));
-		else if (_tcscmp(pstrName, _T("barheight")) == 0) SetBarHeight(_ttoi(pstrValue));
-		else if (_tcscmp(pstrName, _T("thumbimage")) == 0) SetThumbImage(pstrValue);
+		if (_tcscmp(pstrName, _T("palette-height")) == 0) SetPalletHeight(_ttoi(pstrValue));
+		else if (_tcscmp(pstrName, _T("bar-height")) == 0) SetBarHeight(_ttoi(pstrValue));
+		else if (_tcscmp(pstrName, _T("thumb-image")) == 0) SetThumbImage(pstrValue);
 		else CControlUI::SetAttribute(pstrName, pstrValue);
 	}
 
@@ -337,7 +340,7 @@ namespace DuiLib {
 
 	}
 
-	void CColorPaletteUI::PaintBkColor(IRenderContext& ctx)
+	void CColorPaletteUI::PaintBackgroundColor(IRenderContext& ctx)
 	{
 		PaintPallet(ctx);
 	}
@@ -368,11 +371,11 @@ namespace DuiLib {
 		for (y = 0; y < 200; ++y) {
 			for (x = 0; x < 360; ++x) {
 				pPiexl = LPBYTE(m_pBits) + ((200 - y)*m_bmInfo.bmWidthBytes) + ((x*m_bmInfo.bmBitsPixel) / 8);
-				dwColor = _HSLToRGB(x, m_nCurS, y);
-				if(dwColor == 0xFF000000) dwColor = 0xFF000001;
-				pPiexl[0] = GetBValue(dwColor);
-				pPiexl[1] = GetGValue(dwColor);
-				pPiexl[2] = GetRValue(dwColor);
+				dwColor = HSLParamsToDuiColor(x, m_nCurS, y);
+				if( dwColor == 0x000000FF ) dwColor = 0x000001FF;
+				pPiexl[0] = DuiColorB(dwColor);
+				pPiexl[1] = DuiColorG(dwColor);
+				pPiexl[2] = DuiColorR(dwColor);
 			}
 		}
 
@@ -389,11 +392,11 @@ namespace DuiLib {
 		for (y = 0; y < m_nBarHeight; ++y) {
 			for (x = 0; x < 200; ++x) {
 				pPiexl = LPBYTE(m_pBits) + ((210 + y)*m_bmInfo.bmWidthBytes) + ((x*m_bmInfo.bmBitsPixel) / 8);
-				dwColor = _HSLToRGB(m_nCurH, x, m_nCurB);
-				if(dwColor == 0xFF000000) dwColor = 0xFF000001;
-				pPiexl[0] = GetBValue(dwColor);
-				pPiexl[1] = GetGValue(dwColor);
-				pPiexl[2] = GetRValue(dwColor);
+				dwColor = HSLParamsToDuiColor(m_nCurH, x, m_nCurB);
+				if( dwColor == 0x000000FF ) dwColor = 0x000001FF;
+				pPiexl[0] = DuiColorB(dwColor);
+				pPiexl[1] = DuiColorG(dwColor);
+				pPiexl[2] = DuiColorR(dwColor);
 			}
 		}
 

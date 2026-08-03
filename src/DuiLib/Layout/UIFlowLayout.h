@@ -7,8 +7,8 @@ namespace DuiLib
 {
 	// 流式布局：子项从左到右排列，自动换行后自上而下堆叠。
 	// EstimateSize 宽/高为 0 表示撑满（与 LinearLayout 一致）：宽→占满行宽；高→参与分配剩余行高。
-	// margin / padding / inset：见 CControlUI（CSS：margin 外、padding/inset 内）。
-	// childalign / align：每行内容左/中/右对齐。
+	// margin / padding：见 CControlUI（CSS：margin 外、padding 内）。
+	// justify-content / align：每行内容左/中/右对齐；align-items：行内竖直对齐。
 	class UILIB_API CFlowLayoutUI : public CContainerUI
 	{
 		DECLARE_DUICONTROL(CFlowLayoutUI)

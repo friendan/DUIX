@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include <exdisp.h>
 #include <comdef.h>
 #include "ControlEx.h"
@@ -33,7 +33,7 @@ void InitResource()
 			strResourcePath += _T("skin\\duidemo\\");
 			CPaintManagerUI::SetResourcePath(strResourcePath.GetData());
 			// 加载资源管理器
-			CResourceManager::GetInstance()->LoadResource(_T("res.xml"), NULL);
+			CResourceManager::GetInstance()->LoadResource(_T("res.html"), NULL);
 			break;
 		}
 	case UILIB_RESOURCE:
@@ -52,7 +52,7 @@ void InitResource()
 			CPaintManagerUI::SetResourceZip(_T("duidemo_pwd.zip"), true, _T("duilib_ultimate"));
 			//CPaintManagerUI::SetResourceZip(_T("duidemo.zip"), true);
 			// 加载资源管理器
-			CResourceManager::GetInstance()->LoadResource(_T("res.xml"), NULL);
+			CResourceManager::GetInstance()->LoadResource(_T("res.html"), NULL);
 			break;
 		}
 	case UILIB_ZIPRESOURCE:
@@ -68,7 +68,7 @@ void InitResource()
 					if( dwSize > 0 ) {
 						CPaintManagerUI::SetResourceZip((LPBYTE)::LockResource(hGlobal), dwSize, _T("323232"));
 						// 加载资源管理器
-						CResourceManager::GetInstance()->LoadResource(_T("res.xml"), NULL);
+						CResourceManager::GetInstance()->LoadResource(_T("res.html"), NULL);
 					}
 				}
 				::FreeResource(hGlobal);

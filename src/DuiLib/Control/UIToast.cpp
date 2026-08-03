@@ -51,8 +51,8 @@ namespace DuiLib {
 			InitKindColors();
 			int idx = (int)kind;
 			if( idx < 0 || idx >= 11 ) idx = (int)CONTROLKIND_INFO;
-			DWORD c = g_kindColors[idx].Normal.dwTextColor;
-			if( c == 0 ) c = 0xFF212529;
+			DWORD c = g_kindColors[idx].Normal.dwColor;
+			if( c == 0 ) c = 0x212529FF;
 			return c;
 		}
 
@@ -390,7 +390,7 @@ namespace DuiLib {
 		InitKindColors();
 
 		DWORD dwFg = KindFgColor(m_opts.m_kind);
-		DWORD dwMuted = (dwFg & 0x00FFFFFF) | 0xB3000000;
+		DWORD dwMuted = DuiColorSetA(dwFg, 0xB3);
 		bool bDual = HasDualLine();
 
 		m_pm.AddFont(0, _T("Microsoft YaHei UI"), 13, true, false, false, false);
@@ -415,12 +415,11 @@ namespace DuiLib {
 		pRoot->SetFixedWidth(w);
 		pRoot->SetFixedHeight(h);
 		pRoot->SetKind(m_opts.m_kind);
-		RECT rcInset = { 14, 0, 8, 0 };
-		pRoot->SetInset(rcInset);
-		pRoot->SetChildPadding(10);
-		pRoot->SetChildVAlign(DT_VCENTER);
-		SIZE szRound = { 16, 16 };
-		pRoot->SetBorderRound(szRound);
+		pRoot->SetPadding(CDuiBox(0, 8, 0, 14));
+		pRoot->SetGap(10);
+		pRoot->SetAlignItems(DT_VCENTER);
+		SIZE szRound = { 8, 8 };
+		pRoot->SetBorderRadius(szRound);
 		pRoot->SetAttribute(_T("action"), _T("title"));
 
 		if( m_opts.m_bShowIcon ) {
@@ -432,11 +431,11 @@ namespace DuiLib {
 				pIcon->SetAttribute(m_opts.m_sIconLib.GetData(), m_opts.m_sIconName.GetData());
 				// twemoji 多色，不套 kind 前景色
 				if( m_opts.m_sIconLib.CompareNoCase(_T("twicon")) != 0 )
-					pIcon->SetTintColor(dwFg);
+					pIcon->SetColor(dwFg);
 			}
 			else {
 				pIcon->SetAttribute(_T("tabler-filled"), KindFilledIcon(m_opts.m_kind));
-				pIcon->SetTintColor(dwFg);
+				pIcon->SetColor(dwFg);
 			}
 			pIcon->SetMouseEnabled(false);
 			pRoot->Add(pIcon);
@@ -444,7 +443,7 @@ namespace DuiLib {
 
 		CVerticalLayoutUI* pTextCol = new CVerticalLayoutUI;
 		pTextCol->SetName(_T("toastTextCol"));
-		pTextCol->SetChildPadding(bDual ? 2 : 0);
+		pTextCol->SetGap(bDual ? 2 : 0);
 		pTextCol->SetMouseEnabled(false);
 
 		if( bDual ) {
@@ -458,26 +457,26 @@ namespace DuiLib {
 			CLabelUI* pTitle = new CLabelUI;
 			pTitle->SetName(_T("toastTitle"));
 			pTitle->SetText(m_opts.m_sTitle.GetData());
-			pTitle->SetTextColor(dwFg);
+			pTitle->SetColor(dwFg);
 			pTitle->SetFont(0);
 			pTitle->SetFixedHeight(titleH);
-			pTitle->SetAttribute(_T("align"), _T("left"));
-			pTitle->SetAttribute(_T("valign"), _T("vcenter"));
+			pTitle->SetAttribute(_T("text-align"), _T("left"));
+			pTitle->SetAttribute(_T("vertical-align"), _T("vcenter"));
 			SetupClickableLabel(pTitle);
 			pTextCol->Add(pTitle);
 
 			CLabelUI* pBody = new CLabelUI;
 			pBody->SetName(_T("toastBody"));
 			pBody->SetText(m_opts.m_sText.GetData());
-			pBody->SetTextColor(dwMuted);
+			pBody->SetColor(dwMuted);
 			pBody->SetFont(1);
 			pBody->SetFixedHeight(bodyH);
-			pBody->SetAttribute(_T("align"), _T("left"));
+			pBody->SetAttribute(_T("text-align"), _T("left"));
 			if( bWrap ) {
-				pBody->SetAttribute(_T("wordbreak"), _T("true"));
+				pBody->SetAttribute(_T("word-break"), _T("break-word"));
 			}
 			else {
-				pBody->SetAttribute(_T("valign"), _T("vcenter"));
+				pBody->SetAttribute(_T("vertical-align"), _T("vcenter"));
 			}
 			SetupClickableLabel(pBody);
 			pTextCol->Add(pBody);
@@ -492,15 +491,15 @@ namespace DuiLib {
 			CLabelUI* pTitle = new CLabelUI;
 			pTitle->SetName(_T("toastTitle"));
 			pTitle->SetText(m_opts.m_sText.GetData());
-			pTitle->SetTextColor(dwFg);
+			pTitle->SetColor(dwFg);
 			pTitle->SetFont(0);
 			pTitle->SetFixedHeight(bodyH);
-			pTitle->SetAttribute(_T("align"), _T("left"));
+			pTitle->SetAttribute(_T("text-align"), _T("left"));
 			if( bWrap ) {
-				pTitle->SetAttribute(_T("wordbreak"), _T("true"));
+				pTitle->SetAttribute(_T("word-break"), _T("break-word"));
 			}
 			else {
-				pTitle->SetAttribute(_T("valign"), _T("vcenter"));
+				pTitle->SetAttribute(_T("vertical-align"), _T("vcenter"));
 			}
 			SetupClickableLabel(pTitle);
 			pTextCol->Add(pTitle);
@@ -510,10 +509,10 @@ namespace DuiLib {
 		m_pTimerLabel = new CLabelUI;
 		m_pTimerLabel->SetName(_T("toastTimer"));
 		m_pTimerLabel->SetFixedWidth(30);
-		m_pTimerLabel->SetTextColor(dwMuted);
+		m_pTimerLabel->SetColor(dwMuted);
 		m_pTimerLabel->SetFont(1);
-		m_pTimerLabel->SetAttribute(_T("align"), _T("center"));
-		m_pTimerLabel->SetAttribute(_T("valign"), _T("vcenter"));
+		m_pTimerLabel->SetAttribute(_T("text-align"), _T("center"));
+		m_pTimerLabel->SetAttribute(_T("vertical-align"), _T("vcenter"));
 		m_pTimerLabel->SetMouseEnabled(false);
 		m_pTimerLabel->SetVisible(m_opts.m_nDuration > 0);
 		pRoot->Add(m_pTimerLabel);
@@ -525,23 +524,23 @@ namespace DuiLib {
 			m_pCloseBtn->SetText(_T("\x00D7"));
 			m_pCloseBtn->SetFixedWidth(22);
 			m_pCloseBtn->SetFixedHeight(22);
-			m_pCloseBtn->SetBkColor(0);
-			m_pCloseBtn->SetBorderSize(0);
-			m_pCloseBtn->SetTextColor(dwFg);
-			m_pCloseBtn->SetHotBkColor(0x40000000);
-			m_pCloseBtn->SetHotTextColor(dwFg);
-			m_pCloseBtn->SetPushedBkColor(0x60000000);
-			m_pCloseBtn->SetPushedTextColor(dwFg);
-			m_pCloseBtn->SetAttribute(_T("align"), _T("center"));
-			m_pCloseBtn->SetAttribute(_T("valign"), _T("vcenter"));
-			SIZE szBtnRound = { 8, 8 };
-			m_pCloseBtn->SetBorderRound(szBtnRound);
+			m_pCloseBtn->SetBackgroundColor(0);
+			m_pCloseBtn->SetBorderWidth(0);
+			m_pCloseBtn->SetColor(dwFg);
+			m_pCloseBtn->SetHoverBackgroundColor(0x00000040);
+			m_pCloseBtn->SetHoverColor(dwFg);
+			m_pCloseBtn->SetActiveBackgroundColor(0x00000060);
+			m_pCloseBtn->SetActiveColor(dwFg);
+			m_pCloseBtn->SetAttribute(_T("text-align"), _T("center"));
+			m_pCloseBtn->SetAttribute(_T("vertical-align"), _T("vcenter"));
+			SIZE szBtnRound = { 4, 4 };
+			m_pCloseBtn->SetBorderRadius(szBtnRound);
 			pRoot->Add(m_pCloseBtn);
 		}
 
 		m_pm.AttachDialog(pRoot);
 		m_pm.AddNotifier(this);
-		m_pm.SetRoundCorner(szRound.cx, szRound.cy);
+		m_pm.SetBorderRadius(szRound.cx, szRound.cy);
 		ResizeClient(w, h);
 	}
 
@@ -936,14 +935,15 @@ namespace DuiLib {
 
 	LRESULT CToastWnd::OnSize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-		SIZE szRoundCorner = m_pm.GetRoundCorner();
-		if( !::IsIconic(*this) && (szRoundCorner.cx > 0 || szRoundCorner.cy > 0) ) {
+		SIZE szBorderRadius = m_pm.GetBorderRadius();
+		if( !::IsIconic(*this) && (szBorderRadius.cx > 0 || szBorderRadius.cy > 0) ) {
 			CDuiRect rcWnd;
 			::GetWindowRect(*this, &rcWnd);
 			rcWnd.Offset(-rcWnd.left, -rcWnd.top);
 			rcWnd.right++; rcWnd.bottom++;
+			SIZE szEllipse = CssRadiusToEllipse(szBorderRadius);
 			HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom,
-				szRoundCorner.cx, szRoundCorner.cy);
+				szEllipse.cx, szEllipse.cy);
 			::SetWindowRgn(*this, hRgn, TRUE);
 			::DeleteObject(hRgn);
 		}
@@ -993,8 +993,8 @@ namespace DuiLib {
 			if( pHitCtrl->IsCaptionDragHit(pt) )
 				return HTCAPTION;
 			UIAction leafAct = pHitCtrl->GetAction();
-			// 叶子无 action 时向上找；按钮等交互控件不继承父级拖拽
-			if( leafAct == UIACTION_NONE && !(pHitCtrl->GetControlFlags() & UIFLAG_SETCURSOR) ) {
+			// 叶子无 action 时向上找；PreferClientHit（热态/SETCURSOR 等）不继承父级拖拽
+			if( leafAct == UIACTION_NONE && !pHitCtrl->PreferClientHit() ) {
 				for( CControlUI* pWalk = pHitCtrl->GetParent(); pWalk != NULL; pWalk = pWalk->GetParent() ) {
 					if( pWalk->IsCaptionDragHit(pt) )
 						return HTCAPTION;

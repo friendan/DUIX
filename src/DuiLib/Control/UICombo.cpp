@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 namespace DuiLib {
 
@@ -61,7 +61,7 @@ namespace DuiLib {
 
 		// Position the popup window in absolute space
 		SIZE szDrop = m_pOwner->GetDropBoxSize();
-		RECT rcInset = m_pOwner->GetDropBoxInset();
+		RECT rcPadding = m_pOwner->GetDropBoxPadding();
 		RECT rcOwner = pOwner->GetPos();
 		RECT rc = rcOwner;
 		rc.top = rc.bottom;		// 父窗口left、bottom位置作为弹出窗口起点
@@ -69,7 +69,7 @@ namespace DuiLib {
 		if( szDrop.cx > 0 ) rc.right = rc.left + szDrop.cx;	// 计算弹出窗口宽度
 
 		SIZE szAvailable = { rc.right - rc.left, rc.bottom - rc.top };
-		int cyFixed = rcInset.top;
+		int cyFixed = rcPadding.top;
 		for( int it = 0; it < pOwner->GetCount(); it++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(pOwner->GetItemAt(it));
 			if( !pControl->IsVisible() ) continue;
@@ -149,10 +149,10 @@ namespace DuiLib {
 			if( pDefaultAttributes ) {
 				m_pLayout->ApplyAttributeList(pDefaultAttributes);
 			}
-			m_pLayout->SetInset(CDuiRect(1, 1, 1, 1));
-			m_pLayout->SetBkColor(0xFFFFFFFF);
-			m_pLayout->SetBorderColor(0xFFC6C7D2);
-			m_pLayout->SetBorderSize(1);
+			m_pLayout->SetPadding(CDuiBox(1));
+			m_pLayout->SetBackgroundColor(0xFFFFFFFF);
+			m_pLayout->SetBorderColor(0xC6C7D2FF);
+			m_pLayout->SetBorderWidth(1);
 			m_pLayout->SetAutoDestroy(false);
 			m_pLayout->EnableScrollBar();
 			m_pLayout->ApplyAttributeList(m_pOwner->GetDropBoxAttributeList());
@@ -270,8 +270,8 @@ namespace DuiLib {
 	IMPLEMENT_DUICONTROL(CComboUI)
 
 	CComboUI::CComboUI() : m_uTextStyle(DT_VCENTER | DT_SINGLELINE)
-		, m_dwTextColor(0)
-		, m_dwDisabledTextColor(0)
+		, m_dwColor(0)
+		, m_dwDisabledColor(0)
 		, m_iFont(-1)
 		, m_bShowHtml(false)
 		, m_pWindow(NULL)
@@ -282,20 +282,20 @@ namespace DuiLib {
 	{
 		m_szDropBox = CDuiSize(0, 150);
 		::ZeroMemory(&m_rcTextPadding, sizeof(m_rcTextPadding));
-		::ZeroMemory(&m_rcDropBox, sizeof(m_rcDropBox));
+		::ZeroMemory(&m_rcDropBoxPadding, sizeof(m_rcDropBoxPadding));
 
 		m_ListInfo.nColumns = 0;
 		m_ListInfo.nFont = -1;
 		m_ListInfo.uTextStyle = DT_VCENTER;
-		m_ListInfo.dwTextColor = 0xFF000000;
-		m_ListInfo.dwBkColor = 0;
+		m_ListInfo.dwColor = 0x000000FF;
+		m_ListInfo.dwBackgroundColor = 0;
 		m_ListInfo.bAlternateBk = false;
-		m_ListInfo.dwSelectedTextColor = 0xFF000000;
-		m_ListInfo.dwSelectedBkColor = 0xFFC1E3FF;
-		m_ListInfo.dwHotTextColor = 0xFF000000;
-		m_ListInfo.dwHotBkColor = 0xFFE9F5FF;
-		m_ListInfo.dwDisabledTextColor = 0xFFCCCCCC;
-		m_ListInfo.dwDisabledBkColor = 0xFFFFFFFF;
+		m_ListInfo.dwSelectedColor = 0x000000FF;
+		m_ListInfo.dwSelectedBackgroundColor = 0xC1E3FFFF;
+		m_ListInfo.dwHoverColor = 0x000000FF;
+		m_ListInfo.dwHoverBackgroundColor = 0xE9F5FFFF;
+		m_ListInfo.dwDisabledColor = 0xCCCCCCFF;
+		m_ListInfo.dwDisabledBackgroundColor = 0xFFFFFFFF;
 		m_ListInfo.dwLineColor = 0;
 		m_ListInfo.bShowHtml = false;
 		m_ListInfo.bMultiExpandable = false;
@@ -634,14 +634,14 @@ namespace DuiLib {
 		m_szDropBox = szDropBox;
 	}
 
-	RECT CComboUI::GetDropBoxInset() const
+	RECT CComboUI::GetDropBoxPadding() const
 	{
-		return m_rcDropBox;
+		return m_rcDropBoxPadding;
 	}
 
-	void CComboUI::SetDropBoxInset(RECT rcDropBox)
+	void CComboUI::SetDropBoxPadding(RECT rcDropBoxPadding)
 	{
-		m_rcDropBox = rcDropBox;
+		m_rcDropBoxPadding = rcDropBoxPadding;
 	}
 	void CComboUI::SetTextStyle(UINT uStyle)
 	{
@@ -654,26 +654,26 @@ namespace DuiLib {
 		return m_uTextStyle;
 	}
 
-	void CComboUI::SetTextColor(DWORD dwTextColor)
+	void CComboUI::SetColor(DWORD dwColor)
 	{
-		m_dwTextColor = dwTextColor;
+		m_dwColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CComboUI::GetTextColor() const
+	DWORD CComboUI::GetColor() const
 	{
-		return m_dwTextColor;
+		return m_dwColor;
 	}
 
-	void CComboUI::SetDisabledTextColor(DWORD dwTextColor)
+	void CComboUI::SetDisabledColor(DWORD dwColor)
 	{
-		m_dwDisabledTextColor = dwTextColor;
+		m_dwDisabledColor = dwColor;
 		Invalidate();
 	}
 
-	DWORD CComboUI::GetDisabledTextColor() const
+	DWORD CComboUI::GetDisabledColor() const
 	{
-		return m_dwDisabledTextColor;
+		return m_dwDisabledColor;
 	}
 
 	void CComboUI::SetFont(int index)
@@ -726,47 +726,47 @@ namespace DuiLib {
 		Invalidate();
 	}
 
-	LPCTSTR CComboUI::GetNormalImage() const
+	LPCTSTR CComboUI::GetImage() const
 	{
-		return m_sNormalImage;
+		return m_sImage;
 	}
 
-	void CComboUI::SetNormalImage(LPCTSTR pStrImage)
+	void CComboUI::SetImage(LPCTSTR pStrImage)
 	{
-		m_sNormalImage = pStrImage;
+		m_sImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CComboUI::GetHotImage() const
+	LPCTSTR CComboUI::GetHoverImage() const
 	{
-		return m_sHotImage;
+		return m_sHoverImage;
 	}
 
-	void CComboUI::SetHotImage(LPCTSTR pStrImage)
+	void CComboUI::SetHoverImage(LPCTSTR pStrImage)
 	{
-		m_sHotImage = pStrImage;
+		m_sHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CComboUI::GetPushedImage() const
+	LPCTSTR CComboUI::GetActiveImage() const
 	{
-		return m_sPushedImage;
+		return m_sActiveImage;
 	}
 
-	void CComboUI::SetPushedImage(LPCTSTR pStrImage)
+	void CComboUI::SetActiveImage(LPCTSTR pStrImage)
 	{
-		m_sPushedImage = pStrImage;
+		m_sActiveImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CComboUI::GetFocusedImage() const
+	LPCTSTR CComboUI::GetFocusImage() const
 	{
-		return m_sFocusedImage;
+		return m_sFocusImage;
 	}
 
-	void CComboUI::SetFocusedImage(LPCTSTR pStrImage)
+	void CComboUI::SetFocusImage(LPCTSTR pStrImage)
 	{
-		m_sFocusedImage = pStrImage;
+		m_sFocusImage = pStrImage;
 		Invalidate();
 	}
 
@@ -814,15 +814,15 @@ namespace DuiLib {
 		Invalidate();
 	}
 
-	void CComboUI::SetItemTextColor(DWORD dwTextColor)
+	void CComboUI::SetItemColor(DWORD dwColor)
 	{
-		m_ListInfo.dwTextColor = dwTextColor;
+		m_ListInfo.dwColor = dwColor;
 		Invalidate();
 	}
 
-	void CComboUI::SetItemBkColor(DWORD dwBkColor)
+	void CComboUI::SetItemBackgroundColor(DWORD dwBackgroundColor)
 	{
-		m_ListInfo.dwBkColor = dwBkColor;
+		m_ListInfo.dwBackgroundColor = dwBackgroundColor;
 	}
 
 	void CComboUI::SetItemBkImage(LPCTSTR pStrImage)
@@ -830,14 +830,14 @@ namespace DuiLib {
 		m_ListInfo.sBkImage = pStrImage;
 	}
 
-	DWORD CComboUI::GetItemTextColor() const
+	DWORD CComboUI::GetItemColor() const
 	{
-		return m_ListInfo.dwTextColor;
+		return m_ListInfo.dwColor;
 	}
 
-	DWORD CComboUI::GetItemBkColor() const
+	DWORD CComboUI::GetItemBackgroundColor() const
 	{
-		return m_ListInfo.dwBkColor;
+		return m_ListInfo.dwBackgroundColor;
 	}
 
 	LPCTSTR CComboUI::GetItemBkImage() const
@@ -855,14 +855,14 @@ namespace DuiLib {
 		m_ListInfo.bAlternateBk = bAlternateBk;
 	}
 
-	void CComboUI::SetSelectedItemTextColor(DWORD dwTextColor)
+	void CComboUI::SetSelectedItemColor(DWORD dwColor)
 	{
-		m_ListInfo.dwSelectedTextColor = dwTextColor;
+		m_ListInfo.dwSelectedColor = dwColor;
 	}
 
-	void CComboUI::SetSelectedItemBkColor(DWORD dwBkColor)
+	void CComboUI::SetSelectedItemBackgroundColor(DWORD dwBackgroundColor)
 	{
-		m_ListInfo.dwSelectedBkColor = dwBkColor;
+		m_ListInfo.dwSelectedBackgroundColor = dwBackgroundColor;
 	}
 
 	void CComboUI::SetSelectedItemImage(LPCTSTR pStrImage)
@@ -870,14 +870,14 @@ namespace DuiLib {
 		m_ListInfo.sSelectedImage = pStrImage;
 	}
 
-	DWORD CComboUI::GetSelectedItemTextColor() const
+	DWORD CComboUI::GetSelectedItemColor() const
 	{
-		return m_ListInfo.dwSelectedTextColor;
+		return m_ListInfo.dwSelectedColor;
 	}
 
-	DWORD CComboUI::GetSelectedItemBkColor() const
+	DWORD CComboUI::GetSelectedItemBackgroundColor() const
 	{
-		return m_ListInfo.dwSelectedBkColor;
+		return m_ListInfo.dwSelectedBackgroundColor;
 	}
 
 	LPCTSTR CComboUI::GetSelectedItemImage() const
@@ -885,43 +885,43 @@ namespace DuiLib {
 		return m_ListInfo.sSelectedImage;
 	}
 
-	void CComboUI::SetHotItemTextColor(DWORD dwTextColor)
+	void CComboUI::SetHoverItemColor(DWORD dwColor)
 	{
-		m_ListInfo.dwHotTextColor = dwTextColor;
+		m_ListInfo.dwHoverColor = dwColor;
 	}
 
-	void CComboUI::SetHotItemBkColor(DWORD dwBkColor)
+	void CComboUI::SetHoverItemBackgroundColor(DWORD dwBackgroundColor)
 	{
-		m_ListInfo.dwHotBkColor = dwBkColor;
+		m_ListInfo.dwHoverBackgroundColor = dwBackgroundColor;
 	}
 
-	void CComboUI::SetHotItemImage(LPCTSTR pStrImage)
+	void CComboUI::SetHoverItemImage(LPCTSTR pStrImage)
 	{
-		m_ListInfo.sHotImage = pStrImage;
+		m_ListInfo.sHoverImage = pStrImage;
 	}
 
-	DWORD CComboUI::GetHotItemTextColor() const
+	DWORD CComboUI::GetHoverItemColor() const
 	{
-		return m_ListInfo.dwHotTextColor;
+		return m_ListInfo.dwHoverColor;
 	}
-	DWORD CComboUI::GetHotItemBkColor() const
+	DWORD CComboUI::GetHoverItemBackgroundColor() const
 	{
-		return m_ListInfo.dwHotBkColor;
-	}
-
-	LPCTSTR CComboUI::GetHotItemImage() const
-	{
-		return m_ListInfo.sHotImage;
+		return m_ListInfo.dwHoverBackgroundColor;
 	}
 
-	void CComboUI::SetDisabledItemTextColor(DWORD dwTextColor)
+	LPCTSTR CComboUI::GetHoverItemImage() const
 	{
-		m_ListInfo.dwDisabledTextColor = dwTextColor;
+		return m_ListInfo.sHoverImage;
 	}
 
-	void CComboUI::SetDisabledItemBkColor(DWORD dwBkColor)
+	void CComboUI::SetDisabledItemColor(DWORD dwColor)
 	{
-		m_ListInfo.dwDisabledBkColor = dwBkColor;
+		m_ListInfo.dwDisabledColor = dwColor;
+	}
+
+	void CComboUI::SetDisabledItemBackgroundColor(DWORD dwBackgroundColor)
+	{
+		m_ListInfo.dwDisabledBackgroundColor = dwBackgroundColor;
 	}
 
 	void CComboUI::SetDisabledItemImage(LPCTSTR pStrImage)
@@ -929,14 +929,14 @@ namespace DuiLib {
 		m_ListInfo.sDisabledImage = pStrImage;
 	}
 
-	DWORD CComboUI::GetDisabledItemTextColor() const
+	DWORD CComboUI::GetDisabledItemColor() const
 	{
-		return m_ListInfo.dwDisabledTextColor;
+		return m_ListInfo.dwDisabledColor;
 	}
 
-	DWORD CComboUI::GetDisabledItemBkColor() const
+	DWORD CComboUI::GetDisabledItemBackgroundColor() const
 	{
-		return m_ListInfo.dwDisabledBkColor;
+		return m_ListInfo.dwDisabledBackgroundColor;
 	}
 
 	LPCTSTR CComboUI::GetDisabledItemImage() const
@@ -986,7 +986,7 @@ namespace DuiLib {
 	}
 	void CComboUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("align")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("text-align")) == 0 ) {
 			if( _tcsstr(pstrValue, _T("left")) != NULL ) {
 				m_uTextStyle &= ~(DT_CENTER | DT_RIGHT | DT_SINGLELINE);
 				m_uTextStyle |= DT_LEFT;
@@ -1000,12 +1000,12 @@ namespace DuiLib {
 				m_uTextStyle |= DT_RIGHT;
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("valign")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("vertical-align")) == 0 ) {
 			if( _tcsstr(pstrValue, _T("top")) != NULL ) {
 				m_uTextStyle &= ~(DT_BOTTOM | DT_VCENTER);
 				m_uTextStyle |= (DT_TOP | DT_SINGLELINE);
 			}
-			if( _tcsstr(pstrValue, _T("vcenter")) != NULL ) {
+			if( _tcsstr(pstrValue, _T("vcenter")) != NULL || _tcsstr(pstrValue, _T("middle")) != NULL ) {
 				m_uTextStyle &= ~(DT_TOP | DT_BOTTOM );            
 				m_uTextStyle |= (DT_VCENTER | DT_SINGLELINE);
 			}
@@ -1014,12 +1014,12 @@ namespace DuiLib {
 				m_uTextStyle |= (DT_BOTTOM | DT_SINGLELINE);
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("endellipsis")) == 0 ) {
-			if( _tcsicmp(pstrValue, _T("true")) == 0 ) m_uTextStyle |= DT_END_ELLIPSIS;
+		else if( _tcsicmp(pstrName, _T("text-overflow")) == 0 ) {
+			if( _tcsicmp(pstrValue, _T("ellipsis")) == 0 ) m_uTextStyle |= DT_END_ELLIPSIS;
 			else m_uTextStyle &= ~DT_END_ELLIPSIS;
 		}   
-		else if( _tcsicmp(pstrName, _T("wordbreak")) == 0 ) {
-			if( _tcsicmp(pstrValue, _T("true")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("word-break")) == 0 ) {
+			if( _tcsicmp(pstrValue, _T("break-word")) == 0 || _tcsicmp(pstrValue, _T("break-all")) == 0 ) {
 				m_uTextStyle &= ~DT_SINGLELINE;
 				m_uTextStyle |= DT_WORDBREAK | DT_EDITCONTROL;
 			}
@@ -1028,38 +1028,49 @@ namespace DuiLib {
 				m_uTextStyle |= DT_SINGLELINE;
 			}
 		}    
-		else if( _tcsicmp(pstrName, _T("font")) == 0 ) SetFont(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("textcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("font-family")) == 0 || _tcsicmp(pstrName, _T("font-size")) == 0 ) {
+			// Combo 无独立 CSS 字体缓存；单属性时用当前/默认字体补齐另一半
+			CDuiString sFamily;
+			int nSize = 0;
+			if( _tcsicmp(pstrName, _T("font-family")) == 0 ) sFamily = pstrValue ? pstrValue : _T("");
+			else {
+				LPTSTR pEnd = NULL;
+				long v = _tcstol(pstrValue, &pEnd, 10);
+				if( pEnd != pstrValue && v > 0 ) nSize = (int)v;
+			}
+			if( m_pManager != NULL ) {
+				TFontInfo* pInfo = m_pManager->GetFontInfo(m_iFont);
+				if( pInfo == NULL ) pInfo = m_pManager->GetDefaultFontInfo();
+				if( pInfo != NULL ) {
+					if( sFamily.IsEmpty() ) sFamily = pInfo->sFontName;
+					if( nSize <= 0 ) nSize = pInfo->iSize;
+				}
+				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
+				if( nSize <= 0 ) nSize = 12;
+				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				if( id >= 0 ) SetFont(id);
+			}
 		}
-		else if( _tcsicmp(pstrName, _T("disabledtextcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetDisabledTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("textpadding")) == 0 ) {
-			RECT rcTextPadding = { 0 };
-			LPTSTR pstr = NULL;
-			rcTextPadding.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
-			rcTextPadding.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);    
-			SetTextPadding(rcTextPadding);
+		else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetDisabledColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("showhtml")) == 0 ) SetShowHtml(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("showshadow")) == 0 ) SetShowShadow(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("normalimage")) == 0 ) SetNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("hotimage")) == 0 ) SetHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("pushedimage")) == 0 ) SetPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("focusedimage")) == 0 ) SetFocusedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("disabledimage")) == 0 ) SetDisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("scrollselect")) == 0 ) SetScrollSelect(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("dropbox")) == 0 ) SetDropBoxAttributeList(pstrValue);
-		else if( _tcsicmp(pstrName, _T("dropboxsize")) == 0)
+		else if( _tcsicmp(pstrName, _T("drop-shadow")) == 0 ) SetShowShadow(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("image")) == 0 ) SetImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-hover")) == 0 ) SetHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-active")) == 0 ) SetActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-focus")) == 0 ) SetFocusImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-disabled")) == 0 ) SetDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("scroll-select")) == 0 ) SetScrollSelect(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("drop-box")) == 0 ) SetDropBoxAttributeList(pstrValue);
+		else if( _tcsicmp(pstrName, _T("drop-box-size")) == 0)
 		{
 			SIZE szDropBoxSize = { 0 };
 			LPTSTR pstr = NULL;
@@ -1067,17 +1078,40 @@ namespace DuiLib {
 			szDropBoxSize.cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
 			SetDropBoxSize(szDropBoxSize);
 		}
-		else if( _tcsicmp(pstrName, _T("dropboxinset")) == 0 ) {
-			RECT rcTextPadding = { 0 };
-			LPTSTR pstr = NULL;
-			rcTextPadding.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
-			rcTextPadding.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);    
-			SetDropBoxInset(rcTextPadding);
+		else if( _tcsicmp(pstrName, _T("drop-box-padding")) == 0 ) {
+			RECT rcDropBoxPadding = { 0 };
+			if( ParseCssBoxToRect(pstrValue, rcDropBoxPadding) )
+				SetDropBoxPadding(rcDropBoxPadding);
 		}
-		else if( _tcsicmp(pstrName, _T("itemfont")) == 0 ) SetItemFont(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("itemalign")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("item-font-family")) == 0 || _tcsicmp(pstrName, _T("item-font-size")) == 0 || _tcsicmp(pstrName, _T("item-font-weight")) == 0 ) {
+			if( m_pManager == NULL ) { /* skip */ }
+			else {
+				CDuiString sFamily;
+				int nSize = 0;
+				bool bBold = false;
+				TFontInfo* pInfo = m_pManager->GetFontInfo(m_ListInfo.nFont);
+				if( pInfo == NULL ) pInfo = m_pManager->GetDefaultFontInfo();
+				if( pInfo != NULL ) {
+					sFamily = pInfo->sFontName;
+					nSize = pInfo->iSize;
+					bBold = pInfo->bBold;
+				}
+				if( _tcsicmp(pstrName, _T("item-font-family")) == 0 ) sFamily = pstrValue ? pstrValue : _T("");
+				else if( _tcsicmp(pstrName, _T("item-font-size")) == 0 ) {
+					LPTSTR pEnd = NULL;
+					long v = _tcstol(pstrValue, &pEnd, 10);
+					if( pEnd != pstrValue && v > 0 ) nSize = (int)v;
+				}
+				else if( !ParseCssFontWeightBold(pstrValue, bBold) ) {
+					bBold = false;
+				}
+				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
+				if( nSize <= 0 ) nSize = 12;
+				int id = m_pManager->EnsureFont(sFamily, nSize, bBold, false, false, false);
+				if( id >= 0 ) SetItemFont(id);
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("item-text-align")) == 0 ) {
 			if( _tcsstr(pstrValue, _T("left")) != NULL ) {
 				m_ListInfo.uTextStyle &= ~(DT_CENTER | DT_RIGHT);
 				m_ListInfo.uTextStyle |= DT_LEFT;
@@ -1091,12 +1125,12 @@ namespace DuiLib {
 				m_ListInfo.uTextStyle |= DT_RIGHT;
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("itemvalign")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("item-vertical-align")) == 0 ) {
 			if( _tcsstr(pstrValue, _T("top")) != NULL ) {
 				m_ListInfo.uTextStyle &= ~(DT_VCENTER | DT_BOTTOM);
 				m_ListInfo.uTextStyle |= DT_TOP;
 			}
-			if( _tcsstr(pstrValue, _T("vcenter")) != NULL ) {
+			if( _tcsstr(pstrValue, _T("vcenter")) != NULL || _tcsstr(pstrValue, _T("middle")) != NULL ) {
 				m_ListInfo.uTextStyle &= ~(DT_TOP | DT_BOTTOM | DT_WORDBREAK);
 				m_ListInfo.uTextStyle |= DT_VCENTER | DT_SINGLELINE;
 			}
@@ -1105,79 +1139,66 @@ namespace DuiLib {
 				m_ListInfo.uTextStyle |= DT_BOTTOM;
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("itemendellipsis")) == 0 ) {
-			if( _tcsicmp(pstrValue, _T("true")) == 0 ) m_ListInfo.uTextStyle |= DT_END_ELLIPSIS;
+		else if( _tcsicmp(pstrName, _T("item-text-overflow")) == 0 ) {
+			if( _tcsicmp(pstrValue, _T("ellipsis")) == 0 ) m_ListInfo.uTextStyle |= DT_END_ELLIPSIS;
 			else m_ListInfo.uTextStyle &= ~DT_END_ELLIPSIS;
 		}   
-		else if( _tcsicmp(pstrName, _T("itemtextpadding")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("item-padding")) == 0 ) {
 			RECT rcTextPadding = { 0 };
-			LPTSTR pstr = NULL;
-			rcTextPadding.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
-			rcTextPadding.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);    
-			SetItemTextPadding(rcTextPadding);
+			if( ParseCssBoxToRect(pstrValue, rcTextPadding) )
+				SetItemTextPadding(rcTextPadding);
 		}
-		else if( _tcsicmp(pstrName, _T("itemtextcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetItemTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetItemColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itembkcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetItemBkColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-background-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetItemBackgroundColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itembkimage")) == 0 ) SetItemBkImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("itemaltbk")) == 0 ) SetAlternateBk(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("itemselectedtextcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelectedItemTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-background-image")) == 0 ) SetItemBkImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("item-alternate-background")) == 0 ) SetAlternateBk(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("item-color-selected")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetSelectedItemColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itemselectedbkcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelectedItemBkColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-background-color-selected")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetSelectedItemBackgroundColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itemselectedimage")) == 0 ) SetSelectedItemImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("itemhottextcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetHotItemTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-image-selected")) == 0 ) SetSelectedItemImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("item-color-hover")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetHoverItemColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itemhotbkcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetHotItemBkColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-background-color-hover")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetHoverItemBackgroundColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itemhotimage")) == 0 ) SetHotItemImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("itemdisabledtextcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetDisabledItemTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-image-hover")) == 0 ) SetHoverItemImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("item-color-disabled")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetDisabledItemColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itemdisabledbkcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetDisabledItemBkColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("item-background-color-disabled")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetDisabledItemBackgroundColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itemdisabledimage")) == 0 ) SetDisabledItemImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("itemlinecolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
+		else if( _tcsicmp(pstrName, _T("item-image-disabled")) == 0 ) SetDisabledItemImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("item-line-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
 			SetItemLineColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("itemshowhtml")) == 0 ) SetItemShowHtml(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("item-show-html")) == 0 ) SetItemShowHtml(_tcsicmp(pstrValue, _T("true")) == 0);
 		else CContainerUI::SetAttribute(pstrName, pstrValue);
 	}
 
@@ -1200,46 +1221,48 @@ namespace DuiLib {
 			}
 		}
 		else if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
-			if( !m_sPushedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sPushedImage) ) {}
+			if( !m_sActiveImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sActiveImage) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
-			if( !m_sHotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHotImage) ) {}
+			if( !m_sHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
-			if( !m_sFocusedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusedImage) ) {}
+			if( !m_sFocusImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
 				else return;
 			}
 		}
 
-		if( !m_sNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sNormalImage) ) {}
+		if( !m_sImage.IsEmpty() ) {
+			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
 			else return;
 		}
 	}
 
 	void CComboUI::PaintText(IRenderContext& ctx)
 	{
-		if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-		if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 
 		RECT rc = m_rcItem;
-		rc.left += m_rcTextPadding.left;
-		rc.right -= m_rcTextPadding.right;
-		rc.top += m_rcTextPadding.top;
-		rc.bottom -= m_rcTextPadding.bottom;
+		RECT rcPad = GetPadding();
+		RECT rcTextPad = GetTextPadding();
+		rc.left += rcPad.left + rcTextPad.left;
+		rc.right -= rcPad.right + rcTextPad.right;
+		rc.top += rcPad.top + rcTextPad.top;
+		rc.bottom -= rcPad.bottom + rcTextPad.bottom;
 
 		CDuiString sText = GetText();
 		if( sText.IsEmpty() ) return;
 
 		int nLinks = 0;
-		DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		if( m_bShowHtml )
 			ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
 		else

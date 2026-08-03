@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "UIRollText.h"
 
 namespace DuiLib
@@ -88,9 +88,9 @@ namespace DuiLib
 
 	void CRollTextUI::PaintText(IRenderContext& ctx)
 	{
-		if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-		if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
-		DWORD dwTextColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
+		DWORD dwColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		CDuiString sText = GetText();
 		if( sText.IsEmpty() ) return;
 
@@ -140,10 +140,10 @@ namespace DuiLib
 
 		if( m_bShowHtml ) {
 			int nLinks = 0;
-			ctx.DrawHtmlText(rc, sText, dwTextColor, NULL, NULL, nLinks, m_iFont, uTextStyle);
+			ctx.DrawHtmlText(rc, sText, dwColor, NULL, NULL, nLinks, m_iFont, uTextStyle);
 		}
 		else {
-			ctx.DrawText(rc, sText, dwTextColor, m_iFont, uTextStyle);
+			ctx.DrawText(rc, sText, dwColor, m_iFont, uTextStyle);
 		}
 
 		if(m_nText_W_H == 0) {

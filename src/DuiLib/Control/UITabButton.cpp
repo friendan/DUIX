@@ -9,10 +9,9 @@ namespace DuiLib
 	{
 		DWORD ParseTabColor(LPCTSTR pstrValue)
 		{
-			if( pstrValue == NULL || *pstrValue == _T('\0') ) return 0;
-			if( *pstrValue == _T('#') ) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			return _tcstoul(pstrValue, &pstr, 16);
+			DWORD c = 0;
+			if( pstrValue != NULL && ParseColorString(pstrValue, c) ) return c;
+			return 0;
 		}
 	}
 
@@ -32,7 +31,7 @@ namespace DuiLib
 	{
 		SetFixedWidth(150);
 		SetMouseEnabled(false);
-		SetChildVAlign(DT_VCENTER);
+		SetAlignItems(DT_VCENTER);
 		EnsureChildren();
 		UpdateStyle();
 	}
@@ -81,15 +80,15 @@ namespace DuiLib
 
 		m_pTitle = new CLabelUI;
 		m_pTitle->SetMouseEnabled(false);
-		m_pTitle->SetAttribute(_T("align"), _T("left"));
-		m_pTitle->SetAttribute(_T("endellipsis"), _T("true"));
+		m_pTitle->SetAttribute(_T("text-align"), _T("left"));
+		m_pTitle->SetAttribute(_T("text-overflow"), _T("ellipsis"));
 		CHorizontalLayoutUI::Add(m_pTitle);
 
 		m_pClose = new CLabelUI;
 		m_pClose->SetText(_T("\x2715"));
 		m_pClose->SetFixedWidth(20);
 		m_pClose->SetMouseEnabled(false);
-		m_pClose->SetAttribute(_T("align"), _T("center"));
+		m_pClose->SetAttribute(_T("text-align"), _T("center"));
 		CHorizontalLayoutUI::Add(m_pClose);
 
 		CControlUI* pRight = new CControlUI;
@@ -154,17 +153,17 @@ namespace DuiLib
 		m_bCloseHovered = bHover;
 
 		CTabBarUI* pBar = GetOwnerBar();
-		DWORD dwCloseText = pBar ? pBar->GetCloseTextColor() : 0xFF8C8C8C;
-		DWORD dwCloseHotBk = pBar ? pBar->GetCloseHotBkColor() : 0xFFDC3C3C;
-		DWORD dwCloseHotText = pBar ? pBar->GetCloseHotTextColor() : 0xFFFFFFFF;
+		DWORD dwCloseText = pBar ? pBar->GetCloseColor() : 0x8C8C8CFF;
+		DWORD dwCloseHotBk = pBar ? pBar->GetCloseHoverBackgroundColor() : 0xDC3C3CFF;
+		DWORD dwCloseHotText = pBar ? pBar->GetCloseHoverColor() : 0xFFFFFFFF;
 
 		if( bHover ) {
-			m_pClose->SetBkColor(dwCloseHotBk);
-			m_pClose->SetTextColor(dwCloseHotText);
+			m_pClose->SetBackgroundColor(dwCloseHotBk);
+			m_pClose->SetColor(dwCloseHotText);
 		}
 		else {
-			m_pClose->SetBkColor(0);
-			m_pClose->SetTextColor(dwCloseText);
+			m_pClose->SetBackgroundColor(0);
+			m_pClose->SetColor(dwCloseText);
 		}
 		m_pClose->Invalidate();
 	}
@@ -260,79 +259,79 @@ namespace DuiLib
 		EnsureChildren();
 
 		CTabBarUI* pBar = GetOwnerBar();
-		DWORD dwBk = pBar ? pBar->GetTabBkColor() : 0;
-		DWORD dwHotBk = pBar ? pBar->GetTabHotBkColor() : 0xFFD6EBFF;
-		DWORD dwSelBk = pBar ? pBar->GetTabSelectedBkColor() : 0xFFBAE0FF;
-		DWORD dwText = pBar ? pBar->GetTabTextColor() : 0xFF8C8C8C;
-		DWORD dwHotText = pBar ? pBar->GetTabHotTextColor() : 0xFF1677FF;
-		DWORD dwSelText = pBar ? pBar->GetTabSelectedTextColor() : 0xFF1677FF;
+		DWORD dwBk = pBar ? pBar->GetTabBackgroundColor() : 0;
+		DWORD dwHotBk = pBar ? pBar->GetTabHoverBackgroundColor() : 0xD6EBFFFF;
+		DWORD dwSelBk = pBar ? pBar->GetTabSelectedBackgroundColor() : 0xBAE0FFFF;
+		DWORD dwText = pBar ? pBar->GetTabColor() : 0x8C8C8CFF;
+		DWORD dwHotText = pBar ? pBar->GetTabHoverColor() : 0x1677FFFF;
+		DWORD dwSelText = pBar ? pBar->GetTabSelectedColor() : 0x1677FFFF;
 		DWORD dwBorder = pBar ? pBar->GetTabBorderColor() : 0;
-		DWORD dwSelBorder = pBar ? pBar->GetTabSelectedBorderColor() : 0xFF1677FF;
-		int nBorder = pBar ? pBar->GetTabBorderSize() : 0;
-		int nSelBorder = pBar ? pBar->GetTabSelectedBorderSize() : 2;
-		DWORD dwCloseText = pBar ? pBar->GetCloseTextColor() : 0xFF8C8C8C;
+		DWORD dwSelBorder = pBar ? pBar->GetTabSelectedBorderColor() : 0x1677FFFF;
+		int nBorder = pBar ? pBar->GetTabBorderWidth() : 0;
+		int nSelBorder = pBar ? pBar->GetTabSelectedBorderWidth() : 2;
+		DWORD dwCloseText = pBar ? pBar->GetCloseColor() : 0x8C8C8CFF;
 
 		// 清掉单边边框，避免选中底边指示残留到未选中态
 		RECT rcBorderEmpty = { 0, 0, 0, 0 };
-		SetBorderSize(rcBorderEmpty);
-		SetBorderSize(0);
+		SetBorderWidth(rcBorderEmpty);
+		SetBorderWidth(0);
 		SetBorderColor(0);
+
+		// 分隔：用右边框；末项不加；选中项及其左侧邻居不加（贴着选中底色更干净）
+		bool bSepRight = false;
+		DWORD dwSep = 0;
+		if( pBar != NULL && pBar->IsShowTabSeparator() ) {
+			dwSep = pBar->GetTabSeparatorColor();
+			int idx = pBar->GetTabIndex(this);
+			int nCount = pBar->GetTabCount();
+			int iActive = pBar->GetActiveTab();
+			bSepRight = (dwSep != 0 && idx >= 0 && idx < nCount - 1
+				&& idx != iActive && (idx + 1) != iActive);
+		}
+
+		auto applySepOrBorder = [&]() {
+			if( nBorder > 0 && dwBorder != 0 ) {
+				SetBorderWidth(nBorder);
+				SetBorderColor(dwBorder);
+			}
+			else if( bSepRight ) {
+				RECT rcSep = { 0, 0, 1, 0 };
+				SetBorderWidth(rcSep);
+				SetBorderColor(dwSep);
+			}
+		};
 
 		DWORD clrText = dwText;
 		if( m_bActive ) {
-			SetBkColor(dwSelBk);
+			SetBackgroundColor(dwSelBk);
 			clrText = dwSelText;
 			DWORD dwInd = (dwSelBorder != 0) ? dwSelBorder : dwSelText;
 			SetBorderColor(dwInd);
 			if( nSelBorder > 0 ) {
 				// 现代标签：底部色条指示选中（非整框描边）
 				RECT rcInd = { 0, 0, 0, nSelBorder };
-				SetBorderSize(rcInd);
+				SetBorderWidth(rcInd);
 			}
 		}
 		else if( m_bHover ) {
-			SetBkColor(dwHotBk);
+			SetBackgroundColor(dwHotBk);
 			clrText = (dwHotText != 0) ? dwHotText : dwText;
-			if( nBorder > 0 && dwBorder != 0 ) {
-				SetBorderSize(nBorder);
-				SetBorderColor(dwBorder);
-			}
+			applySepOrBorder();
 		}
 		else {
-			SetBkColor(dwBk);
+			SetBackgroundColor(dwBk);
 			clrText = dwText;
-			if( nBorder > 0 && dwBorder != 0 ) {
-				SetBorderSize(nBorder);
-				SetBorderColor(dwBorder);
-			}
+			applySepOrBorder();
 		}
 
-		if( m_pTitle != NULL ) m_pTitle->SetTextColor(clrText);
+		if( m_pTitle != NULL ) m_pTitle->SetColor(clrText);
 		if( m_pIcon != NULL && m_pIcon->IsVisible() )
-			m_pIcon->SetTintColor(clrText);
+			m_pIcon->SetColor(clrText);
 
 		if( m_pClose != NULL && !m_bCloseHovered ) {
-			m_pClose->SetBkColor(0);
-			m_pClose->SetTextColor(dwCloseText);
+			m_pClose->SetBackgroundColor(0);
+			m_pClose->SetColor(dwCloseText);
 		}
-	}
-
-	void CTabButtonUI::PaintBorder(IRenderContext& ctx)
-	{
-		CControlUI::PaintBorder(ctx);
-
-		CTabBarUI* pBar = GetOwnerBar();
-		if( pBar == NULL || !pBar->IsShowTabSeparator() ) return;
-		DWORD dwSep = pBar->GetTabSeparatorColor();
-		if( dwSep == 0 ) return;
-
-		int idx = pBar->GetTabIndex(this);
-		if( idx < 0 || idx >= pBar->GetTabCount() - 1 ) return;
-
-		RECT rcLine = m_rcItem;
-		rcLine.left = m_rcItem.right - 1;
-		rcLine.right = m_rcItem.right - 1;
-		ctx.DrawLine(rcLine, 1, GetAdjustColor(dwSep));
 	}
 
 	bool CTabButtonUI::DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
@@ -357,7 +356,7 @@ namespace DuiLib
 			|| _tcsicmp(pstrName, _T("tabler-filled")) == 0
 			|| _tcsicmp(pstrName, _T("remixicon")) == 0
 			|| _tcsicmp(pstrName, _T("twicon")) == 0
-			|| _tcsicmp(pstrName, _T("iconsrc")) == 0
+			|| _tcsicmp(pstrName, _T("icon-src")) == 0
 			|| _tcsicmp(pstrName, _T("icon")) == 0;
 	}
 
@@ -378,7 +377,7 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("dir")) == 0 ) {
 			SetDir(pstrValue);
 		}
-		else if( _tcsicmp(pstrName, _T("iconsize")) == 0 || _tcsicmp(pstrName, _T("icon-size")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("icon-size")) == 0 ) {
 			SetIconSize(_ttoi(pstrValue));
 		}
 		else if( IsIconAttr(pstrName) ) {
@@ -388,7 +387,7 @@ namespace DuiLib
 				ClearTabIcon();
 				return;
 			}
-			if( _tcsicmp(pstrName, _T("iconsrc")) == 0 || _tcsicmp(pstrName, _T("icon")) == 0 )
+			if( _tcsicmp(pstrName, _T("icon-src")) == 0 || _tcsicmp(pstrName, _T("icon")) == 0 )
 				m_pIcon->SetAttribute(_T("src"), pstrValue);
 			else
 				m_pIcon->SetAttribute(pstrName, pstrValue);
@@ -397,9 +396,9 @@ namespace DuiLib
 			UpdateStyle();
 			NeedUpdate();
 		}
-		else if( _tcsicmp(pstrName, _T("icontint")) == 0 || _tcsicmp(pstrName, _T("icon-tint")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("icon-tint")) == 0 ) {
 			EnsureChildren();
-			if( m_pIcon != NULL ) m_pIcon->SetTintColor(ParseTabColor(pstrValue));
+			if( m_pIcon != NULL ) m_pIcon->SetColor(ParseTabColor(pstrValue));
 		}
 		else {
 			CHorizontalLayoutUI::SetAttribute(pstrName, pstrValue);

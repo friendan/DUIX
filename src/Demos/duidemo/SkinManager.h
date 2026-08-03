@@ -1,4 +1,4 @@
-﻿#ifndef __SKIN_MANAGER_H__
+#ifndef __SKIN_MANAGER_H__
 #define __SKIN_MANAGER_H__
 
 #include "..\..\DuiLib\UIlib.h"
@@ -6,7 +6,7 @@
 struct SkinChangedParam
 {
 	bool bColor;
-	DWORD bkcolor;
+	DWORD backgroundColor;
 	CDuiString bgimage;
 };
 

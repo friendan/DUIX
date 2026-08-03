@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\Utils\stb_image.h"
@@ -51,7 +51,9 @@ namespace DuiLib {
 		::GetClipBox(hDC, &rcClip);
 		clip.hOldRgn = ::CreateRectRgnIndirect(&rcClip);
 		clip.hRgn = ::CreateRectRgnIndirect(&rc);
-		HRGN hRgnItem = ::CreateRoundRectRgn(rcItem.left, rcItem.top, rcItem.right + 1, rcItem.bottom + 1, width, height);
+		int ew = 0, eh = 0;
+		CssRadiusToEllipse(width, height, ew, eh);
+		HRGN hRgnItem = ::CreateRoundRectRgn(rcItem.left, rcItem.top, rcItem.right + 1, rcItem.bottom + 1, ew, eh);
 		::CombineRgn(clip.hRgn, clip.hRgn, hRgnItem, RGN_AND);
 		::ExtSelectClipRgn(hDC, clip.hRgn, RGN_AND);
 		clip.hDC = hDC;
@@ -75,7 +77,7 @@ namespace DuiLib {
 
 	static const float OneThird = 1.0f / 3;
 
-	static void RGBtoHSL(DWORD ARGB, float* H, float* S, float* L) {
+	static void PixelRGBtoHSL(DWORD ARGB, float* H, float* S, float* L) {
 		const float
 			R = (float)GetRValue(ARGB),
 			G = (float)GetGValue(ARGB),
@@ -98,7 +100,7 @@ namespace DuiLib {
 		}
 	}
 
-	static void HSLtoRGB(DWORD* ARGB, float H, float S, float L) {
+	static void PixelHSLtoRGB(DWORD* ARGB, float H, float S, float L) {
 		const float
 			q = 2*L<1?L*(1+S):(L+S-L*S),
 			p = 2*L-q,
@@ -112,8 +114,50 @@ namespace DuiLib {
 			B = 255*(6*ntr<1?p+(q-p)*6*ntr:(2*ntr<1?q:(3*ntr<2?p+(q-p)*6*(2.0f*OneThird-ntr):p))),
 			G = 255*(6*ntg<1?p+(q-p)*6*ntg:(2*ntg<1?q:(3*ntg<2?p+(q-p)*6*(2.0f*OneThird-ntg):p))),
 			R = 255*(6*ntb<1?p+(q-p)*6*ntb:(2*ntb<1?q:(3*ntb<2?p+(q-p)*6*(2.0f*OneThird-ntb):p)));
-		*ARGB &= 0xFF000000;
+		*ARGB &= 0xFF000000; // 像素缓冲仍为 AARRGGBB
 		*ARGB |= RGB( (BYTE)(R<0?0:(R>255?255:R)), (BYTE)(G<0?0:(G>255?255:G)), (BYTE)(B<0?0:(B>255?255:B)) );
+	}
+
+	static void DuiRGBtoHSL(DWORD color, float* H, float* S, float* L) {
+		const float
+			R = (float)DuiColorR(color),
+			G = (float)DuiColorG(color),
+			B = (float)DuiColorB(color),
+			nR = R/255, nG = G/255, nB = B/255,
+			m = min(min(nR,nG),nB),
+			M = max(max(nR,nG),nB);
+		*L = (m + M)/2;
+		if (M==m) *H = *S = 0;
+		else {
+			const float
+				f = (nR==m)?(nG-nB):((nG==m)?(nB-nR):(nR-nG)),
+				i = (nR==m)?3.0f:((nG==m)?5.0f:1.0f);
+			*H = (i-f/(M-m));
+			if (*H>=6) *H-=6;
+			*H*=60;
+			*S = (2*(*L)<=1)?((M-m)/(M+m)):((M-m)/(2-M-m));
+		}
+	}
+
+	static void DuiHSLtoRGB(DWORD* color, float H, float S, float L) {
+		const float
+			q = 2*L<1?L*(1+S):(L+S-L*S),
+			p = 2*L-q,
+			h = H/360,
+			tr = h + OneThird,
+			tg = h,
+			tb = h - OneThird,
+			ntr = tr<0?tr+1:(tr>1?tr-1:tr),
+			ntg = tg<0?tg+1:(tg>1?tg-1:tg),
+			ntb = tb<0?tb+1:(tb>1?tb-1:tb),
+			r = 255*(6*ntr<1?p+(q-p)*6*ntr:(2*ntr<1?q:(3*ntr<2?p+(q-p)*6*(2.0f*OneThird-ntr):p))),
+			g = 255*(6*ntg<1?p+(q-p)*6*ntg:(2*ntg<1?q:(3*ntg<2?p+(q-p)*6*(2.0f*OneThird-ntg):p))),
+			b = 255*(6*ntb<1?p+(q-p)*6*ntb:(2*ntb<1?q:(3*ntb<2?p+(q-p)*6*(2.0f*OneThird-ntb):p)));
+		*color = DuiColorFromRGB(
+			(BYTE)(r<0?0:(r>255?255:r)),
+			(BYTE)(g<0?0:(g>255?255:g)),
+			(BYTE)(b<0?0:(b>255?255:b)),
+			DuiColorA(*color));
 	}
 
 	static COLORREF PixelAlpha(COLORREF clrSrc, double src_darken, COLORREF clrDest, double dest_darken)
@@ -1392,7 +1436,7 @@ namespace DuiLib {
 		g.ReleaseHDC(hDC);
 	}
 
-	void CRenderEngine::GdiplusDrawText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle)
+	void CRenderEngine::GdiplusDrawText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle)
 	{
 		ASSERT(::GetObjectType(hDC)==OBJ_DC || ::GetObjectType(hDC)==OBJ_MEMDC);
 		if( pstrText == NULL || pManager == NULL ) return;
@@ -1415,7 +1459,7 @@ namespace DuiLib {
 		graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
 
 		Gdiplus::RectF rectF((Gdiplus::REAL)rc.left, (Gdiplus::REAL)rc.top, (Gdiplus::REAL)(rc.right - rc.left), (Gdiplus::REAL)(rc.bottom - rc.top));
-		Gdiplus::SolidBrush brush(Gdiplus::Color(254, GetBValue(dwTextColor), GetGValue(dwTextColor), GetRValue(dwTextColor)));
+		Gdiplus::SolidBrush brush(Gdiplus::Color(254, DuiColorR(dwColor), DuiColorG(dwColor), DuiColorB(dwColor)));
 
 		Gdiplus::StringFormat stringFormat(Gdiplus::StringFormat::GenericTypographic()->GetFormatFlags());
 
@@ -1554,10 +1598,10 @@ namespace DuiLib {
 	//
 	void CRenderEngine::DrawColor(HDC hDC, const RECT& rc, DWORD color)
 	{
-		if( color <= 0x00FFFFFF ) return;
+		if( DuiColorA(color) == 0 ) return;
 
 		Gdiplus::Graphics graphics( hDC );
-		Gdiplus::SolidBrush brush(Gdiplus::Color((LOBYTE((color)>>24)), GetBValue(color), GetGValue(color), GetRValue(color)));
+		Gdiplus::SolidBrush brush(Gdiplus::Color(DuiColorA(color), DuiColorR(color), DuiColorG(color), DuiColorB(color)));
 		graphics.FillRectangle(&brush, (INT)rc.left, (INT)rc.top, (INT)(rc.right - rc.left), (INT)(rc.bottom - rc.top));
 	}
 
@@ -1569,7 +1613,7 @@ namespace DuiLib {
 		typedef BOOL (WINAPI *PGradientFill)(HDC, PTRIVERTEX, ULONG, PVOID, ULONG, ULONG);
 		static PGradientFill lpGradientFill = (PGradientFill) ::GetProcAddress(::GetModuleHandle(_T("msimg32.dll")), "GradientFill");
 
-		BYTE bAlpha = (BYTE)(((dwFirst >> 24) + (dwSecond >> 24)) >> 1);
+		BYTE bAlpha = (BYTE)(((DuiColorA(dwFirst) + DuiColorA(dwSecond))) >> 1);
 		if( bAlpha == 0 ) return;
 		int cx = rc.right - rc.left;
 		int cy = rc.bottom - rc.top;
@@ -1592,13 +1636,13 @@ namespace DuiLib {
 			TRIVERTEX triv[2] = 
 			{
 				{ rcPaint.left, rcPaint.top, 
-				static_cast<COLOR16>(GetBValue(dwFirst) << 8),
-				static_cast<COLOR16>(GetGValue(dwFirst) << 8),
-				static_cast<COLOR16>(GetRValue(dwFirst) << 8), 0xFF00 },
+				static_cast<COLOR16>(DuiColorR(dwFirst) << 8),
+				static_cast<COLOR16>(DuiColorG(dwFirst) << 8),
+				static_cast<COLOR16>(DuiColorB(dwFirst) << 8), 0xFF00 },
 				{ rcPaint.right, rcPaint.bottom, 
-				static_cast<COLOR16>(GetBValue(dwSecond) << 8),
-				static_cast<COLOR16>(GetGValue(dwSecond) << 8),
-				static_cast<COLOR16>(GetRValue(dwSecond) << 8), 0xFF00 }
+				static_cast<COLOR16>(DuiColorR(dwSecond) << 8),
+				static_cast<COLOR16>(DuiColorG(dwSecond) << 8),
+				static_cast<COLOR16>(DuiColorB(dwSecond) << 8), 0xFF00 }
 			};
 			GRADIENT_RECT grc = { 0, 1 };
 			lpGradientFill(hPaintDC, triv, 2, &grc, 1, bVertical ? GRADIENT_FILL_RECT_V : GRADIENT_FILL_RECT_H);
@@ -1615,9 +1659,9 @@ namespace DuiLib {
 			int nLines = 1 << nShift;
 			for( int i = 0; i < nLines; i++ ) {
 				// Do a little alpha blending
-				BYTE bR = (BYTE) ((GetBValue(dwSecond) * (nLines - i) + GetBValue(dwFirst) * i) >> nShift);
-				BYTE bG = (BYTE) ((GetGValue(dwSecond) * (nLines - i) + GetGValue(dwFirst) * i) >> nShift);
-				BYTE bB = (BYTE) ((GetRValue(dwSecond) * (nLines - i) + GetRValue(dwFirst) * i) >> nShift);
+				BYTE bR = (BYTE) ((DuiColorR(dwSecond) * (nLines - i) + DuiColorR(dwFirst) * i) >> nShift);
+				BYTE bG = (BYTE) ((DuiColorG(dwSecond) * (nLines - i) + DuiColorG(dwFirst) * i) >> nShift);
+				BYTE bB = (BYTE) ((DuiColorB(dwSecond) * (nLines - i) + DuiColorB(dwFirst) * i) >> nShift);
 				// ... then paint with the resulting color
 				HBRUSH hBrush = ::CreateSolidBrush(RGB(bR,bG,bB));
 				RECT r2 = rcPaint;
@@ -1648,7 +1692,7 @@ namespace DuiLib {
 		ASSERT(::GetObjectType(hDC)==OBJ_DC || ::GetObjectType(hDC)==OBJ_MEMDC);
 
 		LOGPEN lg;
-		lg.lopnColor = RGB(GetBValue(dwPenColor), GetGValue(dwPenColor), GetRValue(dwPenColor));
+		lg.lopnColor = DuiColorToCOLORREF(dwPenColor);
 		lg.lopnStyle = nStyle;
 		lg.lopnWidth.x = nSize;
 		HPEN hPen = CreatePenIndirect(&lg);
@@ -1664,7 +1708,7 @@ namespace DuiLib {
 	{
 #ifdef USE_GDI_RENDER
 		ASSERT(::GetObjectType(hDC) == OBJ_DC || ::GetObjectType(hDC) == OBJ_MEMDC);
-		HPEN hPen = ::CreatePen(nStyle | PS_INSIDEFRAME, nSize, RGB(GetBValue(dwPenColor), GetGValue(dwPenColor), GetRValue(dwPenColor)));
+		HPEN hPen = ::CreatePen(nStyle | PS_INSIDEFRAME, nSize, DuiColorToCOLORREF(dwPenColor));
 		HPEN hOldPen = (HPEN)::SelectObject(hDC, hPen);
 		::SelectObject(hDC, ::GetStockObject(HOLLOW_BRUSH));
 		::Rectangle(hDC, rc.left, rc.top, rc.right, rc.bottom);
@@ -1685,14 +1729,16 @@ namespace DuiLib {
 	{
 #ifdef USE_GDI_RENDER
 		ASSERT(::GetObjectType(hDC)==OBJ_DC || ::GetObjectType(hDC)==OBJ_MEMDC);
-		HPEN hPen = ::CreatePen(nStyle, nSize, RGB(GetBValue(dwPenColor), GetGValue(dwPenColor), GetRValue(dwPenColor)));
+		int ew = 0, eh = 0;
+		CssRadiusToEllipse(width, height, ew, eh);
+		HPEN hPen = ::CreatePen(nStyle, nSize, DuiColorToCOLORREF(dwPenColor));
 		HPEN hOldPen = (HPEN)::SelectObject(hDC, hPen);
 		::SelectObject(hDC, ::GetStockObject(HOLLOW_BRUSH));
-		::RoundRect(hDC, rc.left, rc.top, rc.right, rc.bottom, width, height);
+		::RoundRect(hDC, rc.left, rc.top, rc.right, rc.bottom, ew, eh);
 		::SelectObject(hDC, hOldPen);
 		::DeleteObject(hPen);
 #else
-		GdiplusDrawRoundRect(hDC, rc.left, rc.top, rc.right - rc.left - 1, rc.bottom - rc.top - 1, width / 2, nSize, Gdiplus::Color(dwPenColor), false, Gdiplus::Color(dwPenColor), nStyle);
+		GdiplusDrawRoundRect(hDC, rc.left, rc.top, rc.right - rc.left - 1, rc.bottom - rc.top - 1, (float)width, nSize, Gdiplus::Color(dwPenColor), false, Gdiplus::Color(dwPenColor), nStyle);
 #endif
 	}
 
@@ -1700,44 +1746,46 @@ namespace DuiLib {
 	{
 #ifdef USE_GDI_RENDER
 		ASSERT(::GetObjectType(hDC)==OBJ_DC || ::GetObjectType(hDC)==OBJ_MEMDC);
-		HBRUSH hBrush = ::CreateSolidBrush(RGB(GetBValue(dwColor), GetGValue(dwColor), GetRValue(dwColor)));
+		int ew = 0, eh = 0;
+		CssRadiusToEllipse(width, height, ew, eh);
+		HBRUSH hBrush = ::CreateSolidBrush(DuiColorToCOLORREF(dwColor));
 		HBRUSH hOldBrush = (HBRUSH)::SelectObject(hDC, hBrush);
 		HPEN hOldPen = (HPEN)::SelectObject(hDC, ::GetStockObject(NULL_PEN));
-		::RoundRect(hDC, rc.left, rc.top, rc.right, rc.bottom, width, height);
+		::RoundRect(hDC, rc.left, rc.top, rc.right, rc.bottom, ew, eh);
 		::SelectObject(hDC, hOldPen);
 		::SelectObject(hDC, hOldBrush);
 		::DeleteObject(hBrush);
 #else
 		GdiplusDrawRoundRect(hDC, (float)rc.left, (float)rc.top,
 			(float)(rc.right - rc.left), (float)(rc.bottom - rc.top),
-			(float)width / 2.0f, 0.0f, Gdiplus::Color(dwColor), true, Gdiplus::Color(dwColor), 0);
+			(float)width, 0.0f, Gdiplus::Color(dwColor), true, Gdiplus::Color(dwColor), 0);
 #endif
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 	//
-	void CRenderEngine::DrawText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText,DWORD dwTextColor, int iFont, UINT uStyle, DWORD dwTextBKColor)
+	void CRenderEngine::DrawText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText,DWORD dwColor, int iFont, UINT uStyle, DWORD dwTextBKColor)
 	{
 		ASSERT(::GetObjectType(hDC)==OBJ_DC || ::GetObjectType(hDC)==OBJ_MEMDC);
 		if( pstrText == NULL || pManager == NULL ) return;
 		DrawColor(hDC, rc, dwTextBKColor);
-		DrawText(hDC, pManager, rc, pstrText, dwTextColor, iFont, uStyle);
+		DrawText(hDC, pManager, rc, pstrText, dwColor, iFont, uStyle);
 	}
 
-	void CRenderEngine::DrawText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle)
+	void CRenderEngine::DrawText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle)
 	{
 		ASSERT(::GetObjectType(hDC)==OBJ_DC || ::GetObjectType(hDC)==OBJ_MEMDC);
 		if( pstrText == NULL || pManager == NULL ) return;
 
 		if (pManager->IsLayered() || pManager->IsUseGdiplusText())
 		{
-			GdiplusDrawText(hDC, pManager, rc, pstrText, dwTextColor, iFont, uStyle);
+			GdiplusDrawText(hDC, pManager, rc, pstrText, dwColor, iFont, uStyle);
 		}
 		else
 		{
 			::SetBkMode(hDC, TRANSPARENT);
-			::SetTextColor(hDC, RGB(GetBValue(dwTextColor), GetGValue(dwTextColor), GetRValue(dwTextColor)));
+			::SetTextColor(hDC, DuiColorToCOLORREF(dwColor));
 			HFONT hOldFont = (HFONT)::SelectObject(hDC, pManager->GetFont(iFont));
 			int fonticonpos = CDuiString(pstrText).Find(_T("&#x"));
 			if (fonticonpos != -1) {
@@ -1760,7 +1808,7 @@ namespace DuiLib {
 		}
 	}
 
-	void CRenderEngine::DrawHtmlText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* prcLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
+	void CRenderEngine::DrawHtmlText(HDC hDC, CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* prcLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
 	{
 		// 考虑到在xml编辑器中使用<>符号不方便，可以使用{}符号代替
 		// 支持标签嵌套（如<l><b>text</b></l>），但是交叉嵌套是应该避免的（如<l><b>text</l></b>）
@@ -1803,16 +1851,16 @@ namespace DuiLib {
 		TEXTMETRIC* pTm = &pDefFontInfo->tm;
 		HFONT hOldFont = (HFONT) ::SelectObject(hDC, pDefFontInfo->hFont);
 		::SetBkMode(hDC, TRANSPARENT);
-		::SetTextColor(hDC, RGB(GetBValue(dwTextColor), GetGValue(dwTextColor), GetRValue(dwTextColor)));
-		DWORD dwBkColor = pManager->GetDefaultSelectedBkColor();
-		::SetBkColor(hDC, RGB(GetBValue(dwBkColor), GetGValue(dwBkColor), GetRValue(dwBkColor)));
+		::SetTextColor(hDC, DuiColorToCOLORREF(dwColor));
+		DWORD dwBackgroundColor = pManager->GetDefaultSelectedBackgroundColor();
+		::SetBkColor(hDC, DuiColorToCOLORREF(dwBackgroundColor));
 
 		// If the drawstyle include a alignment, we'll need to first determine the text-size so
 		// we can draw it at the correct position...
 		if( ((uStyle & DT_CENTER) != 0 || (uStyle & DT_RIGHT) != 0 || (uStyle & DT_VCENTER) != 0 || (uStyle & DT_BOTTOM) != 0) && (uStyle & DT_CALCRECT) == 0 ) {
 			RECT rcText = { 0, 0, 9999, 100 };
 			int nLinks = 0;
-			DrawHtmlText(hDC, pManager, rcText, pstrText, dwTextColor, NULL, NULL, nLinks, iFont, uStyle | DT_CALCRECT);
+			DrawHtmlText(hDC, pManager, rcText, pstrText, dwColor, NULL, NULL, nLinks, iFont, uStyle | DT_CALCRECT);
 			if( (uStyle & DT_SINGLELINE) != 0 ){
 				if( (uStyle & DT_CENTER) != 0 ) {
 					rc.left = rc.left + ((rc.right - rc.left) / 2) - ((rcText.right - rcText.left) / 2);
@@ -1917,7 +1965,7 @@ namespace DuiLib {
 								}
 							}
 
-							DWORD clrColor = dwTextColor;
+							DWORD clrColor = dwColor;
 							if(clrColor == 0) pManager->GetDefaultLinkFontColor();
 							if( bHoverLink && iLinkIndex < nLinkRects ) {
 								CDuiString *pStr = (CDuiString*)(sLinks + iLinkIndex);
@@ -1928,7 +1976,7 @@ namespace DuiLib {
 							//        clrColor = pManager->GetDefaultLinkHoverFontColor();
 							//}
 							aColorArray.Add((LPVOID)clrColor);
-							::SetTextColor(hDC,  RGB(GetBValue(clrColor), GetGValue(clrColor), GetRValue(clrColor)));
+							::SetTextColor(hDC,  DuiColorToCOLORREF(clrColor));
 							TFontInfo* pFontInfo = pDefFontInfo;
 							if( aFontArray.GetSize() > 0 ) pFontInfo = (TFontInfo*)aFontArray.GetAt(aFontArray.GetSize() - 1);
 							if( pFontInfo->bUnderline == false ) {
@@ -1963,11 +2011,11 @@ namespace DuiLib {
 					case _T('c'):  // Color
 						{
 							pstrText++;
-							while( *pstrText > _T('\0') && *pstrText <= _T(' ') ) pstrText = ::CharNext(pstrText);
-							if( *pstrText == _T('#')) pstrText++;
-							DWORD clrColor = _tcstol(pstrText, const_cast<LPTSTR*>(&pstrText), 16);
-							aColorArray.Add((LPVOID)clrColor);
-							::SetTextColor(hDC, RGB(GetBValue(clrColor), GetGValue(clrColor), GetRValue(clrColor)));
+							DWORD clrColor = 0;
+							if( ParseColorStringToken(pstrText, clrColor) ) {
+								aColorArray.Add((LPVOID)clrColor);
+								::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
+							}
 						}
 						break;
 					case _T('f'):  // Font
@@ -2219,9 +2267,9 @@ namespace DuiLib {
 					{
 						pstrText++;
 						aColorArray.Remove(aColorArray.GetSize() - 1);
-						DWORD clrColor = dwTextColor;
+						DWORD clrColor = dwColor;
 						if( aColorArray.GetSize() > 0 ) clrColor = (int)aColorArray.GetAt(aColorArray.GetSize() - 1);
-						::SetTextColor(hDC, RGB(GetBValue(clrColor), GetGValue(clrColor), GetRValue(clrColor)));
+						::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
 					}
 					break;
 				case _T('p'):
@@ -2247,9 +2295,9 @@ namespace DuiLib {
 							iLinkIndex++;
 						}
 						aColorArray.Remove(aColorArray.GetSize() - 1);
-						DWORD clrColor = dwTextColor;
+						DWORD clrColor = dwColor;
 						if( aColorArray.GetSize() > 0 ) clrColor = (int)aColorArray.GetAt(aColorArray.GetSize() - 1);
-						::SetTextColor(hDC, RGB(GetBValue(clrColor), GetGValue(clrColor), GetRValue(clrColor)));
+						::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
 						bInLink = false;
 					}
 				case _T('b'):
@@ -2406,9 +2454,9 @@ namespace DuiLib {
 					bInRaw = bLineInRaw;
 					bInSelected = bLineInSelected;
 
-					DWORD clrColor = dwTextColor;
+					DWORD clrColor = dwColor;
 					if( aColorArray.GetSize() > 0 ) clrColor = (int)aColorArray.GetAt(aColorArray.GetSize() - 1);
-					::SetTextColor(hDC, RGB(GetBValue(clrColor), GetGValue(clrColor), GetRValue(clrColor)));
+					::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
 					TFontInfo* pFontInfo = (TFontInfo*)aFontArray.GetAt(aFontArray.GetSize() - 1);
 					if( pFontInfo == NULL ) pFontInfo = pDefFontInfo;
 					pTm = &pFontInfo->tm;
@@ -2487,7 +2535,7 @@ namespace DuiLib {
 			HBITMAP hOldBitmap = (HBITMAP) ::SelectObject(hCloneDC, hBitmap);
 			::BitBlt(hCloneDC, 0, 0, cx, cy, hPaintDC, rc.left, rc.top, SRCCOPY);
 			RECT rcClone = {0, 0, cx, cy};
-			if (dwFilterColor > 0x00FFFFFF) DrawColor(hCloneDC, rcClone, dwFilterColor);
+			if (DuiColorA(dwFilterColor) != 0) DrawColor(hCloneDC, rcClone, dwFilterColor);
 			::SelectObject(hCloneDC, hOldBitmap);
 			::DeleteDC(hCloneDC);  
 			::GdiFlush();
@@ -2535,7 +2583,7 @@ namespace DuiLib {
 			HBITMAP hOldBitmap = (HBITMAP) ::SelectObject(hCloneDC, hBitmap);
 			::BitBlt(hCloneDC, 0, 0, cx, cy, hPaintDC, rc.left, rc.top, SRCCOPY);
 			RECT rcClone = {0, 0, cx, cy};
-			if (dwFilterColor > 0x00FFFFFF) DrawColor(hCloneDC, rcClone, dwFilterColor);
+			if (DuiColorA(dwFilterColor) != 0) DrawColor(hCloneDC, rcClone, dwFilterColor);
 			::SelectObject(hCloneDC, hOldBitmap);
 			::DeleteDC(hCloneDC);  
 			::GdiFlush();
@@ -2563,13 +2611,9 @@ namespace DuiLib {
 
 	void CRenderEngine::CheckAlphaColor(DWORD& dwColor)
 	{
-		//RestoreAlphaColor认为0x00000000是真正的透明，其它都是GDI绘制导致的
-		//所以在GDI绘制中不能用0xFF000000这个颜色值，现在处理是让它变成RGB(0,0,1)
-		//RGB(0,0,1)与RGB(0,0,0)很难分出来
-		if((0x00FFFFFF & dwColor) == 0)
-		{
-			dwColor += 1;
-		}
+		// RestoreAlphaColor 认为全 0 是真透明；纯黑（RGB=0）在 GDI 下易与透明混淆，改为 (0,0,1)
+		if( (dwColor & 0xFFFFFF00u) == 0 )
+			dwColor = DuiColorFromRGB(0, 0, 1, DuiColorA(dwColor));
 	}
 
 	DWORD CRenderEngine::AdjustColor(DWORD dwColor, short H, short S, short L)
@@ -2578,12 +2622,12 @@ namespace DuiLib {
 		float fH, fS, fL;
 		float S1 = S / 100.0f;
 		float L1 = L / 100.0f;
-		RGBtoHSL(dwColor, &fH, &fS, &fL);
+		DuiRGBtoHSL(dwColor, &fH, &fS, &fL);
 		fH += (H - 180);
 		fH = fH > 0 ? fH : fH + 360; 
 		fS *= S1;
 		fL *= L1;
-		HSLtoRGB(&dwColor, fH, fS, fL);
+		DuiHSLtoRGB(&dwColor, fH, fS, fL);
 		return dwColor;
 	}
 
@@ -2623,12 +2667,12 @@ namespace DuiLib {
 			float S1 = S / 100.0f;
 			float L1 = L / 100.0f;
 			for( int i = 0; i < imageInfo->nX * imageInfo->nY; i++ ) {
-				RGBtoHSL(*(DWORD*)(imageInfo->pSrcBits + i*4), &fH, &fS, &fL);
+				PixelRGBtoHSL(*(DWORD*)(imageInfo->pSrcBits + i*4), &fH, &fS, &fL);
 				fH += (H - 180);
 				fH = fH > 0 ? fH : fH + 360; 
 				fS *= S1;
 				fL *= L1;
-				HSLtoRGB((DWORD*)(imageInfo->pBits + i*4), fH, fS, fL);
+				PixelHSLtoRGB((DWORD*)(imageInfo->pBits + i*4), fH, fS, fL);
 			}
 		}
 		// 像素已变，丢弃 D2D 纹理缓存，下次绘制重新上传

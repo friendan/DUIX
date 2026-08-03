@@ -1,4 +1,4 @@
-﻿#ifndef UI_PALLET_H
+#ifndef UI_PALLET_H
 #define UI_PALLET_H
 #pragma once
 
@@ -34,7 +34,7 @@ namespace DuiLib {
 		virtual void SetPos(RECT rc, bool bNeedInvalidate = true);
 		virtual void DoInit();
 		virtual void DoEvent(TEventUI& event);
-		virtual void PaintBkColor(IRenderContext& ctx);
+		virtual void PaintBackgroundColor(IRenderContext& ctx);
 		virtual void PaintPallet(IRenderContext& ctx);
 
 	protected:

@@ -137,7 +137,7 @@ namespace DuiLib {
 
 	void CAnimationTabLayoutUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("animation_direction")) == 0 && _tcsicmp( pstrValue, _T("vertical")) == 0 ) m_bIsVerticalDirection = true; // pstrValue = "vertical" or "horizontal"
+		if( _tcsicmp(pstrName, _T("animation-direction")) == 0 && _tcsicmp( pstrValue, _T("vertical")) == 0 ) m_bIsVerticalDirection = true; // pstrValue = "vertical" or "horizontal"
 		return CTabLayoutUI::SetAttribute(pstrName, pstrValue);
 	}
 } // namespace DuiLib

@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UILinearLayout.h"
 
 namespace DuiLib
@@ -26,11 +26,11 @@ namespace DuiLib
 	}
 	UINT CLinearLayoutUI::MainChildAlign() const
 	{
-		return m_eDirection == LAYOUT_VERTICAL ? GetChildVAlign() : GetChildAlign();
+		return GetJustifyContent();
 	}
 	UINT CLinearLayoutUI::CrossChildAlign() const
 	{
-		return m_eDirection == LAYOUT_VERTICAL ? GetChildAlign() : GetChildVAlign();
+		return GetAlignItems();
 	}
 	UINT CLinearLayoutUI::MainAlignCenter() const { return m_eDirection == LAYOUT_VERTICAL ? DT_VCENTER : DT_CENTER; }
 	UINT CLinearLayoutUI::MainAlignEnd() const    { return m_eDirection == LAYOUT_VERTICAL ? DT_BOTTOM : DT_RIGHT; }
@@ -86,8 +86,8 @@ namespace DuiLib
 
 	void CLinearLayoutUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("sepsize")) == 0 ) SetSepSize(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("sepimm")) == 0 ) SetSepImmMode(_tcsicmp(pstrValue, _T("true")) == 0);
+		if( _tcsicmp(pstrName, _T("sep-size")) == 0 ) SetSepSize(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("sep-imm")) == 0 ) SetSepImmMode(_tcsicmp(pstrValue, _T("true")) == 0);
 		else CContainerUI::SetAttribute(pstrName, pstrValue);
 	}
 
@@ -100,25 +100,25 @@ namespace DuiLib
 
 	SIZE CLinearLayoutUI::MeasureContent(SIZE szAvailable)
 	{
-		int iChildPadding = GetChildPadding();
+		int iGap = GetGap();
 		int mainTotal = 0;
 		int crossMax = 0;
 		int nCount = 0;
 		for( int i = 0; i < m_items.GetSize(); i++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) continue;
+			if( pControl->IsAbsolute() ) continue;
 			SIZE sz = pControl->EstimateSize(szAvailable);
-			RECT rcPadding = pControl->GetPadding();
+			RECT rcMargin = pControl->GetMargin();
 			if( SzMain(sz) == 0 ) continue;
 			if( SzMain(sz) < CtrlMainMin(pControl) ) SzMain(sz) = CtrlMainMin(pControl);
 			if( SzMain(sz) > CtrlMainMax(pControl) ) SzMain(sz) = CtrlMainMax(pControl);
-			mainTotal += SzMain(sz) + RcMainStart(rcPadding) + RcMainEnd(rcPadding);
-			int crossChild = SzCross(sz) + RcCrossStart(rcPadding) + RcCrossEnd(rcPadding);
+			mainTotal += SzMain(sz) + RcMainStart(rcMargin) + RcMainEnd(rcMargin);
+			int crossChild = SzCross(sz) + RcCrossStart(rcMargin) + RcCrossEnd(rcMargin);
 			if( crossChild > crossMax ) crossMax = crossChild;
 			nCount++;
 		}
-		if( nCount > 1 ) mainTotal += (nCount - 1) * iChildPadding;
+		if( nCount > 1 ) mainTotal += (nCount - 1) * iGap;
 		SIZE szContent = {0, 0};
 		SzMain(szContent) = mainTotal;
 		SzCross(szContent) = crossMax;
@@ -126,12 +126,12 @@ namespace DuiLib
 	}
 
 	void CLinearLayoutUI::PositionChildCrossAxis(CControlUI* pControl, UINT iCrossAlign,
-		const RECT& rc, const RECT& rcPadding, int iMainPos, int szMainChild, int szCrossChild,
+		const RECT& rc, const RECT& rcMargin, int iMainPos, int szMainChild, int szCrossChild,
 		CScrollBarUI* pCrossScroll)
 	{
 		RECT rcCtrl;
-		RcMainStart(rcCtrl) = iMainPos + RcMainStart(rcPadding);
-		RcMainEnd(rcCtrl)   = iMainPos + szMainChild + RcMainStart(rcPadding);
+		RcMainStart(rcCtrl) = iMainPos + RcMainStart(rcMargin);
+		RcMainEnd(rcCtrl)   = iMainPos + szMainChild + RcMainStart(rcMargin);
 
 		if (iCrossAlign == CrossAlignCenter()) {
 			int iCrossPos = (RcCrossEnd(rc) + RcCrossStart(rc)) / 2;
@@ -148,16 +148,16 @@ namespace DuiLib
 				iCrossPos += pCrossScroll->GetScrollRange();
 				iCrossPos -= pCrossScroll->GetScrollPos();
 			}
-			RcCrossStart(rcCtrl) = iCrossPos - RcCrossEnd(rcPadding) - szCrossChild;
-			RcCrossEnd(rcCtrl)   = iCrossPos - RcCrossEnd(rcPadding);
+			RcCrossStart(rcCtrl) = iCrossPos - RcCrossEnd(rcMargin) - szCrossChild;
+			RcCrossEnd(rcCtrl)   = iCrossPos - RcCrossEnd(rcMargin);
 		}
 		else {
 			int iCrossPos = RcCrossStart(rc);
 			if( pCrossScroll && pCrossScroll->IsVisible() ) {
 				iCrossPos -= pCrossScroll->GetScrollPos();
 			}
-			RcCrossStart(rcCtrl) = iCrossPos + RcCrossStart(rcPadding);
-			RcCrossEnd(rcCtrl)   = iCrossPos + RcCrossStart(rcPadding) + szCrossChild;
+			RcCrossStart(rcCtrl) = iCrossPos + RcCrossStart(rcMargin);
+			RcCrossEnd(rcCtrl)   = iCrossPos + RcCrossStart(rcMargin) + szCrossChild;
 		}
 		pControl->SetPos(rcCtrl, false);
 	}
@@ -169,11 +169,11 @@ namespace DuiLib
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		rc = m_rcItem;
 
-		RECT rcInset = GetInset();
-		rc.left += rcInset.left;
-		rc.top += rcInset.top;
-		rc.right -= rcInset.right;
-		rc.bottom -= rcInset.bottom;
+		RECT rcPadding = GetPadding();
+		rc.left += rcPadding.left;
+		rc.top += rcPadding.top;
+		rc.right -= rcPadding.right;
+		rc.bottom -= rcPadding.bottom;
 		if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() ) rc.right -= m_pVerticalScrollBar->GetFixedWidth();
 		if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() ) rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 
@@ -182,7 +182,7 @@ namespace DuiLib
 			return;
 		}
 
-		int iChildPadding = GetChildPadding();
+		int iGap = GetGap();
 		SIZE szAvailable = { rc.right - rc.left, rc.bottom - rc.top };
 
 		CScrollBarUI* pCrossScroll = CrossScrollBar();
@@ -206,10 +206,10 @@ namespace DuiLib
 		for( int it1 = 0; it1 < m_items.GetSize(); it1++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[it1]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) continue;
+			if( pControl->IsAbsolute() ) continue;
 			szControlAvailable = szAvailable;
-			RECT rcPadding = pControl->GetPadding();
-			SzCross(szControlAvailable) -= RcCrossStart(rcPadding) + RcCrossEnd(rcPadding);
+			RECT rcMargin = pControl->GetMargin();
+			SzCross(szControlAvailable) -= RcCrossStart(rcMargin) + RcCrossEnd(rcMargin);
 			iControlMaxWidth = pControl->GetFixedWidth();
 			iControlMaxHeight = pControl->GetFixedHeight();
 			if (iControlMaxWidth <= 0) iControlMaxWidth = pControl->GetMaxWidth();
@@ -224,15 +224,15 @@ namespace DuiLib
 				if( SzMain(sz) < CtrlMainMin(pControl) ) SzMain(sz) = CtrlMainMin(pControl);
 				if( SzMain(sz) > CtrlMainMax(pControl) ) SzMain(sz) = CtrlMainMax(pControl);
 			}
-			mainFixed += SzMain(sz) + RcMainStart(rcPadding) + RcMainEnd(rcPadding);
+			mainFixed += SzMain(sz) + RcMainStart(rcMargin) + RcMainEnd(rcMargin);
 
 			SzCross(sz) = MAX(SzCross(sz), 0);
 			if( SzCross(sz) < CtrlCrossMin(pControl) ) SzCross(sz) = CtrlCrossMin(pControl);
 			if( SzCross(sz) > CtrlCrossMax(pControl) ) SzCross(sz) = CtrlCrossMax(pControl);
-			crossNeeded = MAX(crossNeeded, SzCross(sz) + RcCrossStart(rcPadding) + RcCrossEnd(rcPadding));
+			crossNeeded = MAX(crossNeeded, SzCross(sz) + RcCrossStart(rcMargin) + RcCrossEnd(rcMargin));
 			nEstimateNum++;
 		}
-		if( nEstimateNum > 0 ) mainFixed += (nEstimateNum - 1) * iChildPadding;
+		if( nEstimateNum > 0 ) mainFixed += (nEstimateNum - 1) * iGap;
 
 		// --- Pass 2: position ---
 		int mainNeeded = 0;
@@ -265,25 +265,25 @@ namespace DuiLib
 		for( int it2 = 0; it2 < m_items.GetSize(); it2++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[it2]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) {
-				SetFloatPos(it2);
+			if( pControl->IsAbsolute() ) {
+				SetAbsolutePos(it2);
 				continue;
 			}
 
 			iEstimate += 1;
-			RECT rcPadding = pControl->GetPadding();
-			SzMain(szRemaining) -= RcMainStart(rcPadding);
+			RECT rcMargin = pControl->GetMargin();
+			SzMain(szRemaining) -= RcMainStart(rcMargin);
 
 			szControlAvailable = szRemaining;
-			SzCross(szControlAvailable) -= RcCrossStart(rcPadding) + RcCrossEnd(rcPadding);
+			SzCross(szControlAvailable) -= RcCrossStart(rcMargin) + RcCrossEnd(rcMargin);
 			iControlMaxWidth = pControl->GetFixedWidth();
 			iControlMaxHeight = pControl->GetFixedHeight();
 			if (iControlMaxWidth <= 0) iControlMaxWidth = pControl->GetMaxWidth();
 			if (iControlMaxHeight <= 0) iControlMaxHeight = pControl->GetMaxHeight();
 			if (szControlAvailable.cx > iControlMaxWidth) szControlAvailable.cx = iControlMaxWidth;
 			if (szControlAvailable.cy > iControlMaxHeight) szControlAvailable.cy = iControlMaxHeight;
-			mainFixedRemaining = mainFixedRemaining - (RcMainStart(rcPadding) + RcMainEnd(rcPadding));
-			if (iEstimate > 1) mainFixedRemaining = mainFixedRemaining - iChildPadding;
+			mainFixedRemaining = mainFixedRemaining - (RcMainStart(rcMargin) + RcMainEnd(rcMargin));
+			if (iEstimate > 1) mainFixedRemaining = mainFixedRemaining - iGap;
 			SIZE sz = pControl->EstimateSize(szControlAvailable);
 
 			// Main-axis sizing
@@ -291,7 +291,7 @@ namespace DuiLib
 				iAdjustable++;
 				SzMain(sz) = mainExpand;
 				if( iAdjustable == nAdjustables ) {
-					SzMain(sz) = MAX(0, SzMain(szRemaining) - RcMainEnd(rcPadding) - mainFixedRemaining);
+					SzMain(sz) = MAX(0, SzMain(szRemaining) - RcMainEnd(rcMargin) - mainFixedRemaining);
 				}
 				if( SzMain(sz) < CtrlMainMin(pControl) ) SzMain(sz) = CtrlMainMin(pControl);
 				if( SzMain(sz) > CtrlMainMax(pControl) ) SzMain(sz) = CtrlMainMax(pControl);
@@ -303,19 +303,19 @@ namespace DuiLib
 			}
 
 			SzCross(sz) = MAX(SzCross(sz), 0);
-			if( SzCross(sz) == 0 ) SzCross(sz) = SzCross(szAvailable) - RcCrossStart(rcPadding) - RcCrossEnd(rcPadding);
+			if( SzCross(sz) == 0 ) SzCross(sz) = SzCross(szAvailable) - RcCrossStart(rcMargin) - RcCrossEnd(rcMargin);
 			if( SzCross(sz) < 0 ) SzCross(sz) = 0;
 			if( SzCross(sz) > SzCross(szControlAvailable) ) SzCross(sz) = SzCross(szControlAvailable);
 			if( SzCross(sz) < CtrlCrossMin(pControl) ) SzCross(sz) = CtrlCrossMin(pControl);
 
 			PositionChildCrossAxis(pControl, ResolveCrossAlign(pControl),
-				rc, rcPadding, iMainPos, SzMain(sz), SzCross(sz), pCrossScroll);
+				rc, rcMargin, iMainPos, SzMain(sz), SzCross(sz), pCrossScroll);
 
-			iMainPos += SzMain(sz) + iChildPadding + RcMainStart(rcPadding) + RcMainEnd(rcPadding);
-			mainNeeded += SzMain(sz) + RcMainStart(rcPadding) + RcMainEnd(rcPadding);
-			SzMain(szRemaining) -= SzMain(sz) + iChildPadding + RcMainEnd(rcPadding);
+			iMainPos += SzMain(sz) + iGap + RcMainStart(rcMargin) + RcMainEnd(rcMargin);
+			mainNeeded += SzMain(sz) + RcMainStart(rcMargin) + RcMainEnd(rcMargin);
+			SzMain(szRemaining) -= SzMain(sz) + iGap + RcMainEnd(rcMargin);
 		}
-		if( nEstimateNum > 0 ) mainNeeded += (nEstimateNum - 1) * iChildPadding;
+		if( nEstimateNum > 0 ) mainNeeded += (nEstimateNum - 1) * iGap;
 
 		SIZE szNeeded = {0, 0};
 		SzMain(szNeeded) = mainNeeded;
@@ -329,7 +329,7 @@ namespace DuiLib
 	{
 		if( (m_uButtonState & UISTATE_CAPTURED) != 0 && !m_bImmMode ) {
 			RECT rcSeparator = GetThumbRect(true);
-			ctx.DrawColor(rcSeparator, 0xAA000000);
+			ctx.DrawColor(rcSeparator, 0x000000AA);
 		}
 	}
 

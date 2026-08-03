@@ -1,4 +1,4 @@
-﻿#ifndef __UICOMBO_H__
+#ifndef __UICOMBO_H__
 #define __UICOMBO_H__
 
 #pragma once
@@ -27,10 +27,10 @@ namespace DuiLib {
 
 		void SetTextStyle(UINT uStyle);
 		UINT GetTextStyle() const;
-		void SetTextColor(DWORD dwTextColor);
-		DWORD GetTextColor() const;
-		void SetDisabledTextColor(DWORD dwTextColor);
-		DWORD GetDisabledTextColor() const;
+		void SetColor(DWORD dwColor);
+		DWORD GetColor() const;
+		void SetDisabledColor(DWORD dwColor);
+		DWORD GetDisabledColor() const;
 		void SetFont(int index);
 		int GetFont() const;
 		RECT GetTextPadding() const;
@@ -44,8 +44,8 @@ namespace DuiLib {
 		void SetDropBoxAttributeList(LPCTSTR pstrList);
 		SIZE GetDropBoxSize() const;
 		void SetDropBoxSize(SIZE szDropBox);
-		RECT GetDropBoxInset() const;
-		void SetDropBoxInset(RECT szDropBox);
+		RECT GetDropBoxPadding() const;
+		void SetDropBoxPadding(RECT rcDropBoxPadding);
 
 		UINT GetListType();
 		TListInfoUI* GetListInfo();
@@ -63,14 +63,14 @@ namespace DuiLib {
 
 		bool Activate();
 
-		LPCTSTR GetNormalImage() const;
-		void SetNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetHotImage() const;
-		void SetHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetPushedImage() const;
-		void SetPushedImage(LPCTSTR pStrImage);
-		LPCTSTR GetFocusedImage() const;
-		void SetFocusedImage(LPCTSTR pStrImage);
+		LPCTSTR GetImage() const;
+		void SetImage(LPCTSTR pStrImage);
+		LPCTSTR GetHoverImage() const;
+		void SetHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetActiveImage() const;
+		void SetActiveImage(LPCTSTR pStrImage);
+		LPCTSTR GetFocusImage() const;
+		void SetFocusImage(LPCTSTR pStrImage);
 		LPCTSTR GetDisabledImage() const;
 		void SetDisabledImage(LPCTSTR pStrImage);
 
@@ -81,30 +81,30 @@ namespace DuiLib {
 		void SetItemTextStyle(UINT uStyle);
 		RECT GetItemTextPadding() const;
 		void SetItemTextPadding(RECT rc);
-		DWORD GetItemTextColor() const;
-		void SetItemTextColor(DWORD dwTextColor);
-		DWORD GetItemBkColor() const;
-		void SetItemBkColor(DWORD dwBkColor);
+		DWORD GetItemColor() const;
+		void SetItemColor(DWORD dwColor);
+		DWORD GetItemBackgroundColor() const;
+		void SetItemBackgroundColor(DWORD dwBackgroundColor);
 		LPCTSTR GetItemBkImage() const;
 		void SetItemBkImage(LPCTSTR pStrImage);
 		bool IsAlternateBk() const;
 		void SetAlternateBk(bool bAlternateBk);
-		DWORD GetSelectedItemTextColor() const;
-		void SetSelectedItemTextColor(DWORD dwTextColor);
-		DWORD GetSelectedItemBkColor() const;
-		void SetSelectedItemBkColor(DWORD dwBkColor);
+		DWORD GetSelectedItemColor() const;
+		void SetSelectedItemColor(DWORD dwColor);
+		DWORD GetSelectedItemBackgroundColor() const;
+		void SetSelectedItemBackgroundColor(DWORD dwBackgroundColor);
 		LPCTSTR GetSelectedItemImage() const;
 		void SetSelectedItemImage(LPCTSTR pStrImage);
-		DWORD GetHotItemTextColor() const;
-		void SetHotItemTextColor(DWORD dwTextColor);
-		DWORD GetHotItemBkColor() const;
-		void SetHotItemBkColor(DWORD dwBkColor);
-		LPCTSTR GetHotItemImage() const;
-		void SetHotItemImage(LPCTSTR pStrImage);
-		DWORD GetDisabledItemTextColor() const;
-		void SetDisabledItemTextColor(DWORD dwTextColor);
-		DWORD GetDisabledItemBkColor() const;
-		void SetDisabledItemBkColor(DWORD dwBkColor);
+		DWORD GetHoverItemColor() const;
+		void SetHoverItemColor(DWORD dwColor);
+		DWORD GetHoverItemBackgroundColor() const;
+		void SetHoverItemBackgroundColor(DWORD dwBackgroundColor);
+		LPCTSTR GetHoverItemImage() const;
+		void SetHoverItemImage(LPCTSTR pStrImage);
+		DWORD GetDisabledItemColor() const;
+		void SetDisabledItemColor(DWORD dwColor);
+		DWORD GetDisabledItemBackgroundColor() const;
+		void SetDisabledItemBackgroundColor(DWORD dwBackgroundColor);
 		LPCTSTR GetDisabledItemImage() const;
 		void SetDisabledItemImage(LPCTSTR pStrImage);
 		DWORD GetItemLineColor() const;
@@ -138,8 +138,8 @@ namespace DuiLib {
 		CComboWnd* m_pWindow;
 
 		int m_iCurSel;
-		DWORD	m_dwTextColor;
-		DWORD	m_dwDisabledTextColor;
+		DWORD	m_dwColor;
+		DWORD	m_dwDisabledColor;
 		int		m_iFont;
 		UINT	m_uTextStyle;
 		RECT	m_rcTextPadding;
@@ -147,13 +147,13 @@ namespace DuiLib {
 		bool	m_bShowShadow;
 		CDuiString m_sDropBoxAttributes;
 		SIZE m_szDropBox;
-		RECT m_rcDropBox;
+		RECT m_rcDropBoxPadding;
 		UINT m_uButtonState;
 
-		CDuiString m_sNormalImage;
-		CDuiString m_sHotImage;
-		CDuiString m_sPushedImage;
-		CDuiString m_sFocusedImage;
+		CDuiString m_sImage;
+		CDuiString m_sHoverImage;
+		CDuiString m_sActiveImage;
+		CDuiString m_sFocusImage;
 		CDuiString m_sDisabledImage;
 
 		bool m_bScrollSelect;

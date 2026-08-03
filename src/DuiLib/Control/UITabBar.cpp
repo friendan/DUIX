@@ -41,25 +41,25 @@ namespace DuiLib
 		, m_pIconLeft(NULL)
 		, m_pIconRight(NULL)
 		, m_pIconAdd(NULL)
-		, m_dwTabBkColor(0)
-		, m_dwTabHotBkColor(0xFFD6EBFF)
-		, m_dwTabSelectedBkColor(0xFFBAE0FF)
-		, m_dwTabTextColor(0xFF8C8C8C)
-		, m_dwTabHotTextColor(0xFF1677FF)
-		, m_dwTabSelectedTextColor(0xFF1677FF)
+		, m_dwTabBackgroundColor(0)
+		, m_dwTabHoverBackgroundColor(0xD6EBFFFF)
+		, m_dwTabSelectedBackgroundColor(0xBAE0FFFF)
+		, m_dwTabColor(0x8C8C8CFF)
+		, m_dwTabHoverColor(0x1677FFFF)
+		, m_dwTabSelectedColor(0x1677FFFF)
 		, m_dwTabBorderColor(0)
-		, m_dwTabSelectedBorderColor(0xFF1677FF)
-		, m_dwTabSeparatorColor(0xFFD9D9D9)
-		, m_nTabBorderSize(0)
-		, m_nTabSelectedBorderSize(2)
+		, m_dwTabSelectedBorderColor(0x1677FFFF)
+		, m_dwTabSeparatorColor(0xD9D9D9FF)
+		, m_nTabBorderWidth(0)
+		, m_nTabSelectedBorderWidth(2)
 		, m_bShowTabSeparator(true)
-		, m_dwCloseTextColor(0xFF8C8C8C)
-		, m_dwCloseHotBkColor(0xFFDC3C3C)
-		, m_dwCloseHotTextColor(0xFFFFFFFF)
+		, m_dwCloseColor(0x8C8C8CFF)
+		, m_dwCloseHoverBackgroundColor(0xDC3C3CFF)
+		, m_dwCloseHoverColor(0xFFFFFFFF)
 	{
-		SetBorderSize(0);
+		SetBorderWidth(0);
 		SetBorderColor(0);
-		SetBkColor(0xFFF5F5F5);
+		SetBackgroundColor(0xF5F5F5FF);
 		SetMouseChildEnabled(false);
 		m_ptDragDown.x = m_ptDragDown.y = 0;
 		m_ptDragMouse.x = m_ptDragMouse.y = 0;
@@ -235,26 +235,26 @@ namespace DuiLib
 
 		if( m_pBtnLeft == NULL ) {
 			m_pBtnLeft = new CButtonUI;
-			m_pBtnLeft->SetFloat(true);
+			m_pBtnLeft->SetAbsolute(true);
 			m_pBtnLeft->SetText(_T(""));
 			m_pBtnLeft->SetFixedWidth(m_nScrollBtnWidth);
 			m_pBtnLeft->SetKind(CONTROLKIND_NONE);
-			m_pBtnLeft->SetBkColor(0xFFF5F5F5);
-			m_pBtnLeft->SetHotBkColor(0xFFECECEC);
-			m_pBtnLeft->SetPushedBkColor(0xFFE0E0E0);
+			m_pBtnLeft->SetBackgroundColor(0xF5F5F5FF);
+			m_pBtnLeft->SetHoverBackgroundColor(0xECECECFF);
+			m_pBtnLeft->SetActiveBackgroundColor(0xE0E0E0FF);
 			m_pBtnLeft->SetMouseEnabled(false);
 			m_pBtnLeft->SetVisible(false);
 			CHorizontalLayoutUI::Add(m_pBtnLeft);
 		}
 		if( m_pBtnRight == NULL ) {
 			m_pBtnRight = new CButtonUI;
-			m_pBtnRight->SetFloat(true);
+			m_pBtnRight->SetAbsolute(true);
 			m_pBtnRight->SetText(_T(""));
 			m_pBtnRight->SetFixedWidth(m_nScrollBtnWidth);
 			m_pBtnRight->SetKind(CONTROLKIND_NONE);
-			m_pBtnRight->SetBkColor(0xFFF5F5F5);
-			m_pBtnRight->SetHotBkColor(0xFFECECEC);
-			m_pBtnRight->SetPushedBkColor(0xFFE0E0E0);
+			m_pBtnRight->SetBackgroundColor(0xF5F5F5FF);
+			m_pBtnRight->SetHoverBackgroundColor(0xECECECFF);
+			m_pBtnRight->SetActiveBackgroundColor(0xE0E0E0FF);
 			m_pBtnRight->SetMouseEnabled(false);
 			m_pBtnRight->SetVisible(false);
 			CHorizontalLayoutUI::Add(m_pBtnRight);
@@ -263,16 +263,16 @@ namespace DuiLib
 			m_pIconLeft = new CSvgBoxUI;
 			m_pIconLeft->SetMouseEnabled(false);
 			m_pIconLeft->SetAttribute(_T("tabler-outline"), _T("chevron-left"));
-			m_pIconLeft->SetTintColor(0xFF333333);
+			m_pIconLeft->SetColor(0x333333FF);
 			m_pIconLeft->SetVisible(false);
-			// 不加入子树：避免 Container/SetFloatPos 与 backplates 各画一次形成「<<」
+			// 不加入子树：避免 Container/SetAbsolutePos 与 backplates 各画一次形成「<<」
 			if( m_pManager != NULL ) m_pIconLeft->SetManager(m_pManager, this, false);
 		}
 		if( m_pIconRight == NULL ) {
 			m_pIconRight = new CSvgBoxUI;
 			m_pIconRight->SetMouseEnabled(false);
 			m_pIconRight->SetAttribute(_T("tabler-outline"), _T("chevron-right"));
-			m_pIconRight->SetTintColor(0xFF333333);
+			m_pIconRight->SetColor(0x333333FF);
 			m_pIconRight->SetVisible(false);
 			if( m_pManager != NULL ) m_pIconRight->SetManager(m_pManager, this, false);
 		}
@@ -286,13 +286,13 @@ namespace DuiLib
 
 		if( m_pBtnAdd == NULL ) {
 			m_pBtnAdd = new CButtonUI;
-			m_pBtnAdd->SetFloat(true);
+			m_pBtnAdd->SetAbsolute(true);
 			m_pBtnAdd->SetText(_T(""));
 			m_pBtnAdd->SetFixedWidth(m_nAddBtnWidth);
 			m_pBtnAdd->SetKind(CONTROLKIND_NONE);
-			m_pBtnAdd->SetBkColor(GetChromeBkColor());
-			m_pBtnAdd->SetHotBkColor(0xFFECECEC);
-			m_pBtnAdd->SetPushedBkColor(0xFFE0E0E0);
+			m_pBtnAdd->SetBackgroundColor(GetChromeBackgroundColor());
+			m_pBtnAdd->SetHoverBackgroundColor(0xECECECFF);
+			m_pBtnAdd->SetActiveBackgroundColor(0xE0E0E0FF);
 			m_pBtnAdd->SetMouseEnabled(false);
 			m_pBtnAdd->SetVisible(false);
 			CHorizontalLayoutUI::Add(m_pBtnAdd);
@@ -301,7 +301,7 @@ namespace DuiLib
 			m_pIconAdd = new CSvgBoxUI;
 			m_pIconAdd->SetMouseEnabled(false);
 			m_pIconAdd->SetAttribute(_T("tabler-outline"), _T("plus"));
-			m_pIconAdd->SetTintColor(0xFF595959);
+			m_pIconAdd->SetColor(0x595959FF);
 			m_pIconAdd->SetVisible(false);
 			if( m_pManager != NULL ) m_pIconAdd->SetManager(m_pManager, this, false);
 		}
@@ -312,10 +312,10 @@ namespace DuiLib
 		return (m_bShowAdd ? m_nAddBtnWidth : 0);
 	}
 
-	DWORD CTabBarUI::GetChromeBkColor() const
+	DWORD CTabBarUI::GetChromeBackgroundColor() const
 	{
-		DWORD dwBk = GetBkColor();
-		return (dwBk != 0) ? dwBk : 0xFFF5F5F5;
+		DWORD dwBk = GetBackgroundColor();
+		return (dwBk != 0) ? dwBk : 0xF5F5F5FF;
 	}
 
 	void CTabBarUI::SetShowAdd(bool bShow)
@@ -415,8 +415,8 @@ namespace DuiLib
 		if( m_tabs.empty() ) return;
 
 		if( fullView < 0 ) {
-			RECT rcInset = GetInset();
-			fullView = (m_rcItem.right - m_rcItem.left) - rcInset.left - rcInset.right;
+			RECT rcPadding = GetPadding();
+			fullView = (m_rcItem.right - m_rcItem.left) - rcPadding.left - rcPadding.right;
 		}
 
 		int w = 0;
@@ -441,12 +441,12 @@ namespace DuiLib
 
 	RECT CTabBarUI::GetTabViewportRect() const
 	{
-		RECT rcInset = GetInset();
+		RECT rcPadding = GetPadding();
 		RECT rc = m_rcItem;
-		rc.left += rcInset.left;
-		rc.top += rcInset.top;
-		rc.right -= rcInset.right;
-		rc.bottom -= rcInset.bottom;
+		rc.left += rcPadding.left;
+		rc.top += rcPadding.top;
+		rc.right -= rcPadding.right;
+		rc.bottom -= rcPadding.bottom;
 		if( m_bOverflow )
 			rc.left += m_nScrollBtnWidth;
 		rc.right -= GetAddReserveWidth();
@@ -513,7 +513,7 @@ namespace DuiLib
 		if( h < 0 ) h = 0;
 		SIZE xy = { rc.left - m_rcItem.left, rc.top - m_rcItem.top };
 
-		// 同步 FixedXY/宽高，避免父布局 SetFloatPos 把右侧钮叠回 (0,0)
+		// 同步 FixedXY/宽高，避免父布局 SetAbsolutePos 把右侧钮叠回 (0,0)
 		RECT rcOld = pCtrl->GetPos();
 		if( rcOld.left != rc.left || rcOld.top != rc.top
 			|| rcOld.right != rc.right || rcOld.bottom != rc.bottom ) {
@@ -980,8 +980,8 @@ namespace DuiLib
 		// CMenuWnd 仍需一个最小 Window/Menu 壳；默认用内联串，不读磁盘文件
 		static LPCTSTR s_pszBuiltinMenuShell =
 			_T("<Window>")
-			_T("<Default name=\"Menu\" shared=\"true\" value=\"bordersize=&quot;1&quot; bordercolor=&quot;0xFFD9D9D9&quot; borderround=&quot;4,4&quot; inset=&quot;4,4,4,4&quot; itemtextpadding=&quot;14,0,14,0&quot; bkcolor=&quot;0xFFFFFFFF&quot; itemtextcolor=&quot;0xFF333333&quot; itemhottextcolor=&quot;0xFF1677FF&quot; itemhotbkcolor=&quot;0xFFE6F4FF&quot; itemselectedtextcolor=&quot;0xFF1677FF&quot; itemselectedbkcolor=&quot;0xFFE6F4FF&quot; itemdisabledtextcolor=&quot;0xFFBFBFBF&quot;\" />")
-			_T("<Default name=\"MenuElement\" shared=\"true\" value=\"height=&quot;30&quot; linepadding=&quot;12,0,12,0&quot;\" />")
+			_T("<Default name=\"Menu\" shared=\"true\" value=\"border-width=&quot;1&quot; border-color=&quot;0xD9D9D9FF&quot; border-radius=&quot;2,2&quot; padding=&quot;4,4,4,4&quot; item-padding=&quot;0,14,0,14&quot; background-color=&quot;0xFFFFFFFF&quot; item-color=&quot;0x333333FF&quot; item-color-hover=&quot;0x1677FFFF&quot; item-background-color-hover=&quot;0xE6F4FFFF&quot; item-color-selected=&quot;0x1677FFFF&quot; item-background-color-selected=&quot;0xE6F4FFFF&quot; item-color-disabled=&quot;0xBFBFBFFF&quot;\" />")
+			_T("<Default name=\"MenuElement\" shared=\"true\" value=\"height=&quot;30&quot; line-padding=&quot;0,12,0,12&quot;\" />")
 			_T("<Menu/>")
 			_T("</Window>");
 
@@ -1089,11 +1089,11 @@ namespace DuiLib
 		if( bCheckAllow && !QueryAllowNotify(DUI_MSGTYPE_TABSELECTING, (WPARAM)iIndex, (LPARAM)iOld) )
 			return false;
 
-		for( size_t i = 0; i < m_tabs.size(); ++i )
-			m_tabs[i]->SetActive(false);
-
+		// 先更新 m_iActive，再刷样式（分隔右边框依赖当前选中下标）
 		m_iActive = iIndex;
-		m_tabs[iIndex]->SetActive(true);
+		for( size_t i = 0; i < m_tabs.size(); ++i )
+			m_tabs[i]->SetActive((int)i == iIndex);
+
 		RequestScrollToTab(iIndex);
 		SyncBoundTabLayout();
 
@@ -1360,7 +1360,7 @@ namespace DuiLib
 		int mid = (rc.left + rc.right) / 2;
 		int x = (m_ptDragMouse.x >= mid) ? rc.right - 1 : rc.left;
 		RECT rcLine = { x, rc.top + 3, x, rc.bottom - 3 };
-		ctx.DrawLine(rcLine, 2, GetAdjustColor(0xFF1677FF));
+		ctx.DrawLine(rcLine, 2, GetAdjustColor(0x1677FFFF));
 	}
 
 	void CTabBarUI::PaintDragGhost(IRenderContext& ctx)
@@ -1378,15 +1378,15 @@ namespace DuiLib
 		rcGhost.right = rcGhost.left + m_szDragGhost.cx;
 		rcGhost.bottom = rcGhost.top + m_szDragGhost.cy;
 
-		DWORD dwBk = m_dwTabSelectedBkColor != 0 ? m_dwTabSelectedBkColor : 0xFFBAE0FF;
-		dwBk = (dwBk & 0x00FFFFFF) | 0xC0000000;
-		DWORD dwBorder = m_dwTabSelectedBorderColor != 0 ? m_dwTabSelectedBorderColor : 0xFF1677FF;
-		dwBorder = (dwBorder & 0x00FFFFFF) | 0xE0000000;
-		DWORD dwText = m_dwTabSelectedTextColor != 0 ? m_dwTabSelectedTextColor : 0xFF1677FF;
-		dwText = (dwText & 0x00FFFFFF) | 0xE0000000;
+		DWORD dwBk = m_dwTabSelectedBackgroundColor != 0 ? m_dwTabSelectedBackgroundColor : 0xBAE0FFFF;
+		dwBk = DuiColorSetA(dwBk, 0xC0);
+		DWORD dwBorder = m_dwTabSelectedBorderColor != 0 ? m_dwTabSelectedBorderColor : 0x1677FFFF;
+		dwBorder = DuiColorSetA(dwBorder, 0xE0);
+		DWORD dwText = m_dwTabSelectedColor != 0 ? m_dwTabSelectedColor : 0x1677FFFF;
+		dwText = DuiColorSetA(dwText, 0xE0);
 
-		ctx.FillRoundRect(rcGhost, 8, 8, GetAdjustColor(dwBk));
-		ctx.DrawRoundRect(rcGhost, 1, 8, 8, GetAdjustColor(dwBorder));
+		ctx.FillRoundRect(rcGhost, 4, 4, GetAdjustColor(dwBk));
+		ctx.DrawRoundRect(rcGhost, 1, 4, 4, GetAdjustColor(dwBorder));
 
 		RECT rcText = rcGhost;
 		rcText.left += 12;
@@ -1523,8 +1523,8 @@ namespace DuiLib
 	{
 		ApplyTabWidths();
 		int totalWidth = EstimateTabsWidth();
-		RECT rcInset = GetInset();
-		int fullView = (m_rcItem.right - m_rcItem.left) - rcInset.left - rcInset.right;
+		RECT rcPadding = GetPadding();
+		int fullView = (m_rcItem.right - m_rcItem.left) - rcPadding.left - rcPadding.right;
 		int addReserve = GetAddReserveWidth();
 		m_bOverflow = (totalWidth + addReserve > fullView && fullView > 0);
 
@@ -1549,12 +1549,12 @@ namespace DuiLib
 	{
 		if( m_pBtnLeft == NULL || m_pBtnRight == NULL ) return;
 
-		RECT rcInset = GetInset();
+		RECT rcPadding = GetPadding();
 		RECT rcClient = m_rcItem;
-		rcClient.left += rcInset.left;
-		rcClient.top += rcInset.top;
-		rcClient.right -= rcInset.right;
-		rcClient.bottom -= rcInset.bottom;
+		rcClient.left += rcPadding.left;
+		rcClient.top += rcPadding.top;
+		rcClient.right -= rcPadding.right;
+		rcClient.bottom -= rcPadding.bottom;
 
 		int addReserve = GetAddReserveWidth();
 		int rightEdge = rcClient.right - addReserve;
@@ -1609,12 +1609,12 @@ namespace DuiLib
 			return;
 		}
 
-		RECT rcInset = GetInset();
+		RECT rcPadding = GetPadding();
 		RECT rcClient = m_rcItem;
-		rcClient.left += rcInset.left;
-		rcClient.top += rcInset.top;
-		rcClient.right -= rcInset.right;
-		rcClient.bottom -= rcInset.bottom;
+		rcClient.left += rcPadding.left;
+		rcClient.top += rcPadding.top;
+		rcClient.right -= rcPadding.right;
+		rcClient.bottom -= rcPadding.bottom;
 
 		RECT rcAdd = { 0, rcClient.top, 0, rcClient.bottom };
 		if( m_bOverflow ) {
@@ -1635,8 +1635,8 @@ namespace DuiLib
 		}
 
 		m_pBtnAdd->SetVisible(true);
-		DWORD dwChromeBk = GetChromeBkColor();
-		m_pBtnAdd->SetBkColor(m_bAddHover ? 0xFFECECEC : dwChromeBk);
+		DWORD dwChromeBk = GetChromeBackgroundColor();
+		m_pBtnAdd->SetBackgroundColor(m_bAddHover ? 0xECECECFF : dwChromeBk);
 		PlaceChromeFloat(m_pBtnAdd, rcAdd);
 
 		int iconSize = m_nAddBtnWidth - 10;
@@ -1647,7 +1647,7 @@ namespace DuiLib
 			int iy = (rcAdd.top + rcAdd.bottom - iconSize) / 2;
 			RECT rcIcon = { ix, iy, ix + iconSize, iy + iconSize };
 			m_pIconAdd->SetVisible(true);
-			m_pIconAdd->SetTintColor(m_bAddHover ? 0xFF1677FF : 0xFF595959);
+			m_pIconAdd->SetColor(m_bAddHover ? 0x1677FFFF : 0x595959FF);
 			m_pIconAdd->SetPos(rcIcon, false);
 		}
 	}
@@ -1663,16 +1663,16 @@ namespace DuiLib
 		if( !bLeft && m_nScrollHover < 0 ) m_nScrollHover = 0;
 		if( !bRight && m_nScrollHover > 0 ) m_nScrollHover = 0;
 		if( m_pIconLeft != NULL ) {
-			DWORD dwTint = 0xFFB0B0B8;
+			DWORD dwColor = 0xB0B0B8FF;
 			if( bLeft )
-				dwTint = (m_nScrollHover < 0) ? 0xFF1677FF : 0xFF333333;
-			m_pIconLeft->SetTintColor(dwTint);
+				dwColor = (m_nScrollHover < 0) ? 0x1677FFFF : 0x333333FF;
+			m_pIconLeft->SetColor(dwColor);
 		}
 		if( m_pIconRight != NULL ) {
-			DWORD dwTint = 0xFFB0B0B8;
+			DWORD dwColor = 0xB0B0B8FF;
 			if( bRight )
-				dwTint = (m_nScrollHover > 0) ? 0xFF1677FF : 0xFF333333;
-			m_pIconRight->SetTintColor(dwTint);
+				dwColor = (m_nScrollHover > 0) ? 0x1677FFFF : 0x333333FF;
+			m_pIconRight->SetColor(dwColor);
 		}
 	}
 
@@ -1772,30 +1772,30 @@ namespace DuiLib
 		EnsureScrollButtons();
 		EnsurePinnedTabsLeft();
 
-		RECT rcUserInset = m_rcInset;
-		int fullView = (rc.right - rc.left) - rcUserInset.left - rcUserInset.right;
+		RECT rcUserPadding = m_rcPadding;
+		int fullView = (rc.right - rc.left) - rcUserPadding.left - rcUserPadding.right;
 		ApplyTabWidths(fullView);
 		int totalWidth = EstimateTabsWidth();
 		int addReserve = GetAddReserveWidth();
 		bool bOverflowLayout = (totalWidth + addReserve > fullView && fullView > 0);
 
-		RECT layoutInset = rcUserInset;
+		RECT layoutPadding = rcUserPadding;
 		if( bOverflowLayout ) {
-			layoutInset.left += m_nScrollBtnWidth;
-			layoutInset.right += m_nScrollBtnWidth + addReserve;
+			layoutPadding.left += m_nScrollBtnWidth;
+			layoutPadding.right += m_nScrollBtnWidth + addReserve;
 		}
 		else if( addReserve > 0 ) {
 			// 未溢出时给「+」留出尾部空间，避免与末标签重叠
-			layoutInset.right += addReserve;
+			layoutPadding.right += addReserve;
 		}
-		// 直接改 inset，避免 SetInset→NeedUpdate 递归
-		m_rcInset = layoutInset;
+		// 直接改 padding，避免 SetPadding→NeedUpdate 递归
+		m_rcPadding = layoutPadding;
 
 		int savedOffset = m_nScrollOffset;
 		m_nScrollOffset = 0;
 		CHorizontalLayoutUI::SetPos(rc, bNeedInvalidate);
 
-		m_rcInset = rcUserInset;
+		m_rcPadding = rcUserPadding;
 
 		totalWidth = 0;
 		int pinnedWidth = 0;
@@ -2104,39 +2104,6 @@ namespace DuiLib
 		CHorizontalLayoutUI::DoEvent(event);
 	}
 
-	void CTabBarUI::DrawChromeSeparator(IRenderContext& ctx, int x, int yTop, int yBottom)
-	{
-		if( !m_bShowTabSeparator || m_dwTabSeparatorColor == 0 ) return;
-		if( yBottom <= yTop ) return;
-		RECT rcLine = { x, yTop, x, yBottom };
-		ctx.DrawLine(rcLine, 1, GetAdjustColor(m_dwTabSeparatorColor));
-	}
-
-	void CTabBarUI::PaintChromeSeparators(IRenderContext& ctx)
-	{
-		if( !m_bShowTabSeparator || m_dwTabSeparatorColor == 0 ) return;
-
-		RECT rcInset = GetInset();
-		int yTop = m_rcItem.top + rcInset.top;
-		int yBottom = m_rcItem.bottom - rcInset.bottom;
-
-		// ‹ | 标签…
-		if( m_bOverflow && m_pBtnLeft != NULL && m_pBtnLeft->IsVisible() ) {
-			RECT rc = m_pBtnLeft->GetPos();
-			DrawChromeSeparator(ctx, rc.right - 1, yTop, yBottom);
-		}
-		// …标签 | ›
-		if( m_bOverflow && m_pBtnRight != NULL && m_pBtnRight->IsVisible() ) {
-			RECT rc = m_pBtnRight->GetPos();
-			DrawChromeSeparator(ctx, rc.left, yTop, yBottom);
-		}
-		// › | +  或  末标签 | +
-		if( m_bShowAdd && m_pBtnAdd != NULL && m_pBtnAdd->IsVisible() ) {
-			RECT rc = m_pBtnAdd->GetPos();
-			DrawChromeSeparator(ctx, rc.left, yTop, yBottom);
-		}
-	}
-
 	bool CTabBarUI::DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
 	{
 		RECT rcTemp = { 0 };
@@ -2165,12 +2132,9 @@ namespace DuiLib
 					if( !::IntersectRect(&rcTemp, &rcPaint, &rcTab) ) continue;
 					if( !pTab->Paint(ctx, rcPaint, pStopControl) ) return false;
 					if( m_bDragging && i == m_nDragSrcIdx )
-						ctx.DrawColor(rcTab, GetAdjustColor(0x99F5F5F5));
+						ctx.DrawColor(rcTab, GetAdjustColor(0xF5F5F599));
 				}
 			}
-			// 钉住区与滚动区交界线
-			if( rcPin.right < rcView.right )
-				DrawChromeSeparator(ctx, rcPin.right - 1, rcView.top, rcView.bottom);
 		}
 
 		RECT rcScroll = GetScrollViewportRect();
@@ -2185,12 +2149,11 @@ namespace DuiLib
 				if( !::IntersectRect(&rcTemp, &rcPaint, &rcTab) ) continue;
 				if( !pTab->Paint(ctx, rcPaint, pStopControl) ) return false;
 				if( m_bDragging && (int)i == m_nDragSrcIdx )
-					ctx.DrawColor(rcTab, GetAdjustColor(0x99F5F5F5));
+					ctx.DrawColor(rcTab, GetAdjustColor(0xF5F5F599));
 			}
 		}
 
 		PaintChromeBackplates(ctx, rcPaint);
-		PaintChromeSeparators(ctx);
 		PaintDragDropIndicator(ctx);
 		PaintDragGhost(ctx);
 		return true;
@@ -2198,18 +2161,18 @@ namespace DuiLib
 
 	void CTabBarUI::PaintChromeBackplates(IRenderContext& ctx, const RECT& rcPaint)
 	{
-		DWORD dwBk = GetChromeBkColor();
+		DWORD dwBk = GetChromeBackgroundColor();
 		if( dwBk != 0 ) {
 			if( m_bOverflow && m_pBtnLeft != NULL && m_pBtnLeft->IsVisible() ) {
-				DWORD dwLeft = (m_nScrollHover < 0 && m_pBtnLeft->IsEnabled()) ? 0xFFECECEC : dwBk;
+				DWORD dwLeft = (m_nScrollHover < 0 && m_pBtnLeft->IsEnabled()) ? 0xECECECFF : dwBk;
 				ctx.DrawColor(m_pBtnLeft->GetPos(), GetAdjustColor(dwLeft));
 			}
 			if( m_bOverflow && m_pBtnRight != NULL && m_pBtnRight->IsVisible() ) {
-				DWORD dwRight = (m_nScrollHover > 0 && m_pBtnRight->IsEnabled()) ? 0xFFECECEC : dwBk;
+				DWORD dwRight = (m_nScrollHover > 0 && m_pBtnRight->IsEnabled()) ? 0xECECECFF : dwBk;
 				ctx.DrawColor(m_pBtnRight->GetPos(), GetAdjustColor(dwRight));
 			}
 			if( m_bShowAdd && m_pBtnAdd != NULL && m_pBtnAdd->IsVisible() ) {
-				DWORD dwAdd = m_bAddHover ? 0xFFECECEC : dwBk;
+				DWORD dwAdd = m_bAddHover ? 0xECECECFF : dwBk;
 				ctx.DrawColor(m_pBtnAdd->GetPos(), GetAdjustColor(dwAdd));
 			}
 		}
@@ -2228,86 +2191,81 @@ namespace DuiLib
 	void CTabBarUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
 		auto parseColor = [](LPCTSTR v) -> DWORD {
-			if( v == NULL || *v == _T('\0') ) return 0;
-			if( *v == _T('#') ) v = ::CharNext(v);
-			LPTSTR p = NULL;
-			return _tcstoul(v, &p, 16);
+			DWORD c = 0;
+			if( v != NULL && ParseColorString(v, c) ) return c;
+			return 0;
 		};
 
-		if( _tcsicmp(pstrName, _T("tab-width")) == 0 || _tcsicmp(pstrName, _T("tabwidth")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("tab-width")) == 0 ) {
 			SetTabWidth(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("flexible")) == 0 || _tcsicmp(pstrName, _T("flexiblewidth")) == 0
-			|| _tcsicmp(pstrName, _T("tab-flexible")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("flexible")) == 0 ) {
 			SetFlexibleTabWidth(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("tab-min-width")) == 0 || _tcsicmp(pstrName, _T("tabminwidth")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("tab-min-width")) == 0 ) {
 			SetTabMinWidth(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tab-max-width")) == 0 || _tcsicmp(pstrName, _T("tabmaxwidth")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("tab-max-width")) == 0 ) {
 			SetTabMaxWidth(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("bindtablayoutname")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("bind-tab-layout-name")) == 0 ) {
 			BindTabLayoutName(pstrValue);
 		}
-		else if( _tcsicmp(pstrName, _T("scrollbtnwidth")) == 0 || _tcsicmp(pstrName, _T("scroll-btn-width")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("scroll-btn-width")) == 0 ) {
 			SetScrollBtnWidth(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("showadd")) == 0 || _tcsicmp(pstrName, _T("show-add")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("show-add")) == 0 ) {
 			SetShowAdd(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("addbtnwidth")) == 0 || _tcsicmp(pstrName, _T("add-btn-width")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("add-btn-width")) == 0 ) {
 			SetAddBtnWidth(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabbkcolor")) == 0 || _tcsicmp(pstrName, _T("tab-bkcolor")) == 0 ) {
-			SetTabBkColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-background-color")) == 0 ) {
+			SetTabBackgroundColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabhotbkcolor")) == 0 || _tcsicmp(pstrName, _T("tab-hotbkcolor")) == 0 ) {
-			SetTabHotBkColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-background-color-hover")) == 0 ) {
+			SetTabHoverBackgroundColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabselectedbkcolor")) == 0 || _tcsicmp(pstrName, _T("tab-selectedbkcolor")) == 0
-			|| _tcsicmp(pstrName, _T("activetabbkcolor")) == 0 ) {
-			SetTabSelectedBkColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-background-color-selected")) == 0 ) {
+			SetTabSelectedBackgroundColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabtextcolor")) == 0 || _tcsicmp(pstrName, _T("tab-textcolor")) == 0 ) {
-			SetTabTextColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-color")) == 0 ) {
+			SetTabColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabhottextcolor")) == 0 || _tcsicmp(pstrName, _T("tab-hottextcolor")) == 0 ) {
-			SetTabHotTextColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-color-hover")) == 0 ) {
+			SetTabHoverColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabselectedtextcolor")) == 0 || _tcsicmp(pstrName, _T("tab-selectedtextcolor")) == 0
-			|| _tcsicmp(pstrName, _T("activetabtextcolor")) == 0 ) {
-			SetTabSelectedTextColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-color-selected")) == 0 ) {
+			SetTabSelectedColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabbordercolor")) == 0 || _tcsicmp(pstrName, _T("tab-bordercolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("tab-border-color")) == 0 ) {
 			SetTabBorderColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabselectedbordercolor")) == 0 || _tcsicmp(pstrName, _T("tab-selectedbordercolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("tab-border-color-selected")) == 0 ) {
 			SetTabSelectedBorderColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabbordersize")) == 0 || _tcsicmp(pstrName, _T("tab-bordersize")) == 0 ) {
-			SetTabBorderSize(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-border-width")) == 0 ) {
+			SetTabBorderWidth(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("tabselectedbordersize")) == 0 || _tcsicmp(pstrName, _T("tab-selectedbordersize")) == 0 ) {
-			SetTabSelectedBorderSize(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("tab-border-width-selected")) == 0 ) {
+			SetTabSelectedBorderWidth(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("showtabseparator")) == 0 || _tcsicmp(pstrName, _T("show-tab-separator")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("show-tab-separator")) == 0 ) {
 			SetShowTabSeparator(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("tabseparatorcolor")) == 0 || _tcsicmp(pstrName, _T("tab-separatorcolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("tab-separator-color")) == 0 ) {
 			SetTabSeparatorColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("closetextcolor")) == 0 || _tcsicmp(pstrName, _T("close-textcolor")) == 0 ) {
-			SetCloseTextColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("close-color")) == 0 ) {
+			SetCloseColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("closehotbkcolor")) == 0 || _tcsicmp(pstrName, _T("close-hotbkcolor")) == 0 ) {
-			SetCloseHotBkColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("close-background-color-hover")) == 0 ) {
+			SetCloseHoverBackgroundColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("closehottextcolor")) == 0 || _tcsicmp(pstrName, _T("close-hottextcolor")) == 0 ) {
-			SetCloseHotTextColor(parseColor(pstrValue));
+		else if( _tcsicmp(pstrName, _T("close-color-hover")) == 0 ) {
+			SetCloseHoverColor(parseColor(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("contextmenu")) == 0 || _tcsicmp(pstrName, _T("context-menu")) == 0
-			|| _tcsicmp(pstrName, _T("menuxml")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("context-menu")) == 0 ) {
 			SetContextMenuXml(pstrValue);
 		}
 		else {
@@ -2323,39 +2281,39 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	void CTabBarUI::SetTabBkColor(DWORD dwColor)
+	void CTabBarUI::SetTabBackgroundColor(DWORD dwColor)
 	{
-		m_dwTabBkColor = dwColor;
+		m_dwTabBackgroundColor = dwColor;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetTabHotBkColor(DWORD dwColor)
+	void CTabBarUI::SetTabHoverBackgroundColor(DWORD dwColor)
 	{
-		m_dwTabHotBkColor = dwColor;
+		m_dwTabHoverBackgroundColor = dwColor;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetTabSelectedBkColor(DWORD dwColor)
+	void CTabBarUI::SetTabSelectedBackgroundColor(DWORD dwColor)
 	{
-		m_dwTabSelectedBkColor = dwColor;
+		m_dwTabSelectedBackgroundColor = dwColor;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetTabTextColor(DWORD dwColor)
+	void CTabBarUI::SetTabColor(DWORD dwColor)
 	{
-		m_dwTabTextColor = dwColor;
+		m_dwTabColor = dwColor;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetTabHotTextColor(DWORD dwColor)
+	void CTabBarUI::SetTabHoverColor(DWORD dwColor)
 	{
-		m_dwTabHotTextColor = dwColor;
+		m_dwTabHoverColor = dwColor;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetTabSelectedTextColor(DWORD dwColor)
+	void CTabBarUI::SetTabSelectedColor(DWORD dwColor)
 	{
-		m_dwTabSelectedTextColor = dwColor;
+		m_dwTabSelectedColor = dwColor;
 		RefreshTabStyles();
 	}
 
@@ -2371,45 +2329,47 @@ namespace DuiLib
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetTabBorderSize(int nSize)
+	void CTabBarUI::SetTabBorderWidth(int nSize)
 	{
-		m_nTabBorderSize = nSize;
+		m_nTabBorderWidth = nSize;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetTabSelectedBorderSize(int nSize)
+	void CTabBarUI::SetTabSelectedBorderWidth(int nSize)
 	{
-		m_nTabSelectedBorderSize = nSize;
+		m_nTabSelectedBorderWidth = nSize;
 		RefreshTabStyles();
 	}
 
 	void CTabBarUI::SetShowTabSeparator(bool bShow)
 	{
+		if( m_bShowTabSeparator == bShow ) return;
 		m_bShowTabSeparator = bShow;
-		Invalidate();
+		RefreshTabStyles();
 	}
 
 	void CTabBarUI::SetTabSeparatorColor(DWORD dwColor)
 	{
+		if( m_dwTabSeparatorColor == dwColor ) return;
 		m_dwTabSeparatorColor = dwColor;
-		Invalidate();
-	}
-
-	void CTabBarUI::SetCloseTextColor(DWORD dwColor)
-	{
-		m_dwCloseTextColor = dwColor;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetCloseHotBkColor(DWORD dwColor)
+	void CTabBarUI::SetCloseColor(DWORD dwColor)
 	{
-		m_dwCloseHotBkColor = dwColor;
+		m_dwCloseColor = dwColor;
 		RefreshTabStyles();
 	}
 
-	void CTabBarUI::SetCloseHotTextColor(DWORD dwColor)
+	void CTabBarUI::SetCloseHoverBackgroundColor(DWORD dwColor)
 	{
-		m_dwCloseHotTextColor = dwColor;
+		m_dwCloseHoverBackgroundColor = dwColor;
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetCloseHoverColor(DWORD dwColor)
+	{
+		m_dwCloseHoverColor = dwColor;
 		RefreshTabStyles();
 	}
 }

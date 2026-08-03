@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIFadeButton.h"
 
 namespace DuiLib {
@@ -26,10 +26,10 @@ namespace DuiLib {
 		return CButtonUI::GetInterface(pstrName);
 	}
 
-	void CFadeButtonUI::SetNormalImage(LPCTSTR pStrImage)
+	void CFadeButtonUI::SetImage(LPCTSTR pStrImage)
 	{
-		m_sNormalImage = pStrImage;
-		m_sLastImage = m_sNormalImage;
+		m_sImage = pStrImage;
+		m_sLastImage = m_sImage;
 	}
 
 	void CFadeButtonUI::DoEvent(TEventUI& event)
@@ -79,34 +79,34 @@ namespace DuiLib {
 			}
 		}
 		else if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
-			if( !m_sPushedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sPushedImage) ) {}
+			if( !m_sActiveImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sActiveImage) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
-			if( !m_sFocusedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusedImage) ) {}
+			if( !m_sFocusImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
 				else return;
 			}
 		}
-		if( !m_sNormalImage.IsEmpty() ) {
+		if( !m_sImage.IsEmpty() ) {
 			if( m_bMouseHove ) {
 				m_bMouseHove = FALSE;
-				m_sLastImage = m_sHotImage;
+				m_sLastImage = m_sHoverImage;
 			}
 
 			if( m_bMouseLeave ) {
 				m_bMouseLeave = FALSE;
-				m_sLastImage = m_sNormalImage;
+				m_sLastImage = m_sImage;
 			}
 
 			if( IsAnimationRunning(FADE_IN_ID) || IsAnimationRunning(FADE_OUT_ID)) {
-				m_sOldImage = m_sNormalImage;
-				m_sNewImage = m_sHotImage;
+				m_sOldImage = m_sImage;
+				m_sNewImage = m_sHoverImage;
 				if( IsAnimationRunning(FADE_OUT_ID) ) {
-					m_sOldImage = m_sHotImage;
-					m_sNewImage = m_sNormalImage;
+					m_sOldImage = m_sHoverImage;
+					m_sNewImage = m_sImage;
 				}
 				CDuiString sFadeOut, sFadeIn;
 				sFadeOut.Format(_T("fade='%d'"), 255 - m_bFadeAlpha);
@@ -116,7 +116,7 @@ namespace DuiLib {
 				return;
 			}
 			else {
-				if(m_sLastImage.IsEmpty()) m_sLastImage = m_sNormalImage;
+				if(m_sLastImage.IsEmpty()) m_sLastImage = m_sImage;
 				if( !DrawImage(ctx, (LPCTSTR)m_sLastImage) ) {}
 				return;
 			}

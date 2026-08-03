@@ -1,4 +1,4 @@
-﻿#ifndef __UIRICHEDIT_H__
+#ifndef __UIRICHEDIT_H__
 #define __UIRICHEDIT_H__
 
 #pragma once
@@ -40,8 +40,8 @@ namespace DuiLib {
 		void SetFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic);
 		LONG GetWinStyle();
 		void SetWinStyle(LONG lStyle);
-		DWORD GetTextColor();
-		void SetTextColor(DWORD dwTextColor);
+		DWORD GetColor();
+		void SetColor(DWORD dwColor);
 		int GetLimitText();
 		void SetLimitText(int iChars);
 		long GetTextLength(DWORD dwFlags = GTL_DEFAULT) const;
@@ -105,22 +105,22 @@ namespace DuiLib {
 
 		RECT GetTextPadding() const;
 		void SetTextPadding(RECT rc);
-		LPCTSTR GetNormalImage();
-		void SetNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetHotImage();
-		void SetHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetFocusedImage();
-		void SetFocusedImage(LPCTSTR pStrImage);
+		LPCTSTR GetImage();
+		void SetImage(LPCTSTR pStrImage);
+		LPCTSTR GetHoverImage();
+		void SetHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetFocusImage();
+		void SetFocusImage(LPCTSTR pStrImage);
 		LPCTSTR GetDisabledImage();
 		void SetDisabledImage(LPCTSTR pStrImage);
 		void PaintStatusImage(IRenderContext& ctx);
 
-		void SetTipValue(LPCTSTR pStrTipValue);
-		LPCTSTR GetTipValue();
-		void SetTipValueColor(LPCTSTR pStrColor);
-		DWORD GetTipValueColor();
-		void SetTipValueAlign(UINT uAlign);
-		UINT GetTipValueAlign();
+		void SetPlaceholder(LPCTSTR pStrPlaceholder);
+		LPCTSTR GetPlaceholder();
+		void SetPlaceholderColor(LPCTSTR pStrColor);
+		DWORD GetPlaceholderColor();
+		void SetPlaceholderAlign(UINT uAlign);
+		UINT GetPlaceholderAlign();
 
 		void DoInit();
 		bool SetDropAcceptFile(bool bAccept);
@@ -170,7 +170,7 @@ namespace DuiLib {
 		bool m_bRich;
 		bool m_bReadOnly;
 		bool m_bWordWrap;
-		DWORD m_dwTextColor;
+		DWORD m_dwColor;
 		int m_iFont;
 		int m_iLimitText;
 		LONG m_lTwhStyle;
@@ -183,13 +183,13 @@ namespace DuiLib {
 
 		RECT m_rcTextPadding;
 		UINT m_uButtonState;
-		CDuiString m_sNormalImage;
-		CDuiString m_sHotImage;
-		CDuiString m_sFocusedImage;
+		CDuiString m_sImage;
+		CDuiString m_sHoverImage;
+		CDuiString m_sFocusImage;
 		CDuiString m_sDisabledImage;
-		CDuiString m_sTipValue;
-		DWORD m_dwTipValueColor;
-		UINT m_uTipValueAlign;
+		CDuiString m_sPlaceholder;
+		DWORD m_dwPlaceholderColor;
+		UINT m_uPlaceholderAlign;
 	};
 
 } // namespace DuiLib

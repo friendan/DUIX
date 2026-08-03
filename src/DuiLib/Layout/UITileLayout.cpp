@@ -48,7 +48,7 @@ namespace DuiLib
 
 	void CTileLayoutUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("itemsize")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("item-size")) == 0 ) {
 			SIZE szItem = { 0 };
 			LPTSTR pstr = NULL;
 			szItem.cx = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
@@ -64,12 +64,12 @@ namespace DuiLib
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		rc = m_rcItem;
 
-		RECT rcInset = GetInset();
-		// Adjust for inset
-		rc.left += rcInset.left;
-		rc.top += rcInset.top;
-		rc.right -= rcInset.right;
-		rc.bottom -= rcInset.bottom;
+		RECT rcPadding = GetPadding();
+		// Adjust for padding
+		rc.left += rcPadding.left;
+		rc.top += rcPadding.top;
+		rc.right -= rcPadding.right;
+		rc.bottom -= rcPadding.bottom;
 
 		if( m_items.GetSize() == 0) {
 			ProcessScrollBar(rc, 0, 0);
@@ -80,7 +80,7 @@ namespace DuiLib
 		if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() ) rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 
 		SIZE szItem = GetItemSize();
-		int iChildPadding = GetChildPadding();
+		int iGap = GetGap();
 		// Position the elements
 		int nColumns = m_nColumns;
 		if( szItem.cx > 0 ) nColumns = (rc.right - rc.left) / szItem.cx;
@@ -105,8 +105,8 @@ namespace DuiLib
 		for( int it1 = 0; it1 < m_items.GetSize(); it1++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[it1]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) {
-				SetFloatPos(it1);
+			if( pControl->IsAbsolute() ) {
+				SetAbsolutePos(it1);
 				continue;
 			}
 
@@ -118,15 +118,15 @@ namespace DuiLib
 				for( int it2 = it1; it2 < m_items.GetSize(); it2++ ) {
 					CControlUI* pLineControl = static_cast<CControlUI*>(m_items[it2]);
 					if( !pLineControl->IsVisible() ) continue;
-					if( pLineControl->IsFloat() ) continue;
+					if( pLineControl->IsAbsolute() ) continue;
 
-					RECT rcPadding = pLineControl->GetPadding();
-					SIZE szAvailable = { rcTile.right - rcTile.left - rcPadding.left - rcPadding.right, 9999 };
+					RECT rcMargin = pLineControl->GetMargin();
+					SIZE szAvailable = { rcTile.right - rcTile.left - rcMargin.left - rcMargin.right, 9999 };
 					if( iIndex == iCount || (iIndex + 1) % nColumns == 0 ) {
-						szAvailable.cx -= iChildPadding / 2;
+						szAvailable.cx -= iGap / 2;
 					}
 					else {
-						szAvailable.cx -= iChildPadding;
+						szAvailable.cx -= iGap;
 					}
 
 					if( szAvailable.cx < pLineControl->GetMinWidth() ) szAvailable.cx = pLineControl->GetMinWidth();
@@ -138,25 +138,25 @@ namespace DuiLib
 					if( szTile.cy < pLineControl->GetMinHeight() ) szTile.cy = pLineControl->GetMinHeight();
 					if( szTile.cy > pLineControl->GetMaxHeight() ) szTile.cy = pLineControl->GetMaxHeight();
 
-					cyHeight = MAX(cyHeight, szTile.cy + rcPadding.top + rcPadding.bottom);
+					cyHeight = MAX(cyHeight, szTile.cy + rcMargin.top + rcMargin.bottom);
 					if( (++iIndex % nColumns) == 0) break;
 				}
 			}
 
-			RECT rcPadding = pControl->GetPadding();
+			RECT rcMargin = pControl->GetMargin();
 
-			rcTile.left += rcPadding.left + iChildPadding / 2;
-			rcTile.right -= rcPadding.right + iChildPadding / 2;
+			rcTile.left += rcMargin.left + iGap / 2;
+			rcTile.right -= rcMargin.right + iGap / 2;
 			if( (iCount % nColumns) == 0 ) {
-				rcTile.left -= iChildPadding / 2;
+				rcTile.left -= iGap / 2;
 			}
 
 			if( ( (iCount + 1) % nColumns) == 0 ) {
-				rcTile.right += iChildPadding / 2;
+				rcTile.right += iGap / 2;
 			}
 
 			// Set position
-			rcTile.top = ptTile.y + rcPadding.top;
+			rcTile.top = ptTile.y + rcMargin.top;
 			rcTile.bottom = ptTile.y + cyHeight;
 
 			SIZE szAvailable = { rcTile.right - rcTile.left, rcTile.bottom - rcTile.top };
@@ -173,7 +173,7 @@ namespace DuiLib
 
 			if( (++iCount % nColumns) == 0 ) {
 				ptTile.x = iPosX;
-				ptTile.y += cyHeight + iChildPadding;
+				ptTile.y += cyHeight + iGap;
 				cyHeight = 0;
 			}
 			else {

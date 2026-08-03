@@ -1,0 +1,486 @@
+#include "StdAfx.h"
+#include "UITitleBar.h"
+
+namespace DuiLib
+{
+	IMPLEMENT_DUICONTROL(CTitleBarLeftUI)
+	IMPLEMENT_DUICONTROL(CTitleBarSysUI)
+	IMPLEMENT_DUICONTROL(CTitleBarUI)
+
+	//////////////////////////////////////////////////////////////////////////
+	// CTitleBarLeftUI
+	CTitleBarLeftUI::CTitleBarLeftUI()
+	{
+		SetFixedWidth(0); // 吃剩余宽度
+		SetAttribute(_T("align-items"), _T("vcenter"));
+		SetGap(8);
+	}
+
+	LPCTSTR CTitleBarLeftUI::GetClass() const
+	{
+		return _T("TitleBarLeftUI");
+	}
+
+	LPVOID CTitleBarLeftUI::GetInterface(LPCTSTR pstrName)
+	{
+		if( _tcsicmp(pstrName, DUI_CTR_TITLEBARLEFT) == 0 ) return static_cast<CTitleBarLeftUI*>(this);
+		return CHorizontalLayoutUI::GetInterface(pstrName);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// CTitleBarSysUI
+	CTitleBarSysUI::CTitleBarSysUI()
+	{
+		SetAttribute(_T("align-items"), _T("vcenter"));
+		SetGap(0);
+	}
+
+	LPCTSTR CTitleBarSysUI::GetClass() const
+	{
+		return _T("TitleBarSysUI");
+	}
+
+	LPVOID CTitleBarSysUI::GetInterface(LPCTSTR pstrName)
+	{
+		if( _tcsicmp(pstrName, DUI_CTR_TITLEBARSYS) == 0 ) return static_cast<CTitleBarSysUI*>(this);
+		return CHorizontalLayoutUI::GetInterface(pstrName);
+	}
+
+	SIZE CTitleBarSysUI::EstimateSize(SIZE szAvailable)
+	{
+		SIZE sz = MeasureContent(szAvailable);
+		if( GetFixedHeight() > 0 ) sz.cy = GetFixedHeight();
+		else sz.cy = 0;
+		if( sz.cx <= 0 ) sz.cx = 0;
+		return sz;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	// CTitleBarUI
+	CTitleBarUI::CTitleBarUI()
+		: m_pLeft(NULL)
+		, m_pSys(NULL)
+		, m_pTitleLabel(NULL)
+		, m_pMinBtn(NULL)
+		, m_pMaxBtn(NULL)
+		, m_pRestoreBtn(NULL)
+		, m_pCloseBtn(NULL)
+		, m_bShowMin(true)
+		, m_bShowMax(true)
+		, m_bShowClose(true)
+		, m_nBtnWidth(46)
+		, m_bNotifyCancel(false)
+		, m_bChromeReady(false)
+	{
+		SetFixedHeight(40);
+		SetBackgroundColor(0x333333FF);
+		SetAction(UIACTION_TITLE);
+		SetAttribute(_T("align-items"), _T("vcenter"));
+		SetGap(0);
+		// padding: CSS top,right,bottom,left → 左侧缩进 12
+		SetPadding(CDuiBox(0, 0, 0, 12));
+		EnsureChrome();
+	}
+
+	CTitleBarUI::~CTitleBarUI()
+	{
+	}
+
+	LPCTSTR CTitleBarUI::GetClass() const
+	{
+		return _T("TitleBarUI");
+	}
+
+	LPVOID CTitleBarUI::GetInterface(LPCTSTR pstrName)
+	{
+		if( _tcsicmp(pstrName, DUI_CTR_TITLEBAR) == 0 ) return static_cast<CTitleBarUI*>(this);
+		return CHorizontalLayoutUI::GetInterface(pstrName);
+	}
+
+	bool CTitleBarUI::ParseBoolValue(LPCTSTR pstrValue)
+	{
+		if( pstrValue == NULL ) return false;
+		return ( _tcsicmp(pstrValue, _T("true")) == 0
+			|| _tcsicmp(pstrValue, _T("1")) == 0
+			|| _tcsicmp(pstrValue, _T("yes")) == 0 );
+	}
+
+	static int CALLBACK TitleBarEnumFontProc(const LOGFONT* /*lf*/, const TEXTMETRIC* /*tm*/, DWORD /*type*/, LPARAM lParam)
+	{
+		*reinterpret_cast<bool*>(lParam) = true;
+		return 0; // 找到即停
+	}
+
+	bool CTitleBarUI::FontFamilyExists(LPCTSTR pstrFace)
+	{
+		if( pstrFace == NULL || *pstrFace == _T('\0') ) return false;
+		HDC hDC = ::GetDC(NULL);
+		if( hDC == NULL ) return false;
+		LOGFONT lf;
+		::ZeroMemory(&lf, sizeof(lf));
+		lf.lfCharSet = DEFAULT_CHARSET;
+		_tcsncpy_s(lf.lfFaceName, LF_FACESIZE, pstrFace, _TRUNCATE);
+		bool bFound = false;
+		::EnumFontFamiliesEx(hDC, &lf, TitleBarEnumFontProc, reinterpret_cast<LPARAM>(&bFound), 0);
+		::ReleaseDC(NULL, hDC);
+		return bFound;
+	}
+
+	bool CTitleBarUI::ResolveSegoeIconFont(CDuiString& sFace)
+	{
+		static bool s_bResolved = false;
+		static bool s_bOk = false;
+		static CDuiString s_sFace;
+		if( s_bResolved ) {
+			sFace = s_sFace;
+			return s_bOk;
+		}
+		s_bResolved = true;
+		static const LPCTSTR kFaces[] = {
+			_T("Segoe Fluent Icons"), // Win11
+			_T("Segoe MDL2 Assets"),  // Win10+
+		};
+		for( int i = 0; i < (int)(sizeof(kFaces) / sizeof(kFaces[0])); ++i ) {
+			if( FontFamilyExists(kFaces[i]) ) {
+				s_bOk = true;
+				s_sFace = kFaces[i];
+				sFace = s_sFace;
+				return true;
+			}
+		}
+		sFace.Empty();
+		return false;
+	}
+
+	void CTitleBarUI::ApplySysButtonStyle(CButtonUI* pBtn, bool bClose)
+	{
+		if( pBtn == NULL ) return;
+		pBtn->SetKind(CONTROLKIND_NONE);
+		pBtn->SetBackgroundColor(0x333333FF);
+		pBtn->SetColor(0xB4B4BEFF);
+		pBtn->SetHoverColor(0xFFFFFFFF);
+		pBtn->SetHoverBackgroundColor(bClose ? 0xE81123FF : 0x505050FF);
+		pBtn->SetTextStyle(DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+	}
+
+	void CTitleBarUI::ApplySysButtonIcons()
+	{
+		if( m_pMinBtn == NULL || m_pMaxBtn == NULL || m_pRestoreBtn == NULL || m_pCloseBtn == NULL )
+			return;
+
+		CDuiString sFace;
+		if( ResolveSegoeIconFont(sFace) ) {
+			// ChromeMinimize / Maximize / Restore / Close（MDL2 与 Fluent 码点一致）
+			m_pMinBtn->SetText(_T("\xE921"));
+			m_pMaxBtn->SetText(_T("\xE922"));
+			m_pRestoreBtn->SetText(_T("\xE923"));
+			m_pCloseBtn->SetText(_T("\xE8BB"));
+			CButtonUI* btns[] = { m_pMinBtn, m_pMaxBtn, m_pRestoreBtn, m_pCloseBtn };
+			for( int i = 0; i < 4; ++i ) {
+				btns[i]->SetFontFamily(sFace.GetData());
+				btns[i]->SetFontSize(10);
+			}
+			return;
+		}
+
+		// 无 Segoe 图标字体：普通 Unicode 回退
+		m_pMinBtn->SetText(_T("─"));
+		m_pMaxBtn->SetText(_T("□"));
+		m_pRestoreBtn->SetText(_T("❐"));
+		m_pCloseBtn->SetText(_T("✕"));
+		m_pMinBtn->SetFontSize(14);
+		m_pMaxBtn->SetFontSize(17); // □ 字形留白大
+		m_pRestoreBtn->SetFontSize(15);
+		m_pCloseBtn->SetFontSize(14);
+	}
+
+	void CTitleBarUI::EnsureChrome()
+	{
+		if( m_bChromeReady ) return;
+		m_bChromeReady = true;
+
+		m_pLeft = new CTitleBarLeftUI;
+		CHorizontalLayoutUI::Add(m_pLeft);
+
+		m_pTitleLabel = new CLabelUI;
+		m_pTitleLabel->SetName(_T("titlebar_title"));
+		m_pTitleLabel->SetColor(0xFFFFFFFF);
+		m_pTitleLabel->SetFontSize(13);
+		m_pTitleLabel->SetAutoCalcWidth(true);
+		m_pTitleLabel->SetMouseEnabled(false);
+		m_pTitleLabel->SetVisible(false);
+		m_pLeft->Add(m_pTitleLabel);
+
+		m_pSys = new CTitleBarSysUI;
+		CHorizontalLayoutUI::Add(m_pSys);
+
+		m_pMinBtn = new CButtonUI;
+		m_pMinBtn->SetName(_T("minbtn"));
+		m_pMinBtn->SetToolTip(_T("最小化"));
+		ApplySysButtonStyle(m_pMinBtn, false);
+		m_pMinBtn->OnNotify += MakeDelegate(this, &CTitleBarUI::OnSysButtonNotify);
+		m_pSys->Add(m_pMinBtn);
+
+		m_pMaxBtn = new CButtonUI;
+		m_pMaxBtn->SetName(_T("maxbtn"));
+		m_pMaxBtn->SetToolTip(_T("最大化"));
+		ApplySysButtonStyle(m_pMaxBtn, false);
+		m_pMaxBtn->OnNotify += MakeDelegate(this, &CTitleBarUI::OnSysButtonNotify);
+		m_pSys->Add(m_pMaxBtn);
+
+		m_pRestoreBtn = new CButtonUI;
+		m_pRestoreBtn->SetName(_T("restorebtn"));
+		m_pRestoreBtn->SetToolTip(_T("还原"));
+		m_pRestoreBtn->SetVisible(false);
+		ApplySysButtonStyle(m_pRestoreBtn, false);
+		m_pRestoreBtn->OnNotify += MakeDelegate(this, &CTitleBarUI::OnSysButtonNotify);
+		m_pSys->Add(m_pRestoreBtn);
+
+		m_pCloseBtn = new CButtonUI;
+		m_pCloseBtn->SetName(_T("closebtn"));
+		m_pCloseBtn->SetToolTip(_T("关闭"));
+		ApplySysButtonStyle(m_pCloseBtn, true);
+		m_pCloseBtn->OnNotify += MakeDelegate(this, &CTitleBarUI::OnSysButtonNotify);
+		m_pSys->Add(m_pCloseBtn);
+
+		ApplySysButtonIcons();
+		SyncSysButtonMetrics();
+		SyncSysButtonVisibility();
+	}
+
+	void CTitleBarUI::SyncSysButtonMetrics()
+	{
+		const int h = GetFixedHeight() > 0 ? GetFixedHeight() : 40;
+		const int w = m_nBtnWidth > 0 ? m_nBtnWidth : 46;
+		CButtonUI* btns[] = { m_pMinBtn, m_pMaxBtn, m_pRestoreBtn, m_pCloseBtn };
+		for( int i = 0; i < 4; ++i ) {
+			if( btns[i] == NULL ) continue;
+			btns[i]->SetFixedWidth(w);
+			btns[i]->SetFixedHeight(h);
+		}
+		if( m_pLeft != NULL ) m_pLeft->SetFixedHeight(h);
+		if( m_pSys != NULL ) m_pSys->SetFixedHeight(h);
+	}
+
+	void CTitleBarUI::SyncSysButtonVisibility()
+	{
+		if( m_pMinBtn != NULL ) m_pMinBtn->SetVisible(m_bShowMin);
+		if( m_pCloseBtn != NULL ) m_pCloseBtn->SetVisible(m_bShowClose);
+		if( !m_bShowMax ) {
+			if( m_pMaxBtn != NULL ) m_pMaxBtn->SetVisible(false);
+			if( m_pRestoreBtn != NULL ) m_pRestoreBtn->SetVisible(false);
+		}
+		else {
+			// 最大化/还原互斥由 WinImplBase OnSysCommand 按 name 切换；此处仅保证 max 可见起点
+			if( m_pMaxBtn != NULL && m_pRestoreBtn != NULL ) {
+				if( !m_pMaxBtn->IsVisible() && !m_pRestoreBtn->IsVisible() )
+					m_pMaxBtn->SetVisible(true);
+			}
+			else if( m_pMaxBtn != NULL ) {
+				m_pMaxBtn->SetVisible(true);
+			}
+		}
+		NeedUpdate();
+	}
+
+	void CTitleBarUI::SetTitle(LPCTSTR pstrText)
+	{
+		EnsureChrome();
+		if( m_pTitleLabel == NULL ) return;
+		m_pTitleLabel->SetText(pstrText ? pstrText : _T(""));
+		const bool bHas = (pstrText != NULL && *pstrText != _T('\0'));
+		m_pTitleLabel->SetVisible(bHas);
+		NeedUpdate();
+	}
+
+	CDuiString CTitleBarUI::GetTitle() const
+	{
+		if( m_pTitleLabel == NULL ) return CDuiString();
+		return m_pTitleLabel->GetText();
+	}
+
+	void CTitleBarUI::SetShowMin(bool bShow)
+	{
+		if( m_bShowMin == bShow ) return;
+		m_bShowMin = bShow;
+		EnsureChrome();
+		SyncSysButtonVisibility();
+	}
+
+	void CTitleBarUI::SetShowMax(bool bShow)
+	{
+		if( m_bShowMax == bShow ) return;
+		m_bShowMax = bShow;
+		EnsureChrome();
+		SyncSysButtonVisibility();
+	}
+
+	void CTitleBarUI::SetShowClose(bool bShow)
+	{
+		if( m_bShowClose == bShow ) return;
+		m_bShowClose = bShow;
+		EnsureChrome();
+		SyncSysButtonVisibility();
+	}
+
+	void CTitleBarUI::SetBtnWidth(int nWidth)
+	{
+		if( nWidth <= 0 ) nWidth = 46;
+		if( m_nBtnWidth == nWidth ) return;
+		m_nBtnWidth = nWidth;
+		EnsureChrome();
+		SyncSysButtonMetrics();
+		NeedUpdate();
+	}
+
+	void CTitleBarUI::SetFixedHeight(int cy)
+	{
+		CHorizontalLayoutUI::SetFixedHeight(cy);
+		if( m_bChromeReady ) SyncSysButtonMetrics();
+	}
+
+	void CTitleBarUI::CancelNotify()
+	{
+		m_bNotifyCancel = true;
+	}
+
+	void CTitleBarUI::ResetNotifyCancel()
+	{
+		m_bNotifyCancel = false;
+	}
+
+	bool CTitleBarUI::QueryAllowNotify(LPCTSTR pstrMsg, WPARAM wParam, LPARAM lParam)
+	{
+		m_bNotifyCancel = false;
+		if( m_pManager != NULL )
+			m_pManager->SendNotify(this, pstrMsg, wParam, lParam, false);
+		return !m_bNotifyCancel;
+	}
+
+	HWND CTitleBarUI::GetOwnerHWND() const
+	{
+		if( m_pManager == NULL ) return NULL;
+		return m_pManager->GetPaintWindow();
+	}
+
+	void CTitleBarUI::DoSysMin()
+	{
+		HWND hWnd = GetOwnerHWND();
+		if( hWnd == NULL ) return;
+		::SendMessage(hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+	}
+
+	void CTitleBarUI::DoSysMax()
+	{
+		HWND hWnd = GetOwnerHWND();
+		if( hWnd == NULL ) return;
+		::SendMessage(hWnd, WM_SYSCOMMAND, ::IsZoomed(hWnd) ? SC_RESTORE : SC_MAXIMIZE, 0);
+	}
+
+	void CTitleBarUI::DoSysClose()
+	{
+		HWND hWnd = GetOwnerHWND();
+		if( hWnd == NULL ) return;
+		::PostMessage(hWnd, WM_CLOSE, 0, 0);
+	}
+
+	bool CTitleBarUI::OnSysButtonNotify(void* param)
+	{
+		TNotifyUI* pMsg = static_cast<TNotifyUI*>(param);
+		if( pMsg == NULL || pMsg->sType != DUI_MSGTYPE_CLICK ) return true;
+		CControlUI* pSender = pMsg->pSender;
+		if( pSender == NULL ) return true;
+
+		if( pSender == m_pMinBtn ) {
+			if( !QueryAllowNotify(DUI_MSGTYPE_TITLEBARMINING, 0, 0) ) return true;
+			DoSysMin();
+			if( m_pManager != NULL )
+				m_pManager->SendNotify(this, DUI_MSGTYPE_TITLEBARMIN, 0, 0, false);
+			return true;
+		}
+		if( pSender == m_pMaxBtn || pSender == m_pRestoreBtn ) {
+			if( !QueryAllowNotify(DUI_MSGTYPE_TITLEBARMAXING, 0, 0) ) return true;
+			DoSysMax();
+			if( m_pManager != NULL )
+				m_pManager->SendNotify(this, DUI_MSGTYPE_TITLEBARMAX, 0, 0, false);
+			return true;
+		}
+		if( pSender == m_pCloseBtn ) {
+			if( !QueryAllowNotify(DUI_MSGTYPE_TITLEBARCLOSING, 0, 0) ) return true;
+			DoSysClose();
+			if( m_pManager != NULL )
+				m_pManager->SendNotify(this, DUI_MSGTYPE_TITLEBARCLOSE, 0, 0, false);
+			return true;
+		}
+		return true;
+	}
+
+	bool CTitleBarUI::Add(CControlUI* pControl)
+	{
+		EnsureChrome();
+		if( pControl == NULL ) return false;
+		if( pControl == m_pLeft || pControl == m_pSys )
+			return CHorizontalLayoutUI::Add(pControl);
+
+		// 全部用户子控件进入左侧
+		if( m_pLeft == NULL ) return false;
+		return m_pLeft->Add(pControl);
+	}
+
+	bool CTitleBarUI::AddAt(CControlUI* pControl, int iIndex)
+	{
+		EnsureChrome();
+		if( pControl == NULL ) return false;
+		if( pControl == m_pLeft || pControl == m_pSys )
+			return CHorizontalLayoutUI::AddAt(pControl, iIndex);
+
+		if( m_pLeft == NULL ) return false;
+		return m_pLeft->AddAt(pControl, iIndex);
+	}
+
+	void CTitleBarUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
+	{
+		if( _tcsicmp(pstrName, _T("title")) == 0 ) {
+			SetTitle(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("show-min")) == 0 ) {
+			SetShowMin(ParseBoolValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("show-max")) == 0 ) {
+			SetShowMax(ParseBoolValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("show-close")) == 0 ) {
+			SetShowClose(ParseBoolValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("btn-width")) == 0 ) {
+			if( pstrValue != NULL ) SetBtnWidth(_ttoi(pstrValue));
+		}
+		else {
+			CHorizontalLayoutUI::SetAttribute(pstrName, pstrValue);
+			if( _tcsicmp(pstrName, _T("height")) == 0 && m_bChromeReady )
+				SyncSysButtonMetrics();
+			if( _tcsicmp(pstrName, _T("background-color")) == 0
+				|| _tcsicmp(pstrName, _T("bkcolor")) == 0 ) {
+				DWORD dwBk = GetBackgroundColor();
+				CButtonUI* btns[] = { m_pMinBtn, m_pMaxBtn, m_pRestoreBtn, m_pCloseBtn };
+				for( int i = 0; i < 4; ++i ) {
+					if( btns[i] == NULL ) continue;
+					btns[i]->SetBackgroundColor(dwBk);
+				}
+			}
+		}
+	}
+
+	bool CTitleBarUI::IsCaptionDragHit(POINT pt) const
+	{
+		UIAction a = GetAction();
+		if( a != UIACTION_TITLE && a != UIACTION_MOVEWINDOW ) return false;
+		if( !::PtInRect(&m_rcItem, pt) ) return false;
+
+		if( m_pSys != NULL && m_pSys->IsVisible() ) {
+			RECT rc = m_pSys->GetPos();
+			if( ::PtInRect(&rc, pt) ) return false;
+		}
+		return true;
+	}
+}

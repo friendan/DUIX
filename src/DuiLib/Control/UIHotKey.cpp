@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "UIHotKey.h"
 namespace DuiLib{
 	CHotKeyWnd::CHotKeyWnd(void) : m_pOwner(NULL), m_hBkBrush(NULL), m_bInit(false)
@@ -31,11 +31,11 @@ namespace DuiLib{
 	RECT CHotKeyWnd::CalPos()
 	{
 		CDuiRect rcPos = m_pOwner->GetPos();
-		RECT rcInset = m_pOwner->GetTextPadding();
-		rcPos.left += rcInset.left;
-		rcPos.top += rcInset.top;
-		rcPos.right -= rcInset.right;
-		rcPos.bottom -= rcInset.bottom;
+		RECT rcPadding = m_pOwner->GetTextPadding();
+		rcPos.left += rcPadding.left;
+		rcPos.top += rcPadding.top;
+		rcPos.right -= rcPadding.right;
+		rcPos.bottom -= rcPadding.bottom;
 		LONG lHeight = m_pOwner->GetManager()->GetFontInfo(m_pOwner->GetFont())->tm.tmHeight;
 		if( lHeight < rcPos.GetHeight() ) {
 			rcPos.top += (rcPos.GetHeight() - lHeight) / 2;
@@ -82,14 +82,14 @@ namespace DuiLib{
 		{
 			PAINTSTRUCT ps = { 0 };
 			HDC hDC = ::BeginPaint(m_hWnd, &ps);
-			DWORD dwTextColor = m_pOwner->GetTextColor();
-			DWORD dwBkColor = m_pOwner->GetNativeBkColor();
+			DWORD dwColor = m_pOwner->GetColor();
+			DWORD dwBackgroundColor = m_pOwner->GetNativeBackgroundColor();
 			CDuiString strText = GetHotKeyName();
 			::RECT rect;
 			::GetClientRect(m_hWnd, &rect);
 			::SetBkMode(hDC, TRANSPARENT);
-			::SetTextColor(hDC, RGB(GetBValue(dwTextColor), GetGValue(dwTextColor), GetRValue(dwTextColor)));
-			HBRUSH hBrush =  CreateSolidBrush( RGB(GetBValue(dwBkColor), GetGValue(dwBkColor), GetRValue(dwBkColor)) );
+			::SetTextColor(hDC, DuiColorToCOLORREF(dwColor));
+			HBRUSH hBrush =  CreateSolidBrush( DuiColorToCOLORREF(dwBackgroundColor) );
 			::FillRect(hDC, &rect, hBrush);
 			::DeleteObject(hBrush);
 			HFONT hOldFont = (HFONT)SelectObject(hDC, GetWindowFont(m_hWnd));
@@ -238,7 +238,7 @@ namespace DuiLib{
 	CHotKeyUI::CHotKeyUI() : m_pWindow(NULL), m_wVirtualKeyCode(0), m_wModifiers(0), m_uButtonState(0), m_dwHotKeybkColor(0xFFFFFFFF)
 	{
 		SetTextPadding(CDuiRect(4, 3, 4, 3));
-		SetBkColor(0xFFFFFFFF);
+		SetBackgroundColor(0xFFFFFFFF);
 	}
 
 	LPCTSTR CHotKeyUI::GetClass() const
@@ -351,36 +351,36 @@ namespace DuiLib{
 		Invalidate();
 	}
 
-	LPCTSTR CHotKeyUI::GetNormalImage()
+	LPCTSTR CHotKeyUI::GetImage()
 	{
-		return m_sNormalImage;
+		return m_sImage;
 	}
 
-	void CHotKeyUI::SetNormalImage(LPCTSTR pStrImage)
+	void CHotKeyUI::SetImage(LPCTSTR pStrImage)
 	{
-		m_sNormalImage = pStrImage;
+		m_sImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CHotKeyUI::GetHotImage()
+	LPCTSTR CHotKeyUI::GetHoverImage()
 	{
-		return m_sHotImage;
+		return m_sHoverImage;
 	}
 
-	void CHotKeyUI::SetHotImage(LPCTSTR pStrImage)
+	void CHotKeyUI::SetHoverImage(LPCTSTR pStrImage)
 	{
-		m_sHotImage = pStrImage;
+		m_sHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CHotKeyUI::GetFocusedImage()
+	LPCTSTR CHotKeyUI::GetFocusImage()
 	{
-		return m_sFocusedImage;
+		return m_sFocusImage;
 	}
 
-	void CHotKeyUI::SetFocusedImage(LPCTSTR pStrImage)
+	void CHotKeyUI::SetFocusImage(LPCTSTR pStrImage)
 	{
-		m_sFocusedImage = pStrImage;
+		m_sFocusImage = pStrImage;
 		Invalidate();
 	}
 
@@ -395,12 +395,12 @@ namespace DuiLib{
 		Invalidate();
 	}
 
-	void CHotKeyUI::SetNativeBkColor(DWORD dwBkColor)
+	void CHotKeyUI::SetNativeBackgroundColor(DWORD dwBackgroundColor)
 	{
-		m_dwHotKeybkColor = dwBkColor;
+		m_dwHotKeybkColor = dwBackgroundColor;
 	}
 
-	DWORD CHotKeyUI::GetNativeBkColor() const
+	DWORD CHotKeyUI::GetNativeBackgroundColor() const
 	{
 		return m_dwHotKeybkColor;
 	}
@@ -434,15 +434,14 @@ namespace DuiLib{
 
 	void CHotKeyUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcscmp(pstrName, _T("normalimage")) == 0 ) SetNormalImage(pstrValue);
-		else if( _tcscmp(pstrName, _T("hotimage")) == 0 ) SetHotImage(pstrValue);
-		else if( _tcscmp(pstrName, _T("focusedimage")) == 0 ) SetFocusedImage(pstrValue);
-		else if( _tcscmp(pstrName, _T("disabledimage")) == 0 ) SetDisabledImage(pstrValue);
-		else if( _tcscmp(pstrName, _T("nativebkcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetNativeBkColor(clrColor);
+		if( _tcscmp(pstrName, _T("image")) == 0 ) SetImage(pstrValue);
+		else if( _tcscmp(pstrName, _T("image-hover")) == 0 ) SetHoverImage(pstrValue);
+		else if( _tcscmp(pstrName, _T("image-focus")) == 0 ) SetFocusImage(pstrValue);
+		else if( _tcscmp(pstrName, _T("image-disabled")) == 0 ) SetDisabledImage(pstrValue);
+		else if( _tcscmp(pstrName, _T("native-background-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetNativeBackgroundColor(clrColor);
 		}
 		else CLabelUI::SetAttribute(pstrName, pstrValue);
 	}
@@ -461,28 +460,28 @@ namespace DuiLib{
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
-			if( !m_sFocusedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusedImage) ) {}
+			if( !m_sFocusImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
-			if( !m_sHotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHotImage) ) {}
+			if( !m_sHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
 				else return;
 			}
 		}
 
-		if( !m_sNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sNormalImage) ) {}
+		if( !m_sImage.IsEmpty() ) {
+			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
 			else return;
 		}
 	}
 
 	void CHotKeyUI::PaintText(IRenderContext& ctx)
 	{
-		if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-		if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 		if( m_sText.IsEmpty() ) return;
 		CDuiString sText = m_sText;
 		RECT rc = m_rcItem;
@@ -490,10 +489,10 @@ namespace DuiLib{
 		rc.right -= m_rcTextPadding.right;
 		rc.top += m_rcTextPadding.top;
 		rc.bottom -= m_rcTextPadding.bottom;
-		DWORD dwTextColor = m_dwTextColor;
-		if(!IsEnabled())dwTextColor = m_dwDisabledTextColor;
+		DWORD dwColor = m_dwColor;
+		if(!IsEnabled())dwColor = m_dwDisabledColor;
 
-		ctx.DrawText(rc, sText, dwTextColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sText, dwColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
 	DWORD CHotKeyUI::GetHotKey() const

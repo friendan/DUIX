@@ -13,7 +13,7 @@ namespace DuiLib
 	class CTabLayoutUI;
 	class CMenuUI;
 
-	// 标签栏：水平标签、内置「+」、左右滚动/滚轮溢出、关闭、中键/Ctrl+W、拖拽排序；可 bindtablayoutname
+	// 标签栏：水平标签、内置「+」、左右滚动/滚轮溢出、关闭、中键/Ctrl+W、拖拽排序；可 bind-tab-layout-name
 	class UILIB_API CTabBarUI : public CHorizontalLayoutUI, public IMessageFilterUI
 	{
 		DECLARE_DUICONTROL(CTabBarUI)
@@ -79,36 +79,36 @@ namespace DuiLib
 		int GetAddBtnWidth() const { return m_nAddBtnWidth; }
 
 		// 标签皮肤（未单独配置时 TabButton 使用这些默认色）
-		void SetTabBkColor(DWORD dwColor);
-		DWORD GetTabBkColor() const { return m_dwTabBkColor; }
-		void SetTabHotBkColor(DWORD dwColor);
-		DWORD GetTabHotBkColor() const { return m_dwTabHotBkColor; }
-		void SetTabSelectedBkColor(DWORD dwColor);
-		DWORD GetTabSelectedBkColor() const { return m_dwTabSelectedBkColor; }
-		void SetTabTextColor(DWORD dwColor);
-		DWORD GetTabTextColor() const { return m_dwTabTextColor; }
-		void SetTabHotTextColor(DWORD dwColor);
-		DWORD GetTabHotTextColor() const { return m_dwTabHotTextColor; }
-		void SetTabSelectedTextColor(DWORD dwColor);
-		DWORD GetTabSelectedTextColor() const { return m_dwTabSelectedTextColor; }
+		void SetTabBackgroundColor(DWORD dwColor);
+		DWORD GetTabBackgroundColor() const { return m_dwTabBackgroundColor; }
+		void SetTabHoverBackgroundColor(DWORD dwColor);
+		DWORD GetTabHoverBackgroundColor() const { return m_dwTabHoverBackgroundColor; }
+		void SetTabSelectedBackgroundColor(DWORD dwColor);
+		DWORD GetTabSelectedBackgroundColor() const { return m_dwTabSelectedBackgroundColor; }
+		void SetTabColor(DWORD dwColor);
+		DWORD GetTabColor() const { return m_dwTabColor; }
+		void SetTabHoverColor(DWORD dwColor);
+		DWORD GetTabHoverColor() const { return m_dwTabHoverColor; }
+		void SetTabSelectedColor(DWORD dwColor);
+		DWORD GetTabSelectedColor() const { return m_dwTabSelectedColor; }
 		void SetTabBorderColor(DWORD dwColor);
 		DWORD GetTabBorderColor() const { return m_dwTabBorderColor; }
 		void SetTabSelectedBorderColor(DWORD dwColor);
 		DWORD GetTabSelectedBorderColor() const { return m_dwTabSelectedBorderColor; }
-		void SetTabBorderSize(int nSize);
-		int GetTabBorderSize() const { return m_nTabBorderSize; }
-		void SetTabSelectedBorderSize(int nSize);
-		int GetTabSelectedBorderSize() const { return m_nTabSelectedBorderSize; }
+		void SetTabBorderWidth(int nSize);
+		int GetTabBorderWidth() const { return m_nTabBorderWidth; }
+		void SetTabSelectedBorderWidth(int nSize);
+		int GetTabSelectedBorderWidth() const { return m_nTabSelectedBorderWidth; }
 		void SetShowTabSeparator(bool bShow);
 		bool IsShowTabSeparator() const { return m_bShowTabSeparator; }
 		void SetTabSeparatorColor(DWORD dwColor);
 		DWORD GetTabSeparatorColor() const { return m_dwTabSeparatorColor; }
-		void SetCloseTextColor(DWORD dwColor);
-		DWORD GetCloseTextColor() const { return m_dwCloseTextColor; }
-		void SetCloseHotBkColor(DWORD dwColor);
-		DWORD GetCloseHotBkColor() const { return m_dwCloseHotBkColor; }
-		void SetCloseHotTextColor(DWORD dwColor);
-		DWORD GetCloseHotTextColor() const { return m_dwCloseHotTextColor; }
+		void SetCloseColor(DWORD dwColor);
+		DWORD GetCloseColor() const { return m_dwCloseColor; }
+		void SetCloseHoverBackgroundColor(DWORD dwColor);
+		DWORD GetCloseHoverBackgroundColor() const { return m_dwCloseHoverBackgroundColor; }
+		void SetCloseHoverColor(DWORD dwColor);
+		DWORD GetCloseHoverColor() const { return m_dwCloseHoverColor; }
 		void RefreshTabStyles();
 
 		// 将 iFrom 处标签移动到最终下标 iTo（插入语义，非互换）
@@ -165,7 +165,7 @@ namespace DuiLib
 		bool HandleContextMenuClick(WPARAM wParam);
 		CControlUI* FindMenuItemByName(CMenuUI* pMenu, LPCTSTR pstrName) const;
 		int GetAddReserveWidth() const;
-		DWORD GetChromeBkColor() const;
+		DWORD GetChromeBackgroundColor() const;
 		bool QueryAllowNotify(LPCTSTR pstrMsg, WPARAM wParam, LPARAM lParam);
 		void SyncBoundTabLayout();
 		void SyncBoundTabLayoutMove(int iFrom, int iTo);
@@ -185,8 +185,6 @@ namespace DuiLib
 		void PlaceChromeFloat(CControlUI* pCtrl, const RECT& rc);
 		void DestroyChromeIcons();
 		void NotifyAddTab();
-		void DrawChromeSeparator(IRenderContext& ctx, int x, int yTop, int yBottom);
-		void PaintChromeSeparators(IRenderContext& ctx);
 		void PaintChromeBackplates(IRenderContext& ctx, const RECT& rcPaint);
 		void BeginDragGhost(CTabButtonUI* pTab, POINT ptClient);
 		void EndDragGhost();
@@ -234,21 +232,21 @@ namespace DuiLib
 		CSvgBoxUI* m_pIconRight;
 		CSvgBoxUI* m_pIconAdd;
 
-		DWORD m_dwTabBkColor;
-		DWORD m_dwTabHotBkColor;
-		DWORD m_dwTabSelectedBkColor;
-		DWORD m_dwTabTextColor;
-		DWORD m_dwTabHotTextColor;
-		DWORD m_dwTabSelectedTextColor;
+		DWORD m_dwTabBackgroundColor;
+		DWORD m_dwTabHoverBackgroundColor;
+		DWORD m_dwTabSelectedBackgroundColor;
+		DWORD m_dwTabColor;
+		DWORD m_dwTabHoverColor;
+		DWORD m_dwTabSelectedColor;
 		DWORD m_dwTabBorderColor;
 		DWORD m_dwTabSelectedBorderColor;
 		DWORD m_dwTabSeparatorColor;
-		int m_nTabBorderSize;
-		int m_nTabSelectedBorderSize;
+		int m_nTabBorderWidth;
+		int m_nTabSelectedBorderWidth;
 		bool m_bShowTabSeparator;
-		DWORD m_dwCloseTextColor;
-		DWORD m_dwCloseHotBkColor;
-		DWORD m_dwCloseHotTextColor;
+		DWORD m_dwCloseColor;
+		DWORD m_dwCloseHoverBackgroundColor;
+		DWORD m_dwCloseHoverColor;
 	};
 }
 

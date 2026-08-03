@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIGifAnim.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -70,22 +70,22 @@ namespace DuiLib
 
 	void CGifAnimUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("bkimage")) == 0 ) SetBkImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("autoplay")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("background-image")) == 0 ) SetBackgroundImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("auto-play")) == 0 ) {
 			SetAutoPlay(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("autosize")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("auto-size")) == 0 ) {
 			SetAutoSize(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
 		else
 			CControlUI::SetAttribute(pstrName, pstrValue);
 	}
 
-	void CGifAnimUI::SetBkImage(LPCTSTR pStrImage)
+	void CGifAnimUI::SetBackgroundImage(LPCTSTR pStrImage)
 	{
-		if( m_sBkImage == pStrImage || NULL == pStrImage) return;
+		if( m_sBackgroundImage == pStrImage || NULL == pStrImage) return;
 
-		m_sBkImage = pStrImage;
+		m_sBackgroundImage = pStrImage;
 
 		StopGif();
 		DeleteGif();
@@ -94,9 +94,9 @@ namespace DuiLib
 
 	}
 
-	LPCTSTR CGifAnimUI::GetBkImage()
+	LPCTSTR CGifAnimUI::GetBackgroundImage()
 	{
-		return m_sBkImage.GetData();
+		return m_sBackgroundImage.GetData();
 	}
 
 	void CGifAnimUI::SetAutoPlay(bool bIsAuto)
@@ -160,7 +160,7 @@ namespace DuiLib
 
 	void CGifAnimUI::InitGifImage()
 	{
-		TImageInfo* pImageInfo = GetRenderDevice()->GdiplusLoadImage(GetBkImage());
+		TImageInfo* pImageInfo = GetRenderDevice()->GdiplusLoadImage(GetBackgroundImage());
 		if(pImageInfo != NULL) {
 			m_pGifImage = pImageInfo->pImage;
 

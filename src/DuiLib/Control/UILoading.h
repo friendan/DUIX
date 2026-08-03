@@ -1,4 +1,4 @@
-﻿#ifndef __UILoadingCircle_H
+#ifndef __UILoadingCircle_H
 #define __UILoadingCircle_H
 
 namespace DuiLib
@@ -31,7 +31,7 @@ public:
 	void Start();
 	void Stop();
 protected:
-    virtual void PaintBkImage(IRenderContext& ctx);
+    virtual void PaintBackgroundImage(IRenderContext& ctx);
     virtual void DoEvent(TEventUI& event);
 	virtual void Init();
 	Gdiplus::Color* GenerateColorsPallet(Gdiplus::Color _objColor, bool _blnShadeColor, int _intNbSpoke);

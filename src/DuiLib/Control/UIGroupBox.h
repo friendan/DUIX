@@ -1,4 +1,4 @@
-﻿#ifndef __UIGROUPBOX_H__
+#ifndef __UIGROUPBOX_H__
 #define __UIGROUPBOX_H__
 
 #pragma once
@@ -14,10 +14,10 @@ namespace DuiLib
 		~CGroupBoxUI();
 		 LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
-		void SetTextColor(DWORD dwTextColor);
-		DWORD GetTextColor() const;
-		void SetDisabledTextColor(DWORD dwTextColor);
-		DWORD GetDisabledTextColor() const;
+		void SetColor(DWORD dwColor);
+		DWORD GetColor() const;
+		void SetDisabledColor(DWORD dwColor);
+		DWORD GetDisabledColor() const;
 		void SetFont(int index);
 		int GetFont() const;
 
@@ -31,8 +31,8 @@ namespace DuiLib
 		SIZE CalcrectSize(SIZE szAvailable);
 
 	protected:
-		DWORD m_dwTextColor;
-		DWORD m_dwDisabledTextColor;
+		DWORD m_dwColor;
+		DWORD m_dwDisabledColor;
 		int m_iFont;
 		UINT m_uTextStyle;
 	};

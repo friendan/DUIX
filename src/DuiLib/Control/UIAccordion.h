@@ -56,7 +56,7 @@ namespace DuiLib
 		void SetDisabled(bool bDisabled);
 		void ApplyDefaultHeaderHeight(int nHeight);
 		void OnHeaderClick();
-		void OnHeaderHotChanged(bool bHot);
+		void OnHeaderHoverChanged(bool bHot);
 
 		bool Add(CControlUI* pControl) override;
 		bool AddAt(CControlUI* pControl, int iIndex) override;
@@ -79,14 +79,14 @@ namespace DuiLib
 		CLabelUI* m_pChevron;
 		bool m_bActive;
 		bool m_bDisabled;
-		bool m_bHeaderHot;
+		bool m_bHeaderHover;
 		bool m_bHeaderHeightExplicit;
 		int m_nHeaderHeight;
-		RECT m_rcContentPadding;
+		CDuiBox m_rcContentPadding;
 		DWORD m_dwHeaderBk;
-		DWORD m_dwHeaderHotBk;
+		DWORD m_dwHeaderHoverBk;
 		DWORD m_dwHeaderActiveBk;
-		DWORD m_dwHeaderActiveHotBk;
+		DWORD m_dwHeaderActiveHoverBk;
 	};
 }
 

@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIRing.h"
 
 namespace DuiLib
@@ -29,19 +29,19 @@ namespace DuiLib
 
 	void CRingUI::SetAttribute( LPCTSTR pstrName, LPCTSTR pstrValue )
 	{
-		if( _tcscmp(pstrName, _T("bkimage")) == 0 ) SetBkImage(pstrValue);
+		if( _tcscmp(pstrName, _T("background-image")) == 0 ) SetBackgroundImage(pstrValue);
 		else CLabelUI::SetAttribute(pstrName, pstrValue);
 	}
 
-	void CRingUI::SetBkImage( LPCTSTR pStrImage )
+	void CRingUI::SetBackgroundImage( LPCTSTR pStrImage )
 	{
-		if (m_sBkImage == pStrImage) return;
-		m_sBkImage = pStrImage;
+		if (m_sBackgroundImage == pStrImage) return;
+		m_sBackgroundImage = pStrImage;
 		DeleteImage();
 		Invalidate();
 	}
 
-	void CRingUI::PaintBkImage(IRenderContext& ctx)
+	void CRingUI::PaintBackgroundImage(IRenderContext& ctx)
 	{
 		if(m_pBkimage == NULL) {
 			InitImage();
@@ -69,7 +69,7 @@ namespace DuiLib
 
 	void CRingUI::InitImage()
 	{
-		TImageInfo* pImageInfo = GetRenderDevice()->GdiplusLoadImage(GetBkImage());
+		TImageInfo* pImageInfo = GetRenderDevice()->GdiplusLoadImage(GetBackgroundImage());
 		if(pImageInfo != NULL) {
 			m_pBkimage = pImageInfo->pImage;
 

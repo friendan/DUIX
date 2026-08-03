@@ -1,4 +1,4 @@
-﻿#ifndef __UIPROGRESS_H__
+#ifndef __UIPROGRESS_H__
 #define __UIPROGRESS_H__
 
 #pragma once
@@ -18,8 +18,8 @@ namespace DuiLib
 		void SetShowText(bool bShowText = true);
 		bool IsHorizontal();
 		void SetHorizontal(bool bHorizontal = true);
-		bool IsStretchForeImage();
-		void SetStretchForeImage(bool bStretchForeImage = true);
+		bool IsStretchForegroundImage();
+		void SetStretchForegroundImage(bool bStretchForegroundImage = true);
 		int GetMinValue() const;
 		void SetMinValue(int nMin);
 		int GetMaxValue() const;
@@ -28,18 +28,18 @@ namespace DuiLib
 		void SetValue(int nValue);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		void PaintForeColor(IRenderContext& ctx);
-		void PaintForeImage(IRenderContext& ctx);
+		void PaintForegroundImage(IRenderContext& ctx);
 		virtual void UpdateText();
 
 	protected:
 		bool m_bShowText;
 		bool m_bHorizontal;
-		bool m_bStretchForeImage;
+		bool m_bStretchForegroundImage;
 		int m_nMax;
 		int m_nMin;
 		int m_nValue;
 
-		CDuiString m_sForeImageModify;
+		CDuiString m_sForegroundImageModify;
 	};
 
 } // namespace DuiLib

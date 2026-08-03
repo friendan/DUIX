@@ -47,7 +47,6 @@ namespace DuiLib
 
 		void ApplyHoverStyle(bool bHover);
 		void UpdateStyle();
-		void PaintBorder(IRenderContext& ctx) override;
 		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl) override;
 		bool IsCloseFullyVisible() const;
 

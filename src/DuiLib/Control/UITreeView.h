@@ -1,4 +1,4 @@
-﻿#ifndef UITreeView_h__
+#ifndef UITreeView_h__
 #define UITreeView_h__
 
 #include <vector>
@@ -52,14 +52,14 @@ namespace DuiLib
 		bool GetVisibleFolderBtn();
 		void SetVisibleCheckBtn(bool _IsVisibled);
 		bool GetVisibleCheckBtn();
-		void SetItemTextColor(DWORD _dwItemTextColor);
-		DWORD GetItemTextColor() const;
-		void SetItemHotTextColor(DWORD _dwItemHotTextColor);
-		DWORD GetItemHotTextColor() const;
-		void SetSelItemTextColor(DWORD _dwSelItemTextColor);
-		DWORD GetSelItemTextColor() const;
-		void SetSelItemHotTextColor(DWORD _dwSelHotItemTextColor);
-		DWORD GetSelItemHotTextColor() const;
+		void SetItemColor(DWORD _dwItemTextColor);
+		DWORD GetItemColor() const;
+		void SetItemHoverColor(DWORD _dwItemHotTextColor);
+		DWORD GetItemHoverColor() const;
+		void SetSelItemColor(DWORD _dwSelItemTextColor);
+		DWORD GetSelItemColor() const;
+		void SetSelItemHoverColor(DWORD _dwSelHotItemTextColor);
+		DWORD GetSelItemHoverColor() const;
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
 		CStdPtrArray GetTreeNodes();
@@ -81,10 +81,10 @@ namespace DuiLib
 		long	m_iTreeLavel;
 		bool	m_bIsVisable;
 		bool	m_bIsCheckBox;
-		DWORD	m_dwItemTextColor;
-		DWORD	m_dwItemHotTextColor;
-		DWORD	m_dwSelItemTextColor;
-		DWORD	m_dwSelItemHotTextColor;
+		DWORD	m_dwItemColor;
+		DWORD	m_dwItemHoverColor;
+		DWORD	m_dwSelItemColor;
+		DWORD	m_dwSelItemHoverColor;
 
 		CTreeViewUI*			pTreeView;
 		CHorizontalLayoutUI*	pHoriz;
@@ -126,10 +126,10 @@ namespace DuiLib
 		virtual bool GetVisibleCheckBtn();
 		virtual void SetItemMinWidth(UINT _ItemMinWidth);
 		virtual UINT GetItemMinWidth();
-		virtual void SetItemTextColor(DWORD _dwItemTextColor);
-		virtual void SetItemHotTextColor(DWORD _dwItemHotTextColor);
-		virtual void SetSelItemTextColor(DWORD _dwSelItemTextColor);
-		virtual void SetSelItemHotTextColor(DWORD _dwSelHotItemTextColor);
+		virtual void SetItemColor(DWORD _dwItemTextColor);
+		virtual void SetItemHoverColor(DWORD _dwItemHotTextColor);
+		virtual void SetSelItemColor(DWORD _dwSelItemTextColor);
+		virtual void SetSelItemHoverColor(DWORD _dwSelHotItemTextColor);
 		
 		virtual void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 	private:

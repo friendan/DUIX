@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UITabLayout.h"
 
 namespace DuiLib
@@ -177,7 +177,7 @@ namespace DuiLib
 
 	void CTabLayoutUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("selectedid")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("selected-id")) == 0 ) {
 			int iSel = _ttoi(pstrValue);
 			if( !SelectItem(iSel) )
 				m_iDeferredSel = iSel;
@@ -190,29 +190,29 @@ namespace DuiLib
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		rc = m_rcItem;
 
-		RECT rcInset = GetInset();
-		// Adjust for inset
-		rc.left += rcInset.left;
-		rc.top += rcInset.top;
-		rc.right -= rcInset.right;
-		rc.bottom -= rcInset.bottom;
+		RECT rcPadding = GetPadding();
+		// Adjust for padding
+		rc.left += rcPadding.left;
+		rc.top += rcPadding.top;
+		rc.right -= rcPadding.right;
+		rc.bottom -= rcPadding.bottom;
 
 		for( int it = 0; it < m_items.GetSize(); it++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[it]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) {
-				SetFloatPos(it);
+			if( pControl->IsAbsolute() ) {
+				SetAbsolutePos(it);
 				continue;
 			}
 
 			if( it != m_iCurSel ) continue;
 
-			RECT rcPadding = pControl->GetPadding();
+			RECT rcMargin = pControl->GetMargin();
 			RECT rcPage = rc;
-			rcPage.left += rcPadding.left;
-			rcPage.top += rcPadding.top;
-			rcPage.right -= rcPadding.right;
-			rcPage.bottom -= rcPadding.bottom;
+			rcPage.left += rcMargin.left;
+			rcPage.top += rcMargin.top;
+			rcPage.right -= rcMargin.right;
+			rcPage.bottom -= rcMargin.bottom;
 
 			// 当前页铺满 TabLayout 客户区（不按子控件 EstimateSize 收缩）
 			SIZE sz = { MAX(0, rcPage.right - rcPage.left), MAX(0, rcPage.bottom - rcPage.top) };

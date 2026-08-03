@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "D2dRenderDevice.h"
 #include "UIRender.h"
 #include "DuiExitTrace.h"
@@ -27,14 +27,15 @@ namespace DuiLib {
 
 		const int kMaxD2dClips = 64;
 
-		D2D1_COLOR_F ToColorF(DWORD argb)
+		D2D1_COLOR_F ToColorF(DWORD color)
 		{
+			// DuiLib DWORD = CSS RRGGBBAA
 			D2D1_COLOR_F c;
-			c.a = ((argb >> 24) & 0xFF) / 255.0f;
-			c.r = ((argb >> 16) & 0xFF) / 255.0f;
-			c.g = ((argb >> 8) & 0xFF) / 255.0f;
-			c.b = (argb & 0xFF) / 255.0f;
-			if( c.a <= 0.0f && (argb & 0x00FFFFFF) != 0 ) c.a = 1.0f;
+			c.r = DuiColorR(color) / 255.0f;
+			c.g = DuiColorG(color) / 255.0f;
+			c.b = DuiColorB(color) / 255.0f;
+			c.a = DuiColorA(color) / 255.0f;
+			if( c.a <= 0.0f && (color & 0xFFFFFF00u) != 0 ) c.a = 1.0f;
 			return c;
 		}
 
@@ -691,10 +692,10 @@ namespace DuiLib {
 			if( !::IntersectRect(&rcBound, &rcClip, &rcRound) )
 				rcBound = rcRound;
 			e.rcBound = rcBound;
-			// width/height 与 GDI RoundRect 一致，为椭圆直径；D2D Layer 用半径
+			// width/height 为 CSS 半径（与属性 border-radius 一致）
 			e.bRound = (width > 0 || height > 0);
-			e.radiusX = (FLOAT)width / 2.0f;
-			e.radiusY = (FLOAT)height / 2.0f;
+			e.radiusX = (FLOAT)width;
+			e.radiusY = (FLOAT)height;
 			e.bLayer = false;
 			if( m_bInDraw && m_pRT != NULL )
 				ApplyClipEntry(e);
@@ -816,10 +817,16 @@ namespace DuiLib {
 			return;
 		}
 		FLOAT stroke = (nSize > 0) ? (FLOAT)nSize : 1.0f;
-		m_pRT->DrawLine(
-			D2D1::Point2F((FLOAT)rc.left, (FLOAT)rc.top),
-			D2D1::Point2F((FLOAT)rc.right, (FLOAT)rc.bottom),
-			pBrush, stroke);
+		FLOAT x0 = (FLOAT)rc.left;
+		FLOAT y0 = (FLOAT)rc.top;
+		FLOAT x1 = (FLOAT)rc.right;
+		FLOAT y1 = (FLOAT)rc.bottom;
+		// 轴对齐细线对齐到像素中心，避免 PER_PRIMITIVE 抗锯齿把 1px 糊成约 2px
+		if( stroke <= 1.0f ) {
+			if( rc.left == rc.right ) { x0 += 0.5f; x1 += 0.5f; }
+			else if( rc.top == rc.bottom ) { y0 += 0.5f; y1 += 0.5f; }
+		}
+		m_pRT->DrawLine(D2D1::Point2F(x0, y0), D2D1::Point2F(x1, y1), pBrush, stroke);
 	}
 
 	void CD2dRenderContext::DrawRect(const RECT& rc, int nSize, DWORD dwPenColor, int nStyle)
@@ -853,7 +860,7 @@ namespace DuiLib {
 			return;
 		}
 		FLOAT stroke = (nSize > 0) ? (FLOAT)nSize : 1.0f;
-		D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(ToRectF(rc), (FLOAT)width / 2.0f, (FLOAT)height / 2.0f);
+		D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(ToRectF(rc), (FLOAT)width, (FLOAT)height);
 		m_pRT->DrawRoundedRectangle(rr, pBrush, stroke);
 	}
 
@@ -873,8 +880,8 @@ namespace DuiLib {
 			m_gdiFallback.FillRoundRect(rc, width, height, dwColor);
 			return;
 		}
-		FLOAT radiusX = (FLOAT)((width > 0) ? width : height) / 2.0f;
-		FLOAT radiusY = (FLOAT)((height > 0) ? height : width) / 2.0f;
+		FLOAT radiusX = (FLOAT)((width > 0) ? width : height);
+		FLOAT radiusY = (FLOAT)((height > 0) ? height : width);
 		D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(ToRectF(rc), radiusX, radiusY);
 		m_pRT->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 		m_pRT->FillRoundedRectangle(rr, pBrush);
@@ -936,7 +943,7 @@ namespace DuiLib {
 		return true;
 	}
 
-	void CD2dRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle)
+	void CD2dRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle)
 	{
 		if( pstrText == NULL || *pstrText == _T('\0') ) return;
 
@@ -948,14 +955,14 @@ namespace DuiLib {
 			}
 			if( pFormat != NULL ) pFormat->Release();
 			FlushToGdi();
-			m_gdiFallback.DrawText(rc, pstrText, dwTextColor, iFont, uStyle);
+			m_gdiFallback.DrawText(rc, pstrText, dwColor, iFont, uStyle);
 			return;
 		}
 
 		if( pFormat == NULL || !EnsureD2dDraw() ) {
 			if( pFormat != NULL ) pFormat->Release();
 			FlushToGdi();
-			m_gdiFallback.DrawText(rc, pstrText, dwTextColor, iFont, uStyle);
+			m_gdiFallback.DrawText(rc, pstrText, dwColor, iFont, uStyle);
 			return;
 		}
 
@@ -963,11 +970,11 @@ namespace DuiLib {
 		pFormat->SetParagraphAlignment(ToDWriteParagraphAlign(uStyle));
 		pFormat->SetWordWrapping((uStyle & DT_SINGLELINE) ? DWRITE_WORD_WRAPPING_NO_WRAP : DWRITE_WORD_WRAPPING_WRAP);
 
-		ID2D1SolidColorBrush* pBrush = GetBrush(dwTextColor);
+		ID2D1SolidColorBrush* pBrush = GetBrush(dwColor);
 		if( pBrush == NULL ) {
 			pFormat->Release();
 			FlushToGdi();
-			m_gdiFallback.DrawText(rc, pstrText, dwTextColor, iFont, uStyle);
+			m_gdiFallback.DrawText(rc, pstrText, dwColor, iFont, uStyle);
 			return;
 		}
 
@@ -978,26 +985,26 @@ namespace DuiLib {
 		pFormat->Release();
 	}
 
-	void CD2dRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle, DWORD dwTextBKColor)
+	void CD2dRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle, DWORD dwTextBKColor)
 	{
 		DrawColor(rc, dwTextBKColor);
-		DrawText(rc, pstrText, dwTextColor, iFont, uStyle);
+		DrawText(rc, pstrText, dwColor, iFont, uStyle);
 	}
 
-	void CD2dRenderContext::DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
+	void CD2dRenderContext::DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
 	{
 		if( !TextLooksLikeHtml(pstrText) ) {
-			DrawText(rc, pstrText, dwTextColor, iFont, uStyle);
+			DrawText(rc, pstrText, dwColor, iFont, uStyle);
 			nLinkRects = 0;
 			return;
 		}
-		if( DrawHtmlTextDWrite(rc, pstrText, dwTextColor, pLinks, sLinks, nLinkRects, iFont, uStyle) )
+		if( DrawHtmlTextDWrite(rc, pstrText, dwColor, pLinks, sLinks, nLinkRects, iFont, uStyle) )
 			return;
 		FlushToGdi();
-		m_gdiFallback.DrawHtmlText(rc, pstrText, dwTextColor, pLinks, sLinks, nLinkRects, iFont, uStyle);
+		m_gdiFallback.DrawHtmlText(rc, pstrText, dwColor, pLinks, sLinks, nLinkRects, iFont, uStyle);
 	}
 
-	bool CD2dRenderContext::DrawHtmlTextDWrite(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
+	bool CD2dRenderContext::DrawHtmlTextDWrite(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
 	{
 		if( pstrText == NULL || m_pDWrite == NULL ) return false;
 
@@ -1031,7 +1038,7 @@ namespace DuiLib {
 		CStdPtrArray aRanges;
 		CStdPtrArray aInlines;
 		bool bold = false, italic = false, underline = false, inLink = false, inRaw = false, inSelected = false;
-		DWORD curColor = dwTextColor;
+		DWORD curColor = dwColor;
 		int curFontId = iFont;
 		FLOAT curFontSize = 0.0f;
 		CDuiString curFontFace;
@@ -1166,13 +1173,10 @@ namespace DuiLib {
 			}
 			else if( sTag.GetLength() >= 1 && sTag.GetAt(0) == _T('c') && (sTag.GetLength() == 1 || sTag.GetAt(1) == _T(' ') || sTag.GetAt(1) == _T('#')) ) {
 				LPCTSTR pc = sTag.GetData() + 1;
-				while( *pc == _T(' ') || *pc == _T('\t') ) pc++;
-				if( *pc == _T('#') ) pc++;
-				LPTSTR pend = NULL;
-				DWORD rgb = _tcstoul(pc, &pend, 16);
-				curColor = 0xFF000000 | rgb;
+				DWORD clr = 0;
+				if( ParseColorStringToken(pc, clr) ) curColor = clr;
 			}
-			else if( sTag == _T("/c") ) curColor = dwTextColor;
+			else if( sTag == _T("/c") ) curColor = dwColor;
 			else if( sTag.GetLength() >= 1 && sTag.GetAt(0) == _T('a') && (sTag.GetLength() == 1 || sTag.GetAt(1) == _T(' ') || sTag.GetAt(1) == _T('=')) ) {
 				inLink = true;
 				curHref.Empty();
@@ -1443,7 +1447,7 @@ namespace DuiLib {
 			rc.bottom = rc.top + (LONG)(metrics.height + 0.999f);
 		}
 		else if( m_pRT != NULL ) {
-			DWORD dwSelBk = (pManager != NULL) ? pManager->GetDefaultSelectedBkColor() : 0xFF316AC5;
+			DWORD dwSelBk = (pManager != NULL) ? pManager->GetDefaultSelectedBackgroundColor() : 0x316AC5FF;
 			for( int i = 0; i < aRanges.GetSize(); ++i ) {
 				TRange* pRange = static_cast<TRange*>(aRanges.GetAt(i));
 				if( !pRange->selected || pRange->length == 0 ) continue;
@@ -1469,7 +1473,7 @@ namespace DuiLib {
 					delete[] pMetrics;
 				}
 			}
-			ID2D1SolidColorBrush* pDefBrush = GetBrush(dwTextColor);
+			ID2D1SolidColorBrush* pDefBrush = GetBrush(dwColor);
 			if( pDefBrush != NULL )
 				m_pRT->DrawTextLayout(D2D1::Point2F((FLOAT)rc.left, (FLOAT)rc.top), pLayout, pDefBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 		}

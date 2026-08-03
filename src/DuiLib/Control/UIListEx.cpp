@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "UIListEx.h"
 
 namespace DuiLib {
@@ -50,12 +50,12 @@ namespace DuiLib {
 			if( pDefaultAttributes ) {
 				m_pEditUI->ApplyAttributeList(pDefaultAttributes);
 			}
-			m_pEditUI->SetBkColor(0xFFFFFFFF);
+			m_pEditUI->SetBackgroundColor(0xFFFFFFFF);
 			m_pEditUI->SetRich(false);
 			m_pEditUI->SetMultiLine(false);
 			m_pEditUI->SetWantReturn(true);
-			m_pEditUI->SetFloat(true);
-			m_pEditUI->SetAttribute(_T("autohscroll"), _T("true"));
+			m_pEditUI->SetAbsolute(true);
+			m_pEditUI->SetAttribute(_T("auto-hscroll"), _T("true"));
 			Add(m_pEditUI);
 		}
 		if (m_pComboBoxUI)
@@ -367,10 +367,10 @@ namespace DuiLib {
 	IMPLEMENT_DUICONTROL(CListContainerHeaderItemUI)
 
 	CListContainerHeaderItemUI::CListContainerHeaderItemUI() : m_bDragable(TRUE), m_uButtonState(0), m_iSepWidth(4),
-		m_uTextStyle(DT_VCENTER | DT_CENTER | DT_SINGLELINE), m_dwTextColor(0), m_iFont(-1), m_bShowHtml(FALSE),
+		m_uTextStyle(DT_VCENTER | DT_CENTER | DT_SINGLELINE), m_dwColor(0), m_iFont(-1), m_bShowHtml(FALSE),
 		m_bEditable(FALSE),m_bComboable(FALSE),m_bCheckBoxable(FALSE),m_uCheckBoxState(0),m_bChecked(FALSE),m_pOwner(NULL)
 	{
-		SetTextPadding(CDuiRect(2, 0, 2, 0));
+		SetPadding(CDuiBox(0, 2, 0, 2));
 		ptLastMouse.x = ptLastMouse.y = 0;
 		SetMinWidth(16);
 	}
@@ -433,15 +433,15 @@ namespace DuiLib {
 		Invalidate();
 	}
 
-	DWORD CListContainerHeaderItemUI::GetTextColor() const
+	DWORD CListContainerHeaderItemUI::GetColor() const
 	{
-		return m_dwTextColor;
+		return m_dwColor;
 	}
 
 
-	void CListContainerHeaderItemUI::SetTextColor(DWORD dwTextColor)
+	void CListContainerHeaderItemUI::SetColor(DWORD dwColor)
 	{
-		m_dwTextColor = dwTextColor;
+		m_dwColor = dwColor;
 	}
 
 	RECT CListContainerHeaderItemUI::GetTextPadding() const
@@ -475,47 +475,47 @@ namespace DuiLib {
 		Invalidate();
 	}
 
-	LPCTSTR CListContainerHeaderItemUI::GetNormalImage() const
+	LPCTSTR CListContainerHeaderItemUI::GetImage() const
 	{
-		return m_sNormalImage;
+		return m_sImage;
 	}
 
-	void CListContainerHeaderItemUI::SetNormalImage(LPCTSTR pStrImage)
+	void CListContainerHeaderItemUI::SetImage(LPCTSTR pStrImage)
 	{
-		m_sNormalImage = pStrImage;
+		m_sImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CListContainerHeaderItemUI::GetHotImage() const
+	LPCTSTR CListContainerHeaderItemUI::GetHoverImage() const
 	{
-		return m_sHotImage;
+		return m_sHoverImage;
 	}
 
-	void CListContainerHeaderItemUI::SetHotImage(LPCTSTR pStrImage)
+	void CListContainerHeaderItemUI::SetHoverImage(LPCTSTR pStrImage)
 	{
-		m_sHotImage = pStrImage;
+		m_sHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CListContainerHeaderItemUI::GetPushedImage() const
+	LPCTSTR CListContainerHeaderItemUI::GetActiveImage() const
 	{
-		return m_sPushedImage;
+		return m_sActiveImage;
 	}
 
-	void CListContainerHeaderItemUI::SetPushedImage(LPCTSTR pStrImage)
+	void CListContainerHeaderItemUI::SetActiveImage(LPCTSTR pStrImage)
 	{
-		m_sPushedImage = pStrImage;
+		m_sActiveImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CListContainerHeaderItemUI::GetFocusedImage() const
+	LPCTSTR CListContainerHeaderItemUI::GetFocusImage() const
 	{
-		return m_sFocusedImage;
+		return m_sFocusImage;
 	}
 
-	void CListContainerHeaderItemUI::SetFocusedImage(LPCTSTR pStrImage)
+	void CListContainerHeaderItemUI::SetFocusImage(LPCTSTR pStrImage)
 	{
-		m_sFocusedImage = pStrImage;
+		m_sFocusImage = pStrImage;
 		Invalidate();
 	}
 
@@ -532,9 +532,9 @@ namespace DuiLib {
 
 	void CListContainerHeaderItemUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("dragable")) == 0 ) SetDragable(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("sepwidth")) == 0 ) SetSepWidth(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("align")) == 0 ) 
+		if( _tcsicmp(pstrName, _T("draggable")) == 0 ) SetDragable(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("sep-width")) == 0 ) SetSepWidth(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("text-align")) == 0 ) 
 		{
 			if( _tcsstr(pstrValue, _T("left")) != NULL ) {
 				m_uTextStyle &= ~(DT_CENTER | DT_RIGHT);
@@ -549,48 +549,58 @@ namespace DuiLib {
 				m_uTextStyle |= DT_RIGHT;
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("endellipsis")) == 0 ) 
+		else if( _tcsicmp(pstrName, _T("text-overflow")) == 0 ) 
 		{
-			if( _tcsicmp(pstrValue, _T("true")) == 0 ) m_uTextStyle |= DT_END_ELLIPSIS;
+			if( _tcsicmp(pstrValue, _T("ellipsis")) == 0 ) m_uTextStyle |= DT_END_ELLIPSIS;
 			else m_uTextStyle &= ~DT_END_ELLIPSIS;
 		}    
-		else if( _tcsicmp(pstrName, _T("font")) == 0 ) SetFont(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("textcolor")) == 0 ) 
-		{
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("font-family")) == 0 || _tcsicmp(pstrName, _T("font-size")) == 0 ) {
+			CDuiString sFamily;
+			int nSize = 0;
+			if( _tcsicmp(pstrName, _T("font-family")) == 0 ) sFamily = pstrValue ? pstrValue : _T("");
+			else {
+				LPTSTR pEnd = NULL;
+				long v = _tcstol(pstrValue, &pEnd, 10);
+				if( pEnd != pstrValue && v > 0 ) nSize = (int)v;
+			}
+			if( m_pManager != NULL ) {
+				TFontInfo* pInfo = m_pManager->GetFontInfo(m_iFont);
+				if( pInfo == NULL ) pInfo = m_pManager->GetDefaultFontInfo();
+				if( pInfo != NULL ) {
+					if( sFamily.IsEmpty() ) sFamily = pInfo->sFontName;
+					if( nSize <= 0 ) nSize = pInfo->iSize;
+				}
+				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
+				if( nSize <= 0 ) nSize = 12;
+				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				if( id >= 0 ) SetFont(id);
+			}
 		}
-		else if( _tcsicmp(pstrName, _T("textpadding")) == 0 ) 
+		else if( _tcsicmp(pstrName, _T("color")) == 0 ) 
 		{
-			RECT rcTextPadding = { 0 };
-			LPTSTR pstr = NULL;
-			rcTextPadding.left = _tcstol(pstrValue, &pstr, 10);
-			rcTextPadding.top = _tcstol(pstr + 1, &pstr, 10);
-			rcTextPadding.right = _tcstol(pstr + 1, &pstr, 10);
-			rcTextPadding.bottom = _tcstol(pstr + 1, &pstr, 10);
-			SetTextPadding(rcTextPadding);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("showhtml")) == 0 ) SetShowHtml(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("normalimage")) == 0 ) SetNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("hotimage")) == 0 ) SetHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("pushedimage")) == 0 ) SetPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("focusedimage")) == 0 ) SetFocusedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("sepimage")) == 0 ) SetSepImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image")) == 0 ) SetImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-hover")) == 0 ) SetHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-active")) == 0 ) SetActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-focus")) == 0 ) SetFocusImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("sep-image")) == 0 ) SetSepImage(pstrValue);
 
 		else if( _tcsicmp(pstrName, _T("editable")) == 0 ) SetColumeEditable(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("comboable")) == 0 ) SetColumeComboable(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("checkable")) == 0 ) SetColumeCheckable(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("checkboxwidth")) == 0 ) SetCheckBoxWidth(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("checkboxheight")) == 0 ) SetCheckBoxHeight(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("checkboxnormalimage")) == 0 ) SetCheckBoxNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxhotimage")) == 0 ) SetCheckBoxHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxpushedimage")) == 0 ) SetCheckBoxPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxfocusedimage")) == 0 ) SetCheckBoxFocusedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxdisabledimage")) == 0 ) SetCheckBoxDisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxselectedimage")) == 0 ) SetCheckBoxSelectedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxforeimage")) == 0 ) SetCheckBoxForeImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-width")) == 0 ) SetCheckBoxWidth(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("checkbox-height")) == 0 ) SetCheckBoxHeight(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("checkbox-image")) == 0 ) SetCheckBoxNormalImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-hover")) == 0 ) SetCheckBoxHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-active")) == 0 ) SetCheckBoxActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-focus")) == 0 ) SetCheckBoxFocusedImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-disabled")) == 0 ) SetCheckBoxDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-selected")) == 0 ) SetCheckBoxSelectedImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-foreground-image")) == 0 ) SetCheckBoxForegroundImage(pstrValue);
 
 		else CContainerUI::SetAttribute(pstrName, pstrValue);
 	}
@@ -786,20 +796,20 @@ namespace DuiLib {
 		else m_uButtonState &= ~ UISTATE_FOCUSED;
 
 		if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
-			if( m_sPushedImage.IsEmpty() && !m_sNormalImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sNormalImage);
-			if( !DrawImage(ctx, (LPCTSTR)m_sPushedImage) ) {}
+			if( m_sActiveImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sImage);
+			if( !DrawImage(ctx, (LPCTSTR)m_sActiveImage) ) {}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
-			if( m_sHotImage.IsEmpty() && !m_sNormalImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sNormalImage);
-			if( !DrawImage(ctx, (LPCTSTR)m_sHotImage) ) {}
+			if( m_sHoverImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sImage);
+			if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
-			if( m_sFocusedImage.IsEmpty() && !m_sNormalImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sNormalImage);
-			if( !DrawImage(ctx, (LPCTSTR)m_sFocusedImage) ) {}
+			if( m_sFocusImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sImage);
+			if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
 		}
 		else {
-			if( !m_sNormalImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sNormalImage) ) {}
+			if( !m_sImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
 			}
 		}
 
@@ -822,7 +832,7 @@ namespace DuiLib {
 			if( (m_uCheckBoxState & UISTATE_SELECTED) != 0 ) {
 				if( !m_sCheckBoxSelectedImage.IsEmpty() ) {
 					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxSelectedImage) ) {}
-					else goto Label_ForeImage;
+					else goto Label_ForegroundImage;
 				}
 			}
 
@@ -838,14 +848,14 @@ namespace DuiLib {
 				}
 			}
 			else if( (m_uCheckBoxState & UISTATE_PUSHED) != 0 ) {
-				if( !m_sCheckBoxPushedImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxPushedImage) ) {}
+				if( !m_sCheckBoxActiveImage.IsEmpty() ) {
+					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxActiveImage) ) {}
 					else return;
 				}
 			}
 			else if( (m_uCheckBoxState & UISTATE_HOT) != 0 ) {
-				if( !m_sCheckBoxHotImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxHotImage) ) {}
+				if( !m_sCheckBoxHoverImage.IsEmpty() ) {
+					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxHoverImage) ) {}
 					else return;
 				}
 			}
@@ -861,22 +871,24 @@ namespace DuiLib {
 				else return;
 			}
 
-Label_ForeImage:
-			if( !m_sCheckBoxForeImage.IsEmpty() ) {
-				if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxForeImage) ) {}
+Label_ForegroundImage:
+			if( !m_sCheckBoxForegroundImage.IsEmpty() ) {
+				if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxForegroundImage) ) {}
 			}
 		}
 	}
 
 	void CListContainerHeaderItemUI::PaintText(IRenderContext& ctx)
 	{
-		if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
+		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
 
 		RECT rcText = m_rcItem;
-		rcText.left += m_rcTextPadding.left;
-		rcText.top += m_rcTextPadding.top;
-		rcText.right -= m_rcTextPadding.right;
-		rcText.bottom -= m_rcTextPadding.bottom;
+		RECT rcPad = GetPadding();
+		RECT rcTextPad = GetTextPadding();
+		rcText.left += rcPad.left + rcTextPad.left;
+		rcText.top += rcPad.top + rcTextPad.top;
+		rcText.right -= rcPad.right + rcTextPad.right;
+		rcText.bottom -= rcPad.bottom + rcTextPad.bottom;
 		if (m_bCheckBoxable) {
 			RECT rcCheck;
 			GetCheckBoxRect(rcCheck);
@@ -889,10 +901,10 @@ Label_ForeImage:
 
 		int nLinks = 0;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rcText, sText, m_dwTextColor, \
+			ctx.DrawHtmlText(rcText, sText, m_dwColor, \
 			NULL, NULL, nLinks, m_iFont, DT_SINGLELINE | m_uTextStyle);
 		else
-			ctx.DrawText(rcText, sText, m_dwTextColor, \
+			ctx.DrawText(rcText, sText, m_dwColor, \
 			m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
@@ -953,24 +965,24 @@ Label_ForeImage:
 		m_sCheckBoxNormalImage = pStrImage;
 	}
 
-	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxHotImage()
+	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxHoverImage()
 	{
-		return m_sCheckBoxHotImage;
+		return m_sCheckBoxHoverImage;
 	}
 
-	void CListContainerHeaderItemUI::SetCheckBoxHotImage(LPCTSTR pStrImage)
+	void CListContainerHeaderItemUI::SetCheckBoxHoverImage(LPCTSTR pStrImage)
 	{
-		m_sCheckBoxHotImage = pStrImage;
+		m_sCheckBoxHoverImage = pStrImage;
 	}
 
-	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxPushedImage()
+	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxActiveImage()
 	{
-		return m_sCheckBoxPushedImage;
+		return m_sCheckBoxActiveImage;
 	}
 
-	void CListContainerHeaderItemUI::SetCheckBoxPushedImage(LPCTSTR pStrImage)
+	void CListContainerHeaderItemUI::SetCheckBoxActiveImage(LPCTSTR pStrImage)
 	{
-		m_sCheckBoxPushedImage = pStrImage;
+		m_sCheckBoxActiveImage = pStrImage;
 	}
 
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxFocusedImage()
@@ -1001,14 +1013,14 @@ Label_ForeImage:
 	{
 		m_sCheckBoxSelectedImage = pStrImage;
 	}
-	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxForeImage()
+	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxForegroundImage()
 	{
-		return m_sCheckBoxForeImage;
+		return m_sCheckBoxForegroundImage;
 	}
 
-	void CListContainerHeaderItemUI::SetCheckBoxForeImage(LPCTSTR pStrImage)
+	void CListContainerHeaderItemUI::SetCheckBoxForegroundImage(LPCTSTR pStrImage)
 	{
-		m_sCheckBoxForeImage = pStrImage;
+		m_sCheckBoxForegroundImage = pStrImage;
 	}
 	int CListContainerHeaderItemUI::GetCheckBoxWidth() const
 	{
@@ -1268,16 +1280,16 @@ Label_ForeImage:
 	{
 		if( m_pOwner == NULL ) return;
 		TListInfoUI* pInfo = m_pOwner->GetListInfo();
-		DWORD iTextColor = pInfo->dwTextColor;
+		DWORD iTextColor = pInfo->dwColor;
 
 		if( (m_uButtonState & UISTATE_HOT) != 0 ) {
-			iTextColor = pInfo->dwHotTextColor;
+			iTextColor = pInfo->dwHoverColor;
 		}
 		if( IsSelected() ) {
-			iTextColor = pInfo->dwSelectedTextColor;
+			iTextColor = pInfo->dwSelectedColor;
 		}
 		if( !IsEnabled() ) {
-			iTextColor = pInfo->dwDisabledTextColor;
+			iTextColor = pInfo->dwDisabledColor;
 		}
 		IListCallbackUI* pCallback = m_pOwner->GetTextCallback();
 		//DUIASSERT(pCallback);
@@ -1344,7 +1356,7 @@ Label_ForeImage:
 				if( (m_uCheckBoxState & UISTATE_SELECTED) != 0 ) {
 					if( !m_sCheckBoxSelectedImage.IsEmpty() ) {
 						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxSelectedImage, NULL, rcCheckBox) ) {}
-						else goto Label_ForeImage;
+						else goto Label_ForegroundImage;
 					}
 				}
 
@@ -1360,14 +1372,14 @@ Label_ForeImage:
 					}
 				}
 				else if( (m_uCheckBoxState & UISTATE_PUSHED) != 0 ) {
-					if( !m_sCheckBoxPushedImage.IsEmpty() ) {
-						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxPushedImage, NULL, rcCheckBox) ) {}
+					if( !m_sCheckBoxActiveImage.IsEmpty() ) {
+						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxActiveImage, NULL, rcCheckBox) ) {}
 						else return;
 					}
 				}
 				else if( (m_uCheckBoxState & UISTATE_HOT) != 0 ) {
-					if( !m_sCheckBoxHotImage.IsEmpty() ) {
-						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxHotImage, NULL, rcCheckBox) ) {}
+					if( !m_sCheckBoxHoverImage.IsEmpty() ) {
+						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxHoverImage, NULL, rcCheckBox) ) {}
 						else return;
 					}
 				}
@@ -1383,9 +1395,9 @@ Label_ForeImage:
 					else return;
 				}
 
-Label_ForeImage:
-				if( !m_sCheckBoxForeImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxForeImage, NULL, rcCheckBox) ) {}
+Label_ForegroundImage:
+				if( !m_sCheckBoxForegroundImage.IsEmpty() ) {
+					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxForegroundImage, NULL, rcCheckBox) ) {}
 				}
 			}
 		}
@@ -1396,15 +1408,15 @@ Label_ForeImage:
 	}
 	void CListTextExtElementUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("checkboxwidth")) == 0 ) SetCheckBoxWidth(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("checkboxheight")) == 0 ) SetCheckBoxHeight(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("checkboxnormalimage")) == 0 ) SetCheckBoxNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxhotimage")) == 0 ) SetCheckBoxHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxpushedimage")) == 0 ) SetCheckBoxPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxfocusedimage")) == 0 ) SetCheckBoxFocusedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxdisabledimage")) == 0 ) SetCheckBoxDisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxselectedimage")) == 0 ) SetCheckBoxSelectedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("checkboxforeimage")) == 0 ) SetCheckBoxForeImage(pstrValue);
+		if( _tcsicmp(pstrName, _T("checkbox-width")) == 0 ) SetCheckBoxWidth(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("checkbox-height")) == 0 ) SetCheckBoxHeight(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("checkbox-image")) == 0 ) SetCheckBoxNormalImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-hover")) == 0 ) SetCheckBoxHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-active")) == 0 ) SetCheckBoxActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-focus")) == 0 ) SetCheckBoxFocusedImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-disabled")) == 0 ) SetCheckBoxDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-image-selected")) == 0 ) SetCheckBoxSelectedImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("checkbox-foreground-image")) == 0 ) SetCheckBoxForegroundImage(pstrValue);
 		else CListLabelElementUI::SetAttribute(pstrName, pstrValue);
 	}
 	LPCTSTR CListTextExtElementUI::GetCheckBoxNormalImage()
@@ -1417,24 +1429,24 @@ Label_ForeImage:
 		m_sCheckBoxNormalImage = pStrImage;
 	}
 
-	LPCTSTR CListTextExtElementUI::GetCheckBoxHotImage()
+	LPCTSTR CListTextExtElementUI::GetCheckBoxHoverImage()
 	{
-		return m_sCheckBoxHotImage;
+		return m_sCheckBoxHoverImage;
 	}
 
-	void CListTextExtElementUI::SetCheckBoxHotImage(LPCTSTR pStrImage)
+	void CListTextExtElementUI::SetCheckBoxHoverImage(LPCTSTR pStrImage)
 	{
-		m_sCheckBoxHotImage = pStrImage;
+		m_sCheckBoxHoverImage = pStrImage;
 	}
 
-	LPCTSTR CListTextExtElementUI::GetCheckBoxPushedImage()
+	LPCTSTR CListTextExtElementUI::GetCheckBoxActiveImage()
 	{
-		return m_sCheckBoxPushedImage;
+		return m_sCheckBoxActiveImage;
 	}
 
-	void CListTextExtElementUI::SetCheckBoxPushedImage(LPCTSTR pStrImage)
+	void CListTextExtElementUI::SetCheckBoxActiveImage(LPCTSTR pStrImage)
 	{
-		m_sCheckBoxPushedImage = pStrImage;
+		m_sCheckBoxActiveImage = pStrImage;
 	}
 
 	LPCTSTR CListTextExtElementUI::GetCheckBoxFocusedImage()
@@ -1465,14 +1477,14 @@ Label_ForeImage:
 	{
 		m_sCheckBoxSelectedImage = pStrImage;
 	}
-	LPCTSTR CListTextExtElementUI::GetCheckBoxForeImage()
+	LPCTSTR CListTextExtElementUI::GetCheckBoxForegroundImage()
 	{
-		return m_sCheckBoxForeImage;
+		return m_sCheckBoxForegroundImage;
 	}
 
-	void CListTextExtElementUI::SetCheckBoxForeImage(LPCTSTR pStrImage)
+	void CListTextExtElementUI::SetCheckBoxForegroundImage(LPCTSTR pStrImage)
 	{
-		m_sCheckBoxForeImage = pStrImage;
+		m_sCheckBoxForegroundImage = pStrImage;
 	}
 
 	bool CListTextExtElementUI::DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)

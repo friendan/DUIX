@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIComboBox.h"
 
 namespace DuiLib
@@ -17,7 +17,7 @@ namespace DuiLib
 
 	void CComboBoxUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if (_tcsicmp(pstrName, _T("arrowimage")) == 0)
+		if (_tcsicmp(pstrName, _T("arrow-image")) == 0)
 			m_sArrowImage = pstrValue;
 		else
 			CComboUI::SetAttribute(pstrName, pstrValue);
@@ -66,7 +66,7 @@ namespace DuiLib
 			rcBmpPart.right = rcBmpPart.left + m_nArrowWidth;
 
 			CDuiRect rcDest(0, 0, m_rcItem.right - m_rcItem.left, m_rcItem.bottom - m_rcItem.top);
-			rcDest.Deflate(GetBorderSize(), GetBorderSize());
+			rcDest.Deflate(GetBorderWidth(), GetBorderWidth());
 			rcDest.left = rcDest.right - m_nArrowWidth;
 
 			CDuiString sSource = sModify.Mid(nPos1, nPos3 + 1 - nPos1);

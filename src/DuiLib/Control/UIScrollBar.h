@@ -1,4 +1,4 @@
-﻿#ifndef __UISCROLLBAR_H__
+#ifndef __UISCROLLBAR_H__
 #define __UISCROLLBAR_H__
 
 #pragma once
@@ -30,52 +30,52 @@ namespace DuiLib
 		int GetLineSize() const;
 		void SetLineSize(int nSize);
 
-		bool GetShowButton1();
-		void SetShowButton1(bool bShow);
-		LPCTSTR GetButton1NormalImage();
-		void SetButton1NormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetButton1HotImage();
-		void SetButton1HotImage(LPCTSTR pStrImage);
-		LPCTSTR GetButton1PushedImage();
-		void SetButton1PushedImage(LPCTSTR pStrImage);
-		LPCTSTR GetButton1DisabledImage();
-		void SetButton1DisabledImage(LPCTSTR pStrImage);
+		bool GetShowButtonPrev();
+		void SetShowButtonPrev(bool bShow);
+		LPCTSTR GetButtonPrevNormalImage();
+		void SetButtonPrevNormalImage(LPCTSTR pStrImage);
+		LPCTSTR GetButtonPrevHoverImage();
+		void SetButtonPrevHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetButtonPrevActiveImage();
+		void SetButtonPrevActiveImage(LPCTSTR pStrImage);
+		LPCTSTR GetButtonPrevDisabledImage();
+		void SetButtonPrevDisabledImage(LPCTSTR pStrImage);
 
-		bool GetShowButton2();
-		void SetShowButton2(bool bShow);
-		LPCTSTR GetButton2NormalImage();
-		void SetButton2NormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetButton2HotImage();
-		void SetButton2HotImage(LPCTSTR pStrImage);
-		LPCTSTR GetButton2PushedImage();
-		void SetButton2PushedImage(LPCTSTR pStrImage);
-		LPCTSTR GetButton2DisabledImage();
-		void SetButton2DisabledImage(LPCTSTR pStrImage);
+		bool GetShowButtonNext();
+		void SetShowButtonNext(bool bShow);
+		LPCTSTR GetButtonNextNormalImage();
+		void SetButtonNextNormalImage(LPCTSTR pStrImage);
+		LPCTSTR GetButtonNextHoverImage();
+		void SetButtonNextHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetButtonNextActiveImage();
+		void SetButtonNextActiveImage(LPCTSTR pStrImage);
+		LPCTSTR GetButtonNextDisabledImage();
+		void SetButtonNextDisabledImage(LPCTSTR pStrImage);
 
 		LPCTSTR GetThumbNormalImage();
 		void SetThumbNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetThumbHotImage();
-		void SetThumbHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetThumbPushedImage();
-		void SetThumbPushedImage(LPCTSTR pStrImage);
+		LPCTSTR GetThumbHoverImage();
+		void SetThumbHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetThumbActiveImage();
+		void SetThumbActiveImage(LPCTSTR pStrImage);
 		LPCTSTR GetThumbDisabledImage();
 		void SetThumbDisabledImage(LPCTSTR pStrImage);
 
 		LPCTSTR GetRailNormalImage();
 		void SetRailNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetRailHotImage();
-		void SetRailHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetRailPushedImage();
-		void SetRailPushedImage(LPCTSTR pStrImage);
+		LPCTSTR GetRailHoverImage();
+		void SetRailHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetRailActiveImage();
+		void SetRailActiveImage(LPCTSTR pStrImage);
 		LPCTSTR GetRailDisabledImage();
 		void SetRailDisabledImage(LPCTSTR pStrImage);
 
 		LPCTSTR GetBkNormalImage();
 		void SetBkNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetBkHotImage();
-		void SetBkHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetBkPushedImage();
-		void SetBkPushedImage(LPCTSTR pStrImage);
+		LPCTSTR GetBkHoverImage();
+		void SetBkHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetBkActiveImage();
+		void SetBkActiveImage(LPCTSTR pStrImage);
 		LPCTSTR GetBkDisabledImage();
 		void SetBkDisabledImage(LPCTSTR pStrImage);
 
@@ -92,8 +92,8 @@ namespace DuiLib
 		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 
 		void PaintBk(IRenderContext& ctx);
-		void PaintButton1(IRenderContext& ctx);
-		void PaintButton2(IRenderContext& ctx);
+		void PaintButtonPrev(IRenderContext& ctx);
+		void PaintButtonNext(IRenderContext& ctx);
 		void PaintThumb(IRenderContext& ctx);
 		void PaintRail(IRenderContext& ctx);
 
@@ -117,36 +117,36 @@ namespace DuiLib
 		int m_nScrollRepeatDelay;
 
 		CDuiString m_sBkNormalImage;
-		CDuiString m_sBkHotImage;
-		CDuiString m_sBkPushedImage;
+		CDuiString m_sBkHoverImage;
+		CDuiString m_sBkActiveImage;
 		CDuiString m_sBkDisabledImage;
 
-		bool m_bShowButton1;
-		RECT m_rcButton1;
-		UINT m_uButton1State;
-		CDuiString m_sButton1NormalImage;
-		CDuiString m_sButton1HotImage;
-		CDuiString m_sButton1PushedImage;
-		CDuiString m_sButton1DisabledImage;
+		bool m_bShowButtonPrev;
+		RECT m_rcButtonPrev;
+		UINT m_uButtonPrevState;
+		CDuiString m_sButtonPrevNormalImage;
+		CDuiString m_sButtonPrevHoverImage;
+		CDuiString m_sButtonPrevActiveImage;
+		CDuiString m_sButtonPrevDisabledImage;
 
-		bool m_bShowButton2;
-		RECT m_rcButton2;
-		UINT m_uButton2State;
-		CDuiString m_sButton2NormalImage;
-		CDuiString m_sButton2HotImage;
-		CDuiString m_sButton2PushedImage;
-		CDuiString m_sButton2DisabledImage;
+		bool m_bShowButtonNext;
+		RECT m_rcButtonNext;
+		UINT m_uButtonNextState;
+		CDuiString m_sButtonNextNormalImage;
+		CDuiString m_sButtonNextHoverImage;
+		CDuiString m_sButtonNextActiveImage;
+		CDuiString m_sButtonNextDisabledImage;
 
 		RECT m_rcThumb;
 		UINT m_uThumbState;
 		CDuiString m_sThumbNormalImage;
-		CDuiString m_sThumbHotImage;
-		CDuiString m_sThumbPushedImage;
+		CDuiString m_sThumbHoverImage;
+		CDuiString m_sThumbActiveImage;
 		CDuiString m_sThumbDisabledImage;
 
 		CDuiString m_sRailNormalImage;
-		CDuiString m_sRailHotImage;
-		CDuiString m_sRailPushedImage;
+		CDuiString m_sRailHoverImage;
+		CDuiString m_sRailActiveImage;
 		CDuiString m_sRailDisabledImage;
 
 		CDuiString m_sImageModify;

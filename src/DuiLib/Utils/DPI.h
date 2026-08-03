@@ -2,6 +2,8 @@
 #define __DPI_H__
 #pragma once
 
+#include "Utils.h"
+
 #ifndef DPI_ENUMS_DECLARED
 
 typedef enum PROCESS_DPI_AWARENESS {
@@ -40,6 +42,7 @@ namespace DuiLib
 		void SetScale(UINT uDPI);
 		RECT Scale(RECT rcRect);
 		void Scale(RECT *pRect);
+		void Scale(CDuiBox *pBox); // inset：四边独立缩放（勿当几何 RECT）
 		POINT Scale(POINT ptPoint);
 		void Scale(POINT *pPoint);
 		SIZE Scale(SIZE szSize);

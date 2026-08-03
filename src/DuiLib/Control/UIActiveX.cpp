@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 namespace DuiLib {
 
@@ -910,7 +910,7 @@ namespace DuiLib {
 					CPaintManagerUI* pManager = m_pOwner->m_pOwner->GetManager();
 					CGdiRenderContext localCtx((HDC)wParam, pManager);
 					IRenderContext* pCtx = ResolveRenderContext(pManager, (HDC)wParam, localCtx);
-					pCtx->DrawLine(rcCaret, 1, 0xFF000000);
+					pCtx->DrawLine(rcCaret, 1, 0x000000FF);
 				}
 			}
 		}
@@ -1028,8 +1028,8 @@ namespace DuiLib {
 	void CActiveXUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
 		if( _tcscmp(pstrName, _T("clsid")) == 0 ) CreateControl(pstrValue);
-		else if( _tcscmp(pstrName, _T("modulename")) == 0 ) SetModuleName(pstrValue);
-		else if( _tcscmp(pstrName, _T("delaycreate")) == 0 ) SetDelayCreate(_tcscmp(pstrValue, _T("true")) == 0);
+		else if( _tcscmp(pstrName, _T("module-name")) == 0 ) SetModuleName(pstrValue);
+		else if( _tcscmp(pstrName, _T("delay-create")) == 0 ) SetDelayCreate(_tcscmp(pstrValue, _T("true")) == 0);
 		else CControlUI::SetAttribute(pstrName, pstrValue);
 	}
 

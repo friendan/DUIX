@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "GdiRenderContext.h"
 #include "IRenderDevice.h"
 #include "UIRender.h"
@@ -152,19 +152,19 @@ namespace DuiLib {
 		CRenderEngine::FillRoundRect(m_hDC, rc, width, height, dwColor);
 	}
 
-	void CGdiRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle)
+	void CGdiRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle)
 	{
-		CRenderEngine::DrawText(m_hDC, m_pManager, rc, pstrText, dwTextColor, iFont, uStyle);
+		CRenderEngine::DrawText(m_hDC, m_pManager, rc, pstrText, dwColor, iFont, uStyle);
 	}
 
-	void CGdiRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle, DWORD dwTextBKColor)
+	void CGdiRenderContext::DrawText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle, DWORD dwTextBKColor)
 	{
-		CRenderEngine::DrawText(m_hDC, m_pManager, rc, pstrText, dwTextColor, iFont, uStyle, dwTextBKColor);
+		CRenderEngine::DrawText(m_hDC, m_pManager, rc, pstrText, dwColor, iFont, uStyle, dwTextBKColor);
 	}
 
-	void CGdiRenderContext::DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
+	void CGdiRenderContext::DrawHtmlText(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle)
 	{
-		CRenderEngine::DrawHtmlText(m_hDC, m_pManager, rc, pstrText, dwTextColor, pLinks, sLinks, nLinkRects, iFont, uStyle);
+		CRenderEngine::DrawHtmlText(m_hDC, m_pManager, rc, pstrText, dwColor, pLinks, sLinks, nLinkRects, iFont, uStyle);
 	}
 
 	SIZE CGdiRenderContext::GetTextSize(LPCTSTR pstrText, int iFont, UINT uStyle)
@@ -540,23 +540,23 @@ namespace DuiLib {
 		}
 	}
 
-	void RenderMeasureText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle)
+	void RenderMeasureText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle)
 	{
 		if( pManager == NULL ) return;
 		CTempRenderContextScope scope(pManager);
 		IRenderContext* pCtx = scope.operator->();
 		if( pCtx == NULL ) return;
-		pCtx->DrawText(rc, pstrText, dwTextColor, iFont, uStyle);
+		pCtx->DrawText(rc, pstrText, dwColor, iFont, uStyle);
 	}
 
-	void RenderMeasureHtmlText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwTextColor, int iFont, UINT uStyle)
+	void RenderMeasureHtmlText(CPaintManagerUI* pManager, RECT& rc, LPCTSTR pstrText, DWORD dwColor, int iFont, UINT uStyle)
 	{
 		if( pManager == NULL ) return;
 		CTempRenderContextScope scope(pManager);
 		IRenderContext* pCtx = scope.operator->();
 		if( pCtx == NULL ) return;
 		int nLinks = 0;
-		pCtx->DrawHtmlText(rc, pstrText, dwTextColor, NULL, NULL, nLinks, iFont, uStyle);
+		pCtx->DrawHtmlText(rc, pstrText, dwColor, NULL, NULL, nLinks, iFont, uStyle);
 	}
 
 	SIZE RenderMeasureTextSize(CPaintManagerUI* pManager, LPCTSTR pstrText, int iFont, UINT uStyle)

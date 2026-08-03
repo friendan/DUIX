@@ -29,9 +29,9 @@ namespace DuiLib {
 
 	struct KindStateColors
 	{
-		DWORD dwBkColor;
+		DWORD dwBackgroundColor;
 		DWORD dwBorderColor;
-		DWORD dwTextColor;
+		DWORD dwColor;
 	};
 
 	struct KindColors
@@ -60,6 +60,10 @@ namespace DuiLib {
 		/// action=title/move 时：该点是否应作为标题栏拖拽（HTCAPTION）。
 		/// 默认整控件可拖；含交互子区域的控件（如 TabBar）可重写，仅空白区返回 true。
 		virtual bool IsCaptionDragHit(POINT pt) const;
+		/// 命中测试：是否应保留 HTCLIENT，不继承父级/`html { action: title }` 拖拽。
+		/// 默认：UIFLAG_SETCURSOR、显式 cursor、或已配置热态/按下态背景与边框视觉。
+		/// 子类自有热态字段（如 color-hover）应重写并先判断自身再调基类。
+		virtual bool PreferClientHit() const;
 
 		virtual bool Activate();
 		virtual CPaintManagerUI* GetManager() const;
@@ -87,32 +91,41 @@ namespace DuiLib {
 		virtual bool IsRichEvent() const;
 		virtual void SetRichEvent(bool bEnable);
 		// 图形相关
-		LPCTSTR GetGradient();
-		void SetGradient(LPCTSTR pStrImage);
-		DWORD GetBkColor() const;
-		void SetBkColor(DWORD dwBackColor);
-		DWORD GetBkColor2() const;
-		void SetBkColor2(DWORD dwBackColor);
-		DWORD GetBkColor3() const;
-		void SetBkColor3(DWORD dwBackColor);
+		/// 背景：纯色或 CSS linear-gradient（如 linear-gradient(to right, #fff, #000)）
+		void SetBackground(LPCTSTR pstrValue);
+		LPCTSTR GetBackground() const;
+		DWORD GetBackgroundColor() const;
+		void SetBackgroundColor(DWORD dwBackColor);
 		DWORD GetForeColor() const;
 		void SetForeColor(DWORD dwForeColor);
-		LPCTSTR GetBkImage();
-		void SetBkImage(LPCTSTR pStrImage);
-		LPCTSTR GetForeImage() const;
-		void SetForeImage(LPCTSTR pStrImage);
+		LPCTSTR GetBackgroundImage();
+		void SetBackgroundImage(LPCTSTR pStrImage);
+		LPCTSTR GetHoverBackgroundImage() const;
+		void SetHoverBackgroundImage(LPCTSTR pStrImage);
+		LPCTSTR GetActiveBackgroundImage() const;
+		void SetActiveBackgroundImage(LPCTSTR pStrImage);
+		LPCTSTR GetDisabledBackgroundImage() const;
+		void SetDisabledBackgroundImage(LPCTSTR pStrImage);
+		LPCTSTR GetFocusBackgroundImage() const;
+		void SetFocusBackgroundImage(LPCTSTR pStrImage);
+		LPCTSTR GetSelectedBackgroundImage() const;
+		void SetSelectedBackgroundImage(LPCTSTR pStrImage);
+		LPCTSTR GetForegroundImage() const;
+		void SetForegroundImage(LPCTSTR pStrImage);
 
 		// 通用状态色（容器 / 基类控件；Button 等子类可自有同名属性覆盖绘制）
-		DWORD GetHotBkColor() const;
-		void SetHotBkColor(DWORD dwColor);
-		DWORD GetPushedBkColor() const;
-		void SetPushedBkColor(DWORD dwColor);
-		DWORD GetDisabledBkColor() const;
-		void SetDisabledBkColor(DWORD dwColor);
-		DWORD GetHotBorderColor() const;
-		void SetHotBorderColor(DWORD dwColor);
-		DWORD GetPushedBorderColor() const;
-		void SetPushedBorderColor(DWORD dwColor);
+		DWORD GetHoverBackgroundColor() const;
+		void SetHoverBackgroundColor(DWORD dwColor);
+		DWORD GetActiveBackgroundColor() const;
+		void SetActiveBackgroundColor(DWORD dwColor);
+		DWORD GetDisabledBackgroundColor() const;
+		void SetDisabledBackgroundColor(DWORD dwColor);
+		DWORD GetFocusBackgroundColor() const;
+		void SetFocusBackgroundColor(DWORD dwColor);
+		DWORD GetHoverBorderColor() const;
+		void SetHoverBorderColor(DWORD dwColor);
+		DWORD GetActiveBorderColor() const;
+		void SetActiveBorderColor(DWORD dwColor);
 		DWORD GetDisabledBorderColor() const;
 		void SetDisabledBorderColor(DWORD dwColor);
 
@@ -120,31 +133,33 @@ namespace DuiLib {
 		void SetFocusBorderColor(DWORD dwBorderColor);
 		bool IsColorHSL() const;
 		void SetColorHSL(bool bColorHSL);
-		SIZE GetBorderRound() const;
-		void SetBorderRound(SIZE cxyRound);
+		BYTE GetOpacity() const;
+		void SetOpacity(BYTE nOpacity);
+		SIZE GetBorderRadius() const; // CSS 圆角半径（非 GDI 椭圆直径）
+		void SetBorderRadius(SIZE cxyRound);
 		bool DrawImage(IRenderContext& ctx, LPCTSTR pStrImage, LPCTSTR pStrModify = NULL);
 
 		//边框相关
-		int GetBorderSize() const;
-		void SetBorderSize(int nSize);
+		int GetBorderWidth() const;
+		void SetBorderWidth(int nSize);
 		DWORD GetBorderColor() const;
 		void SetBorderColor(DWORD dwBorderColor);
-		RECT GetBorderRectSize() const;
-		void SetBorderSize(RECT rc);
-		int GetLeftBorderSize() const;
-		void SetLeftBorderSize(int nSize);
-		int GetTopBorderSize() const;
-		void SetTopBorderSize(int nSize);
-		int GetRightBorderSize() const;
-		void SetRightBorderSize(int nSize);
-		int GetBottomBorderSize() const;
-		void SetBottomBorderSize(int nSize);
+		RECT GetBorderRectWidth() const;
+		void SetBorderWidth(RECT rc);
+		int GetLeftBorderWidth() const;
+		void SetLeftBorderWidth(int nSize);
+		int GetTopBorderWidth() const;
+		void SetTopBorderWidth(int nSize);
+		int GetRightBorderWidth() const;
+		void SetRightBorderWidth(int nSize);
+		int GetBottomBorderWidth() const;
+		void SetBottomBorderWidth(int nSize);
 		int GetBorderStyle() const;
 		void SetBorderStyle(int nStyle);
 
 		// 位置相关
 		virtual RECT GetRelativePos() const; // 相对(父控件)位置
-		virtual RECT GetClientPos() const; // 客户区域（除去scrollbar和inset）
+		virtual RECT GetClientPos() const; // 客户区域（除去scrollbar和padding）
 		virtual const RECT& GetPos() const;
 		virtual void SetPos(RECT rc, bool bNeedInvalidate = true);
 		virtual void Move(SIZE szOffset, bool bNeedInvalidate = true);
@@ -152,10 +167,10 @@ namespace DuiLib {
 		virtual int GetHeight() const;
 		virtual int GetX() const;
 		virtual int GetY() const;
-		virtual RECT GetPadding() const;
-		virtual void SetPadding(RECT rcPadding); // 外边距（属性 margin；根节点相对窗口）
-		virtual RECT GetInset() const;
-		virtual void SetInset(RECT rcInset);     // 内边距（属性 padding / inset；内容区相对边框）
+		virtual CDuiBox GetMargin() const;
+		virtual void SetMargin(CDuiBox rcMargin); // 外边距（属性 margin；根节点相对窗口）
+		virtual CDuiBox GetPadding() const;
+		virtual void SetPadding(CDuiBox rcPadding);     // 内边距（属性 padding；内容区相对边框）
 		virtual SIZE GetFixedXY() const;         // 实际大小位置使用GetPos获取，这里得到的是预设的参考值
 		virtual void SetFixedXY(SIZE szXY);      // 仅float为true时有效
 		virtual SIZE GetFixedSize() const;
@@ -178,14 +193,14 @@ namespace DuiLib {
 		virtual void SetMinHeight(int cy);
 		virtual int GetMaxHeight() const;
 		virtual void SetMaxHeight(int cy);
-		virtual TPercentInfo GetFloatPercent() const;
-		virtual void SetFloatPercent(TPercentInfo piFloatPercent);
-		virtual void SetFloatAlign(UINT uAlign);
-		virtual UINT GetFloatAlign() const;
-		virtual void SetHAlign(int iAlign);
-		virtual int GetHAlign() const;
-		virtual void SetVAlign(int iAlign);
-		virtual int GetVAlign() const;
+		virtual TPercentInfo GetAbsolutePercent() const;
+		virtual void SetAbsolutePercent(TPercentInfo piAbsolutePercent);
+		virtual void SetAbsoluteAlign(UINT uAlign);
+		virtual UINT GetAbsoluteAlign() const;
+		virtual void SetTextAlign(int iAlign);
+		virtual int GetTextAlign() const;
+		virtual void SetVerticalAlign(int iAlign);
+		virtual int GetVerticalAlign() const;
 		// 鼠标提示
 		virtual CDuiString GetToolTip() const;
 		virtual void SetToolTip(LPCTSTR pstrText);
@@ -232,8 +247,8 @@ namespace DuiLib {
 		virtual void SetKeyboardEnabled(bool bEnable = true);
 		virtual bool IsFocused() const;
 		virtual void SetFocus();
-		virtual bool IsFloat() const;
-		virtual void SetFloat(bool bFloat = true);
+		virtual bool IsAbsolute() const;
+		virtual void SetAbsolute(bool bAbsolute = true);
 
 		virtual CControlUI* FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT uFlags);
 
@@ -263,11 +278,11 @@ namespace DuiLib {
 		virtual SIZE EstimateSize(SIZE szAvailable);
 		virtual bool Paint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl = NULL); // 返回要不要继续绘制
 		virtual bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
-		virtual void PaintBkColor(IRenderContext& ctx);
-		virtual void PaintBkImage(IRenderContext& ctx);
+		virtual void PaintBackgroundColor(IRenderContext& ctx);
+		virtual void PaintBackgroundImage(IRenderContext& ctx);
 		virtual void PaintStatusImage(IRenderContext& ctx);
 		virtual void PaintForeColor(IRenderContext& ctx);
-		virtual void PaintForeImage(IRenderContext& ctx);
+		virtual void PaintForegroundImage(IRenderContext& ctx);
 		virtual void PaintText(IRenderContext& ctx);
 		virtual void PaintBorder(IRenderContext& ctx);
 
@@ -286,7 +301,7 @@ namespace DuiLib {
 
 	protected:
 		bool HasStateVisual() const;
-		DWORD GetPaintBkColor() const;
+		DWORD GetPaintBackgroundColor() const;
 		DWORD GetPaintBorderColor() const;
 
 		CPaintManagerUI* m_pManager;
@@ -296,8 +311,8 @@ namespace DuiLib {
 		bool m_bUpdateNeeded;
 		bool m_bMenuUsed;
 		RECT m_rcItem;
-		RECT m_rcPadding;
-		RECT m_rcInset;
+		CDuiBox m_rcMargin;
+		CDuiBox m_rcPadding;
 		SIZE m_cXY;
 		SIZE m_cxyFixed;
 		float m_fWidthPercent;   // >0 时 EstimateSize 按父级可用宽 * 百分比
@@ -310,11 +325,11 @@ namespace DuiLib {
 		bool m_bMouseEnabled;
 		bool m_bKeyboardEnabled;
 		bool m_bFocused;
-		bool m_bFloat;
-		TPercentInfo m_piFloatPercent;
-		UINT m_uFloatAlign;
-		int m_iHAlign;
-		int m_iVAlign;
+		bool m_bAbsolute;
+		TPercentInfo m_piAbsolutePercent;
+		UINT m_uAbsoluteAlign;
+		int m_iTextAlign;
+		int m_iVerticalAlign;
 		bool m_bSetPos; // 防止SetPos循环调用
 
 		bool m_bRichEvent;
@@ -331,30 +346,38 @@ namespace DuiLib {
 		ControlKind m_controlKind;
 		bool m_bOutline;
 
-		CDuiString m_sGradient;
+		CDuiString m_sBackground; // 原始 background 值（linear-gradient 时保留）
+		bool m_bGradientVertical; // true=纵向(to bottom)，false=横向(to right)
 		DWORD m_dwBackColor;
 		DWORD m_dwBackColor2;
 		DWORD m_dwBackColor3;
 		DWORD m_dwForeColor;
-		CDuiString m_sBkImage;
-		CDuiString m_sForeImage;
+		CDuiString m_sBackgroundImage;
+		CDuiString m_sBackgroundImageHover;
+		CDuiString m_sBackgroundImageActive;
+		CDuiString m_sBackgroundImageDisabled;
+		CDuiString m_sBackgroundImageFocus;
+		CDuiString m_sBackgroundImageSelected;
+		CDuiString m_sForegroundImage;
 		DWORD m_dwBorderColor;
 		DWORD m_dwFocusBorderColor;
-		DWORD m_dwHotBkColor;
-		DWORD m_dwPushedBkColor;
-		DWORD m_dwDisabledBkColor;
-		DWORD m_dwHotBorderColor;
-		DWORD m_dwPushedBorderColor;
+		DWORD m_dwHoverBackgroundColor;
+		DWORD m_dwActiveBackgroundColor;
+		DWORD m_dwDisabledBackgroundColor;
+		DWORD m_dwFocusBackgroundColor;
+		DWORD m_dwHoverBorderColor;
+		DWORD m_dwActiveBorderColor;
 		DWORD m_dwDisabledBorderColor;
 		UINT m_uControlState;
 		bool m_bColorHSL;
-		int m_nBorderSize;
+		BYTE m_nOpacity; // CSS opacity，255=不透明；经 GetAdjustColor 调制 alpha
+		int m_nBorderWidth;
 		int m_nBorderStyle;
 		int m_nTooltipWidth;
 		WORD m_wCursor;
-		SIZE m_cxyBorderRound;
+		SIZE m_cxyBorderRadius;
 		RECT m_rcPaint;
-		RECT m_rcBorderSize;
+		RECT m_rcBorderWidth;
 	    HINSTANCE m_instance;
 
 		CStdStringPtrMap m_mCustomAttrHash;

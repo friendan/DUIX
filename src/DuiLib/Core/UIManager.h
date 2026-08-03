@@ -1,4 +1,4 @@
-﻿#ifndef __UIMANAGER_H__
+#ifndef __UIMANAGER_H__
 #define __UIMANAGER_H__
 
 #pragma once
@@ -192,7 +192,7 @@ namespace DuiLib {
 		DWORD m_dwDefaultFontColor;
 		DWORD m_dwDefaultLinkFontColor;
 		DWORD m_dwDefaultLinkHoverFontColor;
-		DWORD m_dwDefaultSelectedBkColor;
+		DWORD m_dwDefaultSelectedBackgroundColor;
 		TFontInfo m_DefaultFontInfo;
 		CStdStringPtrMap m_CustomFonts;
 		CStdStringPtrMap m_ImageHash;
@@ -302,12 +302,12 @@ namespace DuiLib {
 		void SetSizeBox(RECT& rcSizeBox);
 		RECT GetCaptionRect();
 		void SetCaptionRect(RECT& rcCaption);
-		SIZE GetRoundCorner();
-		void SetRoundCorner(int cx, int cy);
-		SIZE GetMinInfo();
-		void SetMinInfo(int cx, int cy);
-		SIZE GetMaxInfo();
-		void SetMaxInfo(int cx, int cy);
+		SIZE GetBorderRadius();
+		void SetBorderRadius(int cx, int cy);
+		SIZE GetMinSize();
+		void SetMinSize(int cx, int cy);
+		SIZE GetMaxSize();
+		void SetMaxSize(int cx, int cy);
 		bool IsShowUpdateRect();
 		void SetShowUpdateRect(bool show);
 		bool IsNoActivate();
@@ -316,9 +316,9 @@ namespace DuiLib {
 		BYTE GetOpacity() const;
 		void SetOpacity(BYTE nOpacity);
 
-		// html/Window 默认背景落到 root bkcolor（默认 #FFF0F0F0）；分层未显式设置则保持透明
-		DWORD GetWindowBkColor() const;
-		void SetWindowBkColor(DWORD dwColor);
+		// html/Window 默认背景落到 root background-color（默认 #FFF0F0F0）；分层未显式设置则保持透明
+		DWORD GetWindowBackgroundColor() const;
+		void SetWindowBackgroundColor(DWORD dwColor);
 
 		// html/Window 的 action（如 title）；Attach 后落到 root（root 已有 action 则不覆盖）
 		UIAction GetWindowAction() const;
@@ -326,8 +326,8 @@ namespace DuiLib {
 
 		bool IsLayered();
 		void SetLayered(bool bLayered);
-		RECT& GetLayeredInset();
-		void SetLayeredInset(RECT& rcLayeredInset);
+		RECT& GetLayeredPadding();
+		void SetLayeredPadding(RECT& rcLayeredPadding);
 		BYTE GetLayeredOpacity();
 		void SetLayeredOpacity(BYTE nOpacity);
 		LPCTSTR GetLayeredImage();
@@ -378,13 +378,15 @@ namespace DuiLib {
 		void SetDefaultLinkFontColor(DWORD dwColor, bool bShared = false);
 		DWORD GetDefaultLinkHoverFontColor() const;
 		void SetDefaultLinkHoverFontColor(DWORD dwColor, bool bShared = false);
-		DWORD GetDefaultSelectedBkColor() const;
-		void SetDefaultSelectedBkColor(DWORD dwColor, bool bShared = false);
+		DWORD GetDefaultSelectedBackgroundColor() const;
+		void SetDefaultSelectedBackgroundColor(DWORD dwColor, bool bShared = false);
 		TFontInfo* GetDefaultFontInfo();
 		void SetDefaultFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout, bool bShared = false);
 		DWORD GetCustomFontCount(bool bShared = false) const;
 		void AddFontArray(LPCTSTR pstrPath);
 		HFONT AddFont(int id, LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout, bool bShared = false);
+		/// 按家族/字号查找或创建字体，返回字体表内部 id
+		int EnsureFont(LPCTSTR pStrFontName, int nSize, bool bBold = false, bool bUnderline = false, bool bItalic = false, bool bStrikeout = false, bool bShared = false);
 		HFONT GetFont(int id);
 		HFONT GetFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout);
 		int GetFontIndex(HFONT hFont, bool bShared = false);
@@ -534,7 +536,7 @@ namespace DuiLib {
 		static void AdjustSharedImagesHSL();
 		void AdjustImagesHSL();
 		void PostAsyncNotify();
-		void ApplyDefaultWindowBkColor();
+		void ApplyDefaultWindowBackgroundColor();
 		void ApplyDefaultWindowAction();
 
 	private:
@@ -566,7 +568,7 @@ namespace DuiLib {
 		SIZE m_szMaxWindow;
 		SIZE m_szInitWindowSize;
 		RECT m_rcSizeBox;
-		SIZE m_szRoundCorner;
+		SIZE m_szBorderRadius;
 		RECT m_rcCaption;
 		UINT m_uTimerID;
 		bool m_bFirstLayout;
@@ -575,11 +577,11 @@ namespace DuiLib {
 		bool m_bOffscreenPaint;
 		
 		BYTE m_nOpacity;
-		DWORD m_dwWindowBkColor;
-		bool m_bWindowBkColorCustom;
+		DWORD m_dwWindowBackgroundColor;
+		bool m_bWindowBackgroundColorCustom;
 		UIAction m_windowAction;
 		bool m_bLayered;
-		RECT m_rcLayeredInset;
+		RECT m_rcLayeredPadding;
 		bool m_bLayeredChanged;
 		RECT m_rcLayeredUpdate;
 		TDrawInfo m_diLayered;

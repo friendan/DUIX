@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "SplashWnd.h"
 #include <process.h>
 
@@ -25,7 +25,7 @@ void CSplashWnd::OnFinalMessage( HWND hWnd)
 
 DuiLib::CDuiString CSplashWnd::GetSkinFile()
 {
-	return _T("splash.xml");
+	return _T("splash.html");
 }
 
 LPCTSTR CSplashWnd::GetWindowClassName( void ) const

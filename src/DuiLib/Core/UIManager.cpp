@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include <zmouse.h>
 #include "DuiExitTrace.h"
 
@@ -279,8 +279,8 @@ namespace DuiLib {
 		m_bUsedVirtualWnd(false),
 		m_bForceUseSharedRes(false),
 		m_nOpacity(0xFF),
-		m_dwWindowBkColor(0xFFF0F0F0),
-		m_bWindowBkColorCustom(false),
+		m_dwWindowBackgroundColor(0xF0F0F0FF),
+		m_bWindowBackgroundColorCustom(false),
 		m_windowAction(UIACTION_NONE),
 		m_bLayered(false),
 		m_bLayeredChanged(false),
@@ -295,21 +295,26 @@ namespace DuiLib {
 	{
 		if (m_SharedResInfo.m_DefaultFontInfo.sFontName.IsEmpty())
 		{
-			m_SharedResInfo.m_dwDefaultDisabledColor = 0xFFA7A6AA;
-			m_SharedResInfo.m_dwDefaultFontColor = 0xFF000000;
-			m_SharedResInfo.m_dwDefaultLinkFontColor = 0xFF0000FF;
-			m_SharedResInfo.m_dwDefaultLinkHoverFontColor = 0xFFD3215F;
-			m_SharedResInfo.m_dwDefaultSelectedBkColor = 0xFFBAE4FF;
+			m_SharedResInfo.m_dwDefaultDisabledColor = 0xA7A6AAFF;
+			m_SharedResInfo.m_dwDefaultFontColor = 0x000000FF;
+			m_SharedResInfo.m_dwDefaultLinkFontColor = 0x0000FFFF;
+			m_SharedResInfo.m_dwDefaultLinkHoverFontColor = 0xD3215FFF;
+			m_SharedResInfo.m_dwDefaultSelectedBackgroundColor = 0xBAE4FFFF;
 
 			LOGFONT lf = { 0 };
 			::GetObject(::GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &lf);
 			lf.lfCharSet = DEFAULT_CHARSET;
+			lf.lfHeight = -12;
+			lf.lfWeight = FW_NORMAL;
+			lf.lfQuality = CLEARTYPE_QUALITY;
+			_tcsncpy(lf.lfFaceName, _T("微软雅黑"), LF_FACESIZE - 1);
+			lf.lfFaceName[LF_FACESIZE - 1] = _T('\0');
 			m_SharedResInfo.m_DefaultFontInfo.sFontName = lf.lfFaceName;
 			m_SharedResInfo.m_DefaultFontInfo.iSize = -lf.lfHeight;
-			m_SharedResInfo.m_DefaultFontInfo.bBold = (lf.lfWeight >= FW_BOLD);
-			m_SharedResInfo.m_DefaultFontInfo.bUnderline = (lf.lfUnderline == TRUE);
-			m_SharedResInfo.m_DefaultFontInfo.bItalic = (lf.lfItalic == TRUE);
-			m_SharedResInfo.m_DefaultFontInfo.bStrikeout = (lf.lfStrikeOut == TRUE);
+			m_SharedResInfo.m_DefaultFontInfo.bBold = false;
+			m_SharedResInfo.m_DefaultFontInfo.bUnderline = false;
+			m_SharedResInfo.m_DefaultFontInfo.bItalic = false;
+			m_SharedResInfo.m_DefaultFontInfo.bStrikeout = false;
 			GetRenderDevice()->CreateNativeFont(&m_SharedResInfo.m_DefaultFontInfo, lf.lfHeight, NULL);
 		}
 
@@ -317,7 +322,7 @@ namespace DuiLib {
 		m_ResInfo.m_dwDefaultFontColor = m_SharedResInfo.m_dwDefaultFontColor;
 		m_ResInfo.m_dwDefaultLinkFontColor = m_SharedResInfo.m_dwDefaultLinkFontColor;
 		m_ResInfo.m_dwDefaultLinkHoverFontColor = m_SharedResInfo.m_dwDefaultLinkHoverFontColor;
-		m_ResInfo.m_dwDefaultSelectedBkColor = m_SharedResInfo.m_dwDefaultSelectedBkColor;
+		m_ResInfo.m_dwDefaultSelectedBackgroundColor = m_SharedResInfo.m_dwDefaultSelectedBackgroundColor;
 
 		if( m_hUpdateRectPen == NULL ) {
 			m_hUpdateRectPen = ::CreatePen(PS_SOLID, 1, RGB(220, 0, 0));
@@ -333,7 +338,7 @@ namespace DuiLib {
 		// size 默认 0：沿用 Create(...) 传入的窗口尺寸；皮肤里写 size 可覆盖
 		m_szInitWindowSize.cx = 0;
 		m_szInitWindowSize.cy = 0;
-		m_szRoundCorner.cx = m_szRoundCorner.cy = 0;
+		m_szBorderRadius.cx = m_szBorderRadius.cy = 0;
 		// 无边框窗口常见可拖拽边距
 		m_rcSizeBox.left = 4;
 		m_rcSizeBox.top = 4;
@@ -344,7 +349,7 @@ namespace DuiLib {
 		m_rcCaption.top = 0;
 		m_rcCaption.right = 0;
 		m_rcCaption.bottom = 40;
-		::ZeroMemory(&m_rcLayeredInset, sizeof(m_rcLayeredInset));
+		::ZeroMemory(&m_rcLayeredPadding, sizeof(m_rcLayeredPadding));
 		::ZeroMemory(&m_rcLayeredUpdate, sizeof(m_rcLayeredUpdate));
 		m_ptLastMousePos.x = m_ptLastMousePos.y = -1;
 
@@ -788,35 +793,35 @@ namespace DuiLib {
 		m_rcCaption = rcCaption;
 	}
 
-	SIZE CPaintManagerUI::GetRoundCorner()
+	SIZE CPaintManagerUI::GetBorderRadius()
 	{
-		return GetDPIObj()->Scale(m_szRoundCorner);
+		return GetDPIObj()->Scale(m_szBorderRadius);
 	}
 
-	void CPaintManagerUI::SetRoundCorner(int cx, int cy)
+	void CPaintManagerUI::SetBorderRadius(int cx, int cy)
 	{
-		m_szRoundCorner.cx = cx;
-		m_szRoundCorner.cy = cy;
+		m_szBorderRadius.cx = cx;
+		m_szBorderRadius.cy = cy;
 	}
 
-	SIZE CPaintManagerUI::GetMinInfo()
+	SIZE CPaintManagerUI::GetMinSize()
 	{
 		return GetDPIObj()->Scale(m_szMinWindow);
 	}
 
-	void CPaintManagerUI::SetMinInfo(int cx, int cy)
+	void CPaintManagerUI::SetMinSize(int cx, int cy)
 	{
 		ASSERT(cx>=0 && cy>=0);
 		m_szMinWindow.cx = cx;
 		m_szMinWindow.cy = cy;
 	}
 
-	SIZE CPaintManagerUI::GetMaxInfo()
+	SIZE CPaintManagerUI::GetMaxSize()
 	{
 		return GetDPIObj()->Scale(m_szMaxWindow);
 	}
 
-	void CPaintManagerUI::SetMaxInfo(int cx, int cy)
+	void CPaintManagerUI::SetMaxSize(int cx, int cy)
 	{
 		ASSERT(cx>=0 && cy>=0);
 		m_szMaxWindow.cx = cx;
@@ -872,27 +877,27 @@ namespace DuiLib {
 		}
 	}
 
-	DWORD CPaintManagerUI::GetWindowBkColor() const
+	DWORD CPaintManagerUI::GetWindowBackgroundColor() const
 	{
-		return m_dwWindowBkColor;
+		return m_dwWindowBackgroundColor;
 	}
 
-	void CPaintManagerUI::SetWindowBkColor(DWORD dwColor)
+	void CPaintManagerUI::SetWindowBackgroundColor(DWORD dwColor)
 	{
-		m_dwWindowBkColor = dwColor;
-		m_bWindowBkColorCustom = true;
+		m_dwWindowBackgroundColor = dwColor;
+		m_bWindowBackgroundColorCustom = true;
 		if( m_pRoot != NULL )
-			m_pRoot->SetBkColor(dwColor);
+			m_pRoot->SetBackgroundColor(dwColor);
 		if( m_hWndPaint != NULL ) Invalidate();
 	}
 
-	void CPaintManagerUI::ApplyDefaultWindowBkColor()
+	void CPaintManagerUI::ApplyDefaultWindowBackgroundColor()
 	{
 		if( m_pRoot == NULL ) return;
-		if( m_bLayered && !m_bWindowBkColorCustom ) return;
-		if( m_dwWindowBkColor == 0 ) return;
-		if( m_pRoot->GetBkColor() != 0 ) return;
-		m_pRoot->SetBkColor(m_dwWindowBkColor);
+		if( m_bLayered && !m_bWindowBackgroundColorCustom ) return;
+		if( m_dwWindowBackgroundColor == 0 ) return;
+		if( m_pRoot->GetBackgroundColor() != 0 ) return;
+		m_pRoot->SetBackgroundColor(m_dwWindowBackgroundColor);
 	}
 
 	UIAction CPaintManagerUI::GetWindowAction() const
@@ -939,14 +944,14 @@ namespace DuiLib {
 		}
 	}
 
-	RECT& CPaintManagerUI::GetLayeredInset()
+	RECT& CPaintManagerUI::GetLayeredPadding()
 	{
-		return m_rcLayeredInset;
+		return m_rcLayeredPadding;
 	}
 
-	void CPaintManagerUI::SetLayeredInset(RECT& rcLayeredInset)
+	void CPaintManagerUI::SetLayeredPadding(RECT& rcLayeredPadding)
 	{
-		m_rcLayeredInset = rcLayeredInset;
+		m_rcLayeredPadding = rcLayeredPadding;
 		m_bLayeredChanged = true;
 		Invalidate();
 	}
@@ -1178,7 +1183,7 @@ namespace DuiLib {
 					PAINTSTRUCT ps = { 0 };
 					::BeginPaint(m_hWndPaint, &ps);
 					COwnedRenderContextScope renderScope(this, m_hDcPaint);
-					renderScope.GetContext().DrawColor(ps.rcPaint, 0xFF000000);
+					renderScope.GetContext().DrawColor(ps.rcPaint, 0x000000FF);
 					::EndPaint(m_hWndPaint, &ps);
 					return true;
 				}
@@ -1232,14 +1237,14 @@ namespace DuiLib {
 								m_pBackgroundSurface = NULL;
 							}
 							if( m_bLayered ) {
-								rcRoot.left += m_rcLayeredInset.left;
-								rcRoot.top += m_rcLayeredInset.top;
-								rcRoot.right -= m_rcLayeredInset.right;
-								rcRoot.bottom -= m_rcLayeredInset.bottom;
+								rcRoot.left += m_rcLayeredPadding.left;
+								rcRoot.top += m_rcLayeredPadding.top;
+								rcRoot.right -= m_rcLayeredPadding.right;
+								rcRoot.bottom -= m_rcLayeredPadding.bottom;
 							}
 							// 根节点 margin/padding：相对窗口缩进，露出 html(窗口) 背景
 							{
-								RECT rcPad = m_pRoot->GetPadding();
+								RECT rcPad = m_pRoot->GetMargin();
 								rcRoot.left += rcPad.left;
 								rcRoot.top += rcPad.top;
 								rcRoot.right -= rcPad.right;
@@ -1280,12 +1285,12 @@ namespace DuiLib {
 					RECT rcRoot = rcClient;
 					if( m_pOffscreenSurface != NULL )
 						m_pOffscreenSurface->ClearAll();
-					rcRoot.left += m_rcLayeredInset.left;
-					rcRoot.top += m_rcLayeredInset.top;
-					rcRoot.right -= m_rcLayeredInset.right;
-					rcRoot.bottom -= m_rcLayeredInset.bottom;
+					rcRoot.left += m_rcLayeredPadding.left;
+					rcRoot.top += m_rcLayeredPadding.top;
+					rcRoot.right -= m_rcLayeredPadding.right;
+					rcRoot.bottom -= m_rcLayeredPadding.bottom;
 					{
-						RECT rcPad = m_pRoot->GetPadding();
+						RECT rcPad = m_pRoot->GetMargin();
 						rcRoot.left += rcPad.left;
 						rcRoot.top += rcPad.top;
 						rcRoot.right -= rcPad.right;
@@ -1341,10 +1346,10 @@ namespace DuiLib {
 						COwnedRenderContextScope renderScope(this, hOffscreenDC);
 						IRenderContext& renderCtx = renderScope.GetContext();
 						// 先铺 html/窗口背景，再画根控件（根有 margin 时四周可见）
-						if( m_dwWindowBkColor != 0 ) {
+						if( m_dwWindowBackgroundColor != 0 ) {
 							RECT rcBk = { 0 };
 							if( ::IntersectRect(&rcBk, &rcPaint, &rcClient) )
-								renderCtx.DrawColor(rcBk, m_dwWindowBkColor);
+								renderCtx.DrawColor(rcBk, m_dwWindowBackgroundColor);
 						}
 						m_pRoot->Paint(renderCtx, rcPaint, NULL);
 
@@ -1381,7 +1386,7 @@ namespace DuiLib {
 							for( LONG y = 0; y < nChildH; y++ ) {
 								for( LONG x = 0; x < nChildW; x++ ) {
 									pChildBitmapBit = pChildBitmapBits + y * nChildW + x;
-									if (*pChildBitmapBit != 0x00000000) *pChildBitmapBit |= 0xff000000;
+									if (*pChildBitmapBit != 0x00000000) *pChildBitmapBit |= 0xFF000000; // 像素 AARRGGBB
 								}
 							}
 							::BitBlt(hPaintDC, rcChildWnd.left, rcChildWnd.top, nChildW, nChildH, hChildMemDC, 0, 0, SRCCOPY);
@@ -1404,10 +1409,10 @@ namespace DuiLib {
 							DWORD dwWidth = rcClient.right - rcClient.left;
 							DWORD dwHeight = rcClient.bottom - rcClient.top;
 							RECT rcLayeredClient = rcClient;
-							rcLayeredClient.left += m_rcLayeredInset.left;
-							rcLayeredClient.top += m_rcLayeredInset.top;
-							rcLayeredClient.right -= m_rcLayeredInset.right;
-							rcLayeredClient.bottom -= m_rcLayeredInset.bottom;
+							rcLayeredClient.left += m_rcLayeredPadding.left;
+							rcLayeredClient.top += m_rcLayeredPadding.top;
+							rcLayeredClient.right -= m_rcLayeredPadding.right;
+							rcLayeredClient.bottom -= m_rcLayeredPadding.bottom;
 
 							if( m_pBackgroundSurface == NULL ) {
 								m_pBackgroundSurface = GetRenderDevice()->CreateSurface();
@@ -2155,7 +2160,7 @@ namespace DuiLib {
 		}
 		// Set the dialog root element
 		m_pRoot = pControl;
-		ApplyDefaultWindowBkColor();
+		ApplyDefaultWindowBackgroundColor();
 		ApplyDefaultWindowAction();
 		// Go ahead...
 		m_bUpdateNeeded = true;
@@ -2900,22 +2905,22 @@ namespace DuiLib {
 		}
 	}
 
-	DWORD CPaintManagerUI::GetDefaultSelectedBkColor() const
+	DWORD CPaintManagerUI::GetDefaultSelectedBackgroundColor() const
 	{
-		return m_ResInfo.m_dwDefaultSelectedBkColor;
+		return m_ResInfo.m_dwDefaultSelectedBackgroundColor;
 	}
 
-	void CPaintManagerUI::SetDefaultSelectedBkColor(DWORD dwColor, bool bShared)
+	void CPaintManagerUI::SetDefaultSelectedBackgroundColor(DWORD dwColor, bool bShared)
 	{
 		if (bShared)
 		{
-			if (m_ResInfo.m_dwDefaultSelectedBkColor == m_SharedResInfo.m_dwDefaultSelectedBkColor)
-				m_ResInfo.m_dwDefaultSelectedBkColor = dwColor;
-			m_SharedResInfo.m_dwDefaultSelectedBkColor = dwColor;
+			if (m_ResInfo.m_dwDefaultSelectedBackgroundColor == m_SharedResInfo.m_dwDefaultSelectedBackgroundColor)
+				m_ResInfo.m_dwDefaultSelectedBackgroundColor = dwColor;
+			m_SharedResInfo.m_dwDefaultSelectedBackgroundColor = dwColor;
 		}
 		else
 		{
-			m_ResInfo.m_dwDefaultSelectedBkColor = dwColor;
+			m_ResInfo.m_dwDefaultSelectedBackgroundColor = dwColor;
 		}
 	}
 
@@ -3024,6 +3029,32 @@ namespace DuiLib {
 
 		return hFont;
 	}
+
+	int CPaintManagerUI::EnsureFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic, bool bStrikeout, bool bShared)
+	{
+		if( pStrFontName == NULL || *pStrFontName == _T('\0') || nSize <= 0 ) return -1;
+		int idx = GetFontIndex(pStrFontName, nSize, bBold, bUnderline, bItalic, bStrikeout, false);
+		if( idx < 0 ) idx = GetFontIndex(pStrFontName, nSize, bBold, bUnderline, bItalic, bStrikeout, true);
+		if( idx >= 0 ) return idx;
+
+		int newId = 10000;
+		for( int i = 0; i < m_ResInfo.m_CustomFonts.GetSize(); ++i ) {
+			if( LPCTSTR key = m_ResInfo.m_CustomFonts.GetAt(i) ) {
+				int id = _ttoi(key);
+				if( id >= newId ) newId = id + 1;
+			}
+		}
+		for( int i = 0; i < m_SharedResInfo.m_CustomFonts.GetSize(); ++i ) {
+			if( LPCTSTR key = m_SharedResInfo.m_CustomFonts.GetAt(i) ) {
+				int id = _ttoi(key);
+				if( id >= newId ) newId = id + 1;
+			}
+		}
+		if( AddFont(newId, pStrFontName, nSize, bBold, bUnderline, bItalic, bStrikeout, bShared) == NULL )
+			return -1;
+		return newId;
+	}
+
 	void CPaintManagerUI::AddFontArray(LPCTSTR pstrPath) {
 		LPBYTE pData = NULL;
 		DWORD dwSize = 0;
@@ -3073,7 +3104,7 @@ namespace DuiLib {
 				if (dwSize == 0) break;
 				pData = new BYTE[dwSize];
 				int res = UnzipItem(hz, i, pData, dwSize);
-				if (res != 0x00000000 && res != 0x00000600) {
+				if (res != 0x00000000 && res != 0x00000600) { // ZR_OK / ZR_MORE
 					delete[] pData;
 					pData = NULL;
 					if (!CPaintManagerUI::IsCachedResourceZip()) CloseZip(hz);

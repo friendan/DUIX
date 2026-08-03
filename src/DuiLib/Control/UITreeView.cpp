@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UITreeView.h"
 
 #pragma warning( disable: 4251 )
@@ -14,10 +14,10 @@ namespace DuiLib
 	//************************************
 	CTreeNodeUI::CTreeNodeUI( CTreeNodeUI* _ParentNode /*= NULL*/ )
 	{
-		m_dwItemTextColor = 0x00000000;
-		m_dwItemHotTextColor = 0;
-		m_dwSelItemTextColor = 0;
-		m_dwSelItemHotTextColor	= 0;
+		m_dwItemColor = 0x00000000;
+		m_dwItemHoverColor = 0;
+		m_dwSelItemColor = 0;
+		m_dwSelItemHoverColor	= 0;
 
 		pTreeView = NULL;
 		m_iTreeLavel = 0;
@@ -36,7 +36,7 @@ namespace DuiLib
 		pFolderButton->SetFixedWidth(GetFixedHeight());
 		pDottedLine->SetFixedWidth(2);
 		pCheckBox->SetFixedWidth(GetFixedHeight());
-		pItemButton->SetAttribute(_T("align"),_T("left"));
+		pItemButton->SetAttribute(_T("text-align"),_T("left"));
 		pDottedLine->SetVisible(FALSE);
 		pCheckBox->SetVisible(FALSE);
 		pItemButton->SetMouseEnabled(FALSE);
@@ -47,7 +47,7 @@ namespace DuiLib
 			pDottedLine->SetFixedWidth(_ParentNode->GetDottedLine()->GetFixedWidth()+16);
 			this->SetParentNode(_ParentNode);
 		}
-		pHoriz->SetChildVAlign(DT_VCENTER);
+		pHoriz->SetAlignItems(DT_VCENTER);
 		pHoriz->Add(pDottedLine);
 		pHoriz->Add(pFolderButton);
 		pHoriz->Add(pCheckBox);
@@ -112,25 +112,25 @@ namespace DuiLib
 		}
 		if( event.Type == UIEVENT_MOUSEENTER ) {
 			if( IsEnabled()) {
-				if(m_bSelected && GetSelItemHotTextColor())
-					pItemButton->SetTextColor(GetSelItemHotTextColor());
+				if(m_bSelected && GetSelItemHoverColor())
+					pItemButton->SetColor(GetSelItemHoverColor());
 				else
-					pItemButton->SetTextColor(GetItemHotTextColor());
+					pItemButton->SetColor(GetItemHoverColor());
 			}
 			else 
-				pItemButton->SetTextColor(pItemButton->GetDisabledTextColor());
+				pItemButton->SetColor(pItemButton->GetDisabledColor());
 
 			return;
 		}
 		if( event.Type == UIEVENT_MOUSELEAVE ) {
 			if( IsEnabled()) {
-				if(m_bSelected && GetSelItemTextColor())
-					pItemButton->SetTextColor(GetSelItemTextColor());
+				if(m_bSelected && GetSelItemColor())
+					pItemButton->SetColor(GetSelItemColor());
 				else if(!m_bSelected)
-					pItemButton->SetTextColor(GetItemTextColor());
+					pItemButton->SetColor(GetItemColor());
 			}
 			else 
-				pItemButton->SetTextColor(pItemButton->GetDisabledTextColor());
+				pItemButton->SetColor(pItemButton->GetDisabledColor());
 
 			return;
 		}
@@ -150,11 +150,11 @@ namespace DuiLib
 			CContainerUI* pParentContainer = static_cast<CContainerUI*>(GetParent()->GetInterface(_T("Container")));
 			if( pParentContainer ) {
 				RECT rc = pParentContainer->GetPos();
-				RECT rcInset = pParentContainer->GetInset();
-				rc.left += rcInset.left;
-				rc.top += rcInset.top;
-				rc.right -= rcInset.right;
-				rc.bottom -= rcInset.bottom;
+				RECT rcPadding = pParentContainer->GetPadding();
+				rc.left += rcPadding.left;
+				rc.top += rcPadding.top;
+				rc.right -= rcPadding.right;
+				rc.bottom -= rcPadding.bottom;
 				CScrollBarUI* pVerticalScrollBar = pParentContainer->GetVerticalScrollBar();
 				if( pVerticalScrollBar && pVerticalScrollBar->IsVisible() ) rc.right -= pVerticalScrollBar->GetFixedWidth();
 				CScrollBarUI* pHorizontalScrollBar = pParentContainer->GetHorizontalScrollBar();
@@ -195,9 +195,9 @@ namespace DuiLib
 	{
 		bool nRet = CListContainerElementUI::Select(bSelect);
 		if(m_bSelected)
-			pItemButton->SetTextColor(GetSelItemTextColor());
+			pItemButton->SetColor(GetSelItemColor());
 		else 
-			pItemButton->SetTextColor(GetItemTextColor());
+			pItemButton->SetColor(GetItemColor());
 
 		return nRet;
 	}
@@ -206,9 +206,9 @@ namespace DuiLib
 	{
 		bool nRet = CListContainerElementUI::SelectMulti(bSelect);
 		if(m_bSelected)
-			pItemButton->SetTextColor(GetSelItemTextColor());
+			pItemButton->SetColor(GetSelItemColor());
 		else 
-			pItemButton->SetTextColor(GetItemTextColor());
+			pItemButton->SetColor(GetItemColor());
 
 		return nRet;
 	}
@@ -483,29 +483,25 @@ namespace DuiLib
 			pCheckBox->ApplyAttributeList(pstrValue);
 		else if(_tcsicmp(pstrName, _T("itemattr")) == 0 )
 			pItemButton->ApplyAttributeList(pstrValue);
-		else if(_tcsicmp(pstrName, _T("itemtextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetItemTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetItemColor(clrColor);
 		}
-		else if(_tcsicmp(pstrName, _T("itemhottextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetItemHotTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color-hover")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetItemHoverColor(clrColor);
 		}
-		else if(_tcsicmp(pstrName, _T("selitemtextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelItemTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color-selected")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetSelItemColor(clrColor);
 		}
-		else if(_tcsicmp(pstrName, _T("selitemhottextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelItemHotTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color-selected-hover")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetSelItemHoverColor(clrColor);
 		}
 		else CListContainerElementUI::SetAttribute(pstrName,pstrValue);
 	}
@@ -647,25 +643,25 @@ namespace DuiLib
 	}
 
 	//************************************
-	// 函数名称: SetTextColor
+	// 函数名称: SetColor
 	// 返回类型: void
 	// 参数信息: DWORD _dwTextColor
 	// 函数说明: 
 	//************************************
-	void CTreeNodeUI::SetItemTextColor( DWORD _dwItemTextColor )
+	void CTreeNodeUI::SetItemColor( DWORD _dwItemTextColor )
 	{
-		m_dwItemTextColor	= _dwItemTextColor;
-		pItemButton->SetTextColor(m_dwItemTextColor);
+		m_dwItemColor	= _dwItemTextColor;
+		pItemButton->SetColor(m_dwItemColor);
 	}
 
 	//************************************
-	// 函数名称: GetTextColor
+	// 函数名称: GetColor
 	// 返回类型: DWORD
 	// 函数说明: 
 	//************************************
-	DWORD CTreeNodeUI::GetItemTextColor() const
+	DWORD CTreeNodeUI::GetItemColor() const
 	{
-		return m_dwItemTextColor;
+		return m_dwItemColor;
 	}
 
 	//************************************
@@ -674,9 +670,9 @@ namespace DuiLib
 	// 参数信息: DWORD _dwTextHotColor
 	// 函数说明: 
 	//************************************
-	void CTreeNodeUI::SetItemHotTextColor( DWORD _dwItemHotTextColor )
+	void CTreeNodeUI::SetItemHoverColor( DWORD _dwItemHotTextColor )
 	{
-		m_dwItemHotTextColor = _dwItemHotTextColor;
+		m_dwItemHoverColor = _dwItemHotTextColor;
 		Invalidate();
 	}
 
@@ -685,31 +681,31 @@ namespace DuiLib
 	// 返回类型: DWORD
 	// 函数说明: 
 	//************************************
-	DWORD CTreeNodeUI::GetItemHotTextColor() const
+	DWORD CTreeNodeUI::GetItemHoverColor() const
 	{
-		return m_dwItemHotTextColor;
+		return m_dwItemHoverColor;
 	}
 
 	//************************************
-	// 函数名称: SetSelItemTextColor
+	// 函数名称: SetSelItemColor
 	// 返回类型: void
 	// 参数信息: DWORD _dwSelItemTextColor
 	// 函数说明: 
 	//************************************
-	void CTreeNodeUI::SetSelItemTextColor( DWORD _dwSelItemTextColor )
+	void CTreeNodeUI::SetSelItemColor( DWORD _dwSelItemTextColor )
 	{
-		m_dwSelItemTextColor = _dwSelItemTextColor;
+		m_dwSelItemColor = _dwSelItemTextColor;
 		Invalidate();
 	}
 
 	//************************************
-	// 函数名称: GetSelItemTextColor
+	// 函数名称: GetSelItemColor
 	// 返回类型: DWORD
 	// 函数说明: 
 	//************************************
-	DWORD CTreeNodeUI::GetSelItemTextColor() const
+	DWORD CTreeNodeUI::GetSelItemColor() const
 	{
-		return m_dwSelItemTextColor;
+		return m_dwSelItemColor;
 	}
 
 	//************************************
@@ -718,9 +714,9 @@ namespace DuiLib
 	// 参数信息: DWORD _dwSelHotItemTextColor
 	// 函数说明: 
 	//************************************
-	void CTreeNodeUI::SetSelItemHotTextColor( DWORD _dwSelHotItemTextColor )
+	void CTreeNodeUI::SetSelItemHoverColor( DWORD _dwSelHotItemTextColor )
 	{
-		m_dwSelItemHotTextColor = _dwSelHotItemTextColor;
+		m_dwSelItemHoverColor = _dwSelHotItemTextColor;
 		Invalidate();
 	}
 
@@ -729,9 +725,9 @@ namespace DuiLib
 	// 返回类型: DWORD
 	// 函数说明: 
 	//************************************
-	DWORD CTreeNodeUI::GetSelItemHotTextColor() const
+	DWORD CTreeNodeUI::GetSelItemHoverColor() const
 	{
-		return m_dwSelItemHotTextColor;
+		return m_dwSelItemHoverColor;
 	}
 
 	/*****************************************************************************/
@@ -815,7 +811,7 @@ namespace DuiLib
 		int nFolderWidth = pControl->GetFolderButton()->GetFixedWidth();
 		if(nFolderWidth <= 0) nFolderWidth = 16;
 		if(!pControl->GetFolderButton()->IsVisible()) nFolderWidth = 0;
-		pControl->GetFolderButton()->SetPadding(CDuiRect(nLevel * nFolderWidth, 0, 0, 0));
+		pControl->GetFolderButton()->SetMargin(CDuiBox(0, 0, 0, nLevel * nFolderWidth));
 
 		if(pControl->GetCountChild() > 0) {
 			int nCount = pControl->GetCountChild();
@@ -855,7 +851,7 @@ namespace DuiLib
 		int nFolderWidth = pControl->GetFolderButton()->GetFixedWidth();
 		if(nFolderWidth <= 0) nFolderWidth = 16;
 		if(!pControl->GetFolderButton()->IsVisible()) nFolderWidth = 0;
-		pControl->GetFolderButton()->SetPadding(CDuiRect(nLevel * nFolderWidth, 0, 0, 0));
+		pControl->GetFolderButton()->SetMargin(CDuiBox(0, 0, 0, nLevel * nFolderWidth));
 
 		if(pControl->GetCountChild() > 0) {
 			int nCount = pControl->GetCountChild();
@@ -901,7 +897,7 @@ namespace DuiLib
 			int nFolderWidth = pControl->GetFolderButton()->GetFixedWidth();
 			if(nFolderWidth <= 0) nFolderWidth = 16;
 			if(!pControl->GetFolderButton()->IsVisible()) nFolderWidth = 0;
-			pControl->GetFolderButton()->SetPadding(CDuiRect(nLevel * nFolderWidth, 0, 0, 0));
+			pControl->GetFolderButton()->SetMargin(CDuiBox(0, 0, 0, nLevel * nFolderWidth));
 		}
 
 		return bRet;
@@ -1169,65 +1165,65 @@ namespace DuiLib
 	}
 	
 	//************************************
-	// 函数名称: SetItemTextColor
+	// 函数名称: SetItemColor
 	// 返回类型: void
 	// 参数信息: DWORD _dwItemTextColor
 	// 函数说明: 
 	//************************************
-	void CTreeViewUI::SetItemTextColor( DWORD _dwItemTextColor )
+	void CTreeViewUI::SetItemColor( DWORD _dwItemTextColor )
 	{
 		for(int nIndex = 0;nIndex < GetCount();nIndex++){
 			CTreeNodeUI* pTreeNode = static_cast<CTreeNodeUI*>(GetItemAt(nIndex));
 			if(pTreeNode) {
-				pTreeNode->SetItemTextColor(_dwItemTextColor);
+				pTreeNode->SetItemColor(_dwItemTextColor);
 			}
 		}
 	}
 
 	//************************************
-	// 函数名称: SetItemHotTextColor
+	// 函数名称: SetItemHoverColor
 	// 返回类型: void
 	// 参数信息: DWORD _dwItemHotTextColor
 	// 函数说明: 
 	//************************************
-	void CTreeViewUI::SetItemHotTextColor( DWORD _dwItemHotTextColor )
+	void CTreeViewUI::SetItemHoverColor( DWORD _dwItemHotTextColor )
 	{
 		for(int nIndex = 0;nIndex < GetCount();nIndex++){
 			CTreeNodeUI* pTreeNode = static_cast<CTreeNodeUI*>(GetItemAt(nIndex));
 			if(pTreeNode) {
-				pTreeNode->SetItemHotTextColor(_dwItemHotTextColor);
+				pTreeNode->SetItemHoverColor(_dwItemHotTextColor);
 			}
 		}
 	}
 
 	//************************************
-	// 函数名称: SetSelItemTextColor
+	// 函数名称: SetSelItemColor
 	// 返回类型: void
 	// 参数信息: DWORD _dwSelItemTextColor
 	// 函数说明: 
 	//************************************
-	void CTreeViewUI::SetSelItemTextColor( DWORD _dwSelItemTextColor )
+	void CTreeViewUI::SetSelItemColor( DWORD _dwSelItemTextColor )
 	{
 		for(int nIndex = 0;nIndex < GetCount();nIndex++){
 			CTreeNodeUI* pTreeNode = static_cast<CTreeNodeUI*>(GetItemAt(nIndex));
 			if(pTreeNode) {
-				pTreeNode->SetSelItemTextColor(_dwSelItemTextColor);
+				pTreeNode->SetSelItemColor(_dwSelItemTextColor);
 			}
 		}
 	}
 		
 	//************************************
-	// 函数名称: SetSelItemHotTextColor
+	// 函数名称: SetSelItemHoverColor
 	// 返回类型: void
 	// 参数信息: DWORD _dwSelHotItemTextColor
 	// 函数说明: 
 	//************************************
-	void CTreeViewUI::SetSelItemHotTextColor( DWORD _dwSelHotItemTextColor )
+	void CTreeViewUI::SetSelItemHoverColor( DWORD _dwSelHotItemTextColor )
 	{
 		for(int nIndex = 0;nIndex < GetCount();nIndex++){
 			CTreeNodeUI* pTreeNode = static_cast<CTreeNodeUI*>(GetItemAt(nIndex));
 			if(pTreeNode) {
-				pTreeNode->SetSelItemHotTextColor(_dwSelHotItemTextColor);
+				pTreeNode->SetSelItemHoverColor(_dwSelHotItemTextColor);
 			}
 		}
 	}
@@ -1241,35 +1237,31 @@ namespace DuiLib
 	//************************************
 	void CTreeViewUI::SetAttribute( LPCTSTR pstrName, LPCTSTR pstrValue )
 	{
-		if(_tcsicmp(pstrName,_T("visiblefolderbtn")) == 0)
+		if(_tcsicmp(pstrName,_T("visible-folder-btn")) == 0)
 			SetVisibleFolderBtn(_tcsicmp(pstrValue,_T("TRUE")) == 0);
-		else if(_tcsicmp(pstrName,_T("visiblecheckbtn")) == 0)
+		else if(_tcsicmp(pstrName,_T("visible-check-btn")) == 0)
 			SetVisibleCheckBtn(_tcsicmp(pstrValue,_T("TRUE")) == 0);
-		else if(_tcsicmp(pstrName,_T("itemminwidth")) == 0)
+		else if(_tcsicmp(pstrName,_T("item-min-width")) == 0)
 			SetItemMinWidth(_ttoi(pstrValue));
-		else if(_tcsicmp(pstrName, _T("itemtextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetItemTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetItemColor(clrColor);
 		}
-		else if(_tcsicmp(pstrName, _T("itemhottextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetItemHotTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color-hover")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetItemHoverColor(clrColor);
 		}
-		else if(_tcsicmp(pstrName, _T("selitemtextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelItemTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color-selected")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetSelItemColor(clrColor);
 		}
-		else if(_tcsicmp(pstrName, _T("selitemhottextcolor")) == 0 ){
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelItemHotTextColor(clrColor);
+		else if(_tcsicmp(pstrName, _T("item-color-selected-hover")) == 0 ){
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetSelItemHoverColor(clrColor);
 		}
 		else CListUI::SetAttribute(pstrName,pstrValue);
 	}

@@ -27,11 +27,11 @@ namespace DuiLib
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSEENTER ) {
-				if( m_pOwner != NULL ) m_pOwner->OnHeaderHotChanged(true);
+				if( m_pOwner != NULL ) m_pOwner->OnHeaderHoverChanged(true);
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSELEAVE ) {
-				if( m_pOwner != NULL ) m_pOwner->OnHeaderHotChanged(false);
+				if( m_pOwner != NULL ) m_pOwner->OnHeaderHoverChanged(false);
 				return;
 			}
 			if( (event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK) && IsEnabled() ) {
@@ -53,7 +53,7 @@ namespace DuiLib
 		: m_bMultiple(false)
 		, m_nDefaultHeaderHeight(40)
 	{
-		// 不设默认底色：剩余区域由父容器 bkcolor 铺满；避免未撑满时露出离屏缓冲黑底
+		// 不设默认底色：剩余区域由父容器 background-color 铺满；避免未撑满时露出离屏缓冲黑底
 	}
 
 	CAccordionUI::~CAccordionUI() {}
@@ -131,10 +131,10 @@ namespace DuiLib
 		if( szFixed.cx > 0 && szFixed.cy > 0 ) return szFixed;
 
 		SIZE szContent = MeasureContent(szAvailable);
-		RECT rcInset = GetInset();
+		RECT rcPadding = GetPadding();
 		SIZE sz = { 0, 0 };
-		sz.cx = szFixed.cx > 0 ? szFixed.cx : (szAvailable.cx > 0 ? szAvailable.cx : szContent.cx + rcInset.left + rcInset.right);
-		sz.cy = szFixed.cy > 0 ? szFixed.cy : (szContent.cy + rcInset.top + rcInset.bottom);
+		sz.cx = szFixed.cx > 0 ? szFixed.cx : (szAvailable.cx > 0 ? szAvailable.cx : szContent.cx + rcPadding.left + rcPadding.right);
+		sz.cy = szFixed.cy > 0 ? szFixed.cy : (szContent.cy + rcPadding.top + rcPadding.bottom);
 		return sz;
 	}
 
@@ -143,7 +143,7 @@ namespace DuiLib
 		if( _tcsicmp(pstrName, _T("mode")) == 0 ) {
 			SetMode(_tcsicmp(pstrValue, _T("multiple")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("headerheight")) == 0 || _tcsicmp(pstrName, _T("header-height")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("header-height")) == 0 ) {
 			SetDefaultHeaderHeight(_ttoi(pstrValue));
 		}
 		else CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);
@@ -160,21 +160,17 @@ namespace DuiLib
 		, m_pChevron(NULL)
 		, m_bActive(false)
 		, m_bDisabled(false)
-		, m_bHeaderHot(false)
+		, m_bHeaderHover(false)
 		, m_bHeaderHeightExplicit(false)
 		, m_nHeaderHeight(40)
-		, m_dwHeaderBk(0xFFF8F9FA)
-		, m_dwHeaderHotBk(0xFFE9ECEF)
-		, m_dwHeaderActiveBk(0xFFCFE2FF)
-		, m_dwHeaderActiveHotBk(0xFFB6D4FE)
+		, m_dwHeaderBk(0xF8F9FAFF)
+		, m_dwHeaderHoverBk(0xE9ECEFFF)
+		, m_dwHeaderActiveBk(0xCFE2FFFF)
+		, m_dwHeaderActiveHoverBk(0xB6D4FEFF)
 	{
-		m_rcContentPadding.left = 8;
-		m_rcContentPadding.top = 8;
-		m_rcContentPadding.right = 8;
-		m_rcContentPadding.bottom = 8;
-		SetBkColor(0xFFFFFFFF);
-		RECT rcMargin = { 0, 0, 0, 1 };
-		SetPadding(rcMargin);
+		m_rcContentPadding = CDuiBox(8);
+		SetBackgroundColor(0xFFFFFFFF);
+		SetMargin(CDuiBox(0, 0, 1, 0));
 		EnsureHeader();
 		UpdateFixedHeight();
 	}
@@ -208,18 +204,17 @@ namespace DuiLib
 		CAccordionHeaderUI* pHeader = new CAccordionHeaderUI;
 		pHeader->SetOwner(this);
 		pHeader->SetFixedHeight(m_nHeaderHeight);
-		pHeader->SetBkColor(m_dwHeaderBk);
+		pHeader->SetBackgroundColor(m_dwHeaderBk);
 		pHeader->SetMouseEnabled(true);
-		pHeader->SetChildPadding(8);
-		pHeader->SetChildVAlign(DT_VCENTER);
-		RECT rcInset = { 16, 0, 16, 0 };
-		pHeader->SetInset(rcInset);
+		pHeader->SetGap(8);
+		pHeader->SetAlignItems(DT_VCENTER);
+		pHeader->SetPadding(CDuiBox(0, 16, 0, 16));
 		CVerticalLayoutUI::Add(pHeader);
 		m_pHeader = pHeader;
 
 		m_pTitle = new CLabelUI;
 		m_pTitle->SetTextStyle(DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
-		m_pTitle->SetTextColor(0xFF212529);
+		m_pTitle->SetColor(0x212529FF);
 		m_pTitle->SetFont(0);
 		m_pTitle->SetMouseEnabled(false);
 		m_pTitle->SetFixedWidth(0);
@@ -228,7 +223,7 @@ namespace DuiLib
 		m_pChevron = new CLabelUI;
 		m_pChevron->SetText(_T("\u25BC"));
 		m_pChevron->SetTextStyle(DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-		m_pChevron->SetTextColor(0xFF212529);
+		m_pChevron->SetColor(0x212529FF);
 		m_pChevron->SetFixedWidth(20);
 		m_pChevron->SetMouseEnabled(false);
 		m_pHeader->Add(m_pChevron);
@@ -253,11 +248,11 @@ namespace DuiLib
 		else SetActive(!m_bActive, true);
 	}
 
-	void CAccordionItemUI::OnHeaderHotChanged(bool bHot)
+	void CAccordionItemUI::OnHeaderHoverChanged(bool bHot)
 	{
 		if( m_bDisabled ) bHot = false;
-		if( m_bHeaderHot == bHot ) return;
-		m_bHeaderHot = bHot;
+		if( m_bHeaderHover == bHot ) return;
+		m_bHeaderHover = bHot;
 		SyncHeaderChrome();
 	}
 
@@ -287,7 +282,7 @@ namespace DuiLib
 	void CAccordionItemUI::ApplyContentPadding(CControlUI* pControl)
 	{
 		if( pControl == NULL || pControl == m_pHeader ) return;
-		pControl->SetPadding(m_rcContentPadding);
+		pControl->SetMargin(m_rcContentPadding);
 	}
 
 	void CAccordionItemUI::SyncContentVisibility()
@@ -307,12 +302,12 @@ namespace DuiLib
 		if( m_pHeader == NULL ) return;
 		DWORD dwBk = m_dwHeaderBk;
 		if( m_bActive ) {
-			dwBk = (m_bHeaderHot && !m_bDisabled) ? m_dwHeaderActiveHotBk : m_dwHeaderActiveBk;
+			dwBk = (m_bHeaderHover && !m_bDisabled) ? m_dwHeaderActiveHoverBk : m_dwHeaderActiveBk;
 		}
-		else if( m_bHeaderHot && !m_bDisabled ) {
-			dwBk = m_dwHeaderHotBk;
+		else if( m_bHeaderHover && !m_bDisabled ) {
+			dwBk = m_dwHeaderHoverBk;
 		}
-		m_pHeader->SetBkColor(dwBk);
+		m_pHeader->SetBackgroundColor(dwBk);
 		if( m_pChevron != NULL ) {
 			m_pChevron->SetVisible(!m_bDisabled);
 			m_pChevron->SetText(m_bActive ? _T("\u25B2") : _T("\u25BC"));
@@ -442,8 +437,8 @@ namespace DuiLib
 			return sz;
 		}
 
-		RECT rcInset = GetInset();
-		int cx = szAvailable.cx - rcInset.left - rcInset.right;
+		RECT rcPadding = GetPadding();
+		int cx = szAvailable.cx - rcPadding.left - rcPadding.right;
 		if( cx < 0 ) cx = 0;
 		int cy = m_nHeaderHeight;
 		int nContent = 0;
@@ -451,15 +446,15 @@ namespace DuiLib
 			CControlUI* pControl = GetItemAt(i);
 			if( pControl == NULL || pControl == m_pHeader ) continue;
 			if( !pControl->IsVisible() ) continue;
-			RECT rcPad = pControl->GetPadding();
+			RECT rcPad = pControl->GetMargin();
 			SIZE szAvail = { cx - rcPad.left - rcPad.right, szAvailable.cy };
 			if( szAvail.cx < 0 ) szAvail.cx = 0;
 			SIZE sz = EstimateAccordionChild(pControl, szAvail);
 			cy += sz.cy + rcPad.top + rcPad.bottom;
-			if( nContent > 0 && GetChildPadding() > 0 ) cy += GetChildPadding();
+			if( nContent > 0 && GetGap() > 0 ) cy += GetGap();
 			nContent++;
 		}
-		cy += rcInset.top + rcInset.bottom;
+		cy += rcPadding.top + rcPadding.bottom;
 
 		SIZE szResult = { szFixed.cx > 0 ? szFixed.cx : szAvailable.cx, cy };
 		return szResult;
@@ -467,13 +462,9 @@ namespace DuiLib
 
 	DWORD CAccordionItemUI::ParseColorValue(LPCTSTR pstrValue)
 	{
-		if( pstrValue == NULL || *pstrValue == _T('\0') ) return 0;
-		if( _tcsicmp(pstrValue, _T("red")) == 0 ) return 0xFFFF0000;
-		if( _tcsicmp(pstrValue, _T("white")) == 0 ) return 0xFFFFFFFF;
-		if( _tcsicmp(pstrValue, _T("black")) == 0 ) return 0xFF000000;
-		if( *pstrValue == _T('#') ) pstrValue = ::CharNext(pstrValue);
-		LPTSTR pstr = NULL;
-		return _tcstoul(pstrValue, &pstr, 16);
+		DWORD clr = 0;
+		if( pstrValue != NULL && ParseColorString(pstrValue, clr) ) return clr;
+		return 0;
 	}
 
 	void CAccordionItemUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -487,32 +478,18 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("disabled")) == 0 ) {
 			SetDisabled(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("content-padding")) == 0 || _tcsicmp(pstrName, _T("contentpadding")) == 0 ) {
-			// CSS: top right bottom left → DuiLib padding LTRB
-			int v[4] = { 0, 0, 0, 0 };
-			LPTSTR pstr = NULL;
-			v[0] = _tcstol(pstrValue, &pstr, 10);
-			int n = 1;
-			while( pstr && (*pstr == _T(',') || *pstr == _T(' ')) ) {
-				++pstr;
-				while( *pstr == _T(' ') ) ++pstr;
-				if( *pstr == _T('\0') || n >= 4 ) break;
-				v[n++] = _tcstol(pstr, &pstr, 10);
-			}
-			int t, r, b, l;
-			if( n >= 4 ) { t = v[0]; r = v[1]; b = v[2]; l = v[3]; }
-			else if( n >= 2 ) { t = v[0]; r = v[1]; b = v[0]; l = v[1]; }
-			else { t = r = b = l = v[0]; }
-			m_rcContentPadding.left = l;
-			m_rcContentPadding.top = t;
-			m_rcContentPadding.right = r;
-			m_rcContentPadding.bottom = b;
-			for( int i = 0; i < GetCount(); ++i ) {
-				CControlUI* pControl = GetItemAt(i);
-				if( pControl != NULL && pControl != m_pHeader ) ApplyContentPadding(pControl);
+		else if( _tcsicmp(pstrName, _T("content-padding")) == 0 ) {
+			// 与全局 padding 相同：CSS top,right,bottom,left
+			CDuiBox rc;
+			if( ParseCssBox(pstrValue, rc) ) {
+				m_rcContentPadding = rc;
+				for( int i = 0; i < GetCount(); ++i ) {
+					CControlUI* pControl = GetItemAt(i);
+					if( pControl != NULL && pControl != m_pHeader ) ApplyContentPadding(pControl);
+				}
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("header-align")) == 0 || _tcsicmp(pstrName, _T("headeralign")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("header-align")) == 0 ) {
 			EnsureHeader();
 			if( m_pTitle == NULL ) return;
 			UINT uStyle = DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS;
@@ -521,7 +498,7 @@ namespace DuiLib
 			else uStyle |= DT_LEFT;
 			m_pTitle->SetTextStyle(uStyle);
 		}
-		else if( _tcsicmp(pstrName, _T("header-height")) == 0 || _tcsicmp(pstrName, _T("headerheight")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("header-height")) == 0 ) {
 			m_bHeaderHeightExplicit = true;
 			m_nHeaderHeight = _ttoi(pstrValue);
 			if( m_nHeaderHeight < 1 ) m_nHeaderHeight = 1;
@@ -530,24 +507,24 @@ namespace DuiLib
 			UpdateFixedHeight();
 			RequestAncestorLayout();
 		}
-		else if( _tcsicmp(pstrName, _T("header-color")) == 0 || _tcsicmp(pstrName, _T("headercolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("header-color")) == 0 ) {
 			EnsureHeader();
-			if( m_pTitle != NULL ) m_pTitle->SetTextColor(ParseColorValue(pstrValue));
+			if( m_pTitle != NULL ) m_pTitle->SetColor(ParseColorValue(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("header-bkcolor")) == 0 || _tcsicmp(pstrName, _T("headerbkcolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("header-background-color")) == 0 ) {
 			m_dwHeaderBk = ParseColorValue(pstrValue);
 			SyncHeaderChrome();
 		}
-		else if( _tcsicmp(pstrName, _T("header-hotbkcolor")) == 0 || _tcsicmp(pstrName, _T("headerhotbkcolor")) == 0 ) {
-			m_dwHeaderHotBk = ParseColorValue(pstrValue);
+		else if( _tcsicmp(pstrName, _T("header-background-color-hover")) == 0 ) {
+			m_dwHeaderHoverBk = ParseColorValue(pstrValue);
 			SyncHeaderChrome();
 		}
-		else if( _tcsicmp(pstrName, _T("header-activebkcolor")) == 0 || _tcsicmp(pstrName, _T("headeractivebkcolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("header-background-color-active")) == 0 ) {
 			m_dwHeaderActiveBk = ParseColorValue(pstrValue);
 			SyncHeaderChrome();
 		}
-		else if( _tcsicmp(pstrName, _T("header-activehotbkcolor")) == 0 || _tcsicmp(pstrName, _T("headeractivehotbkcolor")) == 0 ) {
-			m_dwHeaderActiveHotBk = ParseColorValue(pstrValue);
+		else if( _tcsicmp(pstrName, _T("header-background-color-active-hover")) == 0 ) {
+			m_dwHeaderActiveHoverBk = ParseColorValue(pstrValue);
 			SyncHeaderChrome();
 		}
 		else CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);

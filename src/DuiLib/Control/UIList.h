@@ -1,4 +1,4 @@
-﻿#ifndef __UILIST_H__
+#ifndef __UILIST_H__
 #define __UILIST_H__
 
 namespace DuiLib {
@@ -18,22 +18,22 @@ namespace DuiLib {
 		int nFont;
 		UINT uTextStyle;
 		RECT rcTextPadding;
-		DWORD dwTextColor;
-		DWORD dwBkColor;
+		DWORD dwColor;
+		DWORD dwBackgroundColor;
 		CDuiString sBkImage;
 		bool bAlternateBk;
-		DWORD dwSelectedTextColor;
-		DWORD dwSelectedBkColor;
+		DWORD dwSelectedColor;
+		DWORD dwSelectedBackgroundColor;
 		CDuiString sSelectedImage;
-		DWORD dwHotTextColor;
-		DWORD dwHotBkColor;
-		CDuiString sHotImage;
-		DWORD dwDisabledTextColor;
-		DWORD dwDisabledBkColor;
+		DWORD dwHoverColor;
+		DWORD dwHoverBackgroundColor;
+		CDuiString sHoverImage;
+		DWORD dwDisabledColor;
+		DWORD dwDisabledBackgroundColor;
 		CDuiString sDisabledImage;
-		CDuiString sForeImage;
-		CDuiString sHotForeImage;
-		CDuiString sSelectedForeImage;
+		CDuiString sForegroundImage;
+		CDuiString sHoverForegroundImage;
+		CDuiString sSelectedForegroundImage;
 
 		DWORD dwLineColor;
 		bool bShowRowLine;
@@ -51,7 +51,7 @@ namespace DuiLib {
 	{
 	public:
 		virtual LPCTSTR GetItemText(CControlUI* pList, int iItem, int iSubItem) = 0;
-		virtual DWORD GetItemTextColor(CControlUI* pList, int iItem, int iSubItem, int iState) = 0;// iState：0-正常、1-激活、2-选择、3-禁用
+		virtual DWORD GetItemColor(CControlUI* pList, int iItem, int iSubItem, int iState) = 0;// iState：0-正常、1-激活、2-选择、3-禁用
 	};
 
 	class IListOwnerUI
@@ -154,24 +154,24 @@ namespace DuiLib {
 
 		bool IsDelayedDestroy() const;
 		void SetDelayedDestroy(bool bDelayed);
-		int GetChildPadding() const;
-		void SetChildPadding(int iPadding);
+		int GetGap() const;
+		void SetGap(int iPadding);
 
 		void SetItemFont(int index);
 		void SetItemTextStyle(UINT uStyle);
 		void SetItemTextPadding(RECT rc);
-		void SetItemTextColor(DWORD dwTextColor);
-		void SetItemBkColor(DWORD dwBkColor);
+		void SetItemColor(DWORD dwColor);
+		void SetItemBackgroundColor(DWORD dwBackgroundColor);
 		void SetItemBkImage(LPCTSTR pStrImage);
 		void SetAlternateBk(bool bAlternateBk);
-		void SetSelectedItemTextColor(DWORD dwTextColor);
-		void SetSelectedItemBkColor(DWORD dwBkColor);
+		void SetSelectedItemColor(DWORD dwColor);
+		void SetSelectedItemBackgroundColor(DWORD dwBackgroundColor);
 		void SetSelectedItemImage(LPCTSTR pStrImage); 
-		void SetHotItemTextColor(DWORD dwTextColor);
-		void SetHotItemBkColor(DWORD dwBkColor);
-		void SetHotItemImage(LPCTSTR pStrImage);
-		void SetDisabledItemTextColor(DWORD dwTextColor);
-		void SetDisabledItemBkColor(DWORD dwBkColor);
+		void SetHoverItemColor(DWORD dwColor);
+		void SetHoverItemBackgroundColor(DWORD dwBackgroundColor);
+		void SetHoverItemImage(LPCTSTR pStrImage);
+		void SetDisabledItemColor(DWORD dwColor);
+		void SetDisabledItemBackgroundColor(DWORD dwBackgroundColor);
 		void SetDisabledItemImage(LPCTSTR pStrImage);
 		void SetItemLineColor(DWORD dwLineColor);
 		void SetItemShowRowLine(bool bShowLine = false);
@@ -181,18 +181,18 @@ namespace DuiLib {
 		bool IsItemRSelected();
 		void SetItemRSelected(bool bSelected = true);
 		RECT GetItemTextPadding() const;
-		DWORD GetItemTextColor() const;
-		DWORD GetItemBkColor() const;
+		DWORD GetItemColor() const;
+		DWORD GetItemBackgroundColor() const;
 		LPCTSTR GetItemBkImage() const;
 		bool IsAlternateBk() const;
-		DWORD GetSelectedItemTextColor() const;
-		DWORD GetSelectedItemBkColor() const;
+		DWORD GetSelectedItemColor() const;
+		DWORD GetSelectedItemBackgroundColor() const;
 		LPCTSTR GetSelectedItemImage() const;
-		DWORD GetHotItemTextColor() const;
-		DWORD GetHotItemBkColor() const;
-		LPCTSTR GetHotItemImage() const;
-		DWORD GetDisabledItemTextColor() const;
-		DWORD GetDisabledItemBkColor() const;
+		DWORD GetHoverItemColor() const;
+		DWORD GetHoverItemBackgroundColor() const;
+		LPCTSTR GetHoverItemImage() const;
+		DWORD GetDisabledItemColor() const;
+		DWORD GetDisabledItemBackgroundColor() const;
 		LPCTSTR GetDisabledItemImage() const;
 		DWORD GetItemLineColor() const;
 
@@ -323,21 +323,21 @@ namespace DuiLib {
 		void SetSepWidth(int iWidth);
 		DWORD GetTextStyle() const;
 		void SetTextStyle(UINT uStyle);
-		DWORD GetTextColor() const;
-		void SetTextColor(DWORD dwTextColor);
+		DWORD GetColor() const;
+		void SetColor(DWORD dwColor);
 		void SetTextPadding(RECT rc);
 		RECT GetTextPadding() const;
 		void SetFont(int index);
 		bool IsShowHtml();
 		void SetShowHtml(bool bShowHtml = true);
-		LPCTSTR GetNormalImage() const;
-		void SetNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetHotImage() const;
-		void SetHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetPushedImage() const;
-		void SetPushedImage(LPCTSTR pStrImage);
-		LPCTSTR GetFocusedImage() const;
-		void SetFocusedImage(LPCTSTR pStrImage);
+		LPCTSTR GetImage() const;
+		void SetImage(LPCTSTR pStrImage);
+		LPCTSTR GetHoverImage() const;
+		void SetHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetActiveImage() const;
+		void SetActiveImage(LPCTSTR pStrImage);
+		LPCTSTR GetFocusImage() const;
+		void SetFocusImage(LPCTSTR pStrImage);
 		LPCTSTR GetSepImage() const;
 		void SetSepImage(LPCTSTR pStrImage);
 		void SetScale(int nScale);
@@ -356,15 +356,15 @@ namespace DuiLib {
 		bool m_bDragable;
 		UINT m_uButtonState;
 		int m_iSepWidth;
-		DWORD m_dwTextColor;
+		DWORD m_dwColor;
 		int m_iFont;
 		UINT m_uTextStyle;
 		bool m_bShowHtml;
 		RECT m_rcTextPadding;
-		CDuiString m_sNormalImage;
-		CDuiString m_sHotImage;
-		CDuiString m_sPushedImage;
-		CDuiString m_sFocusedImage;
+		CDuiString m_sImage;
+		CDuiString m_sHoverImage;
+		CDuiString m_sActiveImage;
+		CDuiString m_sFocusImage;
 		CDuiString m_sSepImage;
 		CDuiString m_sSepImageModify;
 		int m_nScale;
@@ -451,8 +451,8 @@ namespace DuiLib {
 		LPCTSTR GetText(int iIndex) const;
 		void SetText(int iIndex, LPCTSTR pstrText);
 
-		DWORD GetTextColor(int iIndex) const;
-		void SetTextColor(int iIndex, DWORD dwTextColor);
+		DWORD GetColor(int iIndex) const;
+		void SetColor(int iIndex, DWORD dwColor);
 
 		void SetOwner(CControlUI* pOwner);
 		CDuiString* GetLinkContent(int iIndex);

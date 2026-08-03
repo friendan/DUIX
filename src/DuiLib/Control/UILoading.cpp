@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "UILoading.h"
 #include <Gdiplus.h>
 
@@ -104,12 +104,12 @@ void CLoadingUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 		LPTSTR pstr = NULL;
 		m_SpokeThickness = _tcstol(pstrValue, &pstr, 0);
 	}
-	else if (_tcsicmp(pstrName, _T("outradius")) == 0)
+	else if (_tcsicmp(pstrName, _T("outer-radius")) == 0)
 	{
 		LPTSTR pstr = NULL;
 		m_OuterCircleRadius = _tcstol(pstrValue, &pstr, 0);
 	}
-	else if (_tcsicmp(pstrName, _T("innerradius")) == 0)
+	else if (_tcsicmp(pstrName, _T("inner-radius")) == 0)
 	{
 		LPTSTR pstr = NULL;
 		m_InnerCircleRadius = _tcstol(pstrValue, &pstr, 0);
@@ -117,9 +117,8 @@ void CLoadingUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	else if (_tcsicmp(pstrName, _T("color")) == 0)
 	{
 		while (*pstrValue > _T('\0') && *pstrValue <= _T(' ')) pstrValue = ::CharNext(pstrValue);
-		if (*pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-		LPTSTR pstr = NULL;
-		DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
 		m_Color.SetValue(clrColor);
 	}
 	else
@@ -128,7 +127,7 @@ void CLoadingUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	}
 }
 
-void CLoadingUI::PaintBkImage(IRenderContext& ctx)
+void CLoadingUI::PaintBackgroundImage(IRenderContext& ctx)
 {
 	m_CenterPoint.X = (Gdiplus::REAL)this->GetWidth() / 2;
 	m_CenterPoint.Y = (Gdiplus::REAL)this->GetHeight() / 2;

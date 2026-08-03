@@ -33,7 +33,7 @@ void CTabBarTestWnd::OnFinalMessage(HWND hWnd)
 
 CDuiString CTabBarTestWnd::GetSkinFile()
 {
-	return _T("tabbartest.xml");
+	return _T("tabbartest.html");
 }
 
 LPCTSTR CTabBarTestWnd::GetWindowClassName() const
@@ -76,10 +76,10 @@ CLabelUI* CTabBarTestWnd::CreatePageLabel(LPCTSTR pstrText)
 {
 	CLabelUI* pLabel = new CLabelUI();
 	pLabel->SetText(pstrText);
-	pLabel->SetAttribute(_T("align"), _T("center"));
-	pLabel->SetAttribute(_T("valign"), _T("vcenter"));
-	pLabel->SetAttribute(_T("textcolor"), _T("#FF333333"));
-	pLabel->SetAttribute(_T("font"), _T("font13"));
+	pLabel->SetAttribute(_T("text-align"), _T("center"));
+	pLabel->SetAttribute(_T("vertical-align"), _T("vcenter"));
+	pLabel->SetAttribute(_T("color"), _T("#FF333333"));
+	pLabel->SetAttribute(_T("font-size"), _T("13"));
 	return pLabel;
 }
 

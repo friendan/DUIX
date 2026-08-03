@@ -1,4 +1,4 @@
-﻿#ifndef __UILISTEX_H__
+#ifndef __UILISTEX_H__
 #define __UILISTEX_H__
 
 #pragma once
@@ -91,21 +91,21 @@ namespace DuiLib {
 		void SetSepWidth(int iWidth);
 		DWORD GetTextStyle() const;
 		void SetTextStyle(UINT uStyle);
-		DWORD GetTextColor() const;
-		void SetTextColor(DWORD dwTextColor);
+		DWORD GetColor() const;
+		void SetColor(DWORD dwColor);
 		void SetTextPadding(RECT rc);
 		RECT GetTextPadding() const;
 		void SetFont(int index);
 		BOOL IsShowHtml();
 		void SetShowHtml(BOOL bShowHtml = TRUE);
-		LPCTSTR GetNormalImage() const;
-		void SetNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetHotImage() const;
-		void SetHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetPushedImage() const;
-		void SetPushedImage(LPCTSTR pStrImage);
-		LPCTSTR GetFocusedImage() const;
-		void SetFocusedImage(LPCTSTR pStrImage);
+		LPCTSTR GetImage() const;
+		void SetImage(LPCTSTR pStrImage);
+		LPCTSTR GetHoverImage() const;
+		void SetHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetActiveImage() const;
+		void SetActiveImage(LPCTSTR pStrImage);
+		LPCTSTR GetFocusImage() const;
+		void SetFocusImage(LPCTSTR pStrImage);
 		LPCTSTR GetSepImage() const;
 		void SetSepImage(LPCTSTR pStrImage);
 
@@ -122,15 +122,15 @@ namespace DuiLib {
 		BOOL m_bDragable;
 		UINT m_uButtonState;
 		int m_iSepWidth;
-		DWORD m_dwTextColor;
+		DWORD m_dwColor;
 		int m_iFont;
 		UINT m_uTextStyle;
 		BOOL m_bShowHtml;
 		RECT m_rcTextPadding;
-		CDuiString m_sNormalImage;
-		CDuiString m_sHotImage;
-		CDuiString m_sPushedImage;
-		CDuiString m_sFocusedImage;
+		CDuiString m_sImage;
+		CDuiString m_sHoverImage;
+		CDuiString m_sActiveImage;
+		CDuiString m_sFocusImage;
 		CDuiString m_sSepImage;
 		CDuiString m_sSepImageModify;
 
@@ -162,13 +162,13 @@ namespace DuiLib {
 		BOOL	m_bChecked;
 
 		CDuiString m_sCheckBoxNormalImage;
-		CDuiString m_sCheckBoxHotImage;
-		CDuiString m_sCheckBoxPushedImage;
+		CDuiString m_sCheckBoxHoverImage;
+		CDuiString m_sCheckBoxActiveImage;
 		CDuiString m_sCheckBoxFocusedImage;
 		CDuiString m_sCheckBoxDisabledImage;
 
 		CDuiString m_sCheckBoxSelectedImage;
-		CDuiString m_sCheckBoxForeImage;
+		CDuiString m_sCheckBoxForegroundImage;
 
 		SIZE m_cxyCheckBox;
 
@@ -176,10 +176,10 @@ namespace DuiLib {
 		BOOL DrawCheckBoxImage(IRenderContext& ctx, LPCTSTR pStrImage, LPCTSTR pStrModify = NULL);
 		LPCTSTR GetCheckBoxNormalImage();
 		void SetCheckBoxNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetCheckBoxHotImage();
-		void SetCheckBoxHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetCheckBoxPushedImage();
-		void SetCheckBoxPushedImage(LPCTSTR pStrImage);
+		LPCTSTR GetCheckBoxHoverImage();
+		void SetCheckBoxHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetCheckBoxActiveImage();
+		void SetCheckBoxActiveImage(LPCTSTR pStrImage);
 		LPCTSTR GetCheckBoxFocusedImage();
 		void SetCheckBoxFocusedImage(LPCTSTR pStrImage);
 		LPCTSTR GetCheckBoxDisabledImage();
@@ -187,8 +187,8 @@ namespace DuiLib {
 
 		LPCTSTR GetCheckBoxSelectedImage();
 		void SetCheckBoxSelectedImage(LPCTSTR pStrImage);
-		LPCTSTR GetCheckBoxForeImage();
-		void SetCheckBoxForeImage(LPCTSTR pStrImage);
+		LPCTSTR GetCheckBoxForegroundImage();
+		void SetCheckBoxForegroundImage(LPCTSTR pStrImage);
 
 		void GetCheckBoxRect(RECT &rc);	
 
@@ -244,13 +244,13 @@ namespace DuiLib {
 		BOOL	m_bChecked;
 
 		CDuiString m_sCheckBoxNormalImage;
-		CDuiString m_sCheckBoxHotImage;
-		CDuiString m_sCheckBoxPushedImage;
+		CDuiString m_sCheckBoxHoverImage;
+		CDuiString m_sCheckBoxActiveImage;
 		CDuiString m_sCheckBoxFocusedImage;
 		CDuiString m_sCheckBoxDisabledImage;
 
 		CDuiString m_sCheckBoxSelectedImage;
-		CDuiString m_sCheckBoxForeImage;
+		CDuiString m_sCheckBoxForegroundImage;
 
 		SIZE m_cxyCheckBox;
 
@@ -261,10 +261,10 @@ namespace DuiLib {
 		BOOL DrawCheckBoxImage(IRenderContext& ctx, LPCTSTR pStrImage, LPCTSTR pStrModify, RECT& rcCheckBox);
 		LPCTSTR GetCheckBoxNormalImage();
 		void SetCheckBoxNormalImage(LPCTSTR pStrImage);
-		LPCTSTR GetCheckBoxHotImage();
-		void SetCheckBoxHotImage(LPCTSTR pStrImage);
-		LPCTSTR GetCheckBoxPushedImage();
-		void SetCheckBoxPushedImage(LPCTSTR pStrImage);
+		LPCTSTR GetCheckBoxHoverImage();
+		void SetCheckBoxHoverImage(LPCTSTR pStrImage);
+		LPCTSTR GetCheckBoxActiveImage();
+		void SetCheckBoxActiveImage(LPCTSTR pStrImage);
 		LPCTSTR GetCheckBoxFocusedImage();
 		void SetCheckBoxFocusedImage(LPCTSTR pStrImage);
 		LPCTSTR GetCheckBoxDisabledImage();
@@ -272,8 +272,8 @@ namespace DuiLib {
 
 		LPCTSTR GetCheckBoxSelectedImage();
 		void SetCheckBoxSelectedImage(LPCTSTR pStrImage);
-		LPCTSTR GetCheckBoxForeImage();
-		void SetCheckBoxForeImage(LPCTSTR pStrImage);
+		LPCTSTR GetCheckBoxForegroundImage();
+		void SetCheckBoxForegroundImage(LPCTSTR pStrImage);
 
 		void GetCheckBoxRect(int nIndex, RECT &rc);	
 		void GetColumRect(int nColum, RECT &rc);

@@ -64,11 +64,11 @@ namespace DuiLib
 	RECT CDateTimeWnd::CalPos()
 	{
 		CDuiRect rcPos = m_pOwner->GetPos();
-		//CDuiRect rcPadding = m_pOwner->GetTextPadding();
-		//rcPos.left += rcPadding.left;
-		//rcPos.top += rcPadding.top;
-		//rcPos.right -= rcPadding.right;
-		//rcPos.bottom -= rcPadding.bottom;
+		//CDuiRect rcTextPadding = m_pOwner->GetTextPadding();
+		//rcPos.left += rcTextPadding.left;
+		//rcPos.top += rcTextPadding.top;
+		//rcPos.right -= rcTextPadding.right;
+		//rcPos.bottom -= rcTextPadding.bottom;
 
 		CControlUI* pParent = m_pOwner;
 		RECT rcParent;

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -75,34 +75,34 @@
     <None Include="Res\duidemo.ico">
       <Filter>Resources</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\main.xml">
+    <None Include="..\..\bin\skin\duidemo\main.html">
       <Filter>Resources\xmls</Filter>
     </None>
     <None Include="Flash11.tlb">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\menu.xml">
+    <None Include="..\..\bin\skin\duidemo\menu.html">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\res.xml">
+    <None Include="..\..\bin\skin\duidemo\res.html">
       <Filter>Resources\xmls</Filter>
     </None>
     <None Include="Res\duidemo.zip">
       <Filter>Resources</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\msg.xml">
+    <None Include="..\..\bin\skin\duidemo\msg.html">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\lan_cn.xml">
+    <None Include="..\..\bin\skin\duidemo\lan_cn.html">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\lan_en.xml">
+    <None Include="..\..\bin\skin\duidemo\lan_en.html">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\iconbrowser.xml">
+    <None Include="..\..\bin\skin\duidemo\iconbrowser.html">
       <Filter>Resources\xmls</Filter>
     </None>
-    <None Include="..\..\bin\skin\duidemo\tabbartest.xml">
+    <None Include="..\..\bin\skin\duidemo\tabbartest.html">
       <Filter>Resources\xmls</Filter>
     </None>
     <None Include="..\..\bin\skin\duidemo\layouttest.htm">

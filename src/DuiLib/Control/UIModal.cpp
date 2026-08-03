@@ -10,7 +10,7 @@ namespace DuiLib {
 			kModalBtnRowH = 44,
 			kModalBtnW = 72,
 			kModalBtnH = 30,
-			kModalRound = 24, // 窗体圆角（椭圆直径）；按钮默认约 4，这里明显更大
+			kModalRound = 12, // 窗体圆角（CSS 半径）
 		};
 
 		DWORD KindTitleTextColor(ControlKind kind)
@@ -18,7 +18,7 @@ namespace DuiLib {
 			InitKindColors();
 			int idx = (int)kind;
 			if( idx < 0 || idx >= 11 ) idx = (int)CONTROLKIND_PRIMARY;
-			DWORD c = g_kindColors[idx].Normal.dwTextColor;
+			DWORD c = g_kindColors[idx].Normal.dwColor;
 			if( c == 0 ) c = 0xFFFFFFFF;
 			return c;
 		}
@@ -337,33 +337,32 @@ namespace DuiLib {
 		pRoot->SetName(_T("modalRoot"));
 		pRoot->SetFixedWidth(w);
 		pRoot->SetFixedHeight(h);
-		pRoot->SetBkColor(0xFFFFFFFF);
-		// 分层 + BorderRound：D2D 抗锯齿圆角；角外透明（勿 SetWindowRgn）
+		pRoot->SetBackgroundColor(0xFFFFFFFF);
+		// 分层 + BorderRadius：D2D 抗锯齿圆角；角外透明（勿 SetWindowRgn）
 		SIZE szRound = { kModalRound, kModalRound };
-		pRoot->SetBorderRound(szRound);
+		pRoot->SetBorderRadius(szRound);
 
 		// 标题栏
 		CHorizontalLayoutUI* pTitle = new CHorizontalLayoutUI;
 		pTitle->SetName(_T("modalTitleBar"));
 		pTitle->SetFixedHeight(kModalTitleH);
 		pTitle->SetKind(m_opts.m_kind);
-		// SetKind 会带上按钮级 BorderRound(12)，标题四角被裁掉会露出底下灰/白块；
+		// SetKind 会带上按钮级 BorderRadius(12)，标题四角被裁掉会露出底下灰/白块；
 		// 直角填充，由根节点圆角裁剪即可。
 		SIZE szTitleFlat = { 0, 0 };
-		pTitle->SetBorderRound(szTitleFlat);
-		pTitle->SetBorderSize(0);
-		pTitle->SetChildVAlign(DT_VCENTER);
-		RECT rcTitleInset = { 16, 0, 8, 0 };
-		pTitle->SetInset(rcTitleInset);
+		pTitle->SetBorderRadius(szTitleFlat);
+		pTitle->SetBorderWidth(0);
+		pTitle->SetAlignItems(DT_VCENTER);
+		pTitle->SetPadding(CDuiBox(0, 8, 0, 16));
 		pTitle->SetAttribute(_T("action"), _T("title"));
 
 		CLabelUI* pTitleLabel = new CLabelUI;
 		pTitleLabel->SetName(_T("modalTitle"));
 		pTitleLabel->SetText(m_opts.m_sTitle.GetData());
 		pTitleLabel->SetFont(0);
-		pTitleLabel->SetTextColor(dwTitleFg);
-		pTitleLabel->SetAttribute(_T("align"), _T("left"));
-		pTitleLabel->SetAttribute(_T("valign"), _T("vcenter"));
+		pTitleLabel->SetColor(dwTitleFg);
+		pTitleLabel->SetAttribute(_T("text-align"), _T("left"));
+		pTitleLabel->SetAttribute(_T("vertical-align"), _T("vcenter"));
 		pTitleLabel->SetAttribute(_T("action"), _T("title"));
 		pTitleLabel->SetMouseEnabled(false);
 		pTitle->Add(pTitleLabel);
@@ -372,19 +371,18 @@ namespace DuiLib {
 		// 正文
 		CVerticalLayoutUI* pBody = new CVerticalLayoutUI;
 		pBody->SetName(_T("modalBody"));
-		RECT rcBodyInset = { 16, 20, 16, 12 };
-		pBody->SetInset(rcBodyInset);
+		pBody->SetPadding(CDuiBox(20, 16, 12, 16));
 		pBody->SetAttribute(_T("action"), _T("title"));
 
 		CLabelUI* pText = new CLabelUI;
 		pText->SetName(_T("modalText"));
 		pText->SetText(m_opts.m_sText.GetData());
 		pText->SetFont(1);
-		pText->SetTextColor(0xFF3C3C3C);
-		pText->SetAttribute(_T("align"), _T("left"));
-		pText->SetAttribute(_T("valign"), _T("top"));
-		pText->SetAttribute(_T("endellipsis"), _T("false"));
-		pText->SetAttribute(_T("wordbreak"), _T("true"));
+		pText->SetColor(0x3C3C3CFF);
+		pText->SetAttribute(_T("text-align"), _T("left"));
+		pText->SetAttribute(_T("vertical-align"), _T("top"));
+		pText->SetAttribute(_T("text-overflow"), _T("clip"));
+		pText->SetAttribute(_T("word-break"), _T("break-word"));
 		pText->SetMouseEnabled(false);
 		pBody->Add(pText);
 		pRoot->Add(pBody);
@@ -393,15 +391,14 @@ namespace DuiLib {
 		CHorizontalLayoutUI* pBtnRow = new CHorizontalLayoutUI;
 		pBtnRow->SetName(_T("modalBtnRow"));
 		pBtnRow->SetFixedHeight(kModalBtnRowH);
-		pBtnRow->SetChildVAlign(DT_VCENTER);
-		pBtnRow->SetChildPadding(8);
-		RECT rcBtnInset = { 0, 0, 12, 0 };
-		pBtnRow->SetInset(rcBtnInset);
-		pBtnRow->SetBkColor(0xFFFFFFFF);
+		pBtnRow->SetAlignItems(DT_VCENTER);
+		pBtnRow->SetGap(8);
+		pBtnRow->SetPadding(CDuiBox(0, 12, 0, 0));
+		pBtnRow->SetBackgroundColor(0xFFFFFFFF);
 
 		CControlUI* pSep = new CControlUI;
 		pSep->SetFixedHeight(1);
-		pSep->SetBkColor(0xFFE6E6E6);
+		pSep->SetBackgroundColor(0xE6E6E6FF);
 		pRoot->Add(pSep);
 
 		CControlUI* pSpacer = new CControlUI;
@@ -416,8 +413,8 @@ namespace DuiLib {
 			pCancel->SetFixedWidth(kModalBtnW);
 			pCancel->SetFixedHeight(kModalBtnH);
 			pCancel->SetKind(CONTROLKIND_SECONDARY);
-			SIZE szBtnRound = { 4, 4 };
-			pCancel->SetBorderRound(szBtnRound);
+			SIZE szBtnRound = { 2, 2 };
+			pCancel->SetBorderRadius(szBtnRound);
 			pBtnRow->Add(pCancel);
 		}
 
@@ -428,8 +425,8 @@ namespace DuiLib {
 		pOk->SetFixedWidth(kModalBtnW);
 		pOk->SetFixedHeight(kModalBtnH);
 		pOk->SetKind(m_opts.m_kind);
-		SIZE szOkRound = { 4, 4 };
-		pOk->SetBorderRound(szOkRound);
+		SIZE szOkRound = { 2, 2 };
+		pOk->SetBorderRadius(szOkRound);
 		pBtnRow->Add(pOk);
 
 		pRoot->Add(pBtnRow);
@@ -476,9 +473,9 @@ namespace DuiLib {
 
 		m_pm.Init(m_hWnd);
 		m_pm.SetLayered(true);
-		m_pm.SetWindowBkColor(0xFFFFFFFF);
+		m_pm.SetWindowBackgroundColor(0xFFFFFFFF);
 		// 圆角跟阴影：不设 SetWindowRgn（分层 AA），靠 RoundCorner 让 CShadowUI 画圆角阴影
-		m_pm.SetRoundCorner(kModalRound, kModalRound);
+		m_pm.SetBorderRadius(kModalRound, kModalRound);
 		BuildUI();
 		bHandled = FALSE;
 		return 0;
@@ -510,7 +507,7 @@ namespace DuiLib {
 			if( pHitCtrl->IsCaptionDragHit(pt) )
 				return HTCAPTION;
 			UIAction leafAct = pHitCtrl->GetAction();
-			if( leafAct == UIACTION_NONE && !(pHitCtrl->GetControlFlags() & UIFLAG_SETCURSOR) ) {
+			if( leafAct == UIACTION_NONE && !pHitCtrl->PreferClientHit() ) {
 				for( CControlUI* pWalk = pHitCtrl->GetParent(); pWalk != NULL; pWalk = pWalk->GetParent() ) {
 					if( pWalk->IsCaptionDragHit(pt) )
 						return HTCAPTION;

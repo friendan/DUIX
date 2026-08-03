@@ -480,11 +480,11 @@ namespace DuiLib
 
 	void CWebBrowserUI::SetAttribute( LPCTSTR pstrName, LPCTSTR pstrValue )
 	{
-		if (_tcsicmp(pstrName, _T("homepage")) == 0)
+		if (_tcsicmp(pstrName, _T("home-page")) == 0)
 		{
 			m_sHomePage = pstrValue;
 		}
-		else if (_tcsicmp(pstrName, _T("autonavi"))==0)
+		else if (_tcsicmp(pstrName, _T("auto-navi"))==0)
 		{
 			m_bAutoNavi = (_tcsicmp(pstrValue, _T("true")) == 0);
 		}

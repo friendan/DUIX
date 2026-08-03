@@ -1,4 +1,4 @@
-﻿#ifndef __UIOPTION_H__
+#ifndef __UIOPTION_H__
 #define __UIOPTION_H__
 
 #pragma once
@@ -22,20 +22,20 @@ namespace DuiLib
 		LPCTSTR GetSelectedImage();
 		void SetSelectedImage(LPCTSTR pStrImage);
 
-		LPCTSTR GetSelectedHotImage();
-		void SetSelectedHotImage(LPCTSTR pStrImage);
+		LPCTSTR GetSelectedHoverImage();
+		void SetSelectedHoverImage(LPCTSTR pStrImage);
 
-		LPCTSTR GetSelectedPushedImage();
-		void SetSelectedPushedImage(LPCTSTR pStrImage);
+		LPCTSTR GetSelectedActiveImage();
+		void SetSelectedActiveImage(LPCTSTR pStrImage);
 
-		void SetSelectedTextColor(DWORD dwTextColor);
-		DWORD GetSelectedTextColor();
+		void SetSelectedColor(DWORD dwColor);
+		DWORD GetSelectedColor();
 
-		void SetSelectedBkColor(DWORD dwBkColor);
-		DWORD GetSelectBkColor();
+		void SetSelectedBackgroundColor(DWORD dwBackgroundColor);
+		DWORD GetSelectedBackgroundColor();
 
-		LPCTSTR GetSelectedForedImage();
-		void SetSelectedForedImage(LPCTSTR pStrImage);
+		LPCTSTR GetSelectedForegroundImage();
+		void SetSelectedForegroundImage(LPCTSTR pStrImage);
 
 		void SetSelectedStateCount(int nCount);
 		int GetSelectedStateCount() const;
@@ -55,9 +55,9 @@ namespace DuiLib
 
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-		void PaintBkColor(IRenderContext& ctx);
+		void PaintBackgroundColor(IRenderContext& ctx);
 		void PaintStatusImage(IRenderContext& ctx);
-		void PaintForeImage(IRenderContext& ctx);
+		void PaintForegroundImage(IRenderContext& ctx);
 		void PaintText(IRenderContext& ctx);
 
 	protected:
@@ -67,13 +67,13 @@ namespace DuiLib
 
 		int				m_iSelectedFont;
 
-		DWORD			m_dwSelectedBkColor;
-		DWORD			m_dwSelectedTextColor;
+		DWORD			m_dwSelectedBackgroundColor;
+		DWORD			m_dwSelectedColor;
 
 		CDuiString		m_sSelectedImage;
-		CDuiString		m_sSelectedHotImage;
-		CDuiString		m_sSelectedPushedImage;
-		CDuiString		m_sSelectedForeImage;
+		CDuiString		m_sSelectedHoverImage;
+		CDuiString		m_sSelectedActiveImage;
+		CDuiString		m_sSelectedForegroundImage;
 
 		int m_nSelectedStateCount;
 		CDuiString m_sSelectedStateImage;
@@ -104,7 +104,7 @@ namespace DuiLib
 		virtual void Selected(bool bSelected, bool bMsg = true);
 
 		virtual SIZE EstimateSize(SIZE szAvailable);
-		virtual void PaintBkColor(IRenderContext& ctx);
+		virtual void PaintBackgroundColor(IRenderContext& ctx);
 		virtual void PaintStatusImage(IRenderContext& ctx);
 		virtual void PaintBorder(IRenderContext& ctx);
 		virtual void PaintText(IRenderContext& ctx);
@@ -118,16 +118,16 @@ namespace DuiLib
 		bool m_bAutoCheck;
 		SIZE m_szBox;
 		int m_nBoxGap;
-		int m_nBoxBorderSize;
+		int m_nBoxBorderWidth;
 		SIZE m_szBoxRound;
-		DWORD m_dwBoxBkColor;
+		DWORD m_dwBoxBackgroundColor;
 		DWORD m_dwBoxBorderColor;
-		DWORD m_dwBoxHotBkColor;
-		DWORD m_dwBoxHotBorderColor;
-		DWORD m_dwSelectedBoxBkColor;
+		DWORD m_dwBoxHoverBackgroundColor;
+		DWORD m_dwBoxHoverBorderColor;
+		DWORD m_dwSelectedBoxBackgroundColor;
 		DWORD m_dwSelectedBoxBorderColor;
 		DWORD m_dwCheckMarkColor;
-		DWORD m_dwDisabledBoxBkColor;
+		DWORD m_dwDisabledBoxBackgroundColor;
 		DWORD m_dwDisabledBoxBorderColor;
 	};
 } // namespace DuiLib

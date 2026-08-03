@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include <algorithm>
 namespace DuiLib
 {
@@ -147,7 +147,7 @@ namespace DuiLib
 		// 注意：不要对 maxbtn/restorebtn 返回 HTMAXBUTTON。
 		// 返回 HTMAXBUTTON 后鼠标消息变成 WM_NCMOUSE*，客户区 TrackMouseEvent
 		// 会在进入该区域时触发 WM_MOUSELEAVE 并用 (-1,-1) 清掉 hover，
-		// 导致最大化按钮 hotimage 不生效（最小化/关闭仍为 HTCLIENT 则正常）。
+		// 导致最大化按钮 image-hover 不生效（最小化/关闭仍为 HTCLIENT 则正常）。
 		// Win11 Snap Layouts 若需要，应另做非客户区 hover 同步，而不是牺牲热态绘制。
 
 		if (!::IsZoomed(*this))
@@ -179,7 +179,8 @@ namespace DuiLib
 
 				UIAction leafAct = pHitCtrl->GetAction();
 				// 自身有 title 但点在交互区（如 TabBar 标签/+）：保持 HTCLIENT，不向上/窗口级拖拽
-				if (leafAct == UIACTION_NONE && !(pHitCtrl->GetControlFlags() & UIFLAG_SETCURSOR)) {
+				// PreferClientHit：SETCURSOR / cursor / 已配热态视觉；新控件用基类 *-hover 即可，不必再改此处
+				if (leafAct == UIACTION_NONE && !pHitCtrl->PreferClientHit()) {
 					CControlUI* pWalk = pHitCtrl->GetParent();
 					while (pWalk != NULL) {
 						if (pWalk->IsCaptionDragHit(pt))
@@ -239,10 +240,10 @@ namespace DuiLib
 		lpMMI->ptMaxPosition.y = rcWork.top - rcMon.top;
 		lpMMI->ptMaxSize.x = cxWork;
 		lpMMI->ptMaxSize.y = cyWork;
-		lpMMI->ptMaxTrackSize.x = m_pm.GetMaxInfo().cx == 0 ? cxWork : m_pm.GetMaxInfo().cx;
-		lpMMI->ptMaxTrackSize.y = m_pm.GetMaxInfo().cy == 0 ? cyWork : m_pm.GetMaxInfo().cy;
-		lpMMI->ptMinTrackSize.x = m_pm.GetMinInfo().cx;
-		lpMMI->ptMinTrackSize.y = m_pm.GetMinInfo().cy;
+		lpMMI->ptMaxTrackSize.x = m_pm.GetMaxSize().cx == 0 ? cxWork : m_pm.GetMaxSize().cx;
+		lpMMI->ptMaxTrackSize.y = m_pm.GetMaxSize().cy == 0 ? cyWork : m_pm.GetMaxSize().cy;
+		lpMMI->ptMinTrackSize.x = m_pm.GetMinSize().cx;
+		lpMMI->ptMinTrackSize.y = m_pm.GetMinSize().cy;
 
 		bHandled = TRUE;
 		return 0;
@@ -263,14 +264,15 @@ namespace DuiLib
 
 	LRESULT WindowImplBase::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
-		SIZE szRoundCorner = m_pm.GetRoundCorner();
+		SIZE szBorderRadius = m_pm.GetBorderRadius();
 #if defined(WIN32) && !defined(UNDER_CE)
 		if( !::IsIconic(*this) ) {
 			CDuiRect rcWnd;
 			::GetWindowRect(*this, &rcWnd);
 			rcWnd.Offset(-rcWnd.left, -rcWnd.top);
 			rcWnd.right++; rcWnd.bottom++;
-			HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom, szRoundCorner.cx, szRoundCorner.cy);
+			SIZE szEllipse = CssRadiusToEllipse(szBorderRadius);
+			HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom, szEllipse.cx, szEllipse.cy);
 			::SetWindowRgn(*this, hRgn, TRUE);
 			::DeleteObject(hRgn);
 

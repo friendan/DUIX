@@ -6,16 +6,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DuiLib", "DuiLib\DuiLib.vcx
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{D01B5755-53F2-4929-B69C-75C99D151E6F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Help", "Help", "{7BD7470A-9CDF-421B-B832-8D07D3F939A6}"
-	ProjectSection(SolutionItems) = preProject
-		Help\directui license.txt = Help\directui license.txt
-		Help\duilib license.txt = Help\duilib license.txt
-		Help\duilib_ultimate license.txt = Help\duilib_ultimate license.txt
-		Help\属性列表.xml = Help\属性列表.xml
-		Help\感谢.txt = Help\感谢.txt
-		Help\版权说明.txt = Help\版权说明.txt
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HiDPITest", "Demos\HiDPITest\HiDPITest.vcxproj", "{79D7FD72-256A-4C8A-A81D-E301B3C37B2C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "duidemo", "Demos\duidemo\duidemo.vcxproj", "{54019823-E923-44D0-AD60-8EB636D107DC}"

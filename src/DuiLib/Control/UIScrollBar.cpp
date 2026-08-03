@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIScrollBar.h"
 
 namespace DuiLib
@@ -7,16 +7,16 @@ namespace DuiLib
 
 	CScrollBarUI::CScrollBarUI() : m_bHorizontal(false), m_nRange(0), m_nScrollPos(0), m_nLineSize(8), 
 		m_nThumbMinSize(DEFAULT_THUMB_MIN_SIZE),
-		m_pOwner(NULL), m_nLastScrollPos(0), m_nLastScrollOffset(0), m_nScrollRepeatDelay(0), m_uButton1State(0), \
-		m_uButton2State(0), m_uThumbState(0), m_bShowButton1(false), m_bShowButton2(false), m_bShow(true)
+		m_pOwner(NULL), m_nLastScrollPos(0), m_nLastScrollOffset(0), m_nScrollRepeatDelay(0), m_uButtonPrevState(0), \
+		m_uButtonNextState(0), m_uThumbState(0), m_bShowButtonPrev(false), m_bShowButtonNext(false), m_bShow(true)
 	{
 		m_cxyFixed.cx = DEFAULT_SCROLLBAR_SIZE;
 		m_ptLastMouse.x = m_ptLastMouse.y = 0;
 		::ZeroMemory(&m_rcThumb, sizeof(m_rcThumb));
-		::ZeroMemory(&m_rcButton1, sizeof(m_rcButton1));
-		::ZeroMemory(&m_rcButton2, sizeof(m_rcButton2));
+		::ZeroMemory(&m_rcButtonPrev, sizeof(m_rcButtonPrev));
+		::ZeroMemory(&m_rcButtonNext, sizeof(m_rcButtonNext));
 		// 浅灰轨道；无图时配合实心圆角滑块
-		SetBkColor(0xFFEDEDF0);
+		SetBackgroundColor(0xEDEDF0FF);
 	}
 
 	LPCTSTR CScrollBarUI::GetClass() const
@@ -54,8 +54,8 @@ namespace DuiLib
 	{
 		CControlUI::SetEnabled(bEnable);
 		if( !IsEnabled() ) {
-			m_uButton1State = 0;
-			m_uButton2State = 0;
+			m_uButtonPrevState = 0;
+			m_uButtonNextState = 0;
 			m_uThumbState = 0;
 		}
 	}
@@ -132,113 +132,113 @@ namespace DuiLib
 		m_nLineSize = nSize;
 	}
 
-	bool CScrollBarUI::GetShowButton1()
+	bool CScrollBarUI::GetShowButtonPrev()
 	{
-		return m_bShowButton1;
+		return m_bShowButtonPrev;
 	}
 
-	void CScrollBarUI::SetShowButton1(bool bShow)
+	void CScrollBarUI::SetShowButtonPrev(bool bShow)
 	{
-		m_bShowButton1 = bShow;
+		m_bShowButtonPrev = bShow;
 		SetPos(m_rcItem);
 	}
 
-	LPCTSTR CScrollBarUI::GetButton1NormalImage()
+	LPCTSTR CScrollBarUI::GetButtonPrevNormalImage()
 	{
-		return m_sButton1NormalImage;
+		return m_sButtonPrevNormalImage;
 	}
 
-	void CScrollBarUI::SetButton1NormalImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonPrevNormalImage(LPCTSTR pStrImage)
 	{
-		m_sButton1NormalImage = pStrImage;
+		m_sButtonPrevNormalImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetButton1HotImage()
+	LPCTSTR CScrollBarUI::GetButtonPrevHoverImage()
 	{
-		return m_sButton1HotImage;
+		return m_sButtonPrevHoverImage;
 	}
 
-	void CScrollBarUI::SetButton1HotImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonPrevHoverImage(LPCTSTR pStrImage)
 	{
-		m_sButton1HotImage = pStrImage;
+		m_sButtonPrevHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetButton1PushedImage()
+	LPCTSTR CScrollBarUI::GetButtonPrevActiveImage()
 	{
-		return m_sButton1PushedImage;
+		return m_sButtonPrevActiveImage;
 	}
 
-	void CScrollBarUI::SetButton1PushedImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonPrevActiveImage(LPCTSTR pStrImage)
 	{
-		m_sButton1PushedImage = pStrImage;
+		m_sButtonPrevActiveImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetButton1DisabledImage()
+	LPCTSTR CScrollBarUI::GetButtonPrevDisabledImage()
 	{
-		return m_sButton1DisabledImage;
+		return m_sButtonPrevDisabledImage;
 	}
 
-	void CScrollBarUI::SetButton1DisabledImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonPrevDisabledImage(LPCTSTR pStrImage)
 	{
-		m_sButton1DisabledImage = pStrImage;
+		m_sButtonPrevDisabledImage = pStrImage;
 		Invalidate();
 	}
 
-	bool CScrollBarUI::GetShowButton2()
+	bool CScrollBarUI::GetShowButtonNext()
 	{
-		return m_bShowButton2;
+		return m_bShowButtonNext;
 	}
 
-	void CScrollBarUI::SetShowButton2(bool bShow)
+	void CScrollBarUI::SetShowButtonNext(bool bShow)
 	{
-		m_bShowButton2 = bShow;
+		m_bShowButtonNext = bShow;
 		SetPos(m_rcItem);
 	}
 
-	LPCTSTR CScrollBarUI::GetButton2NormalImage()
+	LPCTSTR CScrollBarUI::GetButtonNextNormalImage()
 	{
-		return m_sButton2NormalImage;
+		return m_sButtonNextNormalImage;
 	}
 
-	void CScrollBarUI::SetButton2NormalImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonNextNormalImage(LPCTSTR pStrImage)
 	{
-		m_sButton2NormalImage = pStrImage;
+		m_sButtonNextNormalImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetButton2HotImage()
+	LPCTSTR CScrollBarUI::GetButtonNextHoverImage()
 	{
-		return m_sButton2HotImage;
+		return m_sButtonNextHoverImage;
 	}
 
-	void CScrollBarUI::SetButton2HotImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonNextHoverImage(LPCTSTR pStrImage)
 	{
-		m_sButton2HotImage = pStrImage;
+		m_sButtonNextHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetButton2PushedImage()
+	LPCTSTR CScrollBarUI::GetButtonNextActiveImage()
 	{
-		return m_sButton2PushedImage;
+		return m_sButtonNextActiveImage;
 	}
 
-	void CScrollBarUI::SetButton2PushedImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonNextActiveImage(LPCTSTR pStrImage)
 	{
-		m_sButton2PushedImage = pStrImage;
+		m_sButtonNextActiveImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetButton2DisabledImage()
+	LPCTSTR CScrollBarUI::GetButtonNextDisabledImage()
 	{
-		return m_sButton2DisabledImage;
+		return m_sButtonNextDisabledImage;
 	}
 
-	void CScrollBarUI::SetButton2DisabledImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetButtonNextDisabledImage(LPCTSTR pStrImage)
 	{
-		m_sButton2DisabledImage = pStrImage;
+		m_sButtonNextDisabledImage = pStrImage;
 		Invalidate();
 	}
 
@@ -253,25 +253,25 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetThumbHotImage()
+	LPCTSTR CScrollBarUI::GetThumbHoverImage()
 	{
-		return m_sThumbHotImage;
+		return m_sThumbHoverImage;
 	}
 
-	void CScrollBarUI::SetThumbHotImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetThumbHoverImage(LPCTSTR pStrImage)
 	{
-		m_sThumbHotImage = pStrImage;
+		m_sThumbHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetThumbPushedImage()
+	LPCTSTR CScrollBarUI::GetThumbActiveImage()
 	{
-		return m_sThumbPushedImage;
+		return m_sThumbActiveImage;
 	}
 
-	void CScrollBarUI::SetThumbPushedImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetThumbActiveImage(LPCTSTR pStrImage)
 	{
-		m_sThumbPushedImage = pStrImage;
+		m_sThumbActiveImage = pStrImage;
 		Invalidate();
 	}
 
@@ -297,25 +297,25 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetRailHotImage()
+	LPCTSTR CScrollBarUI::GetRailHoverImage()
 	{
-		return m_sRailHotImage;
+		return m_sRailHoverImage;
 	}
 
-	void CScrollBarUI::SetRailHotImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetRailHoverImage(LPCTSTR pStrImage)
 	{
-		m_sRailHotImage = pStrImage;
+		m_sRailHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetRailPushedImage()
+	LPCTSTR CScrollBarUI::GetRailActiveImage()
 	{
-		return m_sRailPushedImage;
+		return m_sRailActiveImage;
 	}
 
-	void CScrollBarUI::SetRailPushedImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetRailActiveImage(LPCTSTR pStrImage)
 	{
-		m_sRailPushedImage = pStrImage;
+		m_sRailActiveImage = pStrImage;
 		Invalidate();
 	}
 
@@ -341,25 +341,25 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetBkHotImage()
+	LPCTSTR CScrollBarUI::GetBkHoverImage()
 	{
-		return m_sBkHotImage;
+		return m_sBkHoverImage;
 	}
 
-	void CScrollBarUI::SetBkHotImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetBkHoverImage(LPCTSTR pStrImage)
 	{
-		m_sBkHotImage = pStrImage;
+		m_sBkHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CScrollBarUI::GetBkPushedImage()
+	LPCTSTR CScrollBarUI::GetBkActiveImage()
 	{
-		return m_sBkPushedImage;
+		return m_sBkActiveImage;
 	}
 
-	void CScrollBarUI::SetBkPushedImage(LPCTSTR pStrImage)
+	void CScrollBarUI::SetBkActiveImage(LPCTSTR pStrImage)
 	{
-		m_sBkPushedImage = pStrImage;
+		m_sBkActiveImage = pStrImage;
 		Invalidate();
 	}
 
@@ -410,29 +410,29 @@ namespace DuiLib
 		rc = m_rcItem;
 		if( m_bHorizontal ) {
 			int cx = rc.right - rc.left;
-			if( m_bShowButton1 ) cx -= cxyFixed.cy;
-			if( m_bShowButton2 ) cx -= cxyFixed.cy;
+			if( m_bShowButtonPrev ) cx -= cxyFixed.cy;
+			if( m_bShowButtonNext ) cx -= cxyFixed.cy;
 			if( cx > cxyFixed.cy ) {
-				m_rcButton1.left = rc.left;
-				m_rcButton1.top = rc.top;
-				if( m_bShowButton1 ) {
-					m_rcButton1.right = rc.left + cxyFixed.cy;
-					m_rcButton1.bottom = rc.top + cxyFixed.cy;
+				m_rcButtonPrev.left = rc.left;
+				m_rcButtonPrev.top = rc.top;
+				if( m_bShowButtonPrev ) {
+					m_rcButtonPrev.right = rc.left + cxyFixed.cy;
+					m_rcButtonPrev.bottom = rc.top + cxyFixed.cy;
 				}
 				else {
-					m_rcButton1.right = m_rcButton1.left;
-					m_rcButton1.bottom = m_rcButton1.top;
+					m_rcButtonPrev.right = m_rcButtonPrev.left;
+					m_rcButtonPrev.bottom = m_rcButtonPrev.top;
 				}
 
-				m_rcButton2.top = rc.top;
-				m_rcButton2.right = rc.right;
-				if( m_bShowButton2 ) {
-					m_rcButton2.left = rc.right - cxyFixed.cy;
-					m_rcButton2.bottom = rc.top + cxyFixed.cy;
+				m_rcButtonNext.top = rc.top;
+				m_rcButtonNext.right = rc.right;
+				if( m_bShowButtonNext ) {
+					m_rcButtonNext.left = rc.right - cxyFixed.cy;
+					m_rcButtonNext.bottom = rc.top + cxyFixed.cy;
 				}
 				else {
-					m_rcButton2.left = m_rcButton2.right;
-					m_rcButton2.bottom = m_rcButton2.top;
+					m_rcButtonNext.left = m_rcButtonNext.right;
+					m_rcButtonNext.bottom = m_rcButtonNext.top;
 				}
 
 				m_rcThumb.top = rc.top;
@@ -444,41 +444,41 @@ namespace DuiLib
 					if( cxThumb < nMinThumb ) cxThumb = nMinThumb;
 					if( cxThumb > cx ) cxThumb = cx;
 
-					m_rcThumb.left = m_nScrollPos * (cx - cxThumb) / m_nRange + m_rcButton1.right;
+					m_rcThumb.left = m_nScrollPos * (cx - cxThumb) / m_nRange + m_rcButtonPrev.right;
 					m_rcThumb.right = m_rcThumb.left + cxThumb;
-					if( m_rcThumb.right > m_rcButton2.left ) {
-						m_rcThumb.left = m_rcButton2.left - cxThumb;
-						m_rcThumb.right = m_rcButton2.left;
+					if( m_rcThumb.right > m_rcButtonNext.left ) {
+						m_rcThumb.left = m_rcButtonNext.left - cxThumb;
+						m_rcThumb.right = m_rcButtonNext.left;
 					}
 				}
 				else {
-					m_rcThumb.left = m_rcButton1.right;
-					m_rcThumb.right = m_rcButton2.left;
+					m_rcThumb.left = m_rcButtonPrev.right;
+					m_rcThumb.right = m_rcButtonNext.left;
 				}
 			}
 			else {
 				int cxButton = (rc.right - rc.left) / 2;
 				if( cxButton > cxyFixed.cy ) cxButton = cxyFixed.cy;
-				m_rcButton1.left = rc.left;
-				m_rcButton1.top = rc.top;
-				if( m_bShowButton1 ) {
-					m_rcButton1.right = rc.left + cxButton;
-					m_rcButton1.bottom = rc.top + cxyFixed.cy;
+				m_rcButtonPrev.left = rc.left;
+				m_rcButtonPrev.top = rc.top;
+				if( m_bShowButtonPrev ) {
+					m_rcButtonPrev.right = rc.left + cxButton;
+					m_rcButtonPrev.bottom = rc.top + cxyFixed.cy;
 				}
 				else {
-					m_rcButton1.right = m_rcButton1.left;
-					m_rcButton1.bottom = m_rcButton1.top;
+					m_rcButtonPrev.right = m_rcButtonPrev.left;
+					m_rcButtonPrev.bottom = m_rcButtonPrev.top;
 				}
 
-				m_rcButton2.top = rc.top;
-				m_rcButton2.right = rc.right;
-				if( m_bShowButton2 ) {
-					m_rcButton2.left = rc.right - cxButton;
-					m_rcButton2.bottom = rc.top + cxyFixed.cy;
+				m_rcButtonNext.top = rc.top;
+				m_rcButtonNext.right = rc.right;
+				if( m_bShowButtonNext ) {
+					m_rcButtonNext.left = rc.right - cxButton;
+					m_rcButtonNext.bottom = rc.top + cxyFixed.cy;
 				}
 				else {
-					m_rcButton2.left = m_rcButton2.right;
-					m_rcButton2.bottom = m_rcButton2.top;
+					m_rcButtonNext.left = m_rcButtonNext.right;
+					m_rcButtonNext.bottom = m_rcButtonNext.top;
 				}
 
 				::ZeroMemory(&m_rcThumb, sizeof(m_rcThumb));
@@ -486,29 +486,29 @@ namespace DuiLib
 		}
 		else {
 			int cy = rc.bottom - rc.top;
-			if( m_bShowButton1 ) cy -= cxyFixed.cx;
-			if( m_bShowButton2 ) cy -= cxyFixed.cx;
+			if( m_bShowButtonPrev ) cy -= cxyFixed.cx;
+			if( m_bShowButtonNext ) cy -= cxyFixed.cx;
 			if( cy > cxyFixed.cx ) {
-				m_rcButton1.left = rc.left;
-				m_rcButton1.top = rc.top;
-				if( m_bShowButton1 ) {
-					m_rcButton1.right = rc.left + cxyFixed.cx;
-					m_rcButton1.bottom = rc.top + cxyFixed.cx;
+				m_rcButtonPrev.left = rc.left;
+				m_rcButtonPrev.top = rc.top;
+				if( m_bShowButtonPrev ) {
+					m_rcButtonPrev.right = rc.left + cxyFixed.cx;
+					m_rcButtonPrev.bottom = rc.top + cxyFixed.cx;
 				}
 				else {
-					m_rcButton1.right = m_rcButton1.left;
-					m_rcButton1.bottom = m_rcButton1.top;
+					m_rcButtonPrev.right = m_rcButtonPrev.left;
+					m_rcButtonPrev.bottom = m_rcButtonPrev.top;
 				}
 
-				m_rcButton2.left = rc.left;
-				m_rcButton2.bottom = rc.bottom;
-				if( m_bShowButton2 ) {
-					m_rcButton2.top = rc.bottom - cxyFixed.cx;
-					m_rcButton2.right = rc.left + cxyFixed.cx;
+				m_rcButtonNext.left = rc.left;
+				m_rcButtonNext.bottom = rc.bottom;
+				if( m_bShowButtonNext ) {
+					m_rcButtonNext.top = rc.bottom - cxyFixed.cx;
+					m_rcButtonNext.right = rc.left + cxyFixed.cx;
 				}
 				else {
-					m_rcButton2.top = m_rcButton2.bottom;
-					m_rcButton2.right = m_rcButton2.left;
+					m_rcButtonNext.top = m_rcButtonNext.bottom;
+					m_rcButtonNext.right = m_rcButtonNext.left;
 				}
 
 				m_rcThumb.left = rc.left;
@@ -520,41 +520,41 @@ namespace DuiLib
 					if( cyThumb < nMinThumb ) cyThumb = nMinThumb;
 					if( cyThumb > cy ) cyThumb = cy;
 
-					m_rcThumb.top = (m_nScrollPos * 1.0f / m_nRange) * (cy - cyThumb) + m_rcButton1.bottom;
+					m_rcThumb.top = (m_nScrollPos * 1.0f / m_nRange) * (cy - cyThumb) + m_rcButtonPrev.bottom;
 					m_rcThumb.bottom = m_rcThumb.top + cyThumb;
-					if( m_rcThumb.bottom > m_rcButton2.top ) {
-						m_rcThumb.top = m_rcButton2.top - cyThumb;
-						m_rcThumb.bottom = m_rcButton2.top;
+					if( m_rcThumb.bottom > m_rcButtonNext.top ) {
+						m_rcThumb.top = m_rcButtonNext.top - cyThumb;
+						m_rcThumb.bottom = m_rcButtonNext.top;
 					}
 				}
 				else {
-					m_rcThumb.top = m_rcButton1.bottom;
-					m_rcThumb.bottom = m_rcButton2.top;
+					m_rcThumb.top = m_rcButtonPrev.bottom;
+					m_rcThumb.bottom = m_rcButtonNext.top;
 				}
 			}
 			else {
 				int cyButton = (rc.bottom - rc.top) / 2;
 				if( cyButton > cxyFixed.cx ) cyButton = cxyFixed.cx;
-				m_rcButton1.left = rc.left;
-				m_rcButton1.top = rc.top;
-				if( m_bShowButton1 ) {
-					m_rcButton1.right = rc.left + cxyFixed.cx;
-					m_rcButton1.bottom = rc.top + cyButton;
+				m_rcButtonPrev.left = rc.left;
+				m_rcButtonPrev.top = rc.top;
+				if( m_bShowButtonPrev ) {
+					m_rcButtonPrev.right = rc.left + cxyFixed.cx;
+					m_rcButtonPrev.bottom = rc.top + cyButton;
 				}
 				else {
-					m_rcButton1.right = m_rcButton1.left;
-					m_rcButton1.bottom = m_rcButton1.top;
+					m_rcButtonPrev.right = m_rcButtonPrev.left;
+					m_rcButtonPrev.bottom = m_rcButtonPrev.top;
 				}
 
-				m_rcButton2.left = rc.left;
-				m_rcButton2.bottom = rc.bottom;
-				if( m_bShowButton2 ) {
-					m_rcButton2.top = rc.bottom - cyButton;
-					m_rcButton2.right = rc.left + cxyFixed.cx;
+				m_rcButtonNext.left = rc.left;
+				m_rcButtonNext.bottom = rc.bottom;
+				if( m_bShowButtonNext ) {
+					m_rcButtonNext.top = rc.bottom - cyButton;
+					m_rcButtonNext.right = rc.left + cxyFixed.cx;
 				}
 				else {
-					m_rcButton2.top = m_rcButton2.bottom;
-					m_rcButton2.right = m_rcButton2.left;
+					m_rcButtonNext.top = m_rcButtonNext.bottom;
+					m_rcButtonNext.right = m_rcButtonNext.left;
 				}
 
 				::ZeroMemory(&m_rcThumb, sizeof(m_rcThumb));
@@ -585,8 +585,8 @@ namespace DuiLib
 			m_nLastScrollOffset = 0;
 			m_nScrollRepeatDelay = 0;
 
-			if( ::PtInRect(&m_rcButton1, event.ptMouse) ) {
-				m_uButton1State |= UISTATE_PUSHED;
+			if( ::PtInRect(&m_rcButtonPrev, event.ptMouse) ) {
+				m_uButtonPrevState |= UISTATE_PUSHED;
 				if( !m_bHorizontal ) {
 					if( m_pOwner != NULL ) m_pOwner->LineUp(); 
 					else SetScrollPos(m_nScrollPos - m_nLineSize);
@@ -596,8 +596,8 @@ namespace DuiLib
 					else SetScrollPos(m_nScrollPos - m_nLineSize);
 				}
 			}
-			else if( ::PtInRect(&m_rcButton2, event.ptMouse) ) {
-				m_uButton2State |= UISTATE_PUSHED;
+			else if( ::PtInRect(&m_rcButtonNext, event.ptMouse) ) {
+				m_uButtonNextState |= UISTATE_PUSHED;
 				if( !m_bHorizontal ) {
 					if( m_pOwner != NULL ) m_pOwner->LineDown(); 
 					else SetScrollPos(m_nScrollPos + m_nLineSize);
@@ -649,12 +649,12 @@ namespace DuiLib
 				m_uThumbState &= ~( UISTATE_CAPTURED | UISTATE_PUSHED );
 				Invalidate();
 			}
-			else if( (m_uButton1State & UISTATE_PUSHED) != 0 ) {
-				m_uButton1State &= ~UISTATE_PUSHED;
+			else if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) {
+				m_uButtonPrevState &= ~UISTATE_PUSHED;
 				Invalidate();
 			}
-			else if( (m_uButton2State & UISTATE_PUSHED) != 0 ) {
-				m_uButton2State &= ~UISTATE_PUSHED;
+			else if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) {
+				m_uButtonNextState &= ~UISTATE_PUSHED;
 				Invalidate();
 			}
 			return;
@@ -665,8 +665,8 @@ namespace DuiLib
 				if( !m_bHorizontal ) {
 					__int64 fMouseRange = (event.ptMouse.y - m_ptLastMouse.y) * m_nRange;
 					int nBtnSize = 0;
-					if(GetShowButton1()) nBtnSize += m_cxyFixed.cx;
-					if(GetShowButton2()) nBtnSize += m_cxyFixed.cx;
+					if(GetShowButtonPrev()) nBtnSize += m_cxyFixed.cx;
+					if(GetShowButtonNext()) nBtnSize += m_cxyFixed.cx;
 					int vRange = m_rcItem.bottom - m_rcItem.top - (m_rcThumb.bottom - m_rcThumb.top) - nBtnSize;
 					if (vRange != 0){
 						m_nLastScrollOffset = fMouseRange / abs(vRange);
@@ -675,8 +675,8 @@ namespace DuiLib
 				else {
 					__int64 fMouseRange = (event.ptMouse.x - m_ptLastMouse.x) * m_nRange;
 					int nBtnSize = 0;
-					if(GetShowButton1()) nBtnSize += m_cxyFixed.cy;
-					if(GetShowButton2()) nBtnSize += m_cxyFixed.cy;
+					if(GetShowButtonPrev()) nBtnSize += m_cxyFixed.cy;
+					if(GetShowButtonNext()) nBtnSize += m_cxyFixed.cy;
 					int hRange = m_rcItem.right - m_rcItem.left - m_rcThumb.right + m_rcThumb.left - nBtnSize;
 					if (hRange != 0) m_nLastScrollOffset = fMouseRange / abs(hRange);
 				}
@@ -718,7 +718,7 @@ namespace DuiLib
 				}
 				Invalidate();
 			}
-			else if( (m_uButton1State & UISTATE_PUSHED) != 0 ) {
+			else if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) {
 				if( m_nScrollRepeatDelay <= 5 ) return;
 				if( !m_bHorizontal ) {
 					if( m_pOwner != NULL ) m_pOwner->LineUp(); 
@@ -729,7 +729,7 @@ namespace DuiLib
 					else SetScrollPos(m_nScrollPos - m_nLineSize);
 				}
 			}
-			else if( (m_uButton2State & UISTATE_PUSHED) != 0 ) {
+			else if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) {
 				if( m_nScrollRepeatDelay <= 5 ) return;
 				if( !m_bHorizontal ) {
 					if( m_pOwner != NULL ) m_pOwner->LineDown(); 
@@ -772,8 +772,8 @@ namespace DuiLib
 		if( event.Type == UIEVENT_MOUSEENTER )
 		{
 			if( IsEnabled() ) {
-				m_uButton1State |= UISTATE_HOT;
-				m_uButton2State |= UISTATE_HOT;
+				m_uButtonPrevState |= UISTATE_HOT;
+				m_uButtonNextState |= UISTATE_HOT;
 				if( ::PtInRect(&m_rcThumb, event.ptMouse) ) m_uThumbState |= UISTATE_HOT;
 				Invalidate();
 			}
@@ -782,8 +782,8 @@ namespace DuiLib
 		if( event.Type == UIEVENT_MOUSELEAVE )
 		{
 			if( IsEnabled() ) {
-				m_uButton1State &= ~UISTATE_HOT;
-				m_uButton2State &= ~UISTATE_HOT;
+				m_uButtonPrevState &= ~UISTATE_HOT;
+				m_uButtonNextState &= ~UISTATE_HOT;
 				m_uThumbState &= ~UISTATE_HOT;
 				Invalidate();
 			}
@@ -795,33 +795,33 @@ namespace DuiLib
 
 	void CScrollBarUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("button1normalimage")) == 0 ) SetButton1NormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("button1hotimage")) == 0 ) SetButton1HotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("button1pushedimage")) == 0 ) SetButton1PushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("button1disabledimage")) == 0 ) SetButton1DisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("button2normalimage")) == 0 ) SetButton2NormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("button2hotimage")) == 0 ) SetButton2HotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("button2pushedimage")) == 0 ) SetButton2PushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("button2disabledimage")) == 0 ) SetButton2DisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("thumbnormalimage")) == 0 ) SetThumbNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("thumbhotimage")) == 0 ) SetThumbHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("thumbpushedimage")) == 0 ) SetThumbPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("thumbdisabledimage")) == 0 ) SetThumbDisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("railnormalimage")) == 0 ) SetRailNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("railhotimage")) == 0 ) SetRailHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("railpushedimage")) == 0 ) SetRailPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("raildisabledimage")) == 0 ) SetRailDisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("bknormalimage")) == 0 ) SetBkNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("bkhotimage")) == 0 ) SetBkHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("bkpushedimage")) == 0 ) SetBkPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("bkdisabledimage")) == 0 ) SetBkDisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("hor")) == 0 ) SetHorizontal(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("linesize")) == 0 ) SetLineSize(_ttoi(pstrValue));
+		if( _tcsicmp(pstrName, _T("button-prev-image")) == 0 ) SetButtonPrevNormalImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("button-prev-image-hover")) == 0 ) SetButtonPrevHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("button-prev-image-active")) == 0 ) SetButtonPrevActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("button-prev-image-disabled")) == 0 ) SetButtonPrevDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("button-next-image")) == 0 ) SetButtonNextNormalImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("button-next-image-hover")) == 0 ) SetButtonNextHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("button-next-image-active")) == 0 ) SetButtonNextActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("button-next-image-disabled")) == 0 ) SetButtonNextDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("thumb-image")) == 0 ) SetThumbNormalImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("thumb-image-hover")) == 0 ) SetThumbHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("thumb-image-active")) == 0 ) SetThumbActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("thumb-image-disabled")) == 0 ) SetThumbDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("rail-image")) == 0 ) SetRailNormalImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("rail-image-hover")) == 0 ) SetRailHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("rail-image-active")) == 0 ) SetRailActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("rail-image-disabled")) == 0 ) SetRailDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("background-image")) == 0 ) SetBkNormalImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("background-image-hover")) == 0 ) SetBkHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("background-image-active")) == 0 ) SetBkActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("background-image-disabled")) == 0 ) SetBkDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("horizontal")) == 0 ) SetHorizontal(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("line-size")) == 0 ) SetLineSize(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("range")) == 0 ) SetScrollRange(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("value")) == 0 ) SetScrollPos(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("showbutton1")) == 0 ) SetShowButton1(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("showbutton2")) == 0 ) SetShowButton2(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("thumbminsize")) == 0 ) SetThumbMinSize(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("show-button-prev")) == 0 ) SetShowButtonPrev(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("show-button-next")) == 0 ) SetShowButtonNext(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("thumb-min-size")) == 0 ) SetThumbMinSize(_ttoi(pstrValue));
 		else CControlUI::SetAttribute(pstrName, pstrValue);
 	}
 
@@ -829,11 +829,11 @@ namespace DuiLib
 	{
 		if(!GetShow()) return true;
 
-		PaintBkColor(ctx);
-		PaintBkImage(ctx);
+		PaintBackgroundColor(ctx);
+		PaintBackgroundImage(ctx);
 		PaintBk(ctx);
-		PaintButton1(ctx);
-		PaintButton2(ctx);
+		PaintButtonPrev(ctx);
+		PaintButtonNext(ctx);
 		PaintThumb(ctx);
 		PaintRail(ctx);
 		PaintBorder(ctx);
@@ -852,14 +852,14 @@ namespace DuiLib
 			}
 		}
 		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) {
-			if( !m_sBkPushedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sBkPushedImage) ) {}
+			if( !m_sBkActiveImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sBkActiveImage) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_HOT) != 0 ) {
-			if( !m_sBkHotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sBkHotImage) ) {}
+			if( !m_sBkHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sBkHoverImage) ) {}
 				else return;
 			}
 		}
@@ -870,100 +870,100 @@ namespace DuiLib
 		}
 	}
 
-	void CScrollBarUI::PaintButton1(IRenderContext& ctx)
+	void CScrollBarUI::PaintButtonPrev(IRenderContext& ctx)
 	{
-		if( !m_bShowButton1 ) return;
+		if( !m_bShowButtonPrev ) return;
 
-		if( !IsEnabled() ) m_uButton1State |= UISTATE_DISABLED;
-		else m_uButton1State &= ~ UISTATE_DISABLED;
+		if( !IsEnabled() ) m_uButtonPrevState |= UISTATE_DISABLED;
+		else m_uButtonPrevState &= ~ UISTATE_DISABLED;
 
-		int d1 = MulDiv(m_rcButton1.left - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
-		int d2 = MulDiv(m_rcButton1.top - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
-		int d3 = MulDiv(m_rcButton1.right - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
-		int d4 = MulDiv(m_rcButton1.bottom - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
+		int d1 = MulDiv(m_rcButtonPrev.left - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
+		int d2 = MulDiv(m_rcButtonPrev.top - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
+		int d3 = MulDiv(m_rcButtonPrev.right - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
+		int d4 = MulDiv(m_rcButtonPrev.bottom - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
 		m_sImageModify.Empty();
 		m_sImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), d1, d2, d3, d4);
 
-		if( (m_uButton1State & UISTATE_DISABLED) != 0 ) {
-			if( !m_sButton1DisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButton1DisabledImage, (LPCTSTR)m_sImageModify) ) {}
+		if( (m_uButtonPrevState & UISTATE_DISABLED) != 0 ) {
+			if( !m_sButtonPrevDisabledImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevDisabledImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
-		else if( (m_uButton1State & UISTATE_PUSHED) != 0 ) {
-			if( !m_sButton1PushedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButton1PushedImage, (LPCTSTR)m_sImageModify) ) {}
+		else if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) {
+			if( !m_sButtonPrevActiveImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevActiveImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
-		else if( (m_uButton1State & UISTATE_HOT) != 0 ) {
-			if( !m_sButton1HotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButton1HotImage, (LPCTSTR)m_sImageModify) ) {}
+		else if( (m_uButtonPrevState & UISTATE_HOT) != 0 ) {
+			if( !m_sButtonPrevHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevHoverImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
 
-		if( !m_sButton1NormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sButton1NormalImage, (LPCTSTR)m_sImageModify) ) {}
+		if( !m_sButtonPrevNormalImage.IsEmpty() ) {
+			if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevNormalImage, (LPCTSTR)m_sImageModify) ) {}
 			else return;
 		}
 
 		// 无图：实心小块，避免空心描边方框
-		DWORD dwColor = 0xFFB8B8C0;
-		if( (m_uButton1State & UISTATE_PUSHED) != 0 ) dwColor = 0xFF808088;
-		else if( (m_uButton1State & UISTATE_HOT) != 0 ) dwColor = 0xFF9A9AA2;
-		RECT rc = m_rcButton1;
+		DWORD dwColor = 0xB8B8C0FF;
+		if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) dwColor = 0x808088FF;
+		else if( (m_uButtonPrevState & UISTATE_HOT) != 0 ) dwColor = 0x9A9AA2FF;
+		RECT rc = m_rcButtonPrev;
 		int pad = 3;
 		rc.left += pad; rc.top += pad; rc.right -= pad; rc.bottom -= pad;
 		if( rc.right > rc.left && rc.bottom > rc.top )
-			ctx.FillRoundRect(rc, 4, 4, dwColor);
+			ctx.FillRoundRect(rc, 2, 2, dwColor);
 	}
 
-	void CScrollBarUI::PaintButton2(IRenderContext& ctx)
+	void CScrollBarUI::PaintButtonNext(IRenderContext& ctx)
 	{
-		if( !m_bShowButton2 ) return;
+		if( !m_bShowButtonNext ) return;
 
-		if( !IsEnabled() ) m_uButton2State |= UISTATE_DISABLED;
-		else m_uButton2State &= ~ UISTATE_DISABLED;
-		int d1 = MulDiv(m_rcButton2.left - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
-		int d2 = MulDiv(m_rcButton2.top - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
-		int d3 = MulDiv(m_rcButton2.right - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
-		int d4 = MulDiv(m_rcButton2.bottom - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
+		if( !IsEnabled() ) m_uButtonNextState |= UISTATE_DISABLED;
+		else m_uButtonNextState &= ~ UISTATE_DISABLED;
+		int d1 = MulDiv(m_rcButtonNext.left - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
+		int d2 = MulDiv(m_rcButtonNext.top - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
+		int d3 = MulDiv(m_rcButtonNext.right - m_rcItem.left, 100, GetManager()->GetDPIObj()->GetScale());
+		int d4 = MulDiv(m_rcButtonNext.bottom - m_rcItem.top, 100, GetManager()->GetDPIObj()->GetScale());
 		m_sImageModify.Empty();
 		m_sImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"),d1 ,d2 ,d3 ,d4 );
 
-		if( (m_uButton2State & UISTATE_DISABLED) != 0 ) {
-			if( !m_sButton2DisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButton2DisabledImage, (LPCTSTR)m_sImageModify) ) {}
+		if( (m_uButtonNextState & UISTATE_DISABLED) != 0 ) {
+			if( !m_sButtonNextDisabledImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextDisabledImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
-		else if( (m_uButton2State & UISTATE_PUSHED) != 0 ) {
-			if( !m_sButton2PushedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButton2PushedImage, (LPCTSTR)m_sImageModify) ) {}
+		else if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) {
+			if( !m_sButtonNextActiveImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextActiveImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
-		else if( (m_uButton2State & UISTATE_HOT) != 0 ) {
-			if( !m_sButton2HotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButton2HotImage, (LPCTSTR)m_sImageModify) ) {}
+		else if( (m_uButtonNextState & UISTATE_HOT) != 0 ) {
+			if( !m_sButtonNextHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextHoverImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
 
-		if( !m_sButton2NormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sButton2NormalImage, (LPCTSTR)m_sImageModify) ) {}
+		if( !m_sButtonNextNormalImage.IsEmpty() ) {
+			if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextNormalImage, (LPCTSTR)m_sImageModify) ) {}
 			else return;
 		}
 
-		DWORD dwColor = 0xFFB8B8C0;
-		if( (m_uButton2State & UISTATE_PUSHED) != 0 ) dwColor = 0xFF808088;
-		else if( (m_uButton2State & UISTATE_HOT) != 0 ) dwColor = 0xFF9A9AA2;
-		RECT rc = m_rcButton2;
+		DWORD dwColor = 0xB8B8C0FF;
+		if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) dwColor = 0x808088FF;
+		else if( (m_uButtonNextState & UISTATE_HOT) != 0 ) dwColor = 0x9A9AA2FF;
+		RECT rc = m_rcButtonNext;
 		int pad = 3;
 		rc.left += pad; rc.top += pad; rc.right -= pad; rc.bottom -= pad;
 		if( rc.right > rc.left && rc.bottom > rc.top )
-			ctx.FillRoundRect(rc, 4, 4, dwColor);
+			ctx.FillRoundRect(rc, 2, 2, dwColor);
 	}
 
 	void CScrollBarUI::PaintThumb(IRenderContext& ctx)
@@ -985,14 +985,14 @@ namespace DuiLib
 			}
 		}
 		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) {
-			if( !m_sThumbPushedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbPushedImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !m_sThumbActiveImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sThumbActiveImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_HOT) != 0 ) {
-			if( !m_sThumbHotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbHotImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !m_sThumbHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sThumbHoverImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
@@ -1003,16 +1003,18 @@ namespace DuiLib
 		}
 
 		// 无图：实心圆角滑块（原先 DrawRect 空心青框）
-		DWORD dwColor = 0xFFC0C0C6;
-		if( (m_uThumbState & UISTATE_DISABLED) != 0 ) dwColor = 0xFFD8D8DC;
-		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) dwColor = 0xFF8A8A92;
-		else if( (m_uThumbState & UISTATE_HOT) != 0 ) dwColor = 0xFFA6A6AE;
+		DWORD dwColor = 0xC0C0C6FF;
+		if( (m_uThumbState & UISTATE_DISABLED) != 0 ) dwColor = 0xD8D8DCFF;
+		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) dwColor = 0x8A8A92FF;
+		else if( (m_uThumbState & UISTATE_HOT) != 0 ) dwColor = 0xA6A6AEFF;
 
 		RECT rc = m_rcThumb;
 		if( rc.right <= rc.left || rc.bottom <= rc.top ) return;
 
 		int round = m_bHorizontal ? (rc.bottom - rc.top) : (rc.right - rc.left);
 		if( round < 2 ) round = 2;
+		round /= 2; // CSS 半径：胶囊形 ≈ 短边一半
+		if( round < 1 ) round = 1;
 		ctx.FillRoundRect(rc, round, round, dwColor);
 	}
 
@@ -1045,14 +1047,14 @@ namespace DuiLib
 			}
 		}
 		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) {
-			if( !m_sRailPushedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sRailPushedImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !m_sRailActiveImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sRailActiveImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_HOT) != 0 ) {
-			if( !m_sRailHotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sRailHotImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !m_sRailHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sRailHoverImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}

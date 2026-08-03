@@ -4,7 +4,7 @@
 namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(COptionUI)
-	COptionUI::COptionUI() : m_bSelected(false) ,m_iSelectedFont(-1), m_dwSelectedTextColor(0), m_dwSelectedBkColor(0), m_nSelectedStateCount(0)
+	COptionUI::COptionUI() : m_bSelected(false) ,m_iSelectedFont(-1), m_dwSelectedColor(0), m_dwSelectedBackgroundColor(0), m_nSelectedStateCount(0)
 	{
 	}
 
@@ -141,57 +141,57 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	LPCTSTR COptionUI::GetSelectedHotImage()
+	LPCTSTR COptionUI::GetSelectedHoverImage()
 	{
-		return m_sSelectedHotImage;
+		return m_sSelectedHoverImage;
 	}
 
-	void COptionUI::SetSelectedHotImage( LPCTSTR pStrImage )
+	void COptionUI::SetSelectedHoverImage( LPCTSTR pStrImage )
 	{
-		m_sSelectedHotImage = pStrImage;
+		m_sSelectedHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR COptionUI::GetSelectedPushedImage()
+	LPCTSTR COptionUI::GetSelectedActiveImage()
 	{
-		return m_sSelectedPushedImage;
+		return m_sSelectedActiveImage;
 	}
 
-	void COptionUI::SetSelectedPushedImage(LPCTSTR pStrImage)
+	void COptionUI::SetSelectedActiveImage(LPCTSTR pStrImage)
 	{
-		m_sSelectedPushedImage = pStrImage;
+		m_sSelectedActiveImage = pStrImage;
 		Invalidate();
 	}
 
-	void COptionUI::SetSelectedTextColor(DWORD dwTextColor)
+	void COptionUI::SetSelectedColor(DWORD dwColor)
 	{
-		m_dwSelectedTextColor = dwTextColor;
+		m_dwSelectedColor = dwColor;
 	}
 
-	DWORD COptionUI::GetSelectedTextColor()
+	DWORD COptionUI::GetSelectedColor()
 	{
-		if (m_dwSelectedTextColor == 0) m_dwSelectedTextColor = m_pManager->GetDefaultFontColor();
-		return m_dwSelectedTextColor;
+		if (m_dwSelectedColor == 0) m_dwSelectedColor = m_pManager->GetDefaultFontColor();
+		return m_dwSelectedColor;
 	}
 
-	void COptionUI::SetSelectedBkColor( DWORD dwBkColor )
+	void COptionUI::SetSelectedBackgroundColor( DWORD dwBackgroundColor )
 	{
-		m_dwSelectedBkColor = dwBkColor;
+		m_dwSelectedBackgroundColor = dwBackgroundColor;
 	}
 
-	DWORD COptionUI::GetSelectBkColor()
+	DWORD COptionUI::GetSelectedBackgroundColor()
 	{
-		return m_dwSelectedBkColor;
+		return m_dwSelectedBackgroundColor;
 	}
 
-	LPCTSTR COptionUI::GetSelectedForedImage()
+	LPCTSTR COptionUI::GetSelectedForegroundImage()
 	{
-		return m_sSelectedForeImage;
+		return m_sSelectedForegroundImage;
 	}
 
-	void COptionUI::SetSelectedForedImage(LPCTSTR pStrImage)
+	void COptionUI::SetSelectedForegroundImage(LPCTSTR pStrImage)
 	{
-		m_sSelectedForeImage = pStrImage;
+		m_sSelectedForegroundImage = pStrImage;
 		Invalidate();
 	}
 
@@ -229,39 +229,35 @@ namespace DuiLib
 	void COptionUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
 		if( _tcsicmp(pstrName, _T("group")) == 0 ) SetGroup(pstrValue);
-		else if( _tcsicmp(pstrName, _T("grouptype")) == 0 ) SetGroupType(pstrValue);
-		else if( _tcsicmp(pstrName, _T("selected")) == 0 ) Selected(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("selectedimage")) == 0 ) SetSelectedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("selectedhotimage")) == 0 ) SetSelectedHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("selectedpushedimage")) == 0 ) SetSelectedPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("selectedforeimage")) == 0 ) SetSelectedForedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("selectedstateimage")) == 0 ) SetSelectedStateImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("selectedstatecount")) == 0 ) SetSelectedStateCount(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("selectedbkcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelectedBkColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("group-type")) == 0 ) SetGroupType(pstrValue);
+		else if( _tcsicmp(pstrName, _T("selected")) == 0 || _tcsicmp(pstrName, _T("checked")) == 0 )
+			Selected(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("image-selected")) == 0 ) SetSelectedImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-selected-hover")) == 0 ) SetSelectedHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-selected-active")) == 0 ) SetSelectedActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("foreground-image-selected")) == 0 ) SetSelectedForegroundImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("selected-state-image")) == 0 ) SetSelectedStateImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("selected-state-count")) == 0 ) SetSelectedStateCount(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("background-color-selected")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetSelectedBackgroundColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("selectedtextcolor")) == 0 ) {
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetSelectedTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("color-selected")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetSelectedColor(clrColor);
 		}
-		else if( _tcsicmp(pstrName, _T("selectedfont")) == 0 ) SetSelectedFont(_ttoi(pstrValue));
 		else CButtonUI::SetAttribute(pstrName, pstrValue);
 	}
 
-	void COptionUI::PaintBkColor(IRenderContext& ctx)
+	void COptionUI::PaintBackgroundColor(IRenderContext& ctx)
 	{
 		if(IsSelected()) {
-			if(m_dwSelectedBkColor != 0) {
-				ctx.DrawColor(m_rcPaint, GetAdjustColor(m_dwSelectedBkColor));
+			if(m_dwSelectedBackgroundColor != 0) {
+				ctx.DrawColor(m_rcPaint, GetAdjustColor(m_dwSelectedBackgroundColor));
 			}
 		}
 		else {
-			return CButtonUI::PaintBkColor(ctx);
+			return CButtonUI::PaintBackgroundColor(ctx);
 		}
 	}
 
@@ -292,26 +288,26 @@ namespace DuiLib
 							int iRight = iLeft + szStatus.cx;
 							int iTop = rcSrc.top;
 							int iBottom = iTop + szStatus.cy;
-							m_sSelectedHotImage.Format(_T("res='%s' restype='%s' dest='%d,%d,%d,%d' source='%d,%d,%d,%d' corner='%d,%d,%d,%d'"), info.sImageName.GetData(), info.sResType.GetData(), info.rcDest.left, info.rcDest.top, info.rcDest.right, info.rcDest.bottom, iLeft, iTop, iRight, iBottom, info.rcCorner.left, info.rcCorner.top, info.rcCorner.right, info.rcCorner.bottom);
-							m_sSelectedPushedImage.Format(_T("res='%s' restype='%s' dest='%d,%d,%d,%d' source='%d,%d,%d,%d' corner='%d,%d,%d,%d'"), info.sImageName.GetData(), info.sResType.GetData(), info.rcDest.left, info.rcDest.top, info.rcDest.right, info.rcDest.bottom, iLeft, iTop, iRight, iBottom, info.rcCorner.left, info.rcCorner.top, info.rcCorner.right, info.rcCorner.bottom);
+							m_sSelectedHoverImage.Format(_T("res='%s' restype='%s' dest='%d,%d,%d,%d' source='%d,%d,%d,%d' corner='%d,%d,%d,%d'"), info.sImageName.GetData(), info.sResType.GetData(), info.rcDest.left, info.rcDest.top, info.rcDest.right, info.rcDest.bottom, iLeft, iTop, iRight, iBottom, info.rcCorner.left, info.rcCorner.top, info.rcCorner.right, info.rcCorner.bottom);
+							m_sSelectedActiveImage.Format(_T("res='%s' restype='%s' dest='%d,%d,%d,%d' source='%d,%d,%d,%d' corner='%d,%d,%d,%d'"), info.sImageName.GetData(), info.sResType.GetData(), info.rcDest.left, info.rcDest.top, info.rcDest.right, info.rcDest.bottom, iLeft, iTop, iRight, iBottom, info.rcCorner.left, info.rcCorner.top, info.rcCorner.right, info.rcCorner.bottom);
 						}
 						if(m_nSelectedStateCount > 2) {
 							int iLeft = rcSrc.left + 2 * szStatus.cx;
 							int iRight = iLeft + szStatus.cx;
 							int iTop = rcSrc.top;
 							int iBottom = iTop + szStatus.cy;
-							m_sSelectedPushedImage.Format(_T("res='%s' restype='%s' dest='%d,%d,%d,%d' source='%d,%d,%d,%d' corner='%d,%d,%d,%d'"), info.sImageName.GetData(), info.sResType.GetData(), info.rcDest.left, info.rcDest.top, info.rcDest.right, info.rcDest.bottom, iLeft, iTop, iRight, iBottom, info.rcCorner.left, info.rcCorner.top, info.rcCorner.right, info.rcCorner.bottom);
+							m_sSelectedActiveImage.Format(_T("res='%s' restype='%s' dest='%d,%d,%d,%d' source='%d,%d,%d,%d' corner='%d,%d,%d,%d'"), info.sImageName.GetData(), info.sResType.GetData(), info.rcDest.left, info.rcDest.top, info.rcDest.right, info.rcDest.bottom, iLeft, iTop, iRight, iBottom, info.rcCorner.left, info.rcCorner.top, info.rcCorner.right, info.rcCorner.bottom);
 						}
 					}
 				}
 			}
 
-			if( (m_uButtonState & UISTATE_PUSHED) != 0 && !m_sSelectedPushedImage.IsEmpty()) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedPushedImage) ) {}
+			if( (m_uButtonState & UISTATE_PUSHED) != 0 && !m_sSelectedActiveImage.IsEmpty()) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedActiveImage) ) {}
 				else return;
 			}
-			else if( (m_uButtonState & UISTATE_HOT) != 0 && !m_sSelectedHotImage.IsEmpty()) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedHotImage) ) {}
+			else if( (m_uButtonState & UISTATE_HOT) != 0 && !m_sSelectedHoverImage.IsEmpty()) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedHoverImage) ) {}
 				else return;
 			}
 
@@ -324,27 +320,27 @@ namespace DuiLib
 		}
 	}
 
-	void COptionUI::PaintForeImage(IRenderContext& ctx)
+	void COptionUI::PaintForegroundImage(IRenderContext& ctx)
 	{
 		if(IsSelected()) {
-			if( !m_sSelectedForeImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedForeImage) ) {}
+			if( !m_sSelectedForegroundImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedForegroundImage) ) {}
 				else return;
 			}
 		}
 
-		return CButtonUI::PaintForeImage(ctx);
+		return CButtonUI::PaintForegroundImage(ctx);
 	}
 
 	void COptionUI::PaintText(IRenderContext& ctx)
 	{
 		if( (m_uButtonState & UISTATE_SELECTED) != 0 )
 		{
-			DWORD oldTextColor = m_dwTextColor;
-			if( m_dwSelectedTextColor != 0 ) m_dwTextColor = m_dwSelectedTextColor;
+			DWORD oldTextColor = m_dwColor;
+			if( m_dwSelectedColor != 0 ) m_dwColor = m_dwSelectedColor;
 
-			if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-			if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+			if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+			if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 
 			int iFont = GetFont();
 			if(GetSelectedFont() != -1) {
@@ -354,21 +350,21 @@ namespace DuiLib
 			if( sText.IsEmpty() ) return;
 			int nLinks = 0;
 			RECT rc = m_rcItem;
-			RECT rcInset = GetInset();
+			RECT rcPadding = GetPadding();
 			RECT rcTextPadding = GetTextPadding();
-			rc.left += rcInset.left + rcTextPadding.left;
-			rc.right -= rcInset.right + rcTextPadding.right;
-			rc.top += rcInset.top + rcTextPadding.top;
-			rc.bottom -= rcInset.bottom + rcTextPadding.bottom;
+			rc.left += rcPadding.left + rcTextPadding.left;
+			rc.right -= rcPadding.right + rcTextPadding.right;
+			rc.top += rcPadding.top + rcTextPadding.top;
+			rc.bottom -= rcPadding.bottom + rcTextPadding.bottom;
 
-			DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+			DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 			
 			if( m_bShowHtml )
 				ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, iFont, m_uTextStyle);
 			else
 				ctx.DrawText(rc, sText, clrColor, iFont, m_uTextStyle);
 
-			m_dwTextColor = oldTextColor;
+			m_dwColor = oldTextColor;
 		}
 		else
 			CButtonUI::PaintText(ctx);
@@ -381,33 +377,33 @@ namespace DuiLib
 	CCheckBoxUI::CCheckBoxUI()
 		: m_bAutoCheck(false)
 		, m_nBoxGap(6)
-		, m_nBoxBorderSize(1)
-		, m_dwBoxBkColor(0xFFFFFFFF)
-		, m_dwBoxBorderColor(0xFFBFBFBF)
-		, m_dwBoxHotBkColor(0xFFFFFFFF)
-		, m_dwBoxHotBorderColor(0xFF1677FF)
-		, m_dwSelectedBoxBkColor(0xFF1677FF)
-		, m_dwSelectedBoxBorderColor(0xFF1677FF)
+		, m_nBoxBorderWidth(1)
+		, m_dwBoxBackgroundColor(0xFFFFFFFF)
+		, m_dwBoxBorderColor(0xBFBFBFFF)
+		, m_dwBoxHoverBackgroundColor(0xFFFFFFFF)
+		, m_dwBoxHoverBorderColor(0x1677FFFF)
+		, m_dwSelectedBoxBackgroundColor(0x1677FFFF)
+		, m_dwSelectedBoxBorderColor(0x1677FFFF)
 		, m_dwCheckMarkColor(0xFFFFFFFF)
-		, m_dwDisabledBoxBkColor(0xFFF5F5F5)
-		, m_dwDisabledBoxBorderColor(0xFFD9D9D9)
+		, m_dwDisabledBoxBackgroundColor(0xF5F5F5FF)
+		, m_dwDisabledBoxBorderColor(0xD9D9D9FF)
 	{
 		m_szBox.cx = m_szBox.cy = 16;
-		m_szBoxRound.cx = m_szBoxRound.cy = 3;
+		m_szBoxRound.cx = m_szBoxRound.cy = 2;
 		// Button 默认 kind=default 会带按钮色，这里清掉并改为内置勾选框样式
 		SetKind(CONTROLKIND_NONE);
-		SetBkColor(0);
-		SetHotBkColor(0);
-		SetPushedBkColor(0);
-		SetDisabledBkColor(0);
-		SetHotTextColor(0);
-		SetPushedTextColor(0);
-		SetHotBorderColor(0);
-		SetPushedBorderColor(0);
-		SetBorderSize(0);
+		SetBackgroundColor(0);
+		SetHoverBackgroundColor(0);
+		SetActiveBackgroundColor(0);
+		SetDisabledBackgroundColor(0);
+		SetHoverColor(0);
+		SetActiveColor(0);
+		SetHoverBorderColor(0);
+		SetActiveBorderColor(0);
+		SetBorderWidth(0);
 		m_uTextStyle = DT_SINGLELINE | DT_VCENTER | DT_LEFT;
-		m_dwTextColor = 0xFF333333;
-		m_dwSelectedTextColor = 0; // 原生样式下标签色不随选中变化
+		m_dwColor = 0x333333FF;
+		m_dwSelectedColor = 0; // 原生样式下标签色不随选中变化
 		SetCursor(DUI_HAND);
 		SetAutoCalcWidth(true);
 	}
@@ -468,7 +464,7 @@ namespace DuiLib
 
 	bool CCheckBoxUI::IsNativeCheckStyle() const
 	{
-		return m_sNormalImage.IsEmpty() && m_sSelectedImage.IsEmpty()
+		return m_sImage.IsEmpty() && m_sSelectedImage.IsEmpty()
 			&& m_sSelectedStateImage.IsEmpty() && m_sStateImage.IsEmpty();
 	}
 
@@ -487,33 +483,33 @@ namespace DuiLib
 	void CCheckBoxUI::PaintNativeCheckBox(IRenderContext& ctx)
 	{
 		RECT rcBox = GetCheckBoxRect();
-		DWORD dwBk = m_dwBoxBkColor;
+		DWORD dwBk = m_dwBoxBackgroundColor;
 		DWORD dwBorder = m_dwBoxBorderColor;
 		bool bSelected = IsSelected();
 		bool bHot = (m_uButtonState & UISTATE_HOT) != 0;
 		bool bPushed = (m_uButtonState & UISTATE_PUSHED) != 0;
 
 		if( !IsEnabled() ) {
-			dwBk = m_dwDisabledBoxBkColor;
+			dwBk = m_dwDisabledBoxBackgroundColor;
 			dwBorder = m_dwDisabledBoxBorderColor;
 		}
 		else if( bSelected ) {
-			dwBk = m_dwSelectedBoxBkColor;
+			dwBk = m_dwSelectedBoxBackgroundColor;
 			dwBorder = m_dwSelectedBoxBorderColor;
 			if( bHot || bPushed ) {
 				// 选中悬停略加深
-				dwBk = 0xFF0958D9;
+				dwBk = 0x0958D9FF;
 				dwBorder = dwBk;
 			}
 		}
 		else if( bHot || bPushed ) {
-			dwBk = m_dwBoxHotBkColor;
-			dwBorder = m_dwBoxHotBorderColor;
+			dwBk = m_dwBoxHoverBackgroundColor;
+			dwBorder = m_dwBoxHoverBorderColor;
 		}
 
 		SIZE szRound = m_szBoxRound;
 		if( m_pManager != NULL ) m_pManager->GetDPIObj()->Scale(&szRound);
-		int nBorder = m_nBoxBorderSize;
+		int nBorder = m_nBoxBorderWidth;
 		if( m_pManager != NULL ) nBorder = m_pManager->GetDPIObj()->Scale(nBorder);
 		if( nBorder < 1 ) nBorder = 1;
 
@@ -532,7 +528,7 @@ namespace DuiLib
 
 		if( !bSelected ) return;
 
-		DWORD dwMark = IsEnabled() ? m_dwCheckMarkColor : 0xFFBFBFBF;
+		DWORD dwMark = IsEnabled() ? m_dwCheckMarkColor : 0xBFBFBFFF;
 		int w = rcBox.right - rcBox.left;
 		int h = rcBox.bottom - rcBox.top;
 		int stroke = (m_pManager != NULL) ? m_pManager->GetDPIObj()->Scale(2) : 2;
@@ -591,10 +587,10 @@ namespace DuiLib
 		return sz;
 	}
 
-	void CCheckBoxUI::PaintBkColor(IRenderContext& ctx)
+	void CCheckBoxUI::PaintBackgroundColor(IRenderContext& ctx)
 	{
 		if( IsNativeCheckStyle() ) return; // 背景只画在方框上
-		COptionUI::PaintBkColor(ctx);
+		COptionUI::PaintBackgroundColor(ctx);
 	}
 
 	void CCheckBoxUI::PaintStatusImage(IRenderContext& ctx)
@@ -622,20 +618,20 @@ namespace DuiLib
 		CDuiString sText = GetText();
 		if( sText.IsEmpty() ) return;
 
-		if( m_dwTextColor == 0 ) m_dwTextColor = m_pManager->GetDefaultFontColor();
-		if( m_dwDisabledTextColor == 0 ) m_dwDisabledTextColor = m_pManager->GetDefaultDisabledColor();
+		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
+		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 
 		SIZE szBox = GetBoxSize();
 		int nGap = GetBoxGap();
-		RECT rcInset = GetInset();
+		RECT rcPadding = GetPadding();
 		RECT rcPad = GetTextPadding();
 		RECT rc = m_rcItem;
-		rc.left += rcInset.left + szBox.cx + nGap + rcPad.left;
-		rc.right -= rcInset.right + rcPad.right;
-		rc.top += rcInset.top + rcPad.top;
-		rc.bottom -= rcInset.bottom + rcPad.bottom;
+		rc.left += rcPadding.left + szBox.cx + nGap + rcPad.left;
+		rc.right -= rcPadding.right + rcPad.right;
+		rc.top += rcPadding.top + rcPad.top;
+		rc.bottom -= rcPadding.bottom + rcPad.bottom;
 
-		DWORD clrColor = IsEnabled() ? m_dwTextColor : m_dwDisabledTextColor;
+		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		int nLinks = 0;
 		UINT uStyle = m_uTextStyle;
 		if( (uStyle & (DT_CENTER | DT_RIGHT)) == 0 )
@@ -648,19 +644,15 @@ namespace DuiLib
 
 	static bool ParseCheckColorAttr(LPCTSTR pstrValue, DWORD& dwColor)
 	{
-		if( pstrValue == NULL || *pstrValue == _T('\0') ) return false;
-		if( *pstrValue == _T('#') ) pstrValue = ::CharNext(pstrValue);
-		LPTSTR pstr = NULL;
-		dwColor = _tcstoul(pstrValue, &pstr, 16);
-		return true;
+		return ParseColorString(pstrValue, dwColor);
 	}
 
 	void CCheckBoxUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("EnableAutoCheck")) == 0 || _tcsicmp(pstrName, _T("autocheck")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("auto-check")) == 0 ) {
 			SetAutoCheck(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcsicmp(pstrName, _T("boxsize")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("box-size")) == 0 ) {
 			SIZE sz = { 16, 16 };
 			LPTSTR pstr = NULL;
 			sz.cx = _tcstol(pstrValue, &pstr, 10);
@@ -668,39 +660,39 @@ namespace DuiLib
 			if( pstr && *pstr == _T(',') ) sz.cy = _tcstol(pstr + 1, &pstr, 10);
 			SetBoxSize(sz);
 		}
-		else if( _tcsicmp(pstrName, _T("boxgap")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("box-gap")) == 0 ) {
 			SetBoxGap(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("boxbordersize")) == 0 ) {
-			m_nBoxBorderSize = _ttoi(pstrValue);
+		else if( _tcsicmp(pstrName, _T("box-border-width")) == 0 ) {
+			m_nBoxBorderWidth = _ttoi(pstrValue);
 			Invalidate();
 		}
-		else if( _tcsicmp(pstrName, _T("boxborderround")) == 0 ) {
-			LPTSTR pstr = NULL;
-			m_szBoxRound.cx = _tcstol(pstrValue, &pstr, 10);
-			m_szBoxRound.cy = m_szBoxRound.cx;
-			if( pstr && *pstr == _T(',') ) m_szBoxRound.cy = _tcstol(pstr + 1, &pstr, 10);
-			Invalidate();
+		else if( _tcsicmp(pstrName, _T("box-border-radius")) == 0 ) {
+			SIZE szRound = { 0 };
+			if( ParseBorderRadiusValue(pstrValue, szRound) ) {
+				m_szBoxRound = szRound;
+				Invalidate();
+			}
 		}
-		else if( _tcsicmp(pstrName, _T("boxbkcolor")) == 0 ) {
-			ParseCheckColorAttr(pstrValue, m_dwBoxBkColor); Invalidate();
+		else if( _tcsicmp(pstrName, _T("box-background-color")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwBoxBackgroundColor); Invalidate();
 		}
-		else if( _tcsicmp(pstrName, _T("boxbordercolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("box-border-color")) == 0 ) {
 			ParseCheckColorAttr(pstrValue, m_dwBoxBorderColor); Invalidate();
 		}
-		else if( _tcsicmp(pstrName, _T("boxhotbkcolor")) == 0 ) {
-			ParseCheckColorAttr(pstrValue, m_dwBoxHotBkColor); Invalidate();
+		else if( _tcsicmp(pstrName, _T("box-background-color-hover")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwBoxHoverBackgroundColor); Invalidate();
 		}
-		else if( _tcsicmp(pstrName, _T("boxhotbordercolor")) == 0 ) {
-			ParseCheckColorAttr(pstrValue, m_dwBoxHotBorderColor); Invalidate();
+		else if( _tcsicmp(pstrName, _T("box-border-color-hover")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwBoxHoverBorderColor); Invalidate();
 		}
-		else if( _tcsicmp(pstrName, _T("selectedboxbkcolor")) == 0 ) {
-			ParseCheckColorAttr(pstrValue, m_dwSelectedBoxBkColor); Invalidate();
+		else if( _tcsicmp(pstrName, _T("box-background-color-selected")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwSelectedBoxBackgroundColor); Invalidate();
 		}
-		else if( _tcsicmp(pstrName, _T("selectedboxbordercolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("box-border-color-selected")) == 0 ) {
 			ParseCheckColorAttr(pstrValue, m_dwSelectedBoxBorderColor); Invalidate();
 		}
-		else if( _tcsicmp(pstrName, _T("checkmarkcolor")) == 0 || _tcsicmp(pstrName, _T("checkcolor")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("checkmark-color")) == 0 || _tcsicmp(pstrName, _T("accent-color")) == 0 ) {
 			ParseCheckColorAttr(pstrValue, m_dwCheckMarkColor); Invalidate();
 		}
 		else {

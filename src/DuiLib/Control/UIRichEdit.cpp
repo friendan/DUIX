@@ -202,12 +202,12 @@ namespace DuiLib {
 		LOGFONT lf;
 		::GetObject(hfont, sizeof(LOGFONT), &lf);
 
-		DWORD dwColor = re->GetTextColor();
+		DWORD dwColor = re->GetColor();
 		if(re->GetManager()->IsLayered()) {
 			CRenderEngine::CheckAlphaColor(dwColor);
 		}
 		pcf->cbSize = sizeof(CHARFORMAT2W);
-		pcf->crTextColor = RGB(GetBValue(dwColor), GetGValue(dwColor), GetRValue(dwColor));
+		pcf->crTextColor = DuiColorToCOLORREF(dwColor);
 		LONG yPixPerInch = GetDeviceCaps(re->GetManager()->GetPaintDC(), LOGPIXELSY);
 		pcf->yHeight = -lf.lfHeight * LY_PER_INCH / yPixPerInch;
 		pcf->yOffset = 0;
@@ -835,7 +835,7 @@ err:
 
 	void CTxtWinHost::SetColor(DWORD dwColor)
 	{
-		cf.crTextColor = RGB(GetBValue(dwColor), GetGValue(dwColor), GetRValue(dwColor));
+		cf.crTextColor = DuiColorToCOLORREF(dwColor);
 		pserv->OnTxPropertyBitsChange(TXTBIT_CHARFORMATCHANGE, 
 			TXTBIT_CHARFORMATCHANGE);
 	}
@@ -1097,9 +1097,9 @@ err:
 	//
 	IMPLEMENT_DUICONTROL(CRichEditUI)
 		CRichEditUI::CRichEditUI() : m_pTwh(NULL), m_bVScrollBarFixing(false), m_bWantTab(true), m_bWantReturn(true), 
-		m_bWantCtrlReturn(true), m_bTransparent(true), m_bRich(true), m_bReadOnly(false), m_bWordWrap(false), m_dwTextColor(0), m_iFont(-1), 
+		m_bWantCtrlReturn(true), m_bTransparent(true), m_bRich(true), m_bReadOnly(false), m_bWordWrap(false), m_dwColor(0), m_iFont(-1), 
 		m_iLimitText(cInitTextMax), m_lTwhStyle(ES_MULTILINE), m_bDrawCaret(true), m_bInited(false), m_chLeadByte(0),m_uButtonState(0),
-		m_dwTipValueColor(0xFFBAC0C5), m_uTipValueAlign(DT_SINGLELINE | DT_LEFT)
+		m_dwPlaceholderColor(0xBAC0C5FF), m_uPlaceholderAlign(DT_SINGLELINE | DT_LEFT)
 	{
 #ifndef _UNICODE
 		m_fAccumulateDBC =true;
@@ -1140,7 +1140,7 @@ err:
 		CContainerUI::SetEnabled(bEnabled);
 		if(m_pTwh) {
 			if(IsEnabled()) {
-				m_pTwh->SetColor(GetTextColor());
+				m_pTwh->SetColor(GetColor());
 			}
 			else {
 				m_pTwh->SetColor (m_pManager->GetDefaultDisabledColor());
@@ -1274,16 +1274,16 @@ err:
 		m_lTwhStyle = lStyle;
 	}
 
-	DWORD CRichEditUI::GetTextColor()
+	DWORD CRichEditUI::GetColor()
 	{
-		return m_dwTextColor;
+		return m_dwColor;
 	}
 
-	void CRichEditUI::SetTextColor(DWORD dwTextColor)
+	void CRichEditUI::SetColor(DWORD dwColor)
 	{
-		m_dwTextColor = dwTextColor;
+		m_dwColor = dwColor;
 		if( m_pTwh ) {
-			m_pTwh->SetColor(dwTextColor);
+			m_pTwh->SetColor(dwColor);
 		}
 	}
 
@@ -2113,11 +2113,11 @@ err:
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		rc = m_rcItem;
 
-		RECT rcInset = GetInset();
-		rc.left += rcInset.left;
-		rc.top += rcInset.top;
-		rc.right -= rcInset.right;
-		rc.bottom -= rcInset.bottom;
+		RECT rcPadding = GetPadding();
+		rc.left += rcPadding.left;
+		rc.top += rcPadding.top;
+		rc.right -= rcPadding.right;
+		rc.bottom -= rcPadding.bottom;
 
 		RECT rcScrollView = rc;
 		bool bVScrollBarVisiable = false;
@@ -2138,12 +2138,12 @@ err:
 		}
 
 		if( m_pTwh != NULL ) {
-			RECT rcInset = GetInset();
+			RECT rcPadding = GetPadding();
 			RECT rcTextPadding = GetTextPadding();
-			const int padL = rcInset.left + rcTextPadding.left;
-			const int padR = rcInset.right + rcTextPadding.right;
-			const int padT = rcInset.top + rcTextPadding.top;
-			const int padB = rcInset.bottom + rcTextPadding.bottom;
+			const int padL = rcPadding.left + rcTextPadding.left;
+			const int padR = rcPadding.right + rcTextPadding.right;
+			const int padT = rcPadding.top + rcTextPadding.top;
+			const int padB = rcPadding.bottom + rcTextPadding.bottom;
 			RECT rcScrollTextView = rcScrollView;
 			rcScrollTextView.left += padL;
 			rcScrollTextView.right -= padR;
@@ -2197,8 +2197,8 @@ err:
 		for( int it = 0; it < m_items.GetSize(); it++ ) {
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[it]);
 			if( !pControl->IsVisible() ) continue;
-			if( pControl->IsFloat() ) {
-				SetFloatPos(it);
+			if( pControl->IsAbsolute() ) {
+				SetAbsolutePos(it);
 			}
 			else {
 				SIZE sz = { rc.right - rc.left, rc.bottom - rc.top };
@@ -2217,11 +2217,11 @@ err:
 		CContainerUI::Move(szOffset, bNeedInvalidate);
 		if( m_pTwh != NULL ) {
 			RECT rc = m_rcItem;
-			RECT rcInset = GetInset();
-			rc.left += rcInset.left;
-			rc.top += rcInset.top;
-			rc.right -= rcInset.right;
-			rc.bottom -= rcInset.bottom;
+			RECT rcPadding = GetPadding();
+			rc.left += rcPadding.left;
+			rc.top += rcPadding.top;
+			rc.right -= rcPadding.right;
+			rc.bottom -= rcPadding.bottom;
 
 			if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() ) rc.right -= m_pVerticalScrollBar->GetFixedWidth();
 			if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() ) rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
@@ -2277,11 +2277,11 @@ err:
 
 		if( m_items.GetSize() > 0 ) {
 			RECT rc = m_rcItem;
-			RECT rcInset = GetInset();
-			rc.left += rcInset.left;
-			rc.top += rcInset.top;
-			rc.right -= rcInset.right;
-			rc.bottom -= rcInset.bottom;
+			RECT rcPadding = GetPadding();
+			rc.left += rcPadding.left;
+			rc.top += rcPadding.top;
+			rc.right -= rcPadding.right;
+			rc.bottom -= rcPadding.bottom;
 			if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() ) rc.right -= m_pVerticalScrollBar->GetFixedWidth();
 			if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() ) rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 
@@ -2291,7 +2291,7 @@ err:
 					if( pControl == pStopControl ) return false;
 					if( !pControl->IsVisible() ) continue;
 					if( !::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos()) ) continue;
-					if( pControl->IsFloat() ) {
+					if( pControl->IsAbsolute() ) {
 						if( !::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos()) ) continue;
 						if( !pControl->Paint(ctx, rcPaint, pStopControl) ) return false;
 					}
@@ -2304,7 +2304,7 @@ err:
 					if( pControl == pStopControl ) return false;
 					if( !pControl->IsVisible() ) continue;
 					if( !::IntersectRect(&rcTemp, &rcPaint, &pControl->GetPos()) ) continue;
-					if( pControl->IsFloat() ) {
+					if( pControl->IsAbsolute() ) {
 						if( !::IntersectRect(&rcTemp, &m_rcItem, &pControl->GetPos()) ) continue;
 						ctx.SuspendClip();
 						if( !pControl->Paint(ctx, rcPaint, pStopControl) ) return false;
@@ -2324,8 +2324,8 @@ err:
 				::GetCaretPos(&ptCaret);
 				if( ::PtInRect(&m_rcItem, ptCaret) ) {
 					RECT rcCaret = { ptCaret.x, ptCaret.y, ptCaret.x, ptCaret.y + m_pTwh->GetCaretHeight() };
-					DWORD dwTextColor = GetTextColor();
-					ctx.DrawLine(rcCaret, m_pTwh->GetCaretWidth(), dwTextColor);
+					DWORD dwColor = GetColor();
+					ctx.DrawLine(rcCaret, m_pTwh->GetCaretWidth(), dwColor);
 				}
 			}
 		}
@@ -2350,53 +2350,53 @@ err:
 		// 绘制提示文字
 		CDuiString sDrawText = GetText();
 		if(sDrawText.IsEmpty() && !m_bFocused) {
-			DWORD dwTextColor = GetTipValueColor();
-			CDuiString sTipValue = GetTipValue();
+			DWORD dwColor = GetPlaceholderColor();
+			CDuiString sPlaceholder = GetPlaceholder();
 			RECT rc = m_rcItem;
-			RECT rcInset = GetInset();
+			RECT rcPadding = GetPadding();
 			RECT rcTextPadding = GetTextPadding();
-			rc.left += rcInset.left + rcTextPadding.left;
-			rc.right -= rcInset.right + rcTextPadding.right;
-			rc.top += rcInset.top + rcTextPadding.top;
-			rc.bottom -= rcInset.bottom + rcTextPadding.bottom;
-			UINT uTextAlign = GetTipValueAlign();
+			rc.left += rcPadding.left + rcTextPadding.left;
+			rc.right -= rcPadding.right + rcTextPadding.right;
+			rc.top += rcPadding.top + rcTextPadding.top;
+			rc.bottom -= rcPadding.bottom + rcTextPadding.bottom;
+			UINT uTextAlign = GetPlaceholderAlign();
 			if(IsMultiLine()) uTextAlign |= DT_TOP;
 			else uTextAlign |= DT_VCENTER;
-			ctx.DrawText(rc, sTipValue, dwTextColor, m_iFont, uTextAlign);
+			ctx.DrawText(rc, sPlaceholder, dwColor, m_iFont, uTextAlign);
 		}
 		return true;
 	}
 
-	LPCTSTR CRichEditUI::GetNormalImage()
+	LPCTSTR CRichEditUI::GetImage()
 	{
-		return m_sNormalImage;
+		return m_sImage;
 	}
 
-	void CRichEditUI::SetNormalImage(LPCTSTR pStrImage)
+	void CRichEditUI::SetImage(LPCTSTR pStrImage)
 	{
-		m_sNormalImage = pStrImage;
+		m_sImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CRichEditUI::GetHotImage()
+	LPCTSTR CRichEditUI::GetHoverImage()
 	{
-		return m_sHotImage;
+		return m_sHoverImage;
 	}
 
-	void CRichEditUI::SetHotImage(LPCTSTR pStrImage)
+	void CRichEditUI::SetHoverImage(LPCTSTR pStrImage)
 	{
-		m_sHotImage = pStrImage;
+		m_sHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CRichEditUI::GetFocusedImage()
+	LPCTSTR CRichEditUI::GetFocusImage()
 	{
-		return m_sFocusedImage;
+		return m_sFocusImage;
 	}
 
-	void CRichEditUI::SetFocusedImage(LPCTSTR pStrImage)
+	void CRichEditUI::SetFocusImage(LPCTSTR pStrImage)
 	{
-		m_sFocusedImage = pStrImage;
+		m_sFocusImage = pStrImage;
 		Invalidate();
 	}
 
@@ -2424,41 +2424,40 @@ err:
 		Invalidate();
 	}
 
-	void CRichEditUI::SetTipValue( LPCTSTR pStrTipValue )
+	void CRichEditUI::SetPlaceholder( LPCTSTR pStrPlaceholder )
 	{
-		m_sTipValue	= pStrTipValue;
+		m_sPlaceholder	= pStrPlaceholder;
 		Invalidate();
 	}
 
-	LPCTSTR CRichEditUI::GetTipValue()
+	LPCTSTR CRichEditUI::GetPlaceholder()
 	{
-		return m_sTipValue.GetData();
+		return m_sPlaceholder.GetData();
 	}
 
-	void CRichEditUI::SetTipValueColor( LPCTSTR pStrColor )
+	void CRichEditUI::SetPlaceholderColor( LPCTSTR pStrColor )
 	{
-		if( *pStrColor == _T('#')) pStrColor = ::CharNext(pStrColor);
-		LPTSTR pstr = NULL;
-		DWORD clrColor = _tcstoul(pStrColor, &pstr, 16);
-
-		m_dwTipValueColor = clrColor;
-		Invalidate();
+		DWORD clrColor = 0;
+		if( ParseColorString(pStrColor, clrColor) ) {
+			m_dwPlaceholderColor = clrColor;
+			Invalidate();
+		}
 	}
 
-	DWORD CRichEditUI::GetTipValueColor()
+	DWORD CRichEditUI::GetPlaceholderColor()
 	{
-		return m_dwTipValueColor;
+		return m_dwPlaceholderColor;
 	}
 
-	void CRichEditUI::SetTipValueAlign(UINT uAlign)
+	void CRichEditUI::SetPlaceholderAlign(UINT uAlign)
 	{
-		m_uTipValueAlign = uAlign;
+		m_uPlaceholderAlign = uAlign;
 		if(GetText().IsEmpty()) Invalidate();
 	}
 
-	UINT CRichEditUI::GetTipValueAlign()
+	UINT CRichEditUI::GetPlaceholderAlign()
 	{
-		return m_uTipValueAlign;
+		return m_uPlaceholderAlign;
 	}
 
 	void CRichEditUI::PaintStatusImage(IRenderContext& ctx)
@@ -2475,52 +2474,79 @@ err:
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
-			if( !m_sFocusedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusedImage) ) {}
+			if( !m_sFocusImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT ) != 0 ) {
-			if( !m_sHotImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHotImage) ) {}
+			if( !m_sHoverImage.IsEmpty() ) {
+				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
 				else return;
 			}
 		}
 
-		if( !m_sNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sNormalImage) ) {}
+		if( !m_sImage.IsEmpty() ) {
+			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
 			else return;
 		}
 	}
 
 	void CRichEditUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcscmp(pstrName, _T("vscrollbar")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("overflow")) == 0 ) {
+			bool bX = false, bY = false;
+			if( ParseCssOverflowShorthand(pstrValue, bX, bY) ) {
+				if( bY ) {
+					m_lTwhStyle |= ES_DISABLENOSCROLL | WS_VSCROLL;
+					if( m_pTwh ) m_pTwh->TxEnableScrollBar(SB_VERT, ESB_ENABLE_BOTH);
+				}
+				if( bX ) {
+					m_lTwhStyle |= ES_DISABLENOSCROLL | WS_HSCROLL;
+					if( m_pTwh ) m_pTwh->TxEnableScrollBar(SB_HORZ, ESB_ENABLE_BOTH);
+				}
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("overflow-y")) == 0 ) {
+			bool bEnable = false;
+			if( ParseCssOverflowEnablesScroll(pstrValue, bEnable) && bEnable ) {
+				m_lTwhStyle |= ES_DISABLENOSCROLL | WS_VSCROLL;
+				if( m_pTwh ) m_pTwh->TxEnableScrollBar(SB_VERT, ESB_ENABLE_BOTH);
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("overflow-x")) == 0 ) {
+			bool bEnable = false;
+			if( ParseCssOverflowEnablesScroll(pstrValue, bEnable) && bEnable ) {
+				m_lTwhStyle |= ES_DISABLENOSCROLL | WS_HSCROLL;
+				if( m_pTwh ) m_pTwh->TxEnableScrollBar(SB_HORZ, ESB_ENABLE_BOTH);
+			}
+		}
+		else if( _tcscmp(pstrName, _T("v-scrollbar")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_DISABLENOSCROLL | WS_VSCROLL;
 			if(m_pTwh) m_pTwh->TxEnableScrollBar(SB_VERT, ESB_ENABLE_BOTH);
 		}
-		if( _tcscmp(pstrName, _T("autovscroll")) == 0 ) {
+		if( _tcscmp(pstrName, _T("auto-vscroll")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_AUTOVSCROLL;
 			if(m_pTwh) m_pTwh->TxShowScrollBar(SB_VERT, true);
 		}
-		else if( _tcscmp(pstrName, _T("hscrollbar")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("h-scrollbar")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_DISABLENOSCROLL | WS_HSCROLL;
 			if(m_pTwh) m_pTwh->TxEnableScrollBar(SB_HORZ, ESB_ENABLE_BOTH);
 		}
-		if( _tcscmp(pstrName, _T("autohscroll")) == 0 ) {
+		if( _tcscmp(pstrName, _T("auto-hscroll")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_AUTOHSCROLL;
 			if(m_pTwh) m_pTwh->TxShowScrollBar(SB_HORZ, true);
 		}
 		else if( _tcsicmp(pstrName, _T("multiline")) == 0 ) {
 			SetMultiLine(_tcscmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcscmp(pstrName, _T("wanttab")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("want-tab")) == 0 ) {
 			SetWantTab(_tcscmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcscmp(pstrName, _T("wantreturn")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("want-return")) == 0 ) {
 			SetWantReturn(_tcscmp(pstrValue, _T("true")) == 0);
 		}
-		else if( _tcscmp(pstrName, _T("wantctrlreturn")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("want-ctrl-return")) == 0 ) {
 			SetWantCtrlReturn(_tcscmp(pstrValue, _T("true")) == 0);
 		}
 		else if( _tcscmp(pstrName, _T("transparent")) == 0 ) {
@@ -2538,7 +2564,7 @@ err:
 		else if( _tcscmp(pstrName, _T("password")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_PASSWORD;
 		}
-		else if( _tcscmp(pstrName, _T("align")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("text-align")) == 0 ) {
 			if( _tcsstr(pstrValue, _T("left")) != NULL ) {
 				m_lTwhStyle &= ~(ES_CENTER | ES_RIGHT);
 				m_lTwhStyle |= ES_LEFT;
@@ -2552,41 +2578,59 @@ err:
 				m_lTwhStyle |= ES_RIGHT;
 			}
 		}
-		else if( _tcscmp(pstrName, _T("font")) == 0 ) SetFont(_ttoi(pstrValue));
-		else if( _tcscmp(pstrName, _T("textcolor")) == 0 ) {
-			while( *pstrValue > _T('\0') && *pstrValue <= _T(' ') ) pstrValue = ::CharNext(pstrValue);
-			if( *pstrValue == _T('#')) pstrValue = ::CharNext(pstrValue);
-			LPTSTR pstr = NULL;
-			DWORD clrColor = _tcstoul(pstrValue, &pstr, 16);
-			SetTextColor(clrColor);
+		else if( _tcsicmp(pstrName, _T("font-family")) == 0 ) {
+			CDuiString sFamily = pstrValue ? pstrValue : _T("");
+			int nSize = 12;
+			if( m_pManager != NULL ) {
+				TFontInfo* pInfo = m_pManager->GetFontInfo(m_iFont);
+				if( pInfo == NULL ) pInfo = m_pManager->GetDefaultFontInfo();
+				if( pInfo != NULL ) nSize = pInfo->iSize;
+				if( sFamily.IsEmpty() && pInfo != NULL ) sFamily = pInfo->sFontName;
+				if( !sFamily.IsEmpty() ) {
+					int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+					if( id >= 0 ) SetFont(id);
+				}
+			}
+			else if( !sFamily.IsEmpty() ) SetFont(sFamily, nSize, false, false, false);
 		}
-		else if( _tcsicmp(pstrName, _T("maxchar")) == 0 ) SetLimitText(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("normalimage")) == 0 ) SetNormalImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("hotimage")) == 0 ) SetHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("focusedimage")) == 0 ) SetFocusedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("disabledimage")) == 0 ) SetDisabledImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("textpadding")) == 0 ) {
-			RECT rcTextPadding = { 0 };
-			LPTSTR pstr = NULL;
-			rcTextPadding.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);    
-			rcTextPadding.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);    
-			rcTextPadding.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);    
-			SetTextPadding(rcTextPadding);
+		else if( _tcsicmp(pstrName, _T("font-size")) == 0 ) {
+			LPTSTR pEnd = NULL;
+			long v = _tcstol(pstrValue, &pEnd, 10);
+			if( pEnd != pstrValue && v > 0 ) {
+				CDuiString sFamily = _T("Microsoft YaHei UI");
+				if( m_pManager != NULL ) {
+					TFontInfo* pInfo = m_pManager->GetFontInfo(m_iFont);
+					if( pInfo == NULL ) pInfo = m_pManager->GetDefaultFontInfo();
+					if( pInfo != NULL ) sFamily = pInfo->sFontName;
+					int id = m_pManager->EnsureFont(sFamily, (int)v, false, false, false, false);
+					if( id >= 0 ) SetFont(id);
+				}
+				else SetFont(sFamily, (int)v, false, false, false);
+			}
 		}
-		else if( _tcsicmp(pstrName, _T("tipvalue")) == 0 ) SetTipValue(pstrValue);
-		else if( _tcsicmp(pstrName, _T("tipvaluecolor")) == 0 ) SetTipValueColor(pstrValue);
-		else if( _tcsicmp(pstrName, _T("tipvaluealign")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("maxlength")) == 0 ) SetLimitText(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("image")) == 0 ) SetImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-hover")) == 0 ) SetHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-focus")) == 0 ) SetFocusImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("image-disabled")) == 0 ) SetDisabledImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("placeholder")) == 0 ) SetPlaceholder(pstrValue);
+		else if( _tcsicmp(pstrName, _T("placeholder-color")) == 0 ) SetPlaceholderColor(pstrValue);
+		else if( _tcsicmp(pstrName, _T("placeholder-align")) == 0 ) {
 			if( _tcsstr(pstrValue, _T("left")) != NULL ) {
-				m_uTipValueAlign = DT_SINGLELINE | DT_LEFT;
+				m_uPlaceholderAlign = DT_SINGLELINE | DT_LEFT;
 			}
 			if( _tcsstr(pstrValue, _T("center")) != NULL ) {
-				m_uTipValueAlign = DT_SINGLELINE | DT_CENTER;
+				m_uPlaceholderAlign = DT_SINGLELINE | DT_CENTER;
 			}
 			if( _tcsstr(pstrValue, _T("right")) != NULL ) {
-				m_uTipValueAlign = DT_SINGLELINE | DT_RIGHT;
+				m_uPlaceholderAlign = DT_SINGLELINE | DT_RIGHT;
 			}
 		}
+		else if( _tcsicmp(pstrName, _T("value")) == 0 || _tcsicmp(pstrName, _T("text")) == 0 ) SetText(pstrValue);
 		else CContainerUI::SetAttribute(pstrName, pstrValue);
 	}
 

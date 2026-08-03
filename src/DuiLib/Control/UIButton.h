@@ -1,4 +1,4 @@
-﻿#ifndef __UIBUTTON_H__
+#ifndef __UIBUTTON_H__
 #define __UIBUTTON_H__
 
 #pragma once
@@ -15,25 +15,26 @@ namespace DuiLib
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
 		UINT GetControlFlags() const;
+		bool PreferClientHit() const;
 
 		bool Activate();
 		void SetEnabled(bool bEnable = true);
 		void DoEvent(TEventUI& event);
 
-		virtual LPCTSTR GetNormalImage();
-		virtual void SetNormalImage(LPCTSTR pStrImage);
-		virtual LPCTSTR GetHotImage();
-		virtual void SetHotImage(LPCTSTR pStrImage);
-		virtual LPCTSTR GetPushedImage();
-		virtual void SetPushedImage(LPCTSTR pStrImage);
-		virtual LPCTSTR GetFocusedImage();
-		virtual void SetFocusedImage(LPCTSTR pStrImage);
+		virtual LPCTSTR GetImage();
+		virtual void SetImage(LPCTSTR pStrImage);
+		virtual LPCTSTR GetHoverImage();
+		virtual void SetHoverImage(LPCTSTR pStrImage);
+		virtual LPCTSTR GetActiveImage();
+		virtual void SetActiveImage(LPCTSTR pStrImage);
+		virtual LPCTSTR GetFocusImage();
+		virtual void SetFocusImage(LPCTSTR pStrImage);
 		virtual LPCTSTR GetDisabledImage();
 		virtual void SetDisabledImage(LPCTSTR pStrImage);
-		virtual LPCTSTR GetHotForeImage();
-		virtual void SetHotForeImage(LPCTSTR pStrImage);
-        virtual LPCTSTR GetPushedForeImage();
-        virtual void SetPushedForeImage(LPCTSTR pStrImage);
+		virtual LPCTSTR GetHoverForegroundImage();
+		virtual void SetHoverForegroundImage(LPCTSTR pStrImage);
+		virtual LPCTSTR GetActiveForegroundImage();
+		virtual void SetActiveForegroundImage(LPCTSTR pStrImage);
 		void SetStateCount(int nCount);
 		int GetStateCount() const;
 		virtual LPCTSTR GetStateImage();
@@ -46,32 +47,15 @@ namespace DuiLib
 		int	 GetBindTabLayoutIndex();
 		LPCTSTR GetBindTabLayoutName();
 
-		void SetHotFont(int index);
-		int GetHotFont() const;
-		void SetPushedFont(int index);
-		int GetPushedFont() const;
+		void SetHoverFont(int index);
+		int GetHoverFont() const;
+		void SetActiveFont(int index);
+		int GetActiveFont() const;
 		void SetFocusedFont(int index);
 		int GetFocusedFont() const;
 
-		void SetHotBkColor(DWORD dwColor);
-		DWORD GetHotBkColor() const;
-		void SetPushedBkColor(DWORD dwColor);
-		DWORD GetPushedBkColor() const;
-		void SetDisabledBkColor(DWORD dwColor);
-		DWORD GetDisabledBkColor() const;
-		void SetHotTextColor(DWORD dwColor);
-		DWORD GetHotTextColor() const;
-		void SetPushedTextColor(DWORD dwColor);
-		DWORD GetPushedTextColor() const;
-		void SetFocusedTextColor(DWORD dwColor);
-		DWORD GetFocusedTextColor() const;
-
-		void SetHotBorderColor(DWORD dwColor);
-		DWORD GetHotBorderColor() const;
-		void SetPushedBorderColor(DWORD dwColor);
-		DWORD GetPushedBorderColor() const;
-		void SetDisabledBorderColor(DWORD dwColor);
-		DWORD GetDisabledBorderColor() const;
+		void SetFocusedColor(DWORD dwColor);
+		DWORD GetFocusedColor() const;
 
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
@@ -80,35 +64,29 @@ namespace DuiLib
 
 		void PaintText(IRenderContext& ctx);
 
-		void PaintBkColor(IRenderContext& ctx);
+		void PaintBackgroundColor(IRenderContext& ctx);
 		void PaintStatusImage(IRenderContext& ctx);
 		void PaintBorder(IRenderContext& ctx);
-		void PaintForeImage(IRenderContext& ctx);
+		void PaintForegroundImage(IRenderContext& ctx);
+		void PaintBackgroundImage(IRenderContext& ctx);
 
-		void DrawBorder(IRenderContext& ctx, const RECT& rcItem, const DWORD& dwBorderColor, const int& nBorderSize, const RECT& rcBorderSize, const SIZE& cxyBorderRound, const int& nBorderStyle);
 	protected:
+		void SyncControlStateFromButton();
+
 		UINT m_uButtonState;
 
-		int		m_iHotFont;
-		int		m_iPushedFont;
+		int		m_iHoverFont;
+		int		m_iActiveFont;
 		int		m_iFocusedFont;
 
-		DWORD m_dwHotBkColor;
-		DWORD m_dwPushedBkColor;
-		DWORD m_dwDisabledBkColor;
-		DWORD m_dwHotTextColor;
-		DWORD m_dwPushedTextColor;
-		DWORD m_dwFocusedTextColor;
-		DWORD m_dwHotBorderColor;
-		DWORD m_dwPushedBorderColor;
-		DWORD m_dwDisabledBorderColor;
+		DWORD m_dwFocusedColor;
 
-		CDuiString m_sNormalImage;
-		CDuiString m_sHotImage;
-		CDuiString m_sHotForeImage;
-		CDuiString m_sPushedImage;
-		CDuiString m_sPushedForeImage;
-		CDuiString m_sFocusedImage;
+		CDuiString m_sImage;
+		CDuiString m_sHoverImage;
+		CDuiString m_sHoverForegroundImage;
+		CDuiString m_sActiveImage;
+		CDuiString m_sActiveForegroundImage;
+		CDuiString m_sFocusImage;
 		CDuiString m_sDisabledImage;
 		int m_nStateCount;
 		CDuiString m_sStateImage;

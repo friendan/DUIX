@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UISlider.h"
 
 namespace DuiLib
@@ -84,25 +84,25 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	LPCTSTR CSliderUI::GetThumbHotImage() const
+	LPCTSTR CSliderUI::GetThumbHoverImage() const
 	{
-		return m_sThumbHotImage;
+		return m_sThumbHoverImage;
 	}
 
-	void CSliderUI::SetThumbHotImage(LPCTSTR pStrImage)
+	void CSliderUI::SetThumbHoverImage(LPCTSTR pStrImage)
 	{
-		m_sThumbHotImage = pStrImage;
+		m_sThumbHoverImage = pStrImage;
 		Invalidate();
 	}
 
-	LPCTSTR CSliderUI::GetThumbPushedImage() const
+	LPCTSTR CSliderUI::GetThumbActiveImage() const
 	{
-		return m_sThumbPushedImage;
+		return m_sThumbActiveImage;
 	}
 
-	void CSliderUI::SetThumbPushedImage(LPCTSTR pStrImage)
+	void CSliderUI::SetThumbActiveImage(LPCTSTR pStrImage)
 	{
-		m_sThumbPushedImage = pStrImage;
+		m_sThumbActiveImage = pStrImage;
 		Invalidate();
 	}
 
@@ -248,10 +248,10 @@ namespace DuiLib
 
 	void CSliderUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("thumbimage")) == 0 ) SetThumbImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("thumbhotimage")) == 0 ) SetThumbHotImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("thumbpushedimage")) == 0 ) SetThumbPushedImage(pstrValue);
-		else if( _tcsicmp(pstrName, _T("thumbsize")) == 0 ) {
+		if( _tcsicmp(pstrName, _T("thumb-image")) == 0 ) SetThumbImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("thumb-image-hover")) == 0 ) SetThumbHoverImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("thumb-image-active")) == 0 ) SetThumbActiveImage(pstrValue);
+		else if( _tcsicmp(pstrName, _T("thumb-size")) == 0 ) {
 			SIZE szXY = {0};
 			LPTSTR pstr = NULL;
 			szXY.cx = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
@@ -261,15 +261,15 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("step")) == 0 ) {
 			SetChangeStep(_ttoi(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("sendmove")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("send-move")) == 0 ) {
 			SetCanSendMove(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
 		else CProgressUI::SetAttribute(pstrName, pstrValue);
 	}
 
-	void CSliderUI::PaintForeImage(IRenderContext& ctx)
+	void CSliderUI::PaintForegroundImage(IRenderContext& ctx)
 	{
-		CProgressUI::PaintForeImage(ctx);
+		CProgressUI::PaintForegroundImage(ctx);
 
 		RECT rcThumb = GetThumbRect();
 		rcThumb.left -= m_rcItem.left;
@@ -280,18 +280,18 @@ namespace DuiLib
 		GetManager()->GetDPIObj()->ScaleBack(&rcThumb);
 
 		if( (m_uButtonState & UISTATE_CAPTURED) != 0 ) {
-			if( !m_sThumbPushedImage.IsEmpty() ) {
+			if( !m_sThumbActiveImage.IsEmpty() ) {
 				m_sImageModify.Empty();
 				m_sImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbPushedImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, (LPCTSTR)m_sThumbActiveImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
-			if( !m_sThumbHotImage.IsEmpty() ) {
+			if( !m_sThumbHoverImage.IsEmpty() ) {
 				m_sImageModify.Empty();
 				m_sImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbHotImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, (LPCTSTR)m_sThumbHoverImage, (LPCTSTR)m_sImageModify) ) {}
 				else return;
 			}
 		}

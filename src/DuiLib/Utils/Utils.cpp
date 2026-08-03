@@ -64,6 +64,42 @@ namespace DuiLib
 	//
 	//
 
+	CDuiBox::CDuiBox()
+		: top(0), right(0), bottom(0), left(0)
+	{
+	}
+
+	CDuiBox::CDuiBox(int iAll)
+		: top(iAll), right(iAll), bottom(iAll), left(iAll)
+	{
+	}
+
+	CDuiBox::CDuiBox(int iTop, int iRight, int iBottom, int iLeft)
+		: top(iTop), right(iRight), bottom(iBottom), left(iLeft)
+	{
+	}
+
+	CDuiBox::CDuiBox(const RECT& src)
+		: top(src.top), right(src.right), bottom(src.bottom), left(src.left)
+	{
+	}
+
+	void CDuiBox::Empty()
+	{
+		top = right = bottom = left = 0;
+	}
+
+	bool CDuiBox::IsNull() const
+	{
+		return (top == 0 && right == 0 && bottom == 0 && left == 0);
+	}
+
+	RECT CDuiBox::ToRect() const
+	{
+		RECT rc = { left, top, right, bottom };
+		return rc;
+	}
+
 	CDuiRect::CDuiRect()
 	{
 		left = top = right = bottom = 0;
@@ -1044,85 +1080,85 @@ namespace DuiLib
 	//
 
 	namespace {
-		struct CssNamedColor { LPCTSTR name; DWORD argb; };
+		struct CssNamedColor { LPCTSTR name; DWORD color; };
 
-		// CSS Color Module Level 3 命名色（含 grey 别名）；大小写不敏感匹配
+		// CSS Color Module Level 3 命名色（含 grey 别名）；值为 RRGGBBAA
 		static const CssNamedColor kCssNamedColors[] = {
-			{ _T("aliceblue"), 0xFFF0F8FF }, { _T("antiquewhite"), 0xFFFAEBD7 },
-			{ _T("aqua"), 0xFF00FFFF }, { _T("aquamarine"), 0xFF7FFFD4 },
-			{ _T("azure"), 0xFFF0FFFF }, { _T("beige"), 0xFFF5F5DC },
-			{ _T("bisque"), 0xFFFFE4C4 }, { _T("black"), 0xFF000000 },
-			{ _T("blanchedalmond"), 0xFFFFEBCD }, { _T("blue"), 0xFF0000FF },
-			{ _T("blueviolet"), 0xFF8A2BE2 }, { _T("brown"), 0xFFA52A2A },
-			{ _T("burlywood"), 0xFFDEB887 }, { _T("cadetblue"), 0xFF5F9EA0 },
-			{ _T("chartreuse"), 0xFF7FFF00 }, { _T("chocolate"), 0xFFD2691E },
-			{ _T("coral"), 0xFFFF7F50 }, { _T("cornflowerblue"), 0xFF6495ED },
-			{ _T("cornsilk"), 0xFFFFF8DC }, { _T("crimson"), 0xFFDC143C },
-			{ _T("cyan"), 0xFF00FFFF }, { _T("darkblue"), 0xFF00008B },
-			{ _T("darkcyan"), 0xFF008B8B }, { _T("darkgoldenrod"), 0xFFB8860B },
-			{ _T("darkgray"), 0xFFA9A9A9 }, { _T("darkgreen"), 0xFF006400 },
-			{ _T("darkgrey"), 0xFFA9A9A9 }, { _T("darkkhaki"), 0xFFBDB76B },
-			{ _T("darkmagenta"), 0xFF8B008B }, { _T("darkolivegreen"), 0xFF556B2F },
-			{ _T("darkorange"), 0xFFFF8C00 }, { _T("darkorchid"), 0xFF9932CC },
-			{ _T("darkred"), 0xFF8B0000 }, { _T("darksalmon"), 0xFFE9967A },
-			{ _T("darkseagreen"), 0xFF8FBC8F }, { _T("darkslateblue"), 0xFF483D8B },
-			{ _T("darkslategray"), 0xFF2F4F4F }, { _T("darkslategrey"), 0xFF2F4F4F },
-			{ _T("darkturquoise"), 0xFF00CED1 }, { _T("darkviolet"), 0xFF9400D3 },
-			{ _T("deeppink"), 0xFFFF1493 }, { _T("deepskyblue"), 0xFF00BFFF },
-			{ _T("dimgray"), 0xFF696969 }, { _T("dimgrey"), 0xFF696969 },
-			{ _T("dodgerblue"), 0xFF1E90FF }, { _T("firebrick"), 0xFFB22222 },
-			{ _T("floralwhite"), 0xFFFFFAF0 }, { _T("forestgreen"), 0xFF228B22 },
-			{ _T("fuchsia"), 0xFFFF00FF }, { _T("gainsboro"), 0xFFDCDCDC },
-			{ _T("ghostwhite"), 0xFFF8F8FF }, { _T("gold"), 0xFFFFD700 },
-			{ _T("goldenrod"), 0xFFDAA520 }, { _T("gray"), 0xFF808080 },
-			{ _T("green"), 0xFF008000 }, { _T("greenyellow"), 0xFFADFF2F },
-			{ _T("grey"), 0xFF808080 }, { _T("honeydew"), 0xFFF0FFF0 },
-			{ _T("hotpink"), 0xFFFF69B4 }, { _T("indianred"), 0xFFCD5C5C },
-			{ _T("indigo"), 0xFF4B0082 }, { _T("ivory"), 0xFFFFFFF0 },
-			{ _T("khaki"), 0xFFF0E68C }, { _T("lavender"), 0xFFE6E6FA },
-			{ _T("lavenderblush"), 0xFFFFF0F5 }, { _T("lawngreen"), 0xFF7CFC00 },
-			{ _T("lemonchiffon"), 0xFFFFFACD }, { _T("lightblue"), 0xFFADD8E6 },
-			{ _T("lightcoral"), 0xFFF08080 }, { _T("lightcyan"), 0xFFE0FFFF },
-			{ _T("lightgoldenrodyellow"), 0xFFFAFAD2 }, { _T("lightgray"), 0xFFD3D3D3 },
-			{ _T("lightgreen"), 0xFF90EE90 }, { _T("lightgrey"), 0xFFD3D3D3 },
-			{ _T("lightpink"), 0xFFFFB6C1 }, { _T("lightsalmon"), 0xFFFFA07A },
-			{ _T("lightseagreen"), 0xFF20B2AA }, { _T("lightskyblue"), 0xFF87CEFA },
-			{ _T("lightslategray"), 0xFF778899 }, { _T("lightslategrey"), 0xFF778899 },
-			{ _T("lightsteelblue"), 0xFFB0C4DE }, { _T("lightyellow"), 0xFFFFFFE0 },
-			{ _T("lime"), 0xFF00FF00 }, { _T("limegreen"), 0xFF32CD32 },
-			{ _T("linen"), 0xFFFAF0E6 }, { _T("magenta"), 0xFFFF00FF },
-			{ _T("maroon"), 0xFF800000 }, { _T("mediumaquamarine"), 0xFF66CDAA },
-			{ _T("mediumblue"), 0xFF0000CD }, { _T("mediumorchid"), 0xFFBA55D3 },
-			{ _T("mediumpurple"), 0xFF9370DB }, { _T("mediumseagreen"), 0xFF3CB371 },
-			{ _T("mediumslateblue"), 0xFF7B68EE }, { _T("mediumspringgreen"), 0xFF00FA9A },
-			{ _T("mediumturquoise"), 0xFF48D1CC }, { _T("mediumvioletred"), 0xFFC71585 },
-			{ _T("midnightblue"), 0xFF191970 }, { _T("mintcream"), 0xFFF5FFFA },
-			{ _T("mistyrose"), 0xFFFFE4E1 }, { _T("moccasin"), 0xFFFFE4B5 },
-			{ _T("navajowhite"), 0xFFFFDEAD }, { _T("navy"), 0xFF000080 },
-			{ _T("oldlace"), 0xFFFDF5E6 }, { _T("olive"), 0xFF808000 },
-			{ _T("olivedrab"), 0xFF6B8E23 }, { _T("orange"), 0xFFFFA500 },
-			{ _T("orangered"), 0xFFFF4500 }, { _T("orchid"), 0xFFDA70D6 },
-			{ _T("palegoldenrod"), 0xFFEEE8AA }, { _T("palegreen"), 0xFF98FB98 },
-			{ _T("paleturquoise"), 0xFFAFEEEE }, { _T("palevioletred"), 0xFFDB7093 },
-			{ _T("papayawhip"), 0xFFFFEFD5 }, { _T("peachpuff"), 0xFFFFDAB9 },
-			{ _T("peru"), 0xFFCD853F }, { _T("pink"), 0xFFFFC0CB },
-			{ _T("plum"), 0xFFDDA0DD }, { _T("powderblue"), 0xFFB0E0E6 },
-			{ _T("purple"), 0xFF800080 }, { _T("rebeccapurple"), 0xFF663399 },
-			{ _T("red"), 0xFFFF0000 }, { _T("rosybrown"), 0xFFBC8F8F },
-			{ _T("royalblue"), 0xFF4169E1 }, { _T("saddlebrown"), 0xFF8B4513 },
-			{ _T("salmon"), 0xFFFA8072 }, { _T("sandybrown"), 0xFFF4A460 },
-			{ _T("seagreen"), 0xFF2E8B57 }, { _T("seashell"), 0xFFFFF5EE },
-			{ _T("sienna"), 0xFFA0522D }, { _T("silver"), 0xFFC0C0C0 },
-			{ _T("skyblue"), 0xFF87CEEB }, { _T("slateblue"), 0xFF6A5ACD },
-			{ _T("slategray"), 0xFF708090 }, { _T("slategrey"), 0xFF708090 },
-			{ _T("snow"), 0xFFFFFAFA }, { _T("springgreen"), 0xFF00FF7F },
-			{ _T("steelblue"), 0xFF4682B4 }, { _T("tan"), 0xFFD2B48C },
-			{ _T("teal"), 0xFF008080 }, { _T("thistle"), 0xFFD8BFD8 },
-			{ _T("tomato"), 0xFFFF6347 }, { _T("transparent"), 0x00000000 },
-			{ _T("turquoise"), 0xFF40E0D0 }, { _T("violet"), 0xFFEE82EE },
-			{ _T("wheat"), 0xFFF5DEB3 }, { _T("white"), 0xFFFFFFFF },
-			{ _T("whitesmoke"), 0xFFF5F5F5 }, { _T("yellow"), 0xFFFFFF00 },
-			{ _T("yellowgreen"), 0xFF9ACD32 },
+			{ _T("aliceblue"), 0xF0F8FFFF }, { _T("antiquewhite"), 0xFAEBD7FF },
+			{ _T("aqua"), 0x00FFFFFF }, { _T("aquamarine"), 0x7FFFD4FF },
+			{ _T("azure"), 0xF0FFFFFF }, { _T("beige"), 0xF5F5DCFF },
+			{ _T("bisque"), 0xFFE4C4FF }, { _T("black"), 0x000000FF },
+			{ _T("blanchedalmond"), 0xFFEBCDFF }, { _T("blue"), 0x0000FFFF },
+			{ _T("blueviolet"), 0x8A2BE2FF }, { _T("brown"), 0xA52A2AFF },
+			{ _T("burlywood"), 0xDEB887FF }, { _T("cadetblue"), 0x5F9EA0FF },
+			{ _T("chartreuse"), 0x7FFF00FF }, { _T("chocolate"), 0xD2691EFF },
+			{ _T("coral"), 0xFF7F50FF }, { _T("cornflowerblue"), 0x6495EDFF },
+			{ _T("cornsilk"), 0xFFF8DCFF }, { _T("crimson"), 0xDC143CFF },
+			{ _T("cyan"), 0x00FFFFFF }, { _T("darkblue"), 0x00008BFF },
+			{ _T("darkcyan"), 0x008B8BFF }, { _T("darkgoldenrod"), 0xB8860BFF },
+			{ _T("darkgray"), 0xA9A9A9FF }, { _T("darkgreen"), 0x006400FF },
+			{ _T("darkgrey"), 0xA9A9A9FF }, { _T("darkkhaki"), 0xBDB76BFF },
+			{ _T("darkmagenta"), 0x8B008BFF }, { _T("darkolivegreen"), 0x556B2FFF },
+			{ _T("darkorange"), 0xFF8C00FF }, { _T("darkorchid"), 0x9932CCFF },
+			{ _T("darkred"), 0x8B0000FF }, { _T("darksalmon"), 0xE9967AFF },
+			{ _T("darkseagreen"), 0x8FBC8FFF }, { _T("darkslateblue"), 0x483D8BFF },
+			{ _T("darkslategray"), 0x2F4F4FFF }, { _T("darkslategrey"), 0x2F4F4FFF },
+			{ _T("darkturquoise"), 0x00CED1FF }, { _T("darkviolet"), 0x9400D3FF },
+			{ _T("deeppink"), 0xFF1493FF }, { _T("deepskyblue"), 0x00BFFFFF },
+			{ _T("dimgray"), 0x696969FF }, { _T("dimgrey"), 0x696969FF },
+			{ _T("dodgerblue"), 0x1E90FFFF }, { _T("firebrick"), 0xB22222FF },
+			{ _T("floralwhite"), 0xFFFAF0FF }, { _T("forestgreen"), 0x228B22FF },
+			{ _T("fuchsia"), 0xFF00FFFF }, { _T("gainsboro"), 0xDCDCDCFF },
+			{ _T("ghostwhite"), 0xF8F8FFFF }, { _T("gold"), 0xFFD700FF },
+			{ _T("goldenrod"), 0xDAA520FF }, { _T("gray"), 0x808080FF },
+			{ _T("green"), 0x008000FF }, { _T("greenyellow"), 0xADFF2FFF },
+			{ _T("grey"), 0x808080FF }, { _T("honeydew"), 0xF0FFF0FF },
+			{ _T("hotpink"), 0xFF69B4FF }, { _T("indianred"), 0xCD5C5CFF },
+			{ _T("indigo"), 0x4B0082FF }, { _T("ivory"), 0xFFFFF0FF },
+			{ _T("khaki"), 0xF0E68CFF }, { _T("lavender"), 0xE6E6FAFF },
+			{ _T("lavenderblush"), 0xFFF0F5FF }, { _T("lawngreen"), 0x7CFC00FF },
+			{ _T("lemonchiffon"), 0xFFFACDFF }, { _T("lightblue"), 0xADD8E6FF },
+			{ _T("lightcoral"), 0xF08080FF }, { _T("lightcyan"), 0xE0FFFFFF },
+			{ _T("lightgoldenrodyellow"), 0xFAFAD2FF }, { _T("lightgray"), 0xD3D3D3FF },
+			{ _T("lightgreen"), 0x90EE90FF }, { _T("lightgrey"), 0xD3D3D3FF },
+			{ _T("lightpink"), 0xFFB6C1FF }, { _T("lightsalmon"), 0xFFA07AFF },
+			{ _T("lightseagreen"), 0x20B2AAFF }, { _T("lightskyblue"), 0x87CEFAFF },
+			{ _T("lightslategray"), 0x778899FF }, { _T("lightslategrey"), 0x778899FF },
+			{ _T("lightsteelblue"), 0xB0C4DEFF }, { _T("lightyellow"), 0xFFFFE0FF },
+			{ _T("lime"), 0x00FF00FF }, { _T("limegreen"), 0x32CD32FF },
+			{ _T("linen"), 0xFAF0E6FF }, { _T("magenta"), 0xFF00FFFF },
+			{ _T("maroon"), 0x800000FF }, { _T("mediumaquamarine"), 0x66CDAAFF },
+			{ _T("mediumblue"), 0x0000CDFF }, { _T("mediumorchid"), 0xBA55D3FF },
+			{ _T("mediumpurple"), 0x9370DBFF }, { _T("mediumseagreen"), 0x3CB371FF },
+			{ _T("mediumslateblue"), 0x7B68EEFF }, { _T("mediumspringgreen"), 0x00FA9AFF },
+			{ _T("mediumturquoise"), 0x48D1CCFF }, { _T("mediumvioletred"), 0xC71585FF },
+			{ _T("midnightblue"), 0x191970FF }, { _T("mintcream"), 0xF5FFFAFF },
+			{ _T("mistyrose"), 0xFFE4E1FF }, { _T("moccasin"), 0xFFE4B5FF },
+			{ _T("navajowhite"), 0xFFDEADFF }, { _T("navy"), 0x000080FF },
+			{ _T("oldlace"), 0xFDF5E6FF }, { _T("olive"), 0x808000FF },
+			{ _T("olivedrab"), 0x6B8E23FF }, { _T("orange"), 0xFFA500FF },
+			{ _T("orangered"), 0xFF4500FF }, { _T("orchid"), 0xDA70D6FF },
+			{ _T("palegoldenrod"), 0xEEE8AAFF }, { _T("palegreen"), 0x98FB98FF },
+			{ _T("paleturquoise"), 0xAFEEEEFF }, { _T("palevioletred"), 0xDB7093FF },
+			{ _T("papayawhip"), 0xFFEFD5FF }, { _T("peachpuff"), 0xFFDAB9FF },
+			{ _T("peru"), 0xCD853FFF }, { _T("pink"), 0xFFC0CBFF },
+			{ _T("plum"), 0xDDA0DDFF }, { _T("powderblue"), 0xB0E0E6FF },
+			{ _T("purple"), 0x800080FF }, { _T("rebeccapurple"), 0x663399FF },
+			{ _T("red"), 0xFF0000FF }, { _T("rosybrown"), 0xBC8F8FFF },
+			{ _T("royalblue"), 0x4169E1FF }, { _T("saddlebrown"), 0x8B4513FF },
+			{ _T("salmon"), 0xFA8072FF }, { _T("sandybrown"), 0xF4A460FF },
+			{ _T("seagreen"), 0x2E8B57FF }, { _T("seashell"), 0xFFF5EEFF },
+			{ _T("sienna"), 0xA0522DFF }, { _T("silver"), 0xC0C0C0FF },
+			{ _T("skyblue"), 0x87CEEBFF }, { _T("slateblue"), 0x6A5ACDFF },
+			{ _T("slategray"), 0x708090FF }, { _T("slategrey"), 0x708090FF },
+			{ _T("snow"), 0xFFFAFAFF }, { _T("springgreen"), 0x00FF7FFF },
+			{ _T("steelblue"), 0x4682B4FF }, { _T("tan"), 0xD2B48CFF },
+			{ _T("teal"), 0x008080FF }, { _T("thistle"), 0xD8BFD8FF },
+			{ _T("tomato"), 0xFF6347FF }, { _T("transparent"), 0x00000000 },
+			{ _T("turquoise"), 0x40E0D0FF }, { _T("violet"), 0xEE82EEFF },
+			{ _T("wheat"), 0xF5DEB3FF }, { _T("white"), 0xFFFFFFFF },
+			{ _T("whitesmoke"), 0xF5F5F5FF }, { _T("yellow"), 0xFFFF00FF },
+			{ _T("yellowgreen"), 0x9ACD32FF },
 		};
 
 		bool ParseHexColorDigits(LPCTSTR tok, DWORD& dwColor)
@@ -1143,15 +1179,30 @@ namespace DuiLib
 					return (unsigned)(c - _T('A') + 10);
 				};
 				unsigned r = nib(tok[0]), g = nib(tok[1]), b = nib(tok[2]);
-				dwColor = 0xFF000000u | (r * 17u) << 16 | (g * 17u) << 8 | (b * 17u);
+				dwColor = DuiColorFromRGB((BYTE)(r * 17u), (BYTE)(g * 17u), (BYTE)(b * 17u), 0xFF);
+				return true;
+			}
+			if( len == 4 ) {
+				// CSS #RGBA
+				auto nib = [](TCHAR c) -> unsigned {
+					if( c >= _T('0') && c <= _T('9') ) return (unsigned)(c - _T('0'));
+					if( c >= _T('a') && c <= _T('f') ) return (unsigned)(c - _T('a') + 10);
+					return (unsigned)(c - _T('A') + 10);
+				};
+				unsigned r = nib(tok[0]) * 17u, g = nib(tok[1]) * 17u;
+				unsigned b = nib(tok[2]) * 17u, a = nib(tok[3]) * 17u;
+				dwColor = DuiColorFromRGB((BYTE)r, (BYTE)g, (BYTE)b, (BYTE)a);
 				return true;
 			}
 			if( len == 6 ) {
 				LPTSTR pEnd = NULL;
-				dwColor = 0xFF000000u | _tcstoul(tok, &pEnd, 16);
-				return pEnd != tok;
+				DWORD v = _tcstoul(tok, &pEnd, 16);
+				if( pEnd == tok ) return false;
+				dwColor = (v << 8) | 0xFFu; // RRGGBB → RRGGBBAA
+				return true;
 			}
 			if( len == 8 ) {
+				// CSS #RRGGBBAA / 0xRRGGBBAA（即内部格式）
 				LPTSTR pEnd = NULL;
 				dwColor = _tcstoul(tok, &pEnd, 16);
 				return pEnd != tok;
@@ -1160,16 +1211,255 @@ namespace DuiLib
 		}
 	} // namespace
 
+	static int ClampByte(int v)
+	{
+		if( v < 0 ) return 0;
+		if( v > 255 ) return 255;
+		return v;
+	}
+
+	static bool ParseCssColorChannel(LPCTSTR& p, int& nOut)
+	{
+		while( *p == _T(' ') || *p == _T('\t') || *p == _T(',') || *p == _T('/') ) ++p;
+		if( *p == _T('\0') || *p == _T(')') ) return false;
+		LPTSTR pEnd = NULL;
+		double v = _tcstod(p, &pEnd);
+		if( pEnd == p ) return false;
+		p = pEnd;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p == _T('%') ) {
+			++p;
+			nOut = ClampByte((int)(v * 255.0 / 100.0 + (v >= 0 ? 0.5 : -0.5)));
+			return true;
+		}
+		nOut = ClampByte((int)(v + (v >= 0 ? 0.5 : -0.5)));
+		return true;
+	}
+
+	static bool ParseCssAlphaChannel(LPCTSTR& p, int& nOut)
+	{
+		while( *p == _T(' ') || *p == _T('\t') || *p == _T(',') || *p == _T('/') ) ++p;
+		if( *p == _T('\0') || *p == _T(')') ) return false;
+		LPTSTR pEnd = NULL;
+		double v = _tcstod(p, &pEnd);
+		if( pEnd == p ) return false;
+		p = pEnd;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p == _T('%') ) {
+			++p;
+			nOut = ClampByte((int)(v * 255.0 / 100.0 + (v >= 0 ? 0.5 : -0.5)));
+			return true;
+		}
+		// CSS：通常 0–1；>1 则按 0–255 字节兼容
+		if( v >= 0.0 && v <= 1.0 )
+			nOut = ClampByte((int)(v * 255.0 + 0.5));
+		else
+			nOut = ClampByte((int)(v + (v >= 0 ? 0.5 : -0.5)));
+		return true;
+	}
+
+	static bool ParseRgbColorString(LPCTSTR pstrColor, DWORD& dwColor)
+	{
+		if( pstrColor == NULL ) return false;
+		bool bRgba = (_tcsnicmp(pstrColor, _T("rgba"), 4) == 0);
+		bool bRgb = bRgba || (_tcsnicmp(pstrColor, _T("rgb"), 3) == 0);
+		if( !bRgb ) return false;
+		LPCTSTR p = pstrColor + (bRgba ? 4 : 3);
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p != _T('(') ) return false;
+		++p;
+		int r = 0, g = 0, b = 0, a = 255;
+		if( !ParseCssColorChannel(p, r) ) return false;
+		if( !ParseCssColorChannel(p, g) ) return false;
+		if( !ParseCssColorChannel(p, b) ) return false;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p != _T(')') ) {
+			if( !ParseCssAlphaChannel(p, a) ) return false;
+			while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		}
+		if( *p != _T(')') ) return false;
+		dwColor = DuiColorFromRGB((BYTE)r, (BYTE)g, (BYTE)b, (BYTE)a);
+		return true;
+	}
+
+	static float CssHueToRgb(float p, float q, float t)
+	{
+		if( t < 0.0f ) t += 1.0f;
+		if( t > 1.0f ) t -= 1.0f;
+		if( t < 1.0f / 6.0f ) return p + (q - p) * 6.0f * t;
+		if( t < 0.5f ) return q;
+		if( t < 2.0f / 3.0f ) return p + (q - p) * (2.0f / 3.0f - t) * 6.0f;
+		return p;
+	}
+
+	static bool ParseHslColorString(LPCTSTR pstrColor, DWORD& dwColor)
+	{
+		if( pstrColor == NULL ) return false;
+		bool bHsla = (_tcsnicmp(pstrColor, _T("hsla"), 4) == 0);
+		bool bHsl = bHsla || (_tcsnicmp(pstrColor, _T("hsl"), 3) == 0);
+		if( !bHsl ) return false;
+		LPCTSTR p = pstrColor + (bHsla ? 4 : 3);
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p != _T('(') ) return false;
+		++p;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		LPTSTR pEnd = NULL;
+		double hDeg = _tcstod(p, &pEnd);
+		if( pEnd == p ) return false;
+		p = pEnd;
+		while( *p == _T(' ') || *p == _T('\t') || *p == _T(',') ) ++p;
+		int s = 0, l = 0, a = 255;
+		if( !ParseCssColorChannel(p, s) ) return false; // 期望带 %
+		if( !ParseCssColorChannel(p, l) ) return false;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p != _T(')') ) {
+			if( !ParseCssAlphaChannel(p, a) ) return false;
+			while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		}
+		if( *p != _T(')') ) return false;
+
+		float H = (float)(hDeg / 360.0);
+		while( H < 0.0f ) H += 1.0f;
+		while( H >= 1.0f ) H -= 1.0f;
+		float S = (float)s / 255.0f;
+		float L = (float)l / 255.0f;
+		BYTE r, g, b;
+		if( S <= 0.0f ) {
+			r = g = b = (BYTE)ClampByte((int)(L * 255.0f + 0.5f));
+		}
+		else {
+			float q = L < 0.5f ? L * (1.0f + S) : (L + S - L * S);
+			float pv = 2.0f * L - q;
+			r = (BYTE)ClampByte((int)(CssHueToRgb(pv, q, H + 1.0f / 3.0f) * 255.0f + 0.5f));
+			g = (BYTE)ClampByte((int)(CssHueToRgb(pv, q, H) * 255.0f + 0.5f));
+			b = (BYTE)ClampByte((int)(CssHueToRgb(pv, q, H - 1.0f / 3.0f) * 255.0f + 0.5f));
+		}
+		dwColor = DuiColorFromRGB(r, g, b, (BYTE)a);
+		return true;
+	}
+
+	bool ParseCssOpacity(LPCTSTR pstrValue, BYTE& nOpacity)
+	{
+		nOpacity = 255;
+		if( pstrValue == NULL ) return false;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( *pstrValue == _T('\0') ) return false;
+		LPTSTR pEnd = NULL;
+		double v = _tcstod(pstrValue, &pEnd);
+		if( pEnd == pstrValue ) return false;
+		while( *pEnd == _T(' ') || *pEnd == _T('\t') ) ++pEnd;
+		if( *pEnd == _T('%') )
+			nOpacity = (BYTE)ClampByte((int)(v * 255.0 / 100.0 + (v >= 0 ? 0.5 : -0.5)));
+		else if( v >= 0.0 && v <= 1.0 )
+			nOpacity = (BYTE)ClampByte((int)(v * 255.0 + 0.5));
+		else
+			nOpacity = (BYTE)ClampByte((int)(v + (v >= 0 ? 0.5 : -0.5)));
+		return true;
+	}
+
+	bool ParseCssFontWeightBold(LPCTSTR pstrValue, bool& bBold)
+	{
+		bBold = false;
+		if( pstrValue == NULL || *pstrValue == _T('\0') ) return false;
+		if( _tcsicmp(pstrValue, _T("bold")) == 0 || _tcsicmp(pstrValue, _T("bolder")) == 0
+			|| _tcsicmp(pstrValue, _T("true")) == 0 ) {
+			bBold = true;
+			return true;
+		}
+		if( _tcsicmp(pstrValue, _T("normal")) == 0 || _tcsicmp(pstrValue, _T("lighter")) == 0
+			|| _tcsicmp(pstrValue, _T("false")) == 0 ) {
+			bBold = false;
+			return true;
+		}
+		LPTSTR pEnd = NULL;
+		long v = _tcstol(pstrValue, &pEnd, 10);
+		if( pEnd == pstrValue ) return false;
+		bBold = (v >= 600);
+		return true;
+	}
+
+	bool ParseCssFontStyleItalic(LPCTSTR pstrValue, bool& bItalic)
+	{
+		bItalic = false;
+		if( pstrValue == NULL || *pstrValue == _T('\0') ) return false;
+		if( _tcsicmp(pstrValue, _T("italic")) == 0 || _tcsicmp(pstrValue, _T("oblique")) == 0
+			|| _tcsicmp(pstrValue, _T("true")) == 0 ) {
+			bItalic = true;
+			return true;
+		}
+		if( _tcsicmp(pstrValue, _T("normal")) == 0 || _tcsicmp(pstrValue, _T("false")) == 0 ) {
+			bItalic = false;
+			return true;
+		}
+		return false;
+	}
+
+	bool ParseCssTextDecoration(LPCTSTR pstrValue, bool& bUnderline, bool& bStrikeout)
+	{
+		if( pstrValue == NULL || *pstrValue == _T('\0') ) return false;
+		if( _tcsicmp(pstrValue, _T("none")) == 0 ) {
+			bUnderline = false;
+			bStrikeout = false;
+			return true;
+		}
+		bool any = false;
+		bool u = bUnderline, s = bStrikeout;
+		LPCTSTR p = pstrValue;
+		while( *p != _T('\0') ) {
+			while( *p == _T(' ') || *p == _T('\t') || *p == _T(',') ) ++p;
+			if( *p == _T('\0') ) break;
+			TCHAR tok[64] = { 0 };
+			int i = 0;
+			while( *p != _T('\0') && *p != _T(' ') && *p != _T('\t') && *p != _T(',') && i < 63 )
+				tok[i++] = *p++;
+			tok[i] = _T('\0');
+			if( _tcsicmp(tok, _T("underline")) == 0 ) { u = true; any = true; }
+			else if( _tcsicmp(tok, _T("line-through")) == 0 || _tcsicmp(tok, _T("strikeout")) == 0
+				|| _tcsicmp(tok, _T("strikethrough")) == 0 ) { s = true; any = true; }
+			else if( _tcsicmp(tok, _T("none")) == 0 ) { u = false; s = false; any = true; }
+		}
+		if( !any ) return false;
+		bUnderline = u;
+		bStrikeout = s;
+		return true;
+	}
+
+	bool ParseCssPointerEventsEnabled(LPCTSTR pstrValue, bool& bEnabled)
+	{
+		bEnabled = true;
+		if( pstrValue == NULL || *pstrValue == _T('\0') ) return false;
+		if( _tcsicmp(pstrValue, _T("none")) == 0 || _tcsicmp(pstrValue, _T("false")) == 0
+			|| _tcscmp(pstrValue, _T("0")) == 0 ) {
+			bEnabled = false;
+			return true;
+		}
+		if( _tcsicmp(pstrValue, _T("auto")) == 0 || _tcsicmp(pstrValue, _T("true")) == 0
+			|| _tcsicmp(pstrValue, _T("visiblepainted")) == 0 || _tcsicmp(pstrValue, _T("visiblefill")) == 0
+			|| _tcsicmp(pstrValue, _T("visiblestroke")) == 0 || _tcsicmp(pstrValue, _T("visible")) == 0
+			|| _tcsicmp(pstrValue, _T("painted")) == 0 || _tcsicmp(pstrValue, _T("fill")) == 0
+			|| _tcsicmp(pstrValue, _T("stroke")) == 0 || _tcsicmp(pstrValue, _T("all")) == 0
+			|| _tcscmp(pstrValue, _T("1")) == 0 ) {
+			bEnabled = true;
+			return true;
+		}
+		return false;
+	}
+
 	bool ParseColorString(LPCTSTR pstrColor, DWORD& dwColor)
 	{
 		if( pstrColor == NULL ) return false;
 		while( *pstrColor == _T(' ') || *pstrColor == _T('\t') ) ++pstrColor;
 		if( *pstrColor == _T('\0') ) return false;
 
+		if( ParseRgbColorString(pstrColor, dwColor) )
+			return true;
+		if( ParseHslColorString(pstrColor, dwColor) )
+			return true;
+
 		// 先匹配命名色（避免 "red" 等被误解析）
 		for( size_t i = 0; i < sizeof(kCssNamedColors) / sizeof(kCssNamedColors[0]); ++i ) {
 			if( _tcsicmp(pstrColor, kCssNamedColors[i].name) == 0 ) {
-				dwColor = kCssNamedColors[i].argb;
+				dwColor = kCssNamedColors[i].color;
 				return true;
 			}
 		}
@@ -1177,8 +1467,226 @@ namespace DuiLib
 		LPCTSTR tok = pstrColor;
 		if( *tok == _T('#') ) ++tok;
 		else if( _tcsnicmp(tok, _T("0x"), 2) == 0 ) tok += 2;
-
+		// # / 0x / 纯 hex：与内部 DWORD 均为 CSS RRGGBBAA
 		return ParseHexColorDigits(tok, dwColor);
+	}
+
+	bool ParseColorStringToken(LPCTSTR& pstrInOut, DWORD& dwColor)
+	{
+		if( pstrInOut == NULL ) return false;
+		LPCTSTR p = pstrInOut;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p == _T('\0') ) return false;
+
+		CDuiString sTok;
+		if( _tcsnicmp(p, _T("rgb"), 3) == 0 || _tcsnicmp(p, _T("hsl"), 3) == 0 ) {
+			LPCTSTR pOpen = _tcschr(p, _T('('));
+			if( pOpen == NULL ) return false;
+			LPCTSTR pClose = _tcschr(pOpen, _T(')'));
+			if( pClose == NULL ) return false;
+			sTok.Assign(p, (int)(pClose - p + 1));
+			p = pClose + 1;
+		}
+		else if( *p == _T('#') ) {
+			LPCTSTR pStart = p++;
+			while( (*p >= _T('0') && *p <= _T('9'))
+				|| (*p >= _T('a') && *p <= _T('f'))
+				|| (*p >= _T('A') && *p <= _T('F')) ) ++p;
+			sTok.Assign(pStart, (int)(p - pStart));
+		}
+		else if( _tcsnicmp(p, _T("0x"), 2) == 0 ) {
+			LPCTSTR pStart = p;
+			p += 2;
+			while( (*p >= _T('0') && *p <= _T('9'))
+				|| (*p >= _T('a') && *p <= _T('f'))
+				|| (*p >= _T('A') && *p <= _T('F')) ) ++p;
+			sTok.Assign(pStart, (int)(p - pStart));
+		}
+		else if( (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('A') && *p <= _T('Z')) ) {
+			LPCTSTR pName = p;
+			while( (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('A') && *p <= _T('Z')) ) ++p;
+			sTok.Assign(pName, (int)(p - pName));
+		}
+		else {
+			return false;
+		}
+
+		if( !ParseColorString(sTok.GetData(), dwColor) ) return false;
+		pstrInOut = p;
+		return true;
+	}
+
+	static void SkipCssLengthSuffix(LPTSTR& p)
+	{
+		if( p == NULL ) return;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( _tcsnicmp(p, _T("px"), 2) == 0 ) p += 2;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+	}
+
+	bool ParseCssBox(LPCTSTR pstrValue, CDuiBox& box)
+	{
+		box.Empty();
+		if( pstrValue == NULL ) return false;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( *pstrValue == _T('\0') ) return false;
+
+		int v[4] = { 0, 0, 0, 0 };
+		LPTSTR pstr = NULL;
+		v[0] = (int)_tcstol(pstrValue, &pstr, 10);
+		if( pstr == pstrValue ) return false;
+		SkipCssLengthSuffix(pstr);
+		int n = 1;
+		while( pstr && (*pstr == _T(',') || *pstr == _T(' ')) ) {
+			++pstr;
+			while( *pstr == _T(' ') ) ++pstr;
+			if( *pstr == _T('\0') || n >= 4 ) break;
+			LPTSTR pNext = NULL;
+			v[n] = (int)_tcstol(pstr, &pNext, 10);
+			if( pNext == pstr ) break;
+			pstr = pNext;
+			SkipCssLengthSuffix(pstr);
+			++n;
+		}
+
+		if( n >= 4 ) { box.top = v[0]; box.right = v[1]; box.bottom = v[2]; box.left = v[3]; }
+		else if( n == 3 ) { box.top = v[0]; box.right = v[1]; box.bottom = v[2]; box.left = v[1]; }
+		else if( n == 2 ) { box.top = v[0]; box.right = v[1]; box.bottom = v[0]; box.left = v[1]; }
+		else { box.top = box.right = box.bottom = box.left = v[0]; }
+		return true;
+	}
+
+	bool ParseCssBoxToRect(LPCTSTR pstrValue, RECT& rc)
+	{
+		CDuiBox box;
+		if( !ParseCssBox(pstrValue, box) ) {
+			::ZeroMemory(&rc, sizeof(RECT));
+			return false;
+		}
+		rc = box.ToRect();
+		return true;
+	}
+
+	bool ParseBorderRadiusValue(LPCTSTR pstrValue, SIZE& szRound)
+	{
+		szRound.cx = szRound.cy = 0;
+		if( pstrValue == NULL ) return false;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( *pstrValue == _T('\0') ) return false;
+
+		LPTSTR pstr = NULL;
+		long v0 = _tcstol(pstrValue, &pstr, 10);
+		if( pstr == pstrValue ) return false;
+		SkipCssLengthSuffix(pstr);
+		if( *pstr == _T('\0') ) {
+			szRound.cx = szRound.cy = (int)v0;
+			return true;
+		}
+		if( *pstr == _T(',') ) ++pstr;
+		while( *pstr == _T(' ') || *pstr == _T('\t') ) ++pstr;
+		LPTSTR pNext = NULL;
+		long v1 = _tcstol(pstr, &pNext, 10);
+		if( pNext == pstr ) return false;
+		SkipCssLengthSuffix(pNext);
+		szRound.cx = (int)v0;
+		szRound.cy = (int)v1;
+		return true;
+	}
+
+	bool ParseCssUrlImage(LPCTSTR pstrValue, CDuiString& sPath)
+	{
+		sPath.Empty();
+		if( pstrValue == NULL ) return false;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( _tcsnicmp(pstrValue, _T("url"), 3) != 0 ) return false;
+		LPCTSTR p = pstrValue + 3;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p != _T('(') ) return false;
+		++p;
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		TCHAR q = 0;
+		if( *p == _T('\'') || *p == _T('"') ) { q = *p; ++p; }
+		CDuiString s;
+		while( *p != _T('\0') ) {
+			if( q != 0 ) {
+				if( *p == q ) { ++p; break; }
+			}
+			else {
+				if( *p == _T(')') ) break;
+			}
+			s += *p++;
+		}
+		while( *p == _T(' ') || *p == _T('\t') ) ++p;
+		if( *p != _T(')') ) return false;
+		// 去掉路径两侧空白
+		LPCTSTR b = s.GetData();
+		if( b == NULL ) return false;
+		while( *b == _T(' ') || *b == _T('\t') ) ++b;
+		int nLen = (int)_tcslen(b);
+		while( nLen > 0 && (b[nLen - 1] == _T(' ') || b[nLen - 1] == _T('\t')) ) --nLen;
+		if( nLen <= 0 ) return false;
+		sPath.Assign(b, nLen);
+		return true;
+	}
+
+	bool ParseCssOverflowEnablesScroll(LPCTSTR pstrValue, bool& bEnable)
+	{
+		bEnable = false;
+		if( pstrValue == NULL ) return false;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( *pstrValue == _T('\0') ) return false;
+		if( _tcsicmp(pstrValue, _T("auto")) == 0
+			|| _tcsicmp(pstrValue, _T("scroll")) == 0
+			|| _tcsicmp(pstrValue, _T("overlay")) == 0
+			|| _tcsicmp(pstrValue, _T("true")) == 0
+			|| _tcscmp(pstrValue, _T("1")) == 0 ) {
+			bEnable = true;
+			return true;
+		}
+		if( _tcsicmp(pstrValue, _T("hidden")) == 0
+			|| _tcsicmp(pstrValue, _T("clip")) == 0
+			|| _tcsicmp(pstrValue, _T("visible")) == 0
+			|| _tcsicmp(pstrValue, _T("false")) == 0
+			|| _tcscmp(pstrValue, _T("0")) == 0 ) {
+			bEnable = false;
+			return true;
+		}
+		return false;
+	}
+
+	bool ParseCssOverflowShorthand(LPCTSTR pstrValue, bool& bEnableX, bool& bEnableY)
+	{
+		bEnableX = bEnableY = false;
+		if( pstrValue == NULL ) return false;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( *pstrValue == _T('\0') ) return false;
+
+		TCHAR sz1[64] = { 0 };
+		TCHAR sz2[64] = { 0 };
+		int n = 0;
+		LPCTSTR p = pstrValue;
+		while( *p != _T('\0') && n < 2 ) {
+			while( *p == _T(' ') || *p == _T('\t') || *p == _T(',') ) ++p;
+			if( *p == _T('\0') ) break;
+			LPTSTR dest = (n == 0) ? sz1 : sz2;
+			int i = 0;
+			while( *p != _T('\0') && *p != _T(' ') && *p != _T('\t') && *p != _T(',') && i < 63 )
+				dest[i++] = *p++;
+			dest[i] = _T('\0');
+			++n;
+		}
+		if( n == 0 ) return false;
+		bool en1 = false;
+		if( !ParseCssOverflowEnablesScroll(sz1, en1) ) return false;
+		if( n == 1 ) {
+			bEnableX = bEnableY = en1;
+			return true;
+		}
+		bool en2 = false;
+		if( !ParseCssOverflowEnablesScroll(sz2, en2) ) return false;
+		bEnableX = en1;
+		bEnableY = en2;
+		return true;
 	}
 
 } // namespace DuiLib
