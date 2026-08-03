@@ -20,8 +20,13 @@ docs/controls/ 控件用法知识库（按控件一篇，勿堆本文件）
 
 ## 控件文档
 
-控件属性、通知与行为说明见 **[docs/controls/](docs/controls/README.md)**（例如 [TabBar](docs/controls/TabBar.md)）。  
-改/接入某控件时读对应 md；本文件只保留构建与渲染全局约定。
+控件 / 窗口**属性**、通知与行为说明一律放在 **[docs/controls/](docs/controls/README.md)**：
+
+- 属性总览与盒模型约定：[Attributes.md](docs/controls/Attributes.md)
+- 窗口级属性：[Window.md](docs/controls/Window.md)
+- 各控件：同目录下对应 `*.md`（如 [TabBar](docs/controls/TabBar.md)）
+
+**本文件只保留构建、环境与渲染硬约束**，勿再往此处堆属性清单。
 
 ## 首次生成工程
 
@@ -71,27 +76,6 @@ build_clang_ninja_release.bat
 - C++ 标准：C++11
 - 预定义宏：`CMAKE`, `UNICODE`, `_UNICODE`
 - 输出目录：`bin/`（exe、dll、lib 统一输出）
-
-## 盒模型（HTML 对齐）
-
-全控件统一（含 Button 等叶子控件与 VBox/HBox 等容器）：
-
-- `margin` → 外边距（`SetPadding` / `m_rcPadding`；根节点相对窗口）
-- `padding` / `inset` → 内边距（`SetInset` / `m_rcInset`；内容区相对边框）
-- 单边 / 轴向：`margin-top/right/bottom/left/x/y`、`padding-*` 同理（值可为 `30` 或 `30px`）；新代码优先用 `padding`，`inset` 仅作简写别名兼容旧皮肤
-- RECT 简写顺序仍为 DuiLib 习惯：`left,top,right,bottom`（不是 CSS 的 top/right/bottom/left）
-- `textpadding` 仍是文字区额外缩进，与 `padding` 叠加
-- 旧皮肤里把 `padding` 当外边距用的，需改成 `margin`
-- `border` 支持 CSS 简写：`border="1px solid red"`（宽/样式/颜色顺序任意；`none`/`0` 清除）；细项仍可用 `bordersize` / `bordercolor` / `borderstyle` / `borderround`
-- 颜色值：`ParseColorString` — `#RGB`/`#RRGGBB`/`#AARRGGBB`，以及 CSS 命名色（`red`/`Blue`/`lightgray` 等，大小写不敏感）；`bkcolor`/`bordercolor`/`textcolor`/`border` 等均可用
-- `html { action: title; }`：窗口级拖拽（落到 root；按钮等带 SETCURSOR 的控件不继承）；控件上仍可用 `action="title"`
-- CSS 伪类（解析期，全控件通用）：`:hover` / `:active` / `:disabled`（及 `#id:hover`）把声明改写为状态属性并合并到基选择器
-  - `bkcolor` → `hotbkcolor` / `pushedbkcolor` / `disabledbkcolor`
-  - `textcolor` → `hottextcolor` / `pushedtextcolor` / `disabledtextcolor`
-  - `bordercolor` → `hotbordercolor` / `pushedbordercolor` / `disabledbordercolor`
-  - `image`/`bkimage` → `hotimage` / `pushedimage` / `disabledimage`；`foreimage` → `hotforeimage` / `pushedforeimage`；`font` → `hotfont` / `pushedfont`
-  - SvgBox：`color`/`fill` → `color-hover` / `color-active` / `color-disabled`（内联亦可用；`tint*` 为别名）
-  - 基类 `CControlUI` 已支持热态/按下/禁用的 `*bkcolor`/`*bordercolor`，容器可直接 `VBox:hover { bkcolor: ... }`
 
 ## 渲染后端
 

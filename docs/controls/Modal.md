@@ -99,9 +99,9 @@ CModal::Show(_T("点遮罩不关"), _T("只能点确定或 Esc。"),
 
 ### 阴影与圆角
 
-- `CShadowUI::MakeShadow`：优先 `GetWindowRgn`；无 RGN 时用 `PaintManager::GetRoundCorner()` 建圆角区域再模糊
-- Modal：`SetRoundCorner` + 默认开阴影；**不要**再 `SetWindowRgn`（与分层 AA 圆角冲突）
-- 新弹出窗若圆角且要阴影：设 `SetRoundCorner(cx,cy)`（或 `SetWindowRgn`），勿只靠矩形默认外形
+- `CShadowUI::MakeShadow`：优先 `GetWindowRgn`；无 RGN 时用 `PaintManager::GetBorderRadius()` 建圆角区域再模糊
+- Modal：`SetBorderRadius` + 默认开阴影；**不要**再 `SetWindowRgn`（与分层 AA 圆角冲突）
+- 新弹出窗若圆角且要阴影：设 `SetBorderRadius(cx,cy)`（或 `SetWindowRgn`），勿只靠矩形默认外形
 
 ### Owner / 焦点 / 遮罩
 
@@ -123,4 +123,4 @@ CModal::Show(_T("点遮罩不关"), _T("只能点确定或 Esc。"),
 | `src/DuiLib/Core/UIContainer.cpp` | 圆角裁剪含子控件 |
 | `src/DuiLib/Utils/UIShadow.*` | 阴影；无 RGN 时跟 RoundCorner |
 | `src/Demos/duidemo/MainWnd.cpp` | Demo 按钮 |
-| `bin/skin/duidemo/main.xml` | Accordion → Modal |
+| `bin/skin/duidemo/main.html` | Accordion → Modal |

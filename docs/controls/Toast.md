@@ -102,7 +102,7 @@ CToast::Show(_T("订单已支付"), _T("点击查看详情"),
 - `WS_POPUP | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE`（不绑定 Owner）
 - 显示时 `SW_SHOWNOACTIVATE`，不抢输入焦点
 - 布局：图标 | 标题/正文 | 倒计时 | ×；背景为 kind 色
-- 宽度按正文自动加宽（Min~Max）；超出 Max 则 wordbreak 增高
+- 宽度按正文自动加宽（Min~Max）；超出 Max 则 `word-break` 增高
 - 根布局 `action="title"` 可拖动；有 `OnClick` 时正文 Label `clickable`（手形），点文字跳详情，空白区仍可拖
 - `SetMaxCount(n)`：每个 Align 组最多 n 条（Window* 另按 Owner）；超出顶掉该组最旧；`0` 不限制
 - `OnDismiss`：关闭时回调原因（超时 / 手动含×与 Dismiss / 被顶掉）
@@ -110,4 +110,4 @@ CToast::Show(_T("订单已支付"), _T("点击查看详情"),
 - 同屏多条按对齐方向堆叠；关闭后同组重排填补空位
 - 用户拖走过的 Toast 脱离堆叠，之后重排/主窗跟随不再吸回原位
 - `Window*` 对齐：主窗移动/缩放时 Toast 跟随（`SetWindowSubclass`）；已拖离的不跟随堆叠重排
-- 圆角：`SetWindowRgn` + kind 背景色；阴影若开启会跟 `GetWindowRgn`（无 RGN 则跟 `SetRoundCorner`）
+- 圆角：`SetWindowRgn` + kind 背景色；阴影若开启会跟 `GetWindowRgn`（无 RGN 则跟 `SetBorderRadius`）

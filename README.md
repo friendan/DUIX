@@ -7,7 +7,7 @@
 **标签内联：**
 
 ```xml
-<html size="800,600" caption="0,0,0,64" bktrans="false">
+<html size="800,600" caption="0,0,0,64" layered="false">
   ...
 </html>
 ```
@@ -41,12 +41,12 @@
 | 属性 | 默认 |
 |------|------|
 | `size` | 无（沿用 `Create(...)` 尺寸；写了会在创建后 `ResizeClient`） |
-| `sizebox` | `4,4,6,6` |
+| `size-box` | `4,4,6,6` |
 | `caption` | `0,0,0,40` |
-| `roundcorner` | `0,0` |
-| `bktrans` / `layered` | `false` |
-| `mininfo` | `320,240` |
-| `maxinfo` | `0,0`（不限制） |
+| `border-radius` | `0,0` |
+| `layered` | `false` |
+| `min-size` | `320,240` |
+| `max-size` | `0,0`（不限制） |
 | `bkcolor` | `#FFF0F0F0`（落到 root 背景；分层且未显式设置时不强制） |
 | `showshadow` | `true` |
 | `shadowsize` | `6` |
@@ -63,7 +63,7 @@
 html {
   size: 800,600;
   caption: 0,0,0,64;
-  mininfo: 600,480;
+  min-size: 600,480;
   shadowimage: main/shadow.png;
 }
 ```
@@ -75,11 +75,11 @@ html {
 | 属性 | 格式 | 说明 |
 |------|------|------|
 | `size` | `宽,高` | 初始客户区大小（逻辑像素，会按 DPI 缩放） |
-| `sizebox` | `左,上,右,下` | 无边框窗口边缘缩放热区 |
+| `size-box` | `左,上,右,下` | 无边框窗口边缘缩放热区 |
 | `caption` | `左,上,右,下` | 标题拖拽区；常见为顶部一条，如 `0,0,0,64` |
-| `roundcorner` | `cx,cy` | 窗口圆角椭圆直径 |
-| `mininfo` | `宽,高` | 最小跟踪尺寸 |
-| `maxinfo` | `宽,高` | 最大跟踪尺寸；`0,0` 表示不限制 |
+| `border-radius` | `cx,cy` | 窗口圆角椭圆直径 |
+| `min-size` | `宽,高` | 最小跟踪尺寸 |
+| `max-size` | `宽,高` | 最大跟踪尺寸；`0,0` 表示不限制 |
 
 ---
 
@@ -87,10 +87,9 @@ html {
 
 | 属性 | 格式 | 说明 |
 |------|------|------|
-| `bktrans` | `true`/`false` | 同 `layered`，是否分层透明窗口 |
-| `layered` | `true`/`false` | 同上 |
-| `layeredopacity` | `0`–`255` | 分层整体透明度 |
-| `layeredimage` | 图片路径 | 启用分层并设置分层图 |
+| `layered` | `true`/`false` | 分层透明窗口 |
+| `layered-opacity` | `0`–`255` | 分层整体透明度 |
+| `layered-image` | 图片路径 | 启用分层并设置分层图 |
 | `opacity` / `alpha` | `0`–`255` | 窗口透明度（`SetLayeredWindowAttributes`） |
 | `noactivate` | `true`/`false` | 不激活窗口 |
 
@@ -127,7 +126,7 @@ html {
 | `disabledfontcolor` | `#AARRGGBB` | 禁用文字色 |
 | `linkfontcolor` | `#AARRGGBB` | 链接文字色 |
 | `linkhoverfontcolor` | `#AARRGGBB` | 链接悬停色 |
-| `selectedcolor` | `#AARRGGBB` | 默认选中背景色 |
+| `selected-color` | `#AARRGGBB` | 默认选中背景色 |
 | `showdirty` | `true`/`false` | 绘制更新脏区（调试） |
 | `gdiplustext` | `true`/`false` | 使用 GDI+ 绘字 |
 | `textrenderinghint` | 整数 | GDI+ 文字渲染提示 |
