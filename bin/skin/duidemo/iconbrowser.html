@@ -1,0 +1,19 @@
+<html>
+    <VBox name="root" background-color="#F5F5F5FF">
+        <HBox name="titlebar" height="40" background-color="#32323CFF" align-items="vcenter" gap="8" padding="0,8,0,8">
+            <Label name="titleText" text="Icons" color="#C8C8C8FF" font-size="13" width="420" />
+            <Edit name="searchEdit" placeholder="搜索图标..." width="220" height="28" background-color="#FFFFFFFF" native-background-color="#FFFFFFFF" padding="4,10,4,10" />
+            <Spacer />
+            <Button name="closebtn" text="✕" width="36" height="36" kind="none" background-color="#32323CFF" color="#B4B4BEFF" color-hover="#FFFFFFFF" background-color-hover="#E81123FF" action="close" />
+        </HBox>
+        <VBox name="iconList" overflow="auto" background-color="#F5F5F5FF" />
+    </VBox>
+</html>
+<style>
+  html {
+    size: 950,700;
+    caption: 0,0,0,40;
+    min-size: 640,480;
+    shadowimage: main/shadow.png;
+  }
+</style>

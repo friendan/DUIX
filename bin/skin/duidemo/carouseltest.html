@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window size="720,640" size-box="4,4,6,6" caption="0,0,0,40" min-size="560,480">
+    <VBox name="root" background-color="#F5F5F7FF">
+        <HBox name="titlebar" height="40" background-color="#32323CFF" align-items="vcenter" gap="8" padding="0,8,0,8" action="title">
+            <Label text="Carousel 轮播测试" color="#E6E6ECFF" font-size="14" />
+            <Control />
+            <Button name="closebtn" text="✕" width="36" height="36" kind="none" background-color="#32323CFF" color="#B4B4BEFF" color-hover="#FFFFFFFF" background-color-hover="#E81123FF" action="close" />
+        </HBox>
+
+        <Label height="28" padding="4,10,0,10" text="自动播放 + caption（悬停暂停）" color="#50505AFF" font-size="12" />
+        <Carousel name="autoCarousel" height="220" interval="3000" ride="true" wrap="true" controls="true" controls-kind="info" page-width="56" page-gap="12" margin="0,10,0,10">
+            <CarouselItem caption-title="第一页" caption-text="caption-align=left" caption-align="left" caption-kind="dark">
+                <VBox background-color="#6F42C1FF" />
+            </CarouselItem>
+            <CarouselItem caption-title="居中标题" caption-text="caption-align=center" caption-align="center" caption-kind="primary">
+                <VBox background-color="#FD7E14FF" />
+            </CarouselItem>
+            <CarouselItem caption-title="右对齐" caption-text="caption-kind=danger" caption-align="right" caption-kind="danger">
+                <VBox background-color="#20C997FF" />
+            </CarouselItem>
+        </Carousel>
+
+        <Label height="28" padding="8,10,0,10" text="自定义内容（无 caption，无控制栏）" color="#50505AFF" font-size="12" />
+        <Carousel name="customCarousel" height="140" interval="0" wrap="true" controls="false" margin="0,10,0,10">
+            <CarouselItem>
+                <VBox background-color="#0D6EFDFF" padding="12,12,12,12">
+                    <Label text="自定义布局 A" color="#FFFFFFFF" font-size="18" text-align="center" vertical-align="vcenter" />
+                </VBox>
+            </CarouselItem>
+            <CarouselItem>
+                <VBox background-color="#D63384FF" padding="12,12,12,12">
+                    <Label text="可放任意控件" color="#FFFFFFFF" font-size="18" text-align="center" vertical-align="vcenter" />
+                    <HBox height="40" align-items="vcenter" gap="8">
+                        <Button text="示例按钮" kind="light" width="100" height="28" />
+                    </HBox>
+                </VBox>
+            </CarouselItem>
+        </Carousel>
+
+        <Label height="28" padding="8,10,0,10" text="手动控制（无自动播放）" color="#50505AFF" font-size="12" />
+        <Carousel name="manualCarousel" height="160" interval="0" wrap="true" controls="true" controls-kind="secondary" margin="0,10,0,10">
+            <CarouselItem caption-title="手动 A" caption-text="用控制栏 Prev/Next">
+                <VBox background-color="#0DCAF0FF">
+                    <Label text="A" color="#FFFFFF66" font-size="48" text-align="center" vertical-align="vcenter" />
+                </VBox>
+            </CarouselItem>
+            <CarouselItem caption-title="手动 B" caption-text="GoTo 首末页">
+                <VBox background-color="#D63384FF">
+                    <Label text="B" color="#FFFFFF66" font-size="48" text-align="center" vertical-align="vcenter" />
+                </VBox>
+            </CarouselItem>
+            <CarouselItem caption-title="手动 C" caption-text="slidechanged 通知">
+                <VBox background-color="#198754FF">
+                    <Label text="C" color="#FFFFFF66" font-size="48" text-align="center" vertical-align="vcenter" />
+                </VBox>
+            </CarouselItem>
+        </Carousel>
+
+        <Label name="status" height="28" padding="4,10,4,10" color="#666666FF" font-size="12" text="" />
+    </VBox>
+</Window>

@@ -1,25 +1,11 @@
-﻿<html>
+<html>
     <VBox name="root">
-        <HBox name="titlebar" height="40" bkcolor="#FF333333" childvalign="vcenter" childpadding="0" inset="12,0,0,0" action="title">
-            <Label text="title" textcolor="#FFFFFFFF" font="font13"/>
-            <Spacer />
-            <Button name="minbtn" text="─" width="46" height="40" kind="none"
-                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FF505050"
-                tooltip="最小化" action="min" />
-            <Button name="maxbtn" text="□" width="46" height="40" kind="none"
-                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FF505050"
-                tooltip="最大化" action="max" />
-            <Button name="restorebtn" text="❐" width="46" height="40" kind="none" visible="false"
-                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FF505050"
-                tooltip="还原" action="max" />
-            <Button name="closebtn" text="✕" width="46" height="40" kind="none"
-                bkcolor="#FF333333" textcolor="#FFB4B4BE" hottextcolor="#FFFFFFFF" hotbkcolor="#FFE81123"
-                tooltip="关闭" />
-        </HBox>
+        <TitleBar name="titlebar" title="title" height="40" background-color="#333333FF"
+            show-min="true" show-max="true" show-close="true" action="title" />
         <Spacer />
-        <Accordion mode="single" headerheight="40">
+        <Accordion mode="single" header-height="40">
             <AccordionItem title="Button" active="false" header-align="left">
-              <HBox height="40" childpadding="8" inset="8,0,8,0">
+              <HBox height="40" gap="8" padding="0,8,0,8">
                 <Button text="Default" kind="default" width="100" height="36" tooltip="默认按钮 kind=default" />
                 <Button text="info" kind="info" width="100" height="36" tooltip="信息按钮 kind=info" />
                 <Button text="Primary" kind="primary" width="100" height="36" tooltip="主按钮 kind=primary" />
@@ -30,8 +16,8 @@
             </HBox>
             </AccordionItem>
             <AccordionItem title="SvgBox" active="false" header-align="left">
-              <VBox height="240" childpadding="8" inset="8,4,8,4">
-                <HBox height="40" childpadding="8" childvalign="vcenter">
+              <VBox height="240" gap="8" padding="4,8,4,8">
+                <HBox height="40" gap="8" align-items="vcenter">
                   <Button name="btn_bsicon" text="bsicon" kind="info" width="90" height="32" tooltip="打开 Bootstrap Icons 浏览器" />
                   <Button name="btn_iconpark" text="iconpark" kind="warning" width="90" height="32" tooltip="打开 IconPark 图标浏览器" />
                   <Button name="btn_lucide" text="lucide" kind="success" width="90" height="32" tooltip="打开 Lucide Icons 浏览器" />
@@ -40,40 +26,47 @@
                   <Button name="btn_remixicon" text="remixicon" kind="danger" width="90" height="32" tooltip="打开 Remix Icon 浏览器" />
                   <Button name="btn_twicon" text="twicon" kind="info" width="90" height="32" tooltip="打开 Twemoji 图标浏览器" />
                 </HBox>
-                <HBox height="40" childpadding="12" childvalign="vcenter">
-                  <Svg lucide="circle-check" width="32" height="32" color="#FF1677FF" color-hover="#FF69B1FF" color-active="#FF0958D9" />
-                  <Svg bsicon="check-circle" width="32" height="32" color="#FF52C41A" color-hover="#FF95DE64" color-active="#FF389E0D" />
-                  <Svg iconpark="check-one" width="32" height="32" color="#FFFAAD14" color-hover="#FFFFD666" color-active="#FFD48806" />
-                  <Svg tabler-outline="circle-check" width="32" height="32" color="#FFFF4D4F" color-hover="#FFFF7875" color-active="#FFCF1322" />
-                  <Svg tabler-filled="circle-check" width="32" height="32" color="#FF722ED1" color-hover="#FFB37FEB" color-active="#FF531DAB" />
-                  <Svg remixicon="checkbox-circle-line" width="32" height="32" color="#FF13C2C2" color-hover="#FF5CDBD3" color-active="#FF08979C" />
+                <HBox height="40" gap="12" align-items="vcenter">
+                  <Svg lucide="circle-check" width="32" height="32" color="#1677FFFF" color-hover="#69B1FFFF" color-active="#0958D9FF" />
+                  <Svg bsicon="check-circle" width="32" height="32" color="#52C41AFF" color-hover="#95DE64FF" color-active="#389E0DFF" />
+                  <Svg iconpark="check-one" width="32" height="32" color="#FAAD14FF" color-hover="#FFD666FF" color-active="#D48806FF" />
+                  <Svg tabler-outline="circle-check" width="32" height="32" color="#FF4D4FFF" color-hover="#FF7875FF" color-active="#CF1322FF" />
+                  <Svg tabler-filled="circle-check" width="32" height="32" color="#722ED1FF" color-hover="#B37FEBFF" color-active="#531DABFF" />
+                  <Svg remixicon="checkbox-circle-line" width="32" height="32" color="#13C2C2FF" color-hover="#5CDBD3FF" color-active="#08979CFF" />
                   <Svg twicon="2705" width="32" height="32" />
-                  <Label text="内联 color / color-hover / color-active" textcolor="#FF666666" />
+                  <Label text="内联 color / color-hover / color-active" color="#666666FF" />
                 </HBox>
-                <HBox height="40" childpadding="12" childvalign="vcenter">
+                <HBox height="40" gap="12" align-items="vcenter">
                   <Svg name="svg_css_demo" lucide="heart" width="32" height="32" />
-                  <Svg src="svg/check.svg" width="32" height="32" color="#FF1677FF" color-hover="#FF69B1FF" />
-                  <Label text="左：#id:hover color；右：内联 color-hover" textcolor="#FF666666" />
+                  <Svg src="svg/check.svg" width="32" height="32" color="#1677FFFF" color-hover="#69B1FFFF" />
+                  <Label text="左：#id:hover color；右：内联 color-hover" color="#666666FF" />
                 </HBox>
-                <HBox height="40" childpadding="12" childvalign="vcenter">
+                <HBox height="40" gap="12" align-items="vcenter">
                   <Button name="btn_css_hover" text="Button:hover" width="120" height="32" />
-                  <HBox name="box_css_hover" width="120" height="32" childvalign="vcenter">
-                    <Label text="HBox:hover" align="center" width="120" mouse="false" />
+                  <HBox name="box_css_hover" width="120" height="32" align-items="vcenter">
+                    <Label text="HBox:hover" text-align="center" width="120" mouse="false" />
                   </HBox>
-                  <Label text="通用伪类：bkcolor/textcolor → hot*" textcolor="#FF666666" />
+                  <Label text="通用伪类：background-color/color/background-image → *-hover" color="#666666FF" />
                 </HBox>
               </VBox>
             </AccordionItem>
             <AccordionItem title="TabBar" active="false" header-align="left">
-              <HBox height="48" childpadding="8" childvalign="vcenter" inset="8,0,8,0">
+              <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
                 <Button name="btn_tabbar_test" text="打开 TabBar 测试窗口" kind="primary" width="180" height="36" tooltip="打开 TabBar 专项测试窗（切换 / 关闭 / 锁定 / 滚动 / 拖拽）" />
-                <Label text="切换 / 关闭 / 锁定 / 左右钮+滚轮溢出 / 左键拖拽排序 / 动态增删" textcolor="#FF666666" />
+                <Button name="btn_browser_test" text="打开 Browser 壳" kind="default" width="140" height="36" tooltip="打开 browser.html（TabBar + 地址栏浏览器壳）" />
+                <Label text="切换 / 关闭 / 锁定 / 左右钮+滚轮溢出 / 左键拖拽排序 / 动态增删" color="#666666FF" />
+              </HBox>
+            </AccordionItem>
+            <AccordionItem title="Carousel" active="false" header-align="left">
+              <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
+                <Button name="btn_carousel_test" text="打开 Carousel 测试窗口" kind="primary" width="180" height="36" tooltip="自动播放 / 悬停暂停 / 控制栏 / caption" />
+                <Label text="显隐切换轮播；ride 自动播放；controls 底栏；caption-* 标题条" color="#666666FF" />
               </HBox>
             </AccordionItem>
             <AccordionItem title="Toast" active="false" header-align="left">
-              <VBox height="340" childpadding="4" inset="8,4,8,4">
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="单行" width="70" textcolor="#FF666666" />
+              <VBox height="340" gap="4" padding="4,8,4,8">
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="单行" width="70" color="#666666FF" />
                   <Button name="btn_toast_success" text="Success" kind="success" width="90" height="32" tooltip="单行 Success" />
                   <Button name="btn_toast_info" text="Info" kind="info" width="90" height="32" tooltip="单行 Info" />
                   <Button name="btn_toast_warning" text="Warning" kind="warning" width="90" height="32" tooltip="单行 Warning" />
@@ -81,69 +74,69 @@
                   <Button name="btn_toast_dismiss_last" text="关最近" kind="default" width="80" height="32" tooltip="CToast::Dismiss(上次 Show 的 HWND)" />
                   <Button name="btn_toast_dismiss" text="DismissAll" kind="secondary" width="100" height="32" tooltip="关闭全部 Toast" />
                 </HBox>
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="双行" width="70" textcolor="#FF666666" />
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="双行" width="70" color="#666666FF" />
                   <Button name="btn_toast_dual_success" text="Success" kind="success" width="90" height="32" tooltip="双行 Success" />
                   <Button name="btn_toast_dual_info" text="Info" kind="info" width="90" height="32" tooltip="双行 Info" />
                   <Button name="btn_toast_dual_warning" text="Warning" kind="warning" width="90" height="32" tooltip="双行 Warning" />
                   <Button name="btn_toast_dual_danger" text="Danger" kind="danger" width="90" height="32" tooltip="双行 Danger" />
                   <Button name="btn_toast_dual_primary" text="Primary" kind="primary" width="90" height="32" tooltip="双行 Primary" />
                 </HBox>
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="交互测试" width="70" textcolor="#FF666666" />
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="交互测试" width="70" color="#666666FF" />
                   <Button name="btn_toast_pause" text="悬停暂停倒计时" kind="warning" width="140" height="32" tooltip="弹出 15s Toast：鼠标移上去倒计时应停住，移开继续" />
                   <Button name="btn_toast_click" text="点击文字跳详情" kind="primary" width="140" height="32" tooltip="点文字回调；空白区拖动；× 只关闭" />
                   <Button name="btn_toast_icon" text="自定义图标" kind="info" width="110" height="32" tooltip="Icon(lib, name) 覆盖默认 kind 图标" />
                 </HBox>
-                <HBox height="40" childpadding="8" childvalign="vcenter">
+                <HBox height="40" gap="8" align-items="vcenter">
                   <Label text="" width="70" />
                   <Button name="btn_toast_dismiss_cb" text="OnDismiss回调" kind="secondary" width="140" height="32" tooltip="超时/点×/Dismiss 会弹 OnDismiss 原因" />
                   <Button name="btn_toast_max2" text="分组上限2" kind="danger" width="120" height="32" tooltip="每 Align 上限 2：右下连弹 3 条顶掉最早；左上 2 条保留" />
-                  <Label text="← Dismiss 埋点 / 分组顶掉" textcolor="#FF666666" />
+                  <Label text="← Dismiss 埋点 / 分组顶掉" color="#666666FF" />
                 </HBox>
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="屏幕四角" width="70" textcolor="#FF666666" />
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="屏幕四角" width="70" color="#666666FF" />
                   <Button name="btn_toast_scr_tl" text="左上" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenTopLeft" />
                   <Button name="btn_toast_scr_tr" text="右上" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenTopRight" />
                   <Button name="btn_toast_scr_bl" text="左下" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenBottomLeft" />
                   <Button name="btn_toast_scr_br" text="右下" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenBottomRight" />
                 </HBox>
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="窗口四角" width="70" textcolor="#FF666666" />
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="窗口四角" width="70" color="#666666FF" />
                   <Button name="btn_toast_wnd_tl" text="左上" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
                   <Button name="btn_toast_wnd_tr" text="右上" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
                   <Button name="btn_toast_wnd_bl" text="左下" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
                   <Button name="btn_toast_wnd_br" text="右下" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
-                  <Label text="← 弹出后拖主窗验证跟随" textcolor="#FF666666" />
+                  <Label text="← 弹出后拖主窗验证跟随" color="#666666FF" />
                 </HBox>
               </VBox>
             </AccordionItem>
             <AccordionItem title="Modal" active="false" header-align="left">
-              <VBox height="160" childpadding="4" inset="8,4,8,4">
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="快捷" width="70" textcolor="#FF666666" />
+              <VBox height="160" gap="4" padding="4,8,4,8">
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="快捷" width="70" color="#666666FF" />
                   <Button name="btn_modal_info" text="Info" kind="info" width="90" height="32" tooltip="仅确定" />
                   <Button name="btn_modal_success" text="Success" kind="success" width="90" height="32" />
                   <Button name="btn_modal_warning" text="Warning" kind="warning" width="90" height="32" />
                   <Button name="btn_modal_danger" text="Danger" kind="danger" width="90" height="32" />
                 </HBox>
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="确认" width="70" textcolor="#FF666666" />
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="确认" width="70" color="#666666FF" />
                   <Button name="btn_modal_confirm" text="Confirm 确定/取消" kind="primary" width="160" height="32" tooltip="CModal::Confirm" />
                   <Button name="btn_modal_custom" text="自定义按钮文案" kind="secondary" width="140" height="32" tooltip="OkText/CancelText + Kind" />
-                  <Label text="← 结果用 Toast 提示" textcolor="#FF666666" />
+                  <Label text="← 结果用 Toast 提示" color="#666666FF" />
                 </HBox>
-                <HBox height="40" childpadding="8" childvalign="vcenter">
-                  <Label text="遮罩" width="70" textcolor="#FF666666" />
+                <HBox height="40" gap="8" align-items="vcenter">
+                  <Label text="遮罩" width="70" color="#666666FF" />
                   <Button name="btn_modal_nobackdrop" text="点遮罩不关" kind="warning" width="120" height="32" tooltip="ClickBackdropToClose(false)" />
                 </HBox>
               </VBox>
             </AccordionItem>
             <AccordionItem title="Layout" active="false" header-align="left">
-              <HBox height="48" childpadding="8" childvalign="vcenter" inset="8,0,8,0">
+              <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
                 <Button name="btn_layout_test" text="打开 Layout 测试窗口" kind="primary" width="180" height="36"
                     tooltip="打开 layouttest.htm，改皮肤后重新打开即可测布局" />
-                <Label text="加载 skin/duidemo/layouttest.htm" textcolor="#FF666666" />
+                <Label text="加载 skin/duidemo/layouttest.htm" color="#666666FF" />
               </HBox>
             </AccordionItem>
         </Accordion>
@@ -153,7 +146,7 @@
   html {
     size: 800,600;
     caption: 0,0,0,64;
-    mininfo: 600,480;
+    min-size: 600,480;
     shadowimage: main/shadow.png;
   }
   /* 伪类解析期映射为状态属性（全控件通用） */
@@ -167,28 +160,28 @@
     color: #c41d7f;
   }
   #btn_css_hover {
-    bkcolor: #1677ff;
-    textcolor: #ffffff;
-    borderround: 6,6;
+    background-color: #1677ff;
+    color: #ffffff;
+    border-radius: 3,3;
   }
   #btn_css_hover:hover {
-    bkcolor: #4096ff;
-    textcolor: #ffffff;
+    background-color: #4096ff;
+    color: #ffffff;
   }
   #btn_css_hover:active {
-    bkcolor: #0958d9;
+    background-color: #0958d9;
   }
   #box_css_hover {
-    bkcolor: #f5f5f5;
-    bordercolor: #d9d9d9;
-    bordersize: 1;
-    borderround: 6,6;
+    background-color: #f5f5f5;
+    border-color: #d9d9d9;
+    border-width: 1;
+    border-radius: 3,3;
   }
   #box_css_hover:hover {
-    bkcolor: #e6f4ff;
-    bordercolor: #1677ff;
+    background-color: #e6f4ff;
+    border-color: #1677ff;
   }
   #box_css_hover:active {
-    bkcolor: #bae0ff;
+    background-color: #bae0ff;
   }
 </style>

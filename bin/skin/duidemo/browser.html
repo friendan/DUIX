@@ -1,0 +1,94 @@
+<html>
+    <body name="root">
+        <!-- 第一行：TitleBar 左侧放 TabBar，右侧系统按钮 -->
+        <TitleBar name="titlebar" height="36" show-min="true" show-max="true" show-close="true" btn-width="45" padding="0" background-color="#32323CFF" action="title">
+            <TabBar name="tabbar" height="36" flexible="true" />
+        </TitleBar>
+        <!-- 第二行：地址栏 / 工具栏 -->
+        <HBox name="addressBar" height="40">
+            <Spacer width="100" />
+            <Svg name="backBtn" tabler-outline="arrow-left" width="24" height="24" color="#8C8C8CFF" color-hover="#FF0000FF" />
+            <Svg name="forwardBtn" tabler-outline="arrow-right" width="24" height="24" color="#8C8C8CFF" color-hover="#FF0000FF" />
+            <Svg name="refreshBtn" bsicon="arrow-repeat" width="24" height="24" color="#C8C8C8FF" color-hover="#FF0000FF" />
+            <Svg name="homeBtn" tabler-outline="home" width="24" height="24" color="#C8C8C8FF" color-hover="#FF0000FF" />
+            <Spacer width="10" />
+            <Edit name="urlBox" placeholder="test..." />
+            <!-- <Spacer width="10" /> -->
+            <Svg name="menuBtn" tabler-outline="dots-vertical" width="24" height="24" color="#C8C8C8FF" color-hover="#FF0000FF" />
+        </HBox>
+        <!-- 第三行：侧边栏 + 页面 -->
+        <HBox name="contentArea">
+            <VBox name="sideToolBar">
+                <Svg name="sideToolHome" tabler-outline="home" width="24" height="24" color="#C8C8C8FF" color-hover="#FF0000FF" />
+            </VBox>
+            <TabLayout name="pages" />
+        </HBox>
+    </body>
+</html>
+<style>
+    /* 窗口级属性 */
+    html {
+        size: 1280, 800;
+        size-box: 4, 4, 6, 6;
+        caption: 0, 0, 0, 36;
+        min-size: 800, 600;
+        max-size: 0, 0;
+        showshadow: false;
+        background-color: #E8F5E9FF;
+        action: title;
+    }
+    #root {
+        background-color: #E8F5E9FF;
+    }
+
+    #titlebar {
+        height: 36;
+        background-color: #32323CFF;
+        padding: 0;
+        action: title;
+    }
+
+    #tabbar {
+        background-color: #32323CFF;
+        tab-min-width: 100;
+        tab-max-width: 300;
+        tab-background-color: #3C3C46FF;
+        tab-background-color-hover: #64788CFF;
+        tab-background-color-selected: #1E1E26FF;
+        tab-color: #E6E6ECFF;
+        tab-color-hover: #F0F0F5FF;
+        tab-color-selected: #FFFFFFFF;
+        tab-separator-color: #50505AFF;
+        bind-tab-layout-name: pages;
+        show-add: true;
+        action: title;
+    }
+
+    /* 系统钮跟栏底；关闭悬停仍用 TitleBar 默认红 */
+    #minbtn, #maxbtn, #restorebtn {
+        background-color: #32323CFF;
+        color: #C8C8C8FF;
+        color-hover: #FFFFFFFF;
+        background-color-hover: #50505AFF;
+    }
+    #closebtn {
+        background-color: #32323CFF;
+        color: #C8C8C8FF;
+        color-hover: #FFFFFFFF;
+        background-color-hover: #E81123FF;
+    }
+
+    #addressBar { height: 40; padding: 0,8,0,8; gap: 6; align-items: vcenter; background-color: #282832FF; }
+
+    #urlBox { height: 28; padding: 4,10,4,10; border-radius: 7,7; border-width: 1; border-color: #464650FF; background-color: #101014FF; native-background-color: #101014FF; color: #FFFFFFFF; native-color: #FFFFFFFF; placeholder-color: #C0C0C8FF; }
+
+    #sideToolBar {
+        width: 48;
+        background-color: #2D2D37FF;
+        action: title;
+        align-items: center;
+        padding-top: 10;
+    }
+
+    #pages { background-color: #1E1E26FF; }
+</style>
