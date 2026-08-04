@@ -28,6 +28,18 @@ private:
 //////////////////////////////////////////////////////////////////////////
 ///
 
+class CVirtualListDemoCallback : public IVirtualListCallback
+{
+public:
+	virtual LPCTSTR GetItemText(CControlUI* /*pList*/, int iIndex)
+	{
+		m_sText.Format(_T("虚拟行 #%d  —  仅绘制可见项，滚动不会创建 10 万个子控件"), iIndex + 1);
+		return m_sText;
+	}
+private:
+	CDuiString m_sText;
+};
+
 class CMainWnd : public WindowImplBase, public CWebBrowserEventHandler, public SkinChangedReceiver
 {
 public:
@@ -51,10 +63,8 @@ public:// UI通知消息
 	void OnLClick(CControlUI *pControl);
 
 	DUI_DECLARE_MESSAGE_MAP()
-	
 
 public:// 系统消息
-	//LRESULT OnGetMinMaxInfo(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
@@ -72,6 +82,7 @@ private:// UI变量
 	CMenuWnd* m_pMenu;
 	CStdStringPtrMap m_MenuInfos;
 	CTrayIcon m_trayIcon;
+	CVirtualListDemoCallback m_vlistCallback;
 
 public:
 	CMainPage m_MainPage;

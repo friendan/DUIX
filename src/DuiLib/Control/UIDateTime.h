@@ -6,40 +6,80 @@
 namespace DuiLib
 {
 	class CDateTimeWnd;
+	class CCalendarPanelUI;
 
-	/// 时间选择控件
+	/// 自绘日期/时间：弹层月历 + 月/年面板 + 时分秒。
 	class UILIB_API CDateTimeUI : public CLabelUI
 	{
 		DECLARE_DUICONTROL(CDateTimeUI)
 		friend class CDateTimeWnd;
+		friend class CCalendarPanelUI;
 
 	public:
 		CDateTimeUI();
+		~CDateTimeUI();
+
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
+		UINT GetControlFlags() const;
+		bool PreferClientHit() const;
 
 		SYSTEMTIME& GetTime();
+		void SetTime(const SYSTEMTIME& st);
 		void SetTime(SYSTEMTIME* pst);
 
-		void SetReadOny(bool bReadOnly);
+		void SetReadOnly(bool bReadOnly);
 		bool IsReadOnly() const;
 
-		void SetTimeFormat(LPCTSTR pstrFormat = _T("yyyy-MM-dd HH:mm:ss"));
-		CDuiString GetTimeFormat() const;
+		void SetFormat(LPCTSTR pstrFormat);
+		CDuiString GetFormat() const;
+
+		void SetShowToday(bool bShow);
+		bool IsShowToday() const;
+		void SetShowTime(bool bShow);
+		bool IsShowTime() const;
+		void SetShowSeconds(bool bShow);
+		bool IsShowSeconds() const;
+		bool IsShowDate() const;
+
+		void SetFirstDayOfWeek(int nFirst); // 0=周日 … 6=周六
+		int GetFirstDayOfWeek() const;
+
+		bool IsDropDownOpened() const;
+		void ActivateDropDown();
+		void CloseDropDown();
 
 		void UpdateText();
-
+		SIZE EstimateSize(SIZE szAvailable);
 		void DoEvent(TEventUI& event);
-		void SetPos(RECT rc, bool bNeedInvalidate = true);
-
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		void PaintStatusImage(IRenderContext& ctx);
+
+		SIZE GetDropBoxSize() const;
+
+	protected:
+		void SyncFormatFlags();
+		void OnPicked(const SYSTEMTIME& st, bool bClose = true);
+		void OnLiveTimeChanged(const SYSTEMTIME& st);
+		int ScaleValue(int v) const;
 
 	protected:
 		SYSTEMTIME m_sysTime;
-		int m_nDTUpdateFlag;
 		bool m_bReadOnly;
-		CDuiString m_sTimeFormat;
+		bool m_bShowToday;
+		bool m_bShowTime;      // 显式或由 format 推断
+		bool m_bShowSeconds;
+		bool m_bShowDate;
+		bool m_bFormatDrivesFlags; // format 自动推导 show-time/date；属性覆盖后为 false
+		int m_nFirstDayOfWeek;
+		CDuiString m_sFormat;
 		CDateTimeWnd* m_pWindow;
+
+		DWORD m_dwSelectedBk;
+		DWORD m_dwHoverBk;
+		DWORD m_dwTodayColor;
+		DWORD m_dwOtherMonthColor;
+		DWORD m_dwHeaderColor;
 	};
 }
 #endif // __UIDATETIME_H__

@@ -103,6 +103,11 @@ namespace DuiLib
 		rcPos.top += rcPad.top + rcTextPad.top;
 		rcPos.right -= rcPad.right + rcTextPad.right;
 		rcPos.bottom -= rcPad.bottom + rcTextPad.bottom;
+		int nReserve = m_pOwner->GetNativeEditRightReserve();
+		if( nReserve > 0 && m_pOwner->GetManager() )
+			nReserve = m_pOwner->GetManager()->GetDPIObj()->Scale(nReserve);
+		if( nReserve > 0 ) rcPos.right -= nReserve;
+		if( rcPos.right < rcPos.left + 4 ) rcPos.right = rcPos.left + 4;
 		LONG lEditHeight = m_pOwner->GetManager()->GetFontInfo(m_pOwner->GetFont())->tm.tmHeight;
 		if( lEditHeight < rcPos.GetHeight() ) {
 			rcPos.top += (rcPos.GetHeight() - lEditHeight) / 2;
@@ -144,7 +149,9 @@ namespace DuiLib
 		if (m_pOwner->GetManager()->IsLayered()) {
 			m_pOwner->GetManager()->RemoveNativeWindow(hWnd);
 		}
-		m_pOwner->m_pWindow = NULL;
+		// 可能已在 OnKillFocus 里提前摘掉，避免误清后来新建的 EditWnd
+		if( m_pOwner->m_pWindow == this )
+			m_pOwner->m_pWindow = NULL;
 		delete this;
 	}
 
@@ -165,7 +172,18 @@ namespace DuiLib
 			}
 		}
 		else if( uMsg == WM_KEYDOWN && TCHAR(wParam) == VK_RETURN ){
-			m_pOwner->GetManager()->SendNotify(m_pOwner, DUI_MSGTYPE_RETURN);
+			// 回车前先把原生文本写回 m_sText（IME 确认等场景可能尚未 EN_CHANGE）
+			if( m_bInit && m_pOwner != NULL ) {
+				int cchLen = ::GetWindowTextLength(m_hWnd) + 1;
+				LPTSTR pstr = static_cast<LPTSTR>(_alloca(cchLen * sizeof(TCHAR)));
+				if( pstr != NULL ) {
+					::GetWindowText(m_hWnd, pstr, cchLen);
+					m_pOwner->m_sText = pstr;
+					m_pOwner->OnNativeEditChanged();
+				}
+			}
+			// 异步通知：避免在 Edit WM_KEYDOWN 里同步 Navigate/SetText 重入
+			m_pOwner->GetManager()->SendNotify(m_pOwner, DUI_MSGTYPE_RETURN, 0, 0, true);
 		}
 		else if( uMsg == WM_KEYDOWN && TCHAR(wParam) == VK_TAB ){
 			if (m_pOwner->GetManager()->IsLayered()) {
@@ -215,6 +233,26 @@ namespace DuiLib
 
 	LRESULT CEditWnd::OnKillFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
+		// 销毁前先回写文本；随后忽略 EN_CHANGE
+		if( m_bInit && m_pOwner != NULL ) {
+			int cchLen = ::GetWindowTextLength(m_hWnd) + 1;
+			LPTSTR pstr = static_cast<LPTSTR>(_alloca(cchLen * sizeof(TCHAR)));
+			if( pstr != NULL ) {
+				::GetWindowText(m_hWnd, pstr, cchLen);
+				m_pOwner->m_sText = pstr;
+				m_pOwner->OnNativeEditChanged();
+			}
+		}
+		m_bInit = false;
+
+		// 立刻隐藏并摘掉指针，让失焦自绘马上能画（不要等异步 WM_CLOSE）
+		::ShowWindow(m_hWnd, SW_HIDE);
+		if( m_pOwner != NULL ) {
+			if( m_pOwner->m_pWindow == this )
+				m_pOwner->m_pWindow = NULL;
+			m_pOwner->Invalidate();
+		}
+
 		LRESULT lRes = ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 		PostMessage(WM_CLOSE);
 		return lRes;
@@ -231,7 +269,7 @@ namespace DuiLib
 		if( pstr == NULL ) return 0;
 		::GetWindowText(m_hWnd, pstr, cchLen);
 		m_pOwner->m_sText = pstr;
-		m_pOwner->GetManager()->SendNotify(m_pOwner, DUI_MSGTYPE_TEXTCHANGED);
+		m_pOwner->OnNativeEditChanged();
 		if( m_pOwner->GetManager()->IsLayered() ) m_pOwner->Invalidate();
 		return 0;
 	}
@@ -376,8 +414,25 @@ namespace DuiLib
 
 	void CEditUI::SetText(LPCTSTR pstrText)
 	{
+		if( pstrText == NULL ) pstrText = _T("");
+		// 相同内容不要 Edit_SetText：Windows 会把光标打回开头
+		if( m_sText == pstrText ) {
+			if( m_pWindow != NULL ) {
+				int cch = ::GetWindowTextLength(*m_pWindow) + 1;
+				LPTSTR pstr = static_cast<LPTSTR>(_alloca(cch * sizeof(TCHAR)));
+				if( pstr != NULL ) {
+					::GetWindowText(*m_pWindow, pstr, cch);
+					if( m_sText == pstr ) return;
+				}
+			}
+			else return;
+		}
 		m_sText = pstrText;
-		if( m_pWindow != NULL ) Edit_SetText(*m_pWindow, m_sText);
+		if( m_pWindow != NULL ) {
+			Edit_SetText(*m_pWindow, m_sText);
+			int nLen = ::GetWindowTextLength(*m_pWindow);
+			Edit_SetSel(*m_pWindow, nLen, nLen);
+		}
 		Invalidate();
 	}
 
@@ -421,6 +476,16 @@ namespace DuiLib
 	bool CEditUI::IsNumberOnly() const
 	{
 		return (m_iWindowStyls & ES_NUMBER) ? true:false;
+	}
+
+	int CEditUI::GetNativeEditRightReserve() const
+	{
+		return 0;
+	}
+
+	void CEditUI::OnNativeEditChanged()
+	{
+		if( m_pManager ) m_pManager->SendNotify(this, DUI_MSGTYPE_TEXTCHANGED);
 	}
 
 	int CEditUI::GetWindowStyls() const 
@@ -681,8 +746,8 @@ namespace DuiLib
 
 	void CEditUI::PaintText(IRenderContext& ctx)
 	{
-		// 聚焦时由原生 WC_EDIT 绘制；失焦自绘走 GDI ClearType，
-		// 避免 D2D 预乘 RT 只能灰度抗锯齿导致文字发糊。
+		// 聚焦且原生 Edit 仍在时由 WC_EDIT 绘制；否则自绘。
+		// 走 ctx.DrawText（与 Label 一致），避免 GetDC+圆角裁剪栈导致文字画不上。
 		if( m_pWindow != NULL ) return;
 
 		DWORD mCurTextColor = m_dwColor;
@@ -715,12 +780,12 @@ namespace DuiLib
 		rc.right -= rcPad.right + rcTextPadding.right;
 		rc.top += rcPad.top + rcTextPadding.top;
 		rc.bottom -= rcPad.bottom + rcTextPadding.bottom;
+		int nReserve = GetNativeEditRightReserve();
+		if( nReserve > 0 && m_pManager )
+			rc.right -= m_pManager->GetDPIObj()->Scale(nReserve);
+		if( rc.right < rc.left + 4 ) rc.right = rc.left + 4;
 
 		DWORD clrColor = IsEnabled() ? mCurTextColor : m_dwDisabledColor;
-		HDC hDC = ctx.GetDC();
-		if( hDC != NULL && m_pManager != NULL )
-			CRenderEngine::DrawText(hDC, m_pManager, rc, sDrawText, clrColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
-		else
-			ctx.DrawText(rc, sDrawText, clrColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sDrawText, clrColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 }

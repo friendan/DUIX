@@ -134,6 +134,15 @@ void CMainWnd::InitWindow()
 	m_pSkinBtn = static_cast<CButtonUI*>(m_pm.FindControl(_T("skinbtn")));
 
 	m_trayIcon.CreateTrayIcon(m_hWnd, IDR_MAINFRAME, _T("Duilib演示大全"));
+
+	CControlUI* pVListCtrl = m_pm.FindControl(_T("vlist"));
+	CVirtualListUI* pVList = pVListCtrl
+		? static_cast<CVirtualListUI*>(pVListCtrl->GetInterface(DUI_CTR_VIRTUALLIST))
+		: NULL;
+	if( pVList != NULL ) {
+		pVList->SetCallback(&m_vlistCallback);
+		if( pVList->GetItemCount() <= 0 ) pVList->SetItemCount(100000);
+	}
 }
 
 BOOL CMainWnd::Receive(SkinChangedParam param)
@@ -235,6 +244,17 @@ void CMainWnd::Notify(TNotifyUI& msg)
 		}
 		return;
 	}
+	else if( msg.sType == DUI_MSGTYPE_ITEMSELECT )
+	{
+		if( msg.pSender && msg.pSender->GetName() == _T("vlist") ) {
+			CLabelUI* pStatus = static_cast<CLabelUI*>(m_pm.FindControl(_T("vlist_status")));
+			if( pStatus != NULL ) {
+				CDuiString s;
+				s.Format(_T("选中: %d"), (int)msg.wParam + 1);
+				pStatus->SetText(s);
+			}
+		}
+	}
 	else if( msg.sType == _T("textchanged") )
 	{
 		CEditUI* pEdit = (CEditUI*)msg.pSender;
@@ -293,21 +313,29 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	
 	else if(msg.sType==_T("selectchanged"))
 	{
-		CTabLayoutUI* pTabSwitch = static_cast<CTabLayoutUI*>(m_pm.FindControl(_T("tab_switch")));
-		if(name.CompareNoCase(_T("basic_tab")) == 0) pTabSwitch->SelectItem(0);
-		if(name.CompareNoCase(_T("rich_tab")) == 0) pTabSwitch->SelectItem(1);
-		if(name.CompareNoCase(_T("ex_tab")) == 0) pTabSwitch->SelectItem(2);
-		if(name.CompareNoCase(_T("ani_tab")) == 0) pTabSwitch->SelectItem(3);
-		if(name.CompareNoCase(_T("split_tab")) == 0) pTabSwitch->SelectItem(4);
-		if(name.CompareNoCase(_T("layout_tab")) == 0) pTabSwitch->SelectItem(5);
+		// 左侧大类导航 → 右侧 TabLayout
+		CTabLayoutUI* pTabDemo = static_cast<CTabLayoutUI*>(m_pm.FindControl(_T("tab_demo")));
+		if( pTabDemo != NULL ) {
+			if(name.CompareNoCase(_T("nav_basic")) == 0) pTabDemo->SelectItem(0);
+			else if(name.CompareNoCase(_T("nav_form")) == 0) pTabDemo->SelectItem(1);
+			else if(name.CompareNoCase(_T("nav_layout")) == 0) pTabDemo->SelectItem(2);
+			else if(name.CompareNoCase(_T("nav_feedback")) == 0) pTabDemo->SelectItem(3);
+			else if(name.CompareNoCase(_T("nav_list")) == 0) pTabDemo->SelectItem(4);
+			else if(name.CompareNoCase(_T("nav_misc")) == 0) pTabDemo->SelectItem(5);
+		}
 	}
 	else if(msg.sType == _T("valuechanged"))
 	{
-		CProgressUI* pSlider = static_cast<CProgressUI*>(m_pm.FindControl(_T("slider")));
-		CProgressUI* pPro1 = static_cast<CProgressUI*>(m_pm.FindControl(_T("progress")));
-		CProgressUI* pPro2 = static_cast<CProgressUI*>(m_pm.FindControl(_T("circle_progress")));
-		pPro1->SetValue(pSlider->GetValue());
-		pPro2->SetValue(pSlider->GetValue());
+		// 仅同步主页 Slider→Progress；DateTime 等也会发 valuechanged
+		if( msg.pSender != NULL && name.CompareNoCase(_T("slider")) == 0 )
+		{
+			CProgressUI* pSlider = static_cast<CProgressUI*>(msg.pSender->GetInterface(DUI_CTR_SLIDER));
+			if( pSlider == NULL ) pSlider = static_cast<CProgressUI*>(msg.pSender->GetInterface(DUI_CTR_PROGRESS));
+			CProgressUI* pPro1 = static_cast<CProgressUI*>(m_pm.FindControl(_T("progress")));
+			CProgressUI* pPro2 = static_cast<CProgressUI*>(m_pm.FindControl(_T("circle_progress")));
+			if( pSlider != NULL && pPro1 != NULL ) pPro1->SetValue(pSlider->GetValue());
+			if( pSlider != NULL && pPro2 != NULL ) pPro2->SetValue(pSlider->GetValue());
+		}
 	}
 	else if(msg.sType == _T("predropdown") && name == _T("font_size"))
 	{
@@ -438,6 +466,16 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("btn_layout_test")) == 0)
 	{
 		CLayoutTestWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_loading_start")) == 0)
+	{
+		CLoadingUI* p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_demo")));
+		if( p ) p->Start();
+	}
+	else if(sName.CompareNoCase(_T("btn_loading_stop")) == 0)
+	{
+		CLoadingUI* p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_demo")));
+		if( p ) p->Stop();
 	}
 	else if(sName.CompareNoCase(_T("btn_toast_success")) == 0)
 	{

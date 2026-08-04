@@ -24,6 +24,9 @@ namespace DuiLib
 		bool ret = CContainerUI::Add(pControl);
 		if( !ret ) return ret;
 
+		// 动态加入时父级可见，但子项可能被 CContainerUI::Add 标成 InternVisible=false
+		pControl->SetInternVisible(true);
+
 		if(m_iCurSel == -1 && pControl->IsVisible())
 		{
 			m_iCurSel = GetItemIndex(pControl);
@@ -113,15 +116,27 @@ namespace DuiLib
 	bool CTabLayoutUI::SelectItem(int iIndex)
 	{
 		if( iIndex < 0 || iIndex >= m_items.GetSize() ) return false;
-		if( iIndex == m_iCurSel ) return true;
+		if( iIndex == m_iCurSel ) {
+			// 同页再选：仍确保可见（动态 Add 时可能只改了 m_bVisible / InternVisible）
+			CControlUI* pSel = GetItemAt(iIndex);
+			if( pSel != NULL ) {
+				if( !pSel->IsVisible() ) {
+					pSel->SetInternVisible(true);
+					pSel->SetVisible(true);
+				}
+			}
+			return true;
+		}
 
 		int iOldSel = m_iCurSel;
 		m_iCurSel = iIndex;
 		for( int it = 0; it < m_items.GetSize(); it++ )
 		{
 			if( it == iIndex ) {
-				GetItemAt(it)->SetVisible(true);
-				GetItemAt(it)->SetFocus();
+				CControlUI* p = GetItemAt(it);
+				p->SetInternVisible(true);
+				p->SetVisible(true);
+				p->SetFocus();
 			}
 			else GetItemAt(it)->SetVisible(false);
 		}

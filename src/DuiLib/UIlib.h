@@ -81,6 +81,7 @@
 #include "Layout/UIFlowLayout.h"
 
 #include "Control/UIList.h"
+#include "Control/UIVirtualList.h"
 #include "Control/UICombo.h"
 #include "Control/UIScrollBar.h"
 #include "Control/UISpacer.h"
@@ -101,6 +102,13 @@
 #include "Control/UILabel.h"
 #include "Control/UIText.h"
 #include "Control/UIEdit.h"
+#include "Control/UISpin.h"
+#include "Control/UISegmented.h"
+#include "Control/UIBadge.h"
+#include "Control/UITransfer.h"
+#include "Control/UIRate.h"
+#include "Control/UIEmpty.h"
+#include "Control/UISkeleton.h"
 #include "Control/UIGifAnim.h"
 #include "Control/UIGifAnimEx.h"
 
@@ -108,6 +116,8 @@
 #include "Layout/UIAnimationTabLayout.h"
 #include "Control/UIButton.h"
 #include "Control/UIOption.h"
+#include "Control/UISwitch.h"
+#include "Control/UIImage.h"
 
 #include "Control/UIProgress.h"
 #include "Control/UISlider.h"
@@ -115,10 +125,13 @@
 #include "Control/UIComboBox.h"
 #include "Control/UIRichEdit.h"
 #include "Control/UIDateTime.h"
+#include "Control/UISteps.h"
+#include "Control/UITimeline.h"
 #include "Control/UIIPAddress.h"
 #include "Control/UIIPAddressEx.h"
 
 #include "Control/UIActiveX.h"
+#include "Control/IWebBrowserEngine.h"
 #include "Control/UIWebBrowser.h"
 #include "Control/UIFlash.h"
 

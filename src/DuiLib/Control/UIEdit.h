@@ -32,6 +32,11 @@ namespace DuiLib
 		bool IsNumberOnly() const;
 		int GetWindowStyls() const;
 
+		/// 原生编辑区右侧预留（Spin 按钮等），逻辑像素，CalPos 内会 Scale。
+		virtual int GetNativeEditRightReserve() const;
+		/// 原生 Edit 文本已写回 m_sText 后回调（可重载做数值解析）。
+		virtual void OnNativeEditChanged();
+
 		LPCTSTR GetImage();
 		void SetImage(LPCTSTR pStrImage);
 		LPCTSTR GetHoverImage();
