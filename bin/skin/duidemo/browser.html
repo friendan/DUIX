@@ -12,8 +12,8 @@
             <Svg name="refreshBtn" bsicon="arrow-repeat" width="24" height="24" color="#C8C8C8FF" color-hover="#FF0000FF" />
             <Svg name="homeBtn" tabler-outline="home" width="24" height="24" color="#C8C8C8FF" color-hover="#FF0000FF" />
             <Spacer width="10" />
-            <Edit name="urlBox" placeholder="test..." />
-            <!-- <Spacer width="10" /> -->
+            <Edit name="urlBox" placeholder="输入网址后回车" maxlength="2048" flexible="true" />
+            <Button name="goBtn" text="转到" width="52" height="28" />
             <Svg name="menuBtn" tabler-outline="dots-vertical" width="24" height="24" color="#C8C8C8FF" color-hover="#FF0000FF" />
         </HBox>
         <!-- 第三行：侧边栏 + 页面 -->
@@ -81,6 +81,7 @@
     #addressBar { height: 40; padding: 0,8,0,8; gap: 6; align-items: vcenter; background-color: #282832FF; }
 
     #urlBox { height: 28; padding: 4,10,4,10; border-radius: 7,7; border-width: 1; border-color: #464650FF; background-color: #101014FF; native-background-color: #101014FF; color: #FFFFFFFF; native-color: #FFFFFFFF; placeholder-color: #C0C0C8FF; }
+    #goBtn { height: 28; padding: 0,8,0,8; border-radius: 6,6; background-color: #3C3C46FF; color: #FFFFFFFF; background-color-hover: #50505AFF; }
 
     #sideToolBar {
         width: 48;

@@ -32,6 +32,8 @@
 
 失焦自绘文字走 **GDI ClearType**（`GetDC`），与聚焦时原生 `WC_EDIT` 观感一致；D2D 预乘目标上无法 ClearType。
 
+需要 **上下步进 / 小数 / min·max** 时用 [Spin / Number](Spin.md)，不要只用 `type="number"`。
+
 ### 非标准
 
 | 属性 | 说明 | HTML/CSS 对照 |

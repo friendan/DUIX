@@ -24,9 +24,21 @@
 | Label | [Label.md](Label.md) | `src/DuiLib/Control/UILabel.*` |
 | Button | [Button.md](Button.md) | `src/DuiLib/Control/UIButton.*` |
 | Option / CheckBox | [Option.md](Option.md) | `src/DuiLib/Control/UIOption.*` |
+| Switch | [Switch.md](Switch.md) | `src/DuiLib/Control/UISwitch.*` |
+| Spin / Number | [Spin.md](Spin.md) | `src/DuiLib/Control/UISpin.*` |
+| Segmented | [Segmented.md](Segmented.md) | `src/DuiLib/Control/UISegmented.*` |
+| Badge / Tag | [Badge.md](Badge.md) | `src/DuiLib/Control/UIBadge.*` |
+| Transfer | [Transfer.md](Transfer.md) | `src/DuiLib/Control/UITransfer.*` |
+| Rate | [Rate.md](Rate.md) | `src/DuiLib/Control/UIRate.*` |
+| Empty | [Empty.md](Empty.md) | `src/DuiLib/Control/UIEmpty.*` |
+| Skeleton | [Skeleton.md](Skeleton.md) | `src/DuiLib/Control/UISkeleton.*` |
+| Image / Avatar | [Image.md](Image.md) | `src/DuiLib/Control/UIImage.*` |
+| Steps | [Steps.md](Steps.md) | `src/DuiLib/Control/UISteps.*` |
+| Timeline | [Timeline.md](Timeline.md) | `src/DuiLib/Control/UITimeline.*` |
 | Edit | [Edit.md](Edit.md) | `src/DuiLib/Control/UIEdit.*` |
 | RichEdit | [RichEdit.md](RichEdit.md) | `src/DuiLib/Control/UIRichEdit.*` |
 | List 族 | [List.md](List.md) | `src/DuiLib/Control/UIList.*`、`UIListEx.*` |
+| VirtualList | [VirtualList.md](VirtualList.md) | `src/DuiLib/Control/UIVirtualList.*` |
 | Combo / ComboBox | [Combo.md](Combo.md) | `src/DuiLib/Control/UICombo.*` |
 | ScrollBar | [ScrollBar.md](ScrollBar.md) | `src/DuiLib/Control/UIScrollBar.*` |
 | Progress / Slider | [Progress.md](Progress.md) | `UIProgress.*`、`UISlider.*` |
@@ -37,9 +49,20 @@
 | Menu | [Menu.md](Menu.md) | `src/DuiLib/Control/UIMenu.*` |
 | TabBar / TabButton | [TabBar.md](TabBar.md) | `UITabBar.*`、`UITabButton.*` |
 | TitleBar | [TitleBar.md](TitleBar.md) | `src/DuiLib/Control/UITitleBar.*` |
+| HotKey | [HotKey.md](HotKey.md) | `src/DuiLib/Control/UIHotKey.*` |
+| GroupBox | [GroupBox.md](GroupBox.md) | `src/DuiLib/Control/UIGroupBox.*` |
+| Ring | [Ring.md](Ring.md) | `src/DuiLib/Control/UIRing.*` |
+| FadeButton | [FadeButton.md](FadeButton.md) | `src/DuiLib/Control/UIFadeButton.*` |
+| RollText | [RollText.md](RollText.md) | `src/DuiLib/Control/UIRollText.*` |
+| IPAddress / IPAddressEx | [IPAddress.md](IPAddress.md) | `UIIPAddress.*`、`UIIPAddressEx.*` |
+| DateTime | [DateTime.md](DateTime.md) | `src/DuiLib/Control/UIDateTime.*` |
+| ActiveX | [ActiveX.md](ActiveX.md) | `src/DuiLib/Control/UIActiveX.*` |
+| WebBrowser | [WebBrowser.md](WebBrowser.md) | `src/DuiLib/Control/UIWebBrowser.*` |
+| GifAnim / GifAnimEx | [GifAnim.md](GifAnim.md) | `UIGifAnim.*`、`UIGifAnimEx.*` |
+| Loading | [Loading.md](Loading.md) | `src/DuiLib/Control/UILoading.*` |
+| ColorPalette | [ColorPalette.md](ColorPalette.md) | `src/DuiLib/Control/UIColorPalette.*` |
 | PageControl | [PageControl.md](PageControl.md) | `src/DuiLib/Control/UIPageControl.*` |
 | Toast | [Toast.md](Toast.md) | `src/DuiLib/Control/UIToast.*` |
 | Modal | [Modal.md](Modal.md) | `src/DuiLib/Control/UIModal.*` |
-| 其它（ActiveX / Web / Gif / Loading…） | [Misc.md](Misc.md) | `src/DuiLib/Control/*` |
 
 后续新控件：在此表追加一行，并新增同名 md（用法）或并入对应符合度页。

@@ -7,6 +7,7 @@
 - Clang-cl（随 VS 安装的 LLVM 工具链）
 - CMake 3.10+
 - Ninja
+- （可选）WebView2 SDK：默认 `src/3rd/webview2/pkg`；或设 `WEBVIEW2_SDK_PATH`。运行时需 Edge WebView2 Runtime。CMake：`DUILIB_USE_WEBVIEW2`（默认 ON，静态链接 `WebView2LoaderStatic`）
 
 ## 目录结构
 
@@ -58,7 +59,7 @@ Release：
 build_clang_ninja_release.bat
 ```
 
-产物输出到 `bin/` 目录，Debug 版本后缀 `_dbg`。
+产物输出到 `bin/` 目录：Debug 静态 CRT `/MTd`、后缀 `_mtd`；Release 静态 CRT `/MT`、后缀 `_mt`。
 
 ## init_env.bat
 
@@ -74,8 +75,9 @@ build_clang_ninja_release.bat
 - 编译器：clang-cl（MSVC 兼容模式）
 - 构建系统：Ninja
 - C++ 标准：C++11
+- CRT：Debug `/MTd`，Release `/MT`
 - 预定义宏：`CMAKE`, `UNICODE`, `_UNICODE`
-- 输出目录：`bin/`（exe、dll、lib 统一输出）
+- 输出目录：`bin/`（exe、dll、lib 统一输出；后缀 `_mtd` / `_mt`）
 
 ## 渲染后端
 
@@ -109,13 +111,13 @@ build_clang_ninja_release.bat
 
 ### 改动后冒烟清单
 
-改 Present / Flush / GetDC / 裁剪 / 分层 / 图缓存后，至少手工过一遍（Debug：`bin\*_dbg.exe`）：
+改 Present / Flush / GetDC / 裁剪 / 分层 / 图缓存后，至少手工过一遍（Debug：`bin\*_mtd.exe`）：
 
 | # | 程序 | 检查项 |
 |---|------|--------|
-| 1 | `duidemo_dbg.exe` | 启动非黑屏；主界面皮肤/按钮圆角/文字正常；切换 Tab/列表滚动无明显花屏 |
-| 2 | `duidemo_dbg.exe` | 含 Html 文本、图片按钮的页面；悬停/按下态图正常 |
-| 3 | `HiDPITest_dbg.exe` | 启动有内容（非大块空白）；改 DPI/缩放后控件与文字不错位、不整区空白 |
+| 1 | `duidemo_mtd.exe` | 启动非黑屏；主界面皮肤/按钮圆角/文字正常；切换 Tab/列表滚动无明显花屏 |
+| 2 | `duidemo_mtd.exe` | 含 Html 文本、图片按钮的页面；悬停/按下态图正常 |
+| 3 | `HiDPITest_mtd.exe` | 启动有内容（非大块空白）；改 DPI/缩放后控件与文字不错位、不整区空白 |
 | 4 | （若有）ColorPalette 相关页 | 色板/滑条绘制正常（走 D2D `StretchBlit`，勿再整帧 Flush） |
 
 **失败信号**：整窗黑色、客户区大块空白、分层变不透明黑块、悬停图不刷新、HiDPI 裁剪后空白 → 先怀疑 EndFrame sync / Present / GetDC Interop / RoundClip，而不是单个控件逻辑。

@@ -101,6 +101,7 @@
 | [Edit.md](Edit.md) | Edit |
 | [RichEdit.md](RichEdit.md) | RichEdit |
 | [List.md](List.md) | List 族 |
+| [VirtualList.md](VirtualList.md) | VirtualList |
 | [Combo.md](Combo.md) | Combo |
 | [ScrollBar.md](ScrollBar.md) | ScrollBar |
 | [Progress.md](Progress.md) | Progress / Slider |
@@ -110,9 +111,32 @@
 | [TreeView.md](TreeView.md) | TreeView |
 | [Menu.md](Menu.md) | Menu |
 | [TabBar.md](TabBar.md) | TabBar / TabButton |
+| [TitleBar.md](TitleBar.md) | TitleBar |
+| [HotKey.md](HotKey.md) | HotKey |
+| [GroupBox.md](GroupBox.md) | GroupBox |
+| [Ring.md](Ring.md) | Ring |
+| [FadeButton.md](FadeButton.md) | FadeButton |
+| [RollText.md](RollText.md) | RollText |
+| [IPAddress.md](IPAddress.md) | IPAddress |
+| [DateTime.md](DateTime.md) | DateTime |
+| [ActiveX.md](ActiveX.md) | ActiveX |
+| [WebBrowser.md](WebBrowser.md) | WebBrowser |
+| [GifAnim.md](GifAnim.md) | GifAnim |
+| [Loading.md](Loading.md) | Loading |
+| [ColorPalette.md](ColorPalette.md) | ColorPalette |
 | [PageControl.md](PageControl.md) | PageControl |
 | [Toast.md](Toast.md) / [Modal.md](Modal.md) | C++ API |
-| [Misc.md](Misc.md) | ActiveX、WebBrowser、Gif、Loading 等 |
+| [Switch.md](Switch.md) | Switch |
+| [Spin.md](Spin.md) | Spin / Number |
+| [Segmented.md](Segmented.md) | Segmented |
+| [Badge.md](Badge.md) | Badge / Tag |
+| [Transfer.md](Transfer.md) | Transfer |
+| [Rate.md](Rate.md) | Rate |
+| [Empty.md](Empty.md) | Empty |
+| [Skeleton.md](Skeleton.md) | Skeleton |
+| [Image.md](Image.md) | Img / Avatar |
+| [Steps.md](Steps.md) | Steps |
+| [Timeline.md](Timeline.md) | Timeline |
 
 ## 图例（各控件页）
 

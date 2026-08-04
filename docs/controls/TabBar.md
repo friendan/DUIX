@@ -190,4 +190,4 @@ TabBar / TabButton **几乎全部专用属性均为非标准**（桌面标签栏
 
 - 实现：`src/DuiLib/Control/UITabBar.cpp`、`UITabButton.cpp`
 - 测试窗：`TabBarTestWnd.*` + `tabbartest.html`；浏览器壳：`BrowserWnd.*` + `browser.html`
-- 编译：`build_clang_ninja_debug.bat` → `bin\duidemo_dbg.exe`
+- 编译：`build_clang_ninja_debug.bat` → `bin\duidemo_mtd.exe`
