@@ -1,10 +1,21 @@
 #include "StdAfx.h"
 #include "IconBrowserWnd.h"
 #include "Icons/UIIconEntry.h"
+#include "Core/UITheme.h"
 #include <algorithm>
 #include <map>
 
 namespace {
+
+	DWORD IconBrowserThemeToken(LPCTSTR pstrName, DWORD dwFallback)
+	{
+		CThemeManager* pTm = CThemeManager::GetInstance();
+		if( pTm == NULL ) return dwFallback;
+		CTheme* pTh = pTm->GetCurrentTheme();
+		if( pTh == NULL ) pTh = pTm->FindTheme(pTm->GetDefaultThemeId());
+		if( pTh == NULL ) return dwFallback;
+		return pTh->GetToken(pstrName, dwFallback);
+	}
 
 	class CIconCellUI : public CVerticalLayoutUI
 	{
@@ -12,6 +23,7 @@ namespace {
 		CIconCellUI()
 			: m_bPushed(false)
 			, m_bHot(false)
+			, m_dwHotBk(IconBrowserThemeToken(_T("color-bg-hover"), 0xDCDCE1FF))
 		{
 			SetCursor(DUI_HAND);
 		}
@@ -41,20 +53,20 @@ namespace {
 			if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK ) {
 				if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() ) {
 					m_bPushed = true;
-					SetBackgroundColor(0xDCDCE1FF);
+					SetBackgroundColor(m_dwHotBk);
 				}
 				return;
 			}
 			if( event.Type == UIEVENT_BUTTONUP ) {
 				bool bClick = m_bPushed && ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled();
 				m_bPushed = false;
-				SetBackgroundColor(m_bHot ? 0xDCDCE1FF : 0);
+				SetBackgroundColor(m_bHot ? m_dwHotBk : 0);
 				if( bClick ) Activate();
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSEENTER ) {
 				m_bHot = true;
-				if( !m_bPushed ) SetBackgroundColor(0xDCDCE1FF);
+				if( !m_bPushed ) SetBackgroundColor(m_dwHotBk);
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSELEAVE ) {
@@ -69,6 +81,7 @@ namespace {
 	private:
 		bool m_bPushed;
 		bool m_bHot;
+		DWORD m_dwHotBk;
 	};
 
 } // namespace
@@ -151,6 +164,9 @@ void CIconBrowserWnd::UpdateTitle(LPCTSTR pstrExtra)
 
 	if( m_pTitleLabel != NULL )
 		m_pTitleLabel->SetText(s);
+	CTitleBarUI* pTitleBar = static_cast<CTitleBarUI*>(m_pm.FindControl(_T("titlebar")));
+	if( pTitleBar != NULL )
+		pTitleBar->SetTitle(s);
 	// 只脏标题文字时，与列表脏区并集的外包盒会盖住关闭按钮，但更新区不含该按钮；
 	// D2D Flush 丢窗口裁剪后列表可能画进关闭按钮，出现横条/上下半截。整条 titlebar 一起脏掉。
 	CControlUI* pBar = m_pm.FindControl(_T("titlebar"));
@@ -213,7 +229,7 @@ CControlUI* CIconBrowserWnd::CreateHeaderRow(LPCTSTR pstrText)
 {
 	CHorizontalLayoutUI* pHeader = new CHorizontalLayoutUI;
 	pHeader->SetFixedHeight(ROW_HEADER_H);
-	pHeader->SetBackgroundColor(0xE6E6EBFF);
+	pHeader->SetBackgroundColor(IconBrowserThemeToken(_T("color-bg-elevated"), 0xE6E6EBFF));
 
 	CControlUI* pPad = new CControlUI;
 	pPad->SetFixedWidth(10);
@@ -221,7 +237,7 @@ CControlUI* CIconBrowserWnd::CreateHeaderRow(LPCTSTR pstrText)
 
 	CLabelUI* pHdr = new CLabelUI;
 	pHdr->SetText(pstrText);
-	pHdr->SetColor(0x3C3C46FF);
+	pHdr->SetColor(IconBrowserThemeToken(_T("color-text-secondary"), 0x3C3C46FF));
 	pHdr->SetAttribute(_T("text-align"), _T("left"));
 	pHeader->Add(pHdr);
 	return pHeader;
@@ -242,11 +258,16 @@ CControlUI* CIconBrowserWnd::CreateIconCell(const IconEntry* pEntry)
 	sCopy.Format(_T("%s=\"%s\""), m_sAttr.GetData(), pEntry->name);
 	pCell->AddCustomAttribute(_T("copy-text"), sCopy.GetData());
 
+	DWORD dwIcon = IconBrowserThemeToken(_T("color-text"), 0x333333FF);
+	CDuiString sIconColor;
+	sIconColor.Format(_T("#%08X"), dwIcon);
+
 	CSvgBoxUI* pSvg = new CSvgBoxUI;
 	pSvg->SetFixedWidth(28);
 	pSvg->SetFixedHeight(28);
 	pSvg->SetMouseEnabled(false);
 	pSvg->SetAttribute(m_sAttr.GetData(), pEntry->name);
+	pSvg->SetAttribute(_T("color"), sIconColor.GetData());
 	pCell->Add(pSvg);
 
 	CLabelUI* pLabel = new CLabelUI;
@@ -255,7 +276,7 @@ CControlUI* CIconBrowserWnd::CreateIconCell(const IconEntry* pEntry)
 	pLabel->SetMouseEnabled(false);
 	pLabel->SetAttribute(_T("text-align"), _T("center"));
 	pLabel->SetAttribute(_T("text-overflow"), _T("ellipsis"));
-	pLabel->SetColor(0x50505AFF);
+	pLabel->SetColor(IconBrowserThemeToken(_T("color-text-secondary"), 0x50505AFF));
 	pCell->Add(pLabel);
 	return pCell;
 }

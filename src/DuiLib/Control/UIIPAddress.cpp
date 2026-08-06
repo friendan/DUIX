@@ -33,6 +33,7 @@ namespace DuiLib
 
 		void Init(CIPAddressUI* pOwner);
 		RECT CalPos();
+		void RefreshColors();
 
 		LPCTSTR GetWindowClassName() const;
 		LPCTSTR GetSuperClassName() const;
@@ -40,15 +41,37 @@ namespace DuiLib
 
 		LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 		LRESULT OnKillFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+		LRESULT OnCtlColor(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 	protected:
+		static void DisableVisualTheme(HWND hWnd);
+		static BOOL CALLBACK EnumDisableVisualTheme(HWND hWnd, LPARAM lParam);
+
 		CIPAddressUI* m_pOwner;
 		HBRUSH m_hBkBrush;
+		DWORD m_dwBrushColor;
 		bool m_bInit;
 	};
 
-	CIPAddressWnd::CIPAddressWnd() : m_pOwner(NULL), m_hBkBrush(NULL), m_bInit(false)
+	CIPAddressWnd::CIPAddressWnd() : m_pOwner(NULL), m_hBkBrush(NULL), m_dwBrushColor(0), m_bInit(false)
 	{
+	}
+
+	void CIPAddressWnd::DisableVisualTheme(HWND hWnd)
+	{
+		if( hWnd == NULL ) return;
+		typedef HRESULT (WINAPI *PFNSetWindowTheme)(HWND, LPCWSTR, LPCWSTR);
+		HMODULE hMod = ::GetModuleHandle(_T("uxtheme.dll"));
+		if( hMod == NULL ) hMod = ::LoadLibrary(_T("uxtheme.dll"));
+		if( hMod == NULL ) return;
+		PFNSetWindowTheme pfn = (PFNSetWindowTheme)::GetProcAddress(hMod, "SetWindowTheme");
+		if( pfn != NULL ) pfn(hWnd, L"", L"");
+	}
+
+	BOOL CALLBACK CIPAddressWnd::EnumDisableVisualTheme(HWND hWnd, LPARAM /*lParam*/)
+	{
+		DisableVisualTheme(hWnd);
+		return TRUE;
 	}
 
 	void CIPAddressWnd::Init(CIPAddressUI* pOwner)
@@ -66,6 +89,9 @@ namespace DuiLib
 				RECT rcPos = CalPos();
 				UINT uStyle = WS_CHILD | WS_TABSTOP | WS_GROUP;
 				Create(m_pOwner->GetManager()->GetPaintWindow(), NULL, uStyle, 0, rcPos);
+				// 关闭视觉样式，否则 SysIPAddress32 子 Edit 常忽略 CTLCOLOR 仍画系统白底
+				DisableVisualTheme(m_hWnd);
+				::EnumChildWindows(m_hWnd, EnumDisableVisualTheme, 0);
 			}
 			SetWindowFont(m_hWnd, m_pOwner->GetManager()->GetFontInfo(m_pOwner->GetFont())->hFont, TRUE);
 		}
@@ -73,6 +99,7 @@ namespace DuiLib
 		if (m_pOwner->GetText().IsEmpty())
 			m_pOwner->m_dwIP = GetLocalIpAddress();
 		::SendMessage(m_hWnd, IPM_SETADDRESS, 0, m_pOwner->m_dwIP);
+		RefreshColors();
 		::ShowWindow(m_hWnd, SW_SHOW);
 		::SetFocus(m_hWnd);
 
@@ -83,6 +110,23 @@ namespace DuiLib
 	{
 		CDuiRect rcPos = m_pOwner->GetPos();
 		return rcPos;
+	}
+
+	void CIPAddressWnd::RefreshColors()
+	{
+		if( m_hBkBrush != NULL ) {
+			::DeleteObject(m_hBkBrush);
+			m_hBkBrush = NULL;
+		}
+		m_dwBrushColor = 0;
+		if( m_hWnd != NULL ) {
+			::InvalidateRect(m_hWnd, NULL, TRUE);
+			HWND hChild = ::GetWindow(m_hWnd, GW_CHILD);
+			while( hChild != NULL ) {
+				::InvalidateRect(hChild, NULL, TRUE);
+				hChild = ::GetWindow(hChild, GW_HWNDNEXT);
+			}
+		}
 	}
 
 	LPCTSTR CIPAddressWnd::GetWindowClassName() const
@@ -101,6 +145,23 @@ namespace DuiLib
 		if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
 		m_pOwner->m_pWindow = NULL;
 		delete this;
+	}
+
+	LRESULT CIPAddressWnd::OnCtlColor(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		bHandled = TRUE;
+		HDC hDC = (HDC)wParam;
+		DWORD dwText = m_pOwner->GetNativeColor();
+		DWORD clrColor = m_pOwner->GetNativeBackgroundColor();
+		::SetBkMode(hDC, TRANSPARENT);
+		::SetTextColor(hDC, DuiColorToCOLORREF(dwText));
+		::SetBkColor(hDC, DuiColorToCOLORREF(clrColor));
+		if( m_hBkBrush == NULL || m_dwBrushColor != clrColor ) {
+			if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
+			m_hBkBrush = ::CreateSolidBrush(DuiColorToCOLORREF(clrColor));
+			m_dwBrushColor = clrColor;
+		}
+		return (LRESULT)m_hBkBrush;
 	}
 
 	LRESULT CIPAddressWnd::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -133,6 +194,24 @@ namespace DuiLib
 			{
 				lRes = OnKillFocus(uMsg, wParam, lParam, bHandled);
 			}
+		}
+		else if( uMsg == WM_CTLCOLOREDIT || uMsg == WM_CTLCOLORSTATIC
+			|| uMsg == OCM__BASE + WM_CTLCOLOREDIT || uMsg == OCM__BASE + WM_CTLCOLORSTATIC )
+		{
+			lRes = OnCtlColor(uMsg, wParam, lParam, bHandled);
+		}
+		else if( uMsg == WM_ERASEBKGND )
+		{
+			RECT rc = { 0 };
+			::GetClientRect(m_hWnd, &rc);
+			DWORD clrColor = m_pOwner->GetNativeBackgroundColor();
+			if( m_hBkBrush == NULL || m_dwBrushColor != clrColor ) {
+				if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
+				m_hBkBrush = ::CreateSolidBrush(DuiColorToCOLORREF(clrColor));
+				m_dwBrushColor = clrColor;
+			}
+			::FillRect((HDC)wParam, &rc, m_hBkBrush);
+			return 1;
 		}
 		else bHandled = FALSE;
 		if( !bHandled ) return CWindowWnd::HandleMessage(uMsg, wParam, lParam);
@@ -173,13 +252,16 @@ namespace DuiLib
 		m_bReadOnly = false;
 		m_pWindow = NULL;
 		m_nIPUpdateFlag=IP_UPDATE;
+		m_dwNativeBkColor = 0xFFFFFFFF;
+		m_dwNativeTextColor = 0x000000E0;
+		m_bNativeTextColorSet = false;
 		UpdateText();
 		m_nIPUpdateFlag = IP_NONE;
 	}
 
 	LPCTSTR CIPAddressUI::GetClass() const
 	{
-		return _T("DateTimeUI");
+		return _T("IPAddressUI");
 	}
 
 	LPVOID CIPAddressUI::GetInterface(LPCTSTR pstrName)
@@ -208,6 +290,36 @@ namespace DuiLib
 	bool CIPAddressUI::IsReadOnly() const
 	{
 		return m_bReadOnly;
+	}
+
+	void CIPAddressUI::SetNativeBackgroundColor(DWORD dwBackgroundColor)
+	{
+		if( m_dwNativeBkColor == dwBackgroundColor ) return;
+		m_dwNativeBkColor = dwBackgroundColor;
+		SyncNativeShellColors();
+	}
+
+	DWORD CIPAddressUI::GetNativeBackgroundColor() const
+	{
+		return m_dwNativeBkColor;
+	}
+
+	void CIPAddressUI::SetNativeColor(DWORD dwColor)
+	{
+		m_dwNativeTextColor = dwColor;
+		m_bNativeTextColorSet = true;
+		SyncNativeShellColors();
+	}
+
+	DWORD CIPAddressUI::GetNativeColor() const
+	{
+		if( m_bNativeTextColorSet ) return m_dwNativeTextColor;
+		return GetColor();
+	}
+
+	void CIPAddressUI::SyncNativeShellColors()
+	{
+		if( m_pWindow != NULL ) m_pWindow->RefreshColors();
 	}
 
 	void CIPAddressUI::UpdateText()
@@ -302,6 +414,17 @@ namespace DuiLib
 
 	void CIPAddressUI::SetAttribute( LPCTSTR pstrName, LPCTSTR pstrValue )
 	{
-		CLabelUI::SetAttribute(pstrName, pstrValue);
+		if( _tcsicmp(pstrName, _T("native-background-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetNativeBackgroundColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("native-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( ParseColorString(pstrValue, clrColor) ) SetNativeColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("readonly")) == 0 ) {
+			SetReadOnly(_tcsicmp(pstrValue, _T("true")) == 0);
+		}
+		else CLabelUI::SetAttribute(pstrName, pstrValue);
 	}
 }

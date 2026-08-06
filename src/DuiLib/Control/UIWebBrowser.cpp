@@ -74,10 +74,23 @@ namespace DuiLib
 	void CWebBrowserUI::SetHomePage(LPCTSTR lpszUrl)
 	{
 		m_sHomePage = lpszUrl ? lpszUrl : _T("");
+		if( m_sLocationUrl.IsEmpty() && !m_sHomePage.IsEmpty() )
+			m_sLocationUrl = m_sHomePage;
 	}
 
 	LPCTSTR CWebBrowserUI::GetHomePage() const
 	{
+		return m_sHomePage;
+	}
+
+	void CWebBrowserUI::SetLocationUrl(LPCTSTR lpszUrl)
+	{
+		m_sLocationUrl = lpszUrl ? lpszUrl : _T("");
+	}
+
+	LPCTSTR CWebBrowserUI::GetLocationUrl() const
+	{
+		if( !m_sLocationUrl.IsEmpty() ) return m_sLocationUrl;
 		return m_sHomePage;
 	}
 
@@ -215,7 +228,29 @@ namespace DuiLib
 	{
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		EnsureEngine();
-		if( m_pEngine ) m_pEngine->SetPos(m_rcItem);
+		if( m_pEngine == NULL ) return;
+
+		// 原生宿主 HWND 勿盖住窗口 size-box，否则右边/底边无法拖拽缩放
+		RECT rcHost = m_rcItem;
+		if( m_pManager != NULL ) {
+			HWND hWnd = m_pManager->GetPaintWindow();
+			if( hWnd != NULL && !::IsZoomed(hWnd) ) {
+				RECT rcClient = { 0 };
+				::GetClientRect(hWnd, &rcClient);
+				RECT sb = m_pManager->GetSizeBox();
+				if( rcHost.right > rcClient.right - sb.right )
+					rcHost.right = rcClient.right - sb.right;
+				if( rcHost.bottom > rcClient.bottom - sb.bottom )
+					rcHost.bottom = rcClient.bottom - sb.bottom;
+				if( rcHost.left < rcClient.left + sb.left )
+					rcHost.left = rcClient.left + sb.left;
+				if( rcHost.top < rcClient.top + sb.top )
+					rcHost.top = rcClient.top + sb.top;
+				if( rcHost.right < rcHost.left ) rcHost.right = rcHost.left;
+				if( rcHost.bottom < rcHost.top ) rcHost.bottom = rcHost.top;
+			}
+		}
+		m_pEngine->SetPos(rcHost);
 	}
 
 	void CWebBrowserUI::SetVisible(bool bVisible)
@@ -263,6 +298,7 @@ namespace DuiLib
 	void CWebBrowserUI::NavigateUrl(LPCTSTR lpszUrl)
 	{
 		if( lpszUrl == NULL || *lpszUrl == _T('\0') ) return;
+		m_sLocationUrl = lpszUrl;
 		EnsureEngine();
 		if( m_pEngine ) m_pEngine->Navigate(lpszUrl);
 		else m_sPendingUrl = lpszUrl;
@@ -302,6 +338,42 @@ namespace DuiLib
 	{
 		EnsureEngine();
 		if( m_pEngine ) m_pEngine->GoForward();
+	}
+
+	bool CWebBrowserUI::CanGoBack() const
+	{
+		return m_pEngine != NULL && m_pEngine->CanGoBack();
+	}
+
+	bool CWebBrowserUI::CanGoForward() const
+	{
+		return m_pEngine != NULL && m_pEngine->CanGoForward();
+	}
+
+	void CWebBrowserUI::Stop()
+	{
+		EnsureEngine();
+		if( m_pEngine ) m_pEngine->Stop();
+	}
+
+	bool CWebBrowserUI::QueryUrl(CDuiString& out) const
+	{
+		out.Empty();
+		if( m_pEngine != NULL && m_pEngine->GetUrl(out) && !out.IsEmpty() )
+			return true;
+		out = GetLocationUrl();
+		return !out.IsEmpty();
+	}
+
+	void CWebBrowserUI::ExecuteScript(LPCTSTR script)
+	{
+		EnsureEngine();
+		if( m_pEngine ) m_pEngine->ExecuteScript(script);
+	}
+
+	void CWebBrowserUI::DoMessageLoopWork()
+	{
+		if( m_pEngine ) m_pEngine->DoMessageLoopWork();
 	}
 
 	void* CWebBrowserUI::GetNative()

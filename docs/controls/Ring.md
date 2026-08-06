@@ -17,6 +17,8 @@
 <Ring width="48" height="48" background-image="loading_ring.png" />
 ```
 
+duidemo → 反馈 → Loading 旁有示例（资源 `skin/duidemo/loading_ring.png`）。
+
 ### 接近 HTML/CSS
 
 | 属性 | 说明 |

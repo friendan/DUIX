@@ -47,6 +47,12 @@ namespace DuiLib
 		, m_dwTabColor(0x8C8C8CFF)
 		, m_dwTabHoverColor(0x1677FFFF)
 		, m_dwTabSelectedColor(0x1677FFFF)
+		, m_dwTabIconColor(0)
+		, m_dwTabIconHoverColor(0)
+		, m_dwTabIconSelectedColor(0)
+		, m_dwTabLoadingColor(0)
+		, m_nTabLoadingTestDelay(0)
+		, m_sTabLoadingType(_T("spoke"))
 		, m_dwTabBorderColor(0)
 		, m_dwTabSelectedBorderColor(0x1677FFFF)
 		, m_dwTabSeparatorColor(0xD9D9D9FF)
@@ -239,9 +245,9 @@ namespace DuiLib
 			m_pBtnLeft->SetText(_T(""));
 			m_pBtnLeft->SetFixedWidth(m_nScrollBtnWidth);
 			m_pBtnLeft->SetKind(CONTROLKIND_NONE);
-			m_pBtnLeft->SetBackgroundColor(0xF5F5F5FF);
-			m_pBtnLeft->SetHoverBackgroundColor(0xECECECFF);
-			m_pBtnLeft->SetActiveBackgroundColor(0xE0E0E0FF);
+			m_pBtnLeft->SetBackgroundColor(GetChromeBackgroundColor());
+			m_pBtnLeft->SetHoverBackgroundColor(GetChromeHoverColor());
+			m_pBtnLeft->SetActiveBackgroundColor(GetChromeHoverColor());
 			m_pBtnLeft->SetMouseEnabled(false);
 			m_pBtnLeft->SetVisible(false);
 			CHorizontalLayoutUI::Add(m_pBtnLeft);
@@ -252,9 +258,9 @@ namespace DuiLib
 			m_pBtnRight->SetText(_T(""));
 			m_pBtnRight->SetFixedWidth(m_nScrollBtnWidth);
 			m_pBtnRight->SetKind(CONTROLKIND_NONE);
-			m_pBtnRight->SetBackgroundColor(0xF5F5F5FF);
-			m_pBtnRight->SetHoverBackgroundColor(0xECECECFF);
-			m_pBtnRight->SetActiveBackgroundColor(0xE0E0E0FF);
+			m_pBtnRight->SetBackgroundColor(GetChromeBackgroundColor());
+			m_pBtnRight->SetHoverBackgroundColor(GetChromeHoverColor());
+			m_pBtnRight->SetActiveBackgroundColor(GetChromeHoverColor());
 			m_pBtnRight->SetMouseEnabled(false);
 			m_pBtnRight->SetVisible(false);
 			CHorizontalLayoutUI::Add(m_pBtnRight);
@@ -291,8 +297,8 @@ namespace DuiLib
 			m_pBtnAdd->SetFixedWidth(m_nAddBtnWidth);
 			m_pBtnAdd->SetKind(CONTROLKIND_NONE);
 			m_pBtnAdd->SetBackgroundColor(GetChromeBackgroundColor());
-			m_pBtnAdd->SetHoverBackgroundColor(0xECECECFF);
-			m_pBtnAdd->SetActiveBackgroundColor(0xE0E0E0FF);
+			m_pBtnAdd->SetHoverBackgroundColor(GetChromeHoverColor());
+			m_pBtnAdd->SetActiveBackgroundColor(GetChromeHoverColor());
 			m_pBtnAdd->SetMouseEnabled(false);
 			m_pBtnAdd->SetVisible(false);
 			CHorizontalLayoutUI::Add(m_pBtnAdd);
@@ -316,6 +322,60 @@ namespace DuiLib
 	{
 		DWORD dwBk = GetBackgroundColor();
 		return (dwBk != 0) ? dwBk : 0xF5F5F5FF;
+	}
+
+	DWORD CTabBarUI::GetChromeHoverColor() const
+	{
+		if( m_dwTabHoverBackgroundColor != 0 ) return m_dwTabHoverBackgroundColor;
+		return 0xECECECFF;
+	}
+
+	DWORD CTabBarUI::GetChromeAccentColor() const
+	{
+		if( m_dwTabHoverColor != 0 ) return m_dwTabHoverColor;
+		if( m_dwTabSelectedColor != 0 ) return m_dwTabSelectedColor;
+		return 0x1677FFFF;
+	}
+
+	DWORD CTabBarUI::GetChromeIconColor() const
+	{
+		if( m_dwTabColor != 0 ) return m_dwTabColor;
+		return 0x333333FF;
+	}
+
+	DWORD CTabBarUI::GetChromeIconMutedColor() const
+	{
+		if( m_dwTabSeparatorColor != 0 ) return m_dwTabSeparatorColor;
+		return 0xB0B0B8FF;
+	}
+
+	void CTabBarUI::SyncThemeChromeButtons()
+	{
+		DWORD dwBk = GetChromeBackgroundColor();
+		DWORD dwHover = GetChromeHoverColor();
+		DWORD dwActive = (m_dwTabSelectedBackgroundColor != 0) ? m_dwTabSelectedBackgroundColor : dwHover;
+		DWORD dwIcon = GetChromeIconColor();
+		if( m_pBtnLeft != NULL ) {
+			m_pBtnLeft->SetBackgroundColor(dwBk);
+			m_pBtnLeft->SetHoverBackgroundColor(dwHover);
+			m_pBtnLeft->SetActiveBackgroundColor(dwActive);
+		}
+		if( m_pBtnRight != NULL ) {
+			m_pBtnRight->SetBackgroundColor(dwBk);
+			m_pBtnRight->SetHoverBackgroundColor(dwHover);
+			m_pBtnRight->SetActiveBackgroundColor(dwActive);
+		}
+		if( m_pBtnAdd != NULL ) {
+			m_pBtnAdd->SetBackgroundColor(dwBk);
+			m_pBtnAdd->SetHoverBackgroundColor(dwHover);
+			m_pBtnAdd->SetActiveBackgroundColor(dwActive);
+		}
+		if( m_pIconLeft != NULL ) m_pIconLeft->SetColor(dwIcon);
+		if( m_pIconRight != NULL ) m_pIconRight->SetColor(dwIcon);
+		if( m_pIconAdd != NULL ) m_pIconAdd->SetColor(dwIcon);
+		UpdateScrollButtonState();
+		UpdateAddButtonPos();
+		Invalidate();
 	}
 
 	void CTabBarUI::SetShowAdd(bool bShow)
@@ -977,22 +1037,45 @@ namespace DuiLib
 
 		SetActiveTab(iTabIndex, true);
 
-		// CMenuWnd 仍需一个最小 Window/Menu 壳；默认用内联串，不读磁盘文件
-		static LPCTSTR s_pszBuiltinMenuShell =
+		// DialogBuilder::_Parse 只遍历根的【子节点】，故壳用 Window，Menu 作其子节点
+		DWORD menuBg = 0xFFFFFFFF, menuBd = 0xD9D9D9FF, menuTx = 0x333333FF;
+		DWORD menuTxH = 0x1677FFFF, menuBgH = 0xE6F4FFFF, menuDis = 0xBFBFBFFF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL ) {
+				menuBg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), menuBg));
+				menuBd = th->GetToken(_T("color-border"), menuBd);
+				menuTx = th->GetToken(_T("color-text"), menuTx);
+				menuTxH = th->GetToken(_T("color-primary"), menuTxH);
+				menuBgH = th->GetToken(_T("color-bg-hover"), th->GetToken(_T("color-selection"), menuBgH));
+				menuDis = th->GetToken(_T("color-text-disabled"), menuDis);
+			}
+		}
+		CDuiString sBuiltinMenuShell;
+		sBuiltinMenuShell.Format(
 			_T("<Window>")
-			_T("<Default name=\"Menu\" shared=\"true\" value=\"border-width=&quot;1&quot; border-color=&quot;0xD9D9D9FF&quot; border-radius=&quot;2,2&quot; padding=&quot;4,4,4,4&quot; item-padding=&quot;0,14,0,14&quot; background-color=&quot;0xFFFFFFFF&quot; item-color=&quot;0x333333FF&quot; item-color-hover=&quot;0x1677FFFF&quot; item-background-color-hover=&quot;0xE6F4FFFF&quot; item-color-selected=&quot;0x1677FFFF&quot; item-background-color-selected=&quot;0xE6F4FFFF&quot; item-color-disabled=&quot;0xBFBFBFFF&quot;\" />")
-			_T("<Default name=\"MenuElement\" shared=\"true\" value=\"height=&quot;30&quot; line-padding=&quot;0,12,0,12&quot;\" />")
-			_T("<Menu/>")
-			_T("</Window>");
+			_T("<Menu border-width=\"1\" border-color=\"#%08X\" border-radius=\"2,2\" ")
+			_T("padding=\"4,4,4,4\" item-padding=\"0,14,0,14\" background-color=\"#%08X\" ")
+			_T("item-color=\"#%08X\" item-color-hover=\"#%08X\" ")
+			_T("item-background-color-hover=\"#%08X\" item-color-selected=\"#%08X\" ")
+			_T("item-background-color-selected=\"#%08X\" item-color-disabled=\"#%08X\" />")
+			_T("</Window>"),
+			menuBd, menuBg, menuTx, menuTxH, menuBgH, menuTxH, menuBgH, menuDis);
 
 		bool bCustom = !m_sContextMenuXml.IsEmpty();
-		STRINGorID xml = bCustom ? STRINGorID(m_sContextMenuXml.GetData()) : STRINGorID(s_pszBuiltinMenuShell);
+		STRINGorID xml = bCustom ? STRINGorID(m_sContextMenuXml.GetData()) : STRINGorID(sBuiltinMenuShell.GetData());
 		CMenuWnd* pMenuWnd = CMenuWnd::CreateMenu(NULL, xml, ptScreen, m_pManager, NULL,
 			eMenuAlignment_Left | eMenuAlignment_Top);
 		if( pMenuWnd == NULL ) return;
 
 		CMenuUI* pMenu = pMenuWnd->GetMenuUI();
-		if( pMenu == NULL ) return;
+		if( pMenu == NULL ) {
+			// Create 失败时 HWND 可能已无效，Close 内勿 ASSERT
+			pMenuWnd->Close();
+			return;
+		}
 
 		if( !bCustom )
 			BuildBuiltinContextMenu(pMenu);
@@ -1360,7 +1443,7 @@ namespace DuiLib
 		int mid = (rc.left + rc.right) / 2;
 		int x = (m_ptDragMouse.x >= mid) ? rc.right - 1 : rc.left;
 		RECT rcLine = { x, rc.top + 3, x, rc.bottom - 3 };
-		ctx.DrawLine(rcLine, 2, GetAdjustColor(0x1677FFFF));
+		ctx.DrawLine(rcLine, 2, GetAdjustColor(GetChromeAccentColor()));
 	}
 
 	void CTabBarUI::PaintDragGhost(IRenderContext& ctx)
@@ -1392,8 +1475,21 @@ namespace DuiLib
 		rcText.left += 12;
 		rcText.right -= 12;
 		CDuiString sTitle = pTab->GetTabTitle();
-		ctx.DrawText(rcText, sTitle.GetData(), GetAdjustColor(dwText), -1,
-			DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_END_ELLIPSIS);
+		UINT uStyle = DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_END_ELLIPSIS;
+		CDuiString sH = pTab->GetTitleTextAlign();
+		if( sH.IsEmpty() ) sH = m_sTabTextAlign;
+		if( sH.CompareNoCase(_T("center")) == 0 )
+			uStyle = (uStyle & ~(DT_LEFT | DT_RIGHT)) | DT_CENTER;
+		else if( sH.CompareNoCase(_T("right")) == 0 )
+			uStyle = (uStyle & ~(DT_LEFT | DT_CENTER)) | DT_RIGHT;
+		CDuiString sV = pTab->GetTitleVerticalAlign();
+		if( sV.IsEmpty() ) sV = m_sTabVerticalAlign;
+		if( sV.CompareNoCase(_T("top")) == 0 )
+			uStyle = (uStyle & ~(DT_VCENTER | DT_BOTTOM)) | DT_TOP;
+		else if( sV.CompareNoCase(_T("bottom")) == 0 )
+			uStyle = (uStyle & ~(DT_TOP | DT_VCENTER)) | DT_BOTTOM;
+		// vcenter / middle：保持默认 DT_VCENTER
+		ctx.DrawText(rcText, sTitle.GetData(), GetAdjustColor(dwText), -1, uStyle);
 	}
 
 	void CTabBarUI::RebuildTabListFromChildren()
@@ -1636,7 +1732,7 @@ namespace DuiLib
 
 		m_pBtnAdd->SetVisible(true);
 		DWORD dwChromeBk = GetChromeBackgroundColor();
-		m_pBtnAdd->SetBackgroundColor(m_bAddHover ? 0xECECECFF : dwChromeBk);
+		m_pBtnAdd->SetBackgroundColor(m_bAddHover ? GetChromeHoverColor() : dwChromeBk);
 		PlaceChromeFloat(m_pBtnAdd, rcAdd);
 
 		int iconSize = m_nAddBtnWidth - 10;
@@ -1647,7 +1743,7 @@ namespace DuiLib
 			int iy = (rcAdd.top + rcAdd.bottom - iconSize) / 2;
 			RECT rcIcon = { ix, iy, ix + iconSize, iy + iconSize };
 			m_pIconAdd->SetVisible(true);
-			m_pIconAdd->SetColor(m_bAddHover ? 0x1677FFFF : 0x595959FF);
+			m_pIconAdd->SetColor(m_bAddHover ? GetChromeAccentColor() : GetChromeIconColor());
 			m_pIconAdd->SetPos(rcIcon, false);
 		}
 	}
@@ -1663,15 +1759,15 @@ namespace DuiLib
 		if( !bLeft && m_nScrollHover < 0 ) m_nScrollHover = 0;
 		if( !bRight && m_nScrollHover > 0 ) m_nScrollHover = 0;
 		if( m_pIconLeft != NULL ) {
-			DWORD dwColor = 0xB0B0B8FF;
+			DWORD dwColor = GetChromeIconMutedColor();
 			if( bLeft )
-				dwColor = (m_nScrollHover < 0) ? 0x1677FFFF : 0x333333FF;
+				dwColor = (m_nScrollHover < 0) ? GetChromeAccentColor() : GetChromeIconColor();
 			m_pIconLeft->SetColor(dwColor);
 		}
 		if( m_pIconRight != NULL ) {
-			DWORD dwColor = 0xB0B0B8FF;
+			DWORD dwColor = GetChromeIconMutedColor();
 			if( bRight )
-				dwColor = (m_nScrollHover > 0) ? 0x1677FFFF : 0x333333FF;
+				dwColor = (m_nScrollHover > 0) ? GetChromeAccentColor() : GetChromeIconColor();
 			m_pIconRight->SetColor(dwColor);
 		}
 	}
@@ -2132,7 +2228,7 @@ namespace DuiLib
 					if( !::IntersectRect(&rcTemp, &rcPaint, &rcTab) ) continue;
 					if( !pTab->Paint(ctx, rcPaint, pStopControl) ) return false;
 					if( m_bDragging && i == m_nDragSrcIdx )
-						ctx.DrawColor(rcTab, GetAdjustColor(0xF5F5F599));
+						ctx.DrawColor(rcTab, GetAdjustColor(DuiColorSetA(GetChromeBackgroundColor(), 0x99)));
 				}
 			}
 		}
@@ -2149,7 +2245,7 @@ namespace DuiLib
 				if( !::IntersectRect(&rcTemp, &rcPaint, &rcTab) ) continue;
 				if( !pTab->Paint(ctx, rcPaint, pStopControl) ) return false;
 				if( m_bDragging && (int)i == m_nDragSrcIdx )
-					ctx.DrawColor(rcTab, GetAdjustColor(0xF5F5F599));
+					ctx.DrawColor(rcTab, GetAdjustColor(DuiColorSetA(GetChromeBackgroundColor(), 0x99)));
 			}
 		}
 
@@ -2162,17 +2258,18 @@ namespace DuiLib
 	void CTabBarUI::PaintChromeBackplates(IRenderContext& ctx, const RECT& rcPaint)
 	{
 		DWORD dwBk = GetChromeBackgroundColor();
+		DWORD dwHover = GetChromeHoverColor();
 		if( dwBk != 0 ) {
 			if( m_bOverflow && m_pBtnLeft != NULL && m_pBtnLeft->IsVisible() ) {
-				DWORD dwLeft = (m_nScrollHover < 0 && m_pBtnLeft->IsEnabled()) ? 0xECECECFF : dwBk;
+				DWORD dwLeft = (m_nScrollHover < 0 && m_pBtnLeft->IsEnabled()) ? dwHover : dwBk;
 				ctx.DrawColor(m_pBtnLeft->GetPos(), GetAdjustColor(dwLeft));
 			}
 			if( m_bOverflow && m_pBtnRight != NULL && m_pBtnRight->IsVisible() ) {
-				DWORD dwRight = (m_nScrollHover > 0 && m_pBtnRight->IsEnabled()) ? 0xECECECFF : dwBk;
+				DWORD dwRight = (m_nScrollHover > 0 && m_pBtnRight->IsEnabled()) ? dwHover : dwBk;
 				ctx.DrawColor(m_pBtnRight->GetPos(), GetAdjustColor(dwRight));
 			}
 			if( m_bShowAdd && m_pBtnAdd != NULL && m_pBtnAdd->IsVisible() ) {
-				DWORD dwAdd = m_bAddHover ? 0xECECECFF : dwBk;
+				DWORD dwAdd = m_bAddHover ? dwHover : dwBk;
 				ctx.DrawColor(m_pBtnAdd->GetPos(), GetAdjustColor(dwAdd));
 			}
 		}
@@ -2238,6 +2335,27 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("tab-color-selected")) == 0 ) {
 			SetTabSelectedColor(parseColor(pstrValue));
 		}
+		else if( _tcsicmp(pstrName, _T("tab-icon-color")) == 0
+			|| _tcsicmp(pstrName, _T("tab-icon-tint")) == 0 ) {
+			SetTabIconColor(parseColor(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("tab-icon-color-hover")) == 0
+			|| _tcsicmp(pstrName, _T("tab-icon-tint-hover")) == 0 ) {
+			SetTabIconHoverColor(parseColor(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("tab-icon-color-selected")) == 0
+			|| _tcsicmp(pstrName, _T("tab-icon-tint-selected")) == 0 ) {
+			SetTabIconSelectedColor(parseColor(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("tab-loading-type")) == 0 ) {
+			SetTabLoadingType(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("tab-loading-color")) == 0 ) {
+			SetTabLoadingColor(parseColor(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("tab-loading-test-delay")) == 0 ) {
+			SetTabLoadingTestDelay(_ttoi(pstrValue));
+		}
 		else if( _tcsicmp(pstrName, _T("tab-border-color")) == 0 ) {
 			SetTabBorderColor(parseColor(pstrValue));
 		}
@@ -2264,6 +2382,12 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("close-color-hover")) == 0 ) {
 			SetCloseHoverColor(parseColor(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("tab-text-align")) == 0 ) {
+			SetTabTextAlign(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("tab-vertical-align")) == 0 ) {
+			SetTabVerticalAlign(pstrValue);
 		}
 		else if( _tcsicmp(pstrName, _T("context-menu")) == 0 ) {
 			SetContextMenuXml(pstrValue);
@@ -2315,6 +2439,43 @@ namespace DuiLib
 	{
 		m_dwTabSelectedColor = dwColor;
 		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabIconColor(DWORD dwColor)
+	{
+		m_dwTabIconColor = dwColor;
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabIconHoverColor(DWORD dwColor)
+	{
+		m_dwTabIconHoverColor = dwColor;
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabIconSelectedColor(DWORD dwColor)
+	{
+		m_dwTabIconSelectedColor = dwColor;
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabLoadingType(LPCTSTR pstrType)
+	{
+		m_sTabLoadingType = pstrType ? pstrType : _T("spoke");
+		if( m_sTabLoadingType.IsEmpty() ) m_sTabLoadingType = _T("spoke");
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabLoadingColor(DWORD dwColor)
+	{
+		m_dwTabLoadingColor = dwColor;
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabLoadingTestDelay(int nMs)
+	{
+		if( nMs < 0 ) nMs = 0;
+		m_nTabLoadingTestDelay = nMs;
 	}
 
 	void CTabBarUI::SetTabBorderColor(DWORD dwColor)
@@ -2370,6 +2531,18 @@ namespace DuiLib
 	void CTabBarUI::SetCloseHoverColor(DWORD dwColor)
 	{
 		m_dwCloseHoverColor = dwColor;
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabTextAlign(LPCTSTR pstrAlign)
+	{
+		m_sTabTextAlign = pstrAlign ? pstrAlign : _T("");
+		RefreshTabStyles();
+	}
+
+	void CTabBarUI::SetTabVerticalAlign(LPCTSTR pstrAlign)
+	{
+		m_sTabVerticalAlign = pstrAlign ? pstrAlign : _T("");
 		RefreshTabStyles();
 	}
 }

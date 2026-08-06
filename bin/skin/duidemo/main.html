@@ -1,47 +1,35 @@
-<html>
+<html theme="chrome">
     <VBox name="root">
-        <TitleBar name="titlebar" title="title" height="40" background-color="#333333FF"
+        <TitleBar name="titlebar" title="title" height="40"
             show-min="true" show-max="true" show-close="true" action="title" />
         <HBox>
-            <!-- 左侧：大类导航 -->
-            <VBox width="168" background-color="#FAFAFAFF" border="0,0,1,0" bordercolor="#E8E8E8FF"
+            <!-- 左侧：大类导航（theme=panel；子 Option 继承 root chrome） -->
+            <VBox name="nav_panel" width="168" theme="panel" border="0,0,1,0"
                 padding="8,8,8,8" gap="4">
-                <Label text="控件分类" height="28" color="#999999FF" padding="0,8,0,8" />
+                <Label theme="secondary" text="控件分类" height="28" padding="0,8,0,8" />
                 <Option name="nav_basic" group="demo_nav" text="基础" height="36"
-                    selected="true" text-align="left" padding="0,12,0,12"
-                    color="#333333FF" color-selected="#1677FFFF"
-                    background-color-selected="#E6F4FFFF"
-                    background-color-hover="#F5F5F5FF" border-radius="6" />
+                    kind="none" selected="true" text-align="left"
+                    padding="0,12,0,12" border-radius="6" />
                 <Option name="nav_form" group="demo_nav" text="表单" height="36"
-                    text-align="left" padding="0,12,0,12"
-                    color="#333333FF" color-selected="#1677FFFF"
-                    background-color-selected="#E6F4FFFF"
-                    background-color-hover="#F5F5F5FF" border-radius="6" />
+                    kind="none" text-align="left"
+                    padding="0,12,0,12" border-radius="6" />
                 <Option name="nav_layout" group="demo_nav" text="布局" height="36"
-                    text-align="left" padding="0,12,0,12"
-                    color="#333333FF" color-selected="#1677FFFF"
-                    background-color-selected="#E6F4FFFF"
-                    background-color-hover="#F5F5F5FF" border-radius="6" />
+                    kind="none" text-align="left"
+                    padding="0,12,0,12" border-radius="6" />
                 <Option name="nav_feedback" group="demo_nav" text="反馈" height="36"
-                    text-align="left" padding="0,12,0,12"
-                    color="#333333FF" color-selected="#1677FFFF"
-                    background-color-selected="#E6F4FFFF"
-                    background-color-hover="#F5F5F5FF" border-radius="6" />
+                    kind="none" text-align="left"
+                    padding="0,12,0,12" border-radius="6" />
                 <Option name="nav_list" group="demo_nav" text="列表" height="36"
-                    text-align="left" padding="0,12,0,12"
-                    color="#333333FF" color-selected="#1677FFFF"
-                    background-color-selected="#E6F4FFFF"
-                    background-color-hover="#F5F5F5FF" border-radius="6" />
+                    kind="none" text-align="left"
+                    padding="0,12,0,12" border-radius="6" />
                 <Option name="nav_misc" group="demo_nav" text="综合" height="36"
-                    text-align="left" padding="0,12,0,12"
-                    color="#333333FF" color-selected="#1677FFFF"
-                    background-color-selected="#E6F4FFFF"
-                    background-color-hover="#F5F5F5FF" border-radius="6" />
+                    kind="none" text-align="left"
+                    padding="0,12,0,12" border-radius="6" />
                 <Spacer />
             </VBox>
 
-            <!-- 右侧：按大类分页，每页一个 Accordion -->
-            <TabLayout name="tab_demo" selected-id="0" background-color="#FFFFFFFF" padding="0,4,0,0">
+            <!-- 右侧：透明底，露出窗口 color-bg -->
+            <TabLayout name="tab_demo" selected-id="0" padding="0,4,0,0">
                 <!-- 0 基础 -->
                 <Accordion mode="single" header-height="40">
                     <AccordionItem title="Button" active="true" header-align="left">
@@ -56,7 +44,7 @@
                       </HBox>
                     </AccordionItem>
                     <AccordionItem title="Switch" active="false" header-align="left">
-                      <VBox height="120" gap="10" padding="8,12,8,12">
+                      <VBox height="150" gap="10" padding="8,12,8,12">
                         <HBox height="28" gap="16" align-items="vcenter">
                           <Switch text="默认关" />
                           <Switch checked="true" text="默认开" />
@@ -64,8 +52,14 @@
                           <Switch disabled="true" text="禁用关" />
                         </HBox>
                         <HBox height="28" gap="16" align-items="vcenter">
+                          <CheckBox text="未选" />
+                          <CheckBox selected="true" text="已选" />
+                          <CheckBox selected="true" disabled="true" text="禁用已选" />
+                          <CheckBox disabled="true" text="禁用未选" />
+                        </HBox>
+                        <HBox height="28" gap="16" align-items="vcenter">
                           <Switch checked-text="开" unchecked-text="关" track-size="52,24" />
-                          <Switch checked="true" text="紫色" track-color-checked="#722ED1FF" track-color-checked-hover="#531DABFF" />
+                          <Switch checked="true" text="紫色" theme="none" track-color-checked="#722ED1FF" track-color-checked-hover="#531DABFF" />
                           <Switch checked="true" text="小号" track-size="28,16" />
                         </HBox>
                       </VBox>
@@ -81,7 +75,7 @@
                           <Button name="btn_remixicon" text="remixicon" kind="danger" width="90" height="32" tooltip="打开 Remix Icon 浏览器" />
                           <Button name="btn_twicon" text="twicon" kind="info" width="90" height="32" tooltip="打开 Twemoji 图标浏览器" />
                         </HBox>
-                        <HBox height="40" gap="12" align-items="vcenter">
+                        <HBox height="40" gap="12" align-items="vcenter" theme="none">
                           <Svg lucide="circle-check" width="32" height="32" color="#1677FFFF" color-hover="#69B1FFFF" color-active="#0958D9FF" />
                           <Svg bsicon="check-circle" width="32" height="32" color="#52C41AFF" color-hover="#95DE64FF" color-active="#389E0DFF" />
                           <Svg iconpark="check-one" width="32" height="32" color="#FAAD14FF" color-hover="#FFD666FF" color-active="#D48806FF" />
@@ -89,26 +83,26 @@
                           <Svg tabler-filled="circle-check" width="32" height="32" color="#722ED1FF" color-hover="#B37FEBFF" color-active="#531DABFF" />
                           <Svg remixicon="checkbox-circle-line" width="32" height="32" color="#13C2C2FF" color-hover="#5CDBD3FF" color-active="#08979CFF" />
                           <Svg twicon="2705" width="32" height="32" />
-                          <Label text="内联 color / color-hover / color-active" color="#666666FF" />
+                          <Label text="内联 color / color-hover / color-active" theme="secondary" />
                         </HBox>
-                        <HBox height="40" gap="12" align-items="vcenter">
+                        <HBox height="40" gap="12" align-items="vcenter" theme="none">
                           <Svg name="svg_css_demo" lucide="heart" width="32" height="32" />
                           <Svg src="svg/check.svg" width="32" height="32" color="#1677FFFF" color-hover="#69B1FFFF" />
-                          <Label text="左：#id:hover color；右：内联 color-hover" color="#666666FF" />
+                          <Label text="左：#id:hover color；右：内联 color-hover" theme="secondary" />
                         </HBox>
-                        <HBox height="40" gap="12" align-items="vcenter">
+                        <HBox height="40" gap="12" align-items="vcenter" theme="none">
                           <Button name="btn_css_hover" text="Button:hover" width="120" height="32" />
                           <HBox name="box_css_hover" width="120" height="32" align-items="vcenter">
                             <Label text="HBox:hover" text-align="center" width="120" mouse="false" />
                           </HBox>
-                          <Label text="通用伪类：background-color/color/background-image → *-hover" color="#666666FF" />
+                          <Label text="通用伪类：background-color/color/background-image → *-hover" theme="secondary" />
                         </HBox>
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Badge / Tag" active="false" header-align="left">
                       <VBox height="160" gap="12" padding="8,12,8,12">
                         <HBox height="28" gap="8" align-items="vcenter">
-                          <Label text="Tag" color="#666666FF" width="50" />
+                          <Label text="Tag" theme="secondary" width="50" />
                           <Tag text="默认" height="22" />
                           <Tag text="成功" status="success" height="22" />
                           <Tag text="进行中" status="processing" height="22" />
@@ -117,36 +111,83 @@
                           <Tag text="可关闭" status="processing" closable="true" height="22" />
                         </HBox>
                         <HBox height="48" gap="16" align-items="vcenter">
-                          <Label text="Badge" color="#666666FF" width="50" />
+                          <Label text="Badge" theme="secondary" width="50" />
                           <Badge count="5" width="88" height="44">
-                            <Button text="消息" width="72" height="32" border="1px solid #D9D9D9" border-radius="4" />
+                            <Button text="消息" width="72" height="32" border="1px solid" border-radius="4" />
                           </Badge>
                           <Badge count="100" overflow-count="99" width="88" height="44">
-                            <Button text="通知" width="72" height="32" border="1px solid #D9D9D9" border-radius="4" />
+                            <Button text="通知" width="72" height="32" border="1px solid" border-radius="4" />
                           </Badge>
                           <Badge dot="true" width="88" height="44">
-                            <Button text="动态" width="72" height="32" border="1px solid #D9D9D9" border-radius="4" />
+                            <Button text="动态" width="72" height="32" border="1px solid" border-radius="4" />
                           </Badge>
                           <Badge count="3" height="18" />
                         </HBox>
-                        <Label text="Tag 点 × 发 close；Badge 半悬右上（内边距留空，避免被裁）" color="#999999FF" />
+                        <Label text="Tag 点 × 发 close；Badge 半悬右上（内边距留空，避免被裁）" theme="secondary" />
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Rate" active="false" header-align="left">
                       <VBox height="160" gap="12" padding="8,12,8,12">
                         <HBox height="32" gap="16" align-items="vcenter">
-                          <Label text="基础" color="#666666FF" width="70" />
+                          <Label text="基础" theme="secondary" width="70" />
                           <Rate name="rate_basic" value="3" />
-                          <Label text="半星" color="#666666FF" width="40" />
+                          <Label text="半星" theme="secondary" width="40" />
                           <Rate value="2.5" allow-half="true" />
                         </HBox>
                         <HBox height="32" gap="16" align-items="vcenter">
-                          <Label text="只读" color="#666666FF" width="70" />
+                          <Label text="只读" theme="secondary" width="70" />
                           <Rate value="4" readonly="true" />
-                          <Label text="心形" color="#666666FF" width="40" />
-                          <Rate value="3" character="♥" color="#FF4D4FFF" void-color="#00000026" />
+                          <Label text="心形" theme="secondary" width="40" />
+                          <Rate value="3" character="♥" theme="none" color="#FF4D4FFF" void-color="#00000026" />
                         </HBox>
-                        <Label text="半星：同星连点 半→全→取消；悬停预览下次结果；通知 valuechanged" color="#999999FF" />
+                        <Label text="半星：同星连点 半→全→取消；悬停预览下次结果；通知 valuechanged" theme="secondary" />
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="ColorPalette" active="false" header-align="left">
+                      <HBox height="280" gap="16" padding="8,12,8,12">
+                        <ColorPalette name="Pallet" width="220" height="220"
+                            palette-height="200" bar-height="20"
+                            border="1px solid" />
+                        <VBox width="220" gap="6" padding="4,0,0,0">
+                          <Label text="当前色" theme="secondary" height="20" />
+                          <Control name="palette_preview" height="48" border-radius="6"
+                              background-color="#1677FFFF" border="1px solid" />
+                          <Label name="palette_hex" text="#1677FFFF" height="22" theme="secondary" />
+                          <Label text="拖动→colorchanging；松手→colorchanged" theme="secondary" height="18" />
+                          <Label text="←→色相 ↑↓明度 Shift+←→饱和度 Ctrl加速" theme="secondary" height="18" />
+                          <Label text="禁用示例" theme="secondary" height="20" />
+                          <ColorPalette name="PalletDisabled" width="160" height="72"
+                              palette-height="54" bar-height="12"
+                              select-color="#FAAD14FF" disabled="true" border="1px solid" />
+                        </VBox>
+                      </HBox>
+                    </AccordionItem>
+                    <AccordionItem title="Theme" active="false" header-align="left">
+                      <VBox height="280" gap="10" padding="8,12,8,12">
+                        <Label theme="secondary" text="root theme=chrome 子树继承；局部可用 theme=panel/secondary/none 或主题 id" height="22" />
+                        <HBox height="36" gap="8" align-items="vcenter">
+                          <Button name="btn_theme_default" text="Default" kind="default" width="80" height="32" />
+                          <Button name="btn_theme_azure" text="晴空蓝" kind="primary" width="80" height="32" />
+                          <Button name="btn_theme_emerald" text="翠绿" kind="success" width="80" height="32" />
+                          <Button name="btn_theme_graphite" text="石墨" kind="dark" width="80" height="32" />
+                          <Button name="btn_theme_dark" text="深色" kind="secondary" width="80" height="32" />
+                          <Button name="btn_theme_toggle" text="禁用主题" kind="warning" width="100" height="32" />
+                        </HBox>
+                        <HBox height="36" gap="8" align-items="vcenter">
+                          <Button text="Primary" kind="primary" width="80" height="32" />
+                          <Button text="Success" kind="success" width="80" height="32" />
+                          <Button text="Warning" kind="warning" width="80" height="32" />
+                          <Button text="Danger" kind="danger" width="80" height="32" />
+                          <Button text="Info" kind="info" width="80" height="32" />
+                          <Label name="theme_current" text="当前: default" kind="link" />
+                        </HBox>
+                        <HBox height="36" gap="8" align-items="vcenter">
+                          <Label theme="secondary" text="继承 chrome" width="90" />
+                          <Edit name="theme_edit_sample" text="surface / border / focus" width="200" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Spin name="theme_spin_sample" value="3" min="0" max="9" width="100" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                        </HBox>
                       </VBox>
                     </AccordionItem>
                 </Accordion>
@@ -156,68 +197,86 @@
                     <AccordionItem title="Spin / Number" active="true" header-align="left">
                       <VBox height="120" gap="10" padding="8,12,8,12">
                         <HBox height="36" gap="12" align-items="vcenter">
-                          <Label text="整数" color="#666666FF" width="70" />
+                          <Label text="整数" theme="secondary" width="70" />
                           <Spin name="spin_int" value="1" min="0" max="99" step="1" width="120" height="32"
-                              border="1px solid #D9D9D9" border-radius="4" padding="0,8,0,8"
-                              color="#000000FF" background-color="#FFFFFFFF" />
-                          <Label text="小数" color="#666666FF" width="40" />
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Label text="小数" theme="secondary" width="40" />
                           <Number value="1.5" min="0" max="10" step="0.5" precision="1" width="120" height="32"
-                              border="1px solid #D9D9D9" border-radius="4" padding="0,8,0,8"
-                              color="#000000FF" background-color="#FFFFFFFF" />
-                          <Label text="可负" color="#666666FF" width="40" />
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Label text="可负" theme="secondary" width="40" />
                           <Spin value="0" min="-10" max="10" step="1" width="120" height="32"
-                              border="1px solid #D9D9D9" border-radius="4" padding="0,8,0,8"
-                              color="#000000FF" background-color="#FFFFFFFF" />
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
                         </HBox>
-                        <Label text="▲▼ / 滚轮 / ↑↓；比 Edit numberonly 多范围与小数" color="#999999FF" />
+                        <Label text="▲▼ / 滚轮 / ↑↓；比 Edit numberonly 多范围与小数" theme="secondary" />
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="DateTime" active="false" header-align="left">
                       <VBox height="160" gap="10" padding="8,12,8,12">
                         <HBox height="36" gap="12" align-items="vcenter">
-                          <Label text="仅日期" color="#666666FF" width="70" />
+                          <Label text="仅日期" theme="secondary" width="70" />
                           <DateTime name="dt_demo" width="160" height="32" format="yyyy-MM-dd"
-                              border="1px solid #D9D9D9" border-radius="4"
-                              padding="0,24,0,8" background-color="#FFFFFFFF" />
-                          <DateTime width="160" height="32" first-day-of-week="mon"
-                              border="1px solid #D9D9D9" border-radius="4"
-                              padding="0,24,0,8" background-color="#FFFFFFFF"
+                              border="1px solid" border-radius="4"
+                              padding="0,24,0,8" />
+                          <DateTime width="160" height="32" first-day-of-week="mon" theme="none"
+                              border="1px solid" border-radius="4"
+                              padding="0,24,0,8"
                               selected-background-color="#722ED1FF" today-color="#722ED1FF" />
                         </HBox>
                         <HBox height="36" gap="12" align-items="vcenter">
-                          <Label text="日期时间" color="#666666FF" width="70" />
+                          <Label text="日期时间" theme="secondary" width="70" />
                           <DateTime width="200" height="32" format="yyyy-MM-dd HH:mm:ss"
-                              border="1px solid #D9D9D9" border-radius="4"
-                              padding="0,24,0,8" background-color="#FFFFFFFF" />
+                              border="1px solid" border-radius="4"
+                              padding="0,24,0,8" />
                           <DateTime width="180" height="32" format="yyyy-MM-dd HH:mm"
-                              border="1px solid #D9D9D9" border-radius="4"
-                              padding="0,24,0,8" background-color="#FFFFFFFF" />
+                              border="1px solid" border-radius="4"
+                              padding="0,24,0,8" />
                         </HBox>
                         <HBox height="36" gap="12" align-items="vcenter">
-                          <Label text="仅时间" color="#666666FF" width="70" />
+                          <Label text="仅时间" theme="secondary" width="70" />
                           <DateTime width="120" height="32" format="HH:mm:ss"
-                              border="1px solid #D9D9D9" border-radius="4"
-                              padding="0,24,0,8" background-color="#FFFFFFFF" />
+                              border="1px solid" border-radius="4"
+                              padding="0,24,0,8" />
                           <DateTime width="100" height="32" format="HH:mm"
-                              border="1px solid #D9D9D9" border-radius="4"
-                              padding="0,24,0,8" background-color="#FFFFFFFF" />
-                          <Label text="点标题切月/年；带时间点确定" color="#999999FF" />
+                              border="1px solid" border-radius="4"
+                              padding="0,24,0,8" />
+                          <Label text="点标题切月/年；带时间点确定" theme="secondary" />
                         </HBox>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="IPAddress" active="false" header-align="left">
+                      <VBox height="120" gap="10" padding="8,12,8,12">
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="系统" theme="secondary" width="70" />
+                          <IPAddress name="ip_demo" width="160" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Label text="自绘" theme="secondary" width="40" />
+                          <IPAddressEx name="ip_ex_demo" width="160" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                        </HBox>
+                        <Label text="IPAddress 聚焦走 SysIPAddress32（native-* 跟主题）；IPAddressEx 自绘四段" theme="secondary" />
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="RichEdit" active="false" header-align="left">
+                      <VBox height="140" gap="10" padding="8,12,8,12">
+                        <RichEdit name="richedit_demo" height="90" multiline="true"
+                            placeholder="写点什么…"
+                            border="1px solid" border-radius="4" padding="6,8,6,8" />
+                        <Label text="空内容时占位色跟 color-text-secondary（chrome 热切）" theme="secondary" />
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Segmented" active="false" header-align="left">
                       <VBox height="140" gap="10" padding="8,12,8,12">
                         <HBox height="36" gap="12" align-items="vcenter">
-                          <Label text="范围" color="#666666FF" width="50" />
+                          <Label text="范围" theme="secondary" width="50" />
                           <Segmented name="seg_range" options="日|周|月|年" selected="0" width="220" height="32" />
-                          <Label text="视图" color="#666666FF" width="40" />
+                          <Label text="视图" theme="secondary" width="40" />
                           <Segmented name="seg_view" selected="list" width="240" height="32" block="true">
                             <Segment text="列表" value="list" />
                             <Segment text="卡片" value="card" />
                             <Segment text="表格" value="table" />
                           </Segmented>
                         </HBox>
-                        <Label text="点击 / ←→；通知 selectchanged（wParam=下标）" color="#999999FF" />
+                        <Label text="点击 / ←→；通知 selectchanged（wParam=下标）" theme="secondary" />
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Transfer" active="false" header-align="left">
@@ -226,7 +285,7 @@
                             titles="可选|已选"
                             items="苹果|香蕉:banana|橙子|葡萄|西瓜|芒果|草莓|樱桃"
                             target="banana|葡萄" />
-                        <Label text="勾选后点 &gt; / &lt; 穿梭；表头可全选；通知 transferchange" color="#999999FF" />
+                        <Label text="勾选后点 &gt; / &lt; 穿梭；表头可全选；通知 transferchange" theme="secondary" />
                       </VBox>
                     </AccordionItem>
                 </Accordion>
@@ -237,14 +296,14 @@
                       <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
                         <Button name="btn_layout_test" text="打开 Layout 测试窗口" kind="primary" width="180" height="36"
                             tooltip="打开 layouttest.htm，改皮肤后重新打开即可测布局" />
-                        <Label text="加载 skin/duidemo/layouttest.htm" color="#666666FF" />
+                        <Label text="加载 skin/duidemo/layouttest.htm" theme="secondary" />
                       </HBox>
                     </AccordionItem>
                     <AccordionItem title="TabBar" active="false" header-align="left">
                       <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
                         <Button name="btn_tabbar_test" text="打开 TabBar 测试窗口" kind="primary" width="180" height="36" tooltip="打开 TabBar 专项测试窗（切换 / 关闭 / 锁定 / 滚动 / 拖拽）" />
                         <Button name="btn_browser_test" text="打开 Browser 壳" kind="default" width="140" height="36" tooltip="打开 browser.html（TabBar + 地址栏浏览器壳）" />
-                        <Label text="切换 / 关闭 / 锁定 / 左右钮+滚轮溢出 / 左键拖拽排序 / 动态增删" color="#666666FF" />
+                        <Label text="切换 / 关闭 / 锁定 / 左右钮+滚轮溢出 / 左键拖拽排序 / 动态增删" theme="secondary" />
                       </HBox>
                     </AccordionItem>
                 </Accordion>
@@ -254,7 +313,7 @@
                     <AccordionItem title="Toast" active="true" header-align="left">
                       <VBox height="340" gap="4" padding="4,8,4,8">
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="单行" width="70" color="#666666FF" />
+                          <Label text="单行" width="70" theme="secondary" />
                           <Button name="btn_toast_success" text="Success" kind="success" width="90" height="32" tooltip="单行 Success" />
                           <Button name="btn_toast_info" text="Info" kind="info" width="90" height="32" tooltip="单行 Info" />
                           <Button name="btn_toast_warning" text="Warning" kind="warning" width="90" height="32" tooltip="单行 Warning" />
@@ -263,7 +322,7 @@
                           <Button name="btn_toast_dismiss" text="DismissAll" kind="secondary" width="100" height="32" tooltip="关闭全部 Toast" />
                         </HBox>
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="双行" width="70" color="#666666FF" />
+                          <Label text="双行" width="70" theme="secondary" />
                           <Button name="btn_toast_dual_success" text="Success" kind="success" width="90" height="32" tooltip="双行 Success" />
                           <Button name="btn_toast_dual_info" text="Info" kind="info" width="90" height="32" tooltip="双行 Info" />
                           <Button name="btn_toast_dual_warning" text="Warning" kind="warning" width="90" height="32" tooltip="双行 Warning" />
@@ -271,7 +330,7 @@
                           <Button name="btn_toast_dual_primary" text="Primary" kind="primary" width="90" height="32" tooltip="双行 Primary" />
                         </HBox>
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="交互测试" width="70" color="#666666FF" />
+                          <Label text="交互测试" width="70" theme="secondary" />
                           <Button name="btn_toast_pause" text="悬停暂停倒计时" kind="warning" width="140" height="32" tooltip="弹出 15s Toast：鼠标移上去倒计时应停住，移开继续" />
                           <Button name="btn_toast_click" text="点击文字跳详情" kind="primary" width="140" height="32" tooltip="点文字回调；空白区拖动；× 只关闭" />
                           <Button name="btn_toast_icon" text="自定义图标" kind="info" width="110" height="32" tooltip="Icon(lib, name) 覆盖默认 kind 图标" />
@@ -280,42 +339,42 @@
                           <Label text="" width="70" />
                           <Button name="btn_toast_dismiss_cb" text="OnDismiss回调" kind="secondary" width="140" height="32" tooltip="超时/点×/Dismiss 会弹 OnDismiss 原因" />
                           <Button name="btn_toast_max2" text="分组上限2" kind="danger" width="120" height="32" tooltip="每 Align 上限 2：右下连弹 3 条顶掉最早；左上 2 条保留" />
-                          <Label text="← Dismiss 埋点 / 分组顶掉" color="#666666FF" />
+                          <Label text="← Dismiss 埋点 / 分组顶掉" theme="secondary" />
                         </HBox>
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="屏幕四角" width="70" color="#666666FF" />
+                          <Label text="屏幕四角" width="70" theme="secondary" />
                           <Button name="btn_toast_scr_tl" text="左上" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenTopLeft" />
                           <Button name="btn_toast_scr_tr" text="右上" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenTopRight" />
                           <Button name="btn_toast_scr_bl" text="左下" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenBottomLeft" />
                           <Button name="btn_toast_scr_br" text="右下" kind="primary" width="72" height="32" tooltip="ToastAlign_ScreenBottomRight" />
                         </HBox>
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="窗口四角" width="70" color="#666666FF" />
+                          <Label text="窗口四角" width="70" theme="secondary" />
                           <Button name="btn_toast_wnd_tl" text="左上" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
                           <Button name="btn_toast_wnd_tr" text="右上" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
                           <Button name="btn_toast_wnd_bl" text="左下" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
                           <Button name="btn_toast_wnd_br" text="右下" kind="info" width="72" height="32" tooltip="Window 对齐：拖动主窗应跟随" />
-                          <Label text="← 弹出后拖主窗验证跟随" color="#666666FF" />
+                          <Label text="← 弹出后拖主窗验证跟随" theme="secondary" />
                         </HBox>
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Modal" active="false" header-align="left">
                       <VBox height="160" gap="4" padding="4,8,4,8">
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="快捷" width="70" color="#666666FF" />
+                          <Label text="快捷" width="70" theme="secondary" />
                           <Button name="btn_modal_info" text="Info" kind="info" width="90" height="32" tooltip="仅确定" />
                           <Button name="btn_modal_success" text="Success" kind="success" width="90" height="32" />
                           <Button name="btn_modal_warning" text="Warning" kind="warning" width="90" height="32" />
                           <Button name="btn_modal_danger" text="Danger" kind="danger" width="90" height="32" />
                         </HBox>
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="确认" width="70" color="#666666FF" />
+                          <Label text="确认" width="70" theme="secondary" />
                           <Button name="btn_modal_confirm" text="Confirm 确定/取消" kind="primary" width="160" height="32" tooltip="CModal::Confirm" />
                           <Button name="btn_modal_custom" text="自定义按钮文案" kind="secondary" width="140" height="32" tooltip="OkText/CancelText + Kind" />
-                          <Label text="← 结果用 Toast 提示" color="#666666FF" />
+                          <Label text="← 结果用 Toast 提示" theme="secondary" />
                         </HBox>
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Label text="遮罩" width="70" color="#666666FF" />
+                          <Label text="遮罩" width="70" theme="secondary" />
                           <Button name="btn_modal_nobackdrop" text="点遮罩不关" kind="warning" width="120" height="32" tooltip="ClickBackdropToClose(false)" />
                         </HBox>
                       </VBox>
@@ -325,85 +384,90 @@
                         <HBox height="100" gap="10" align-items="vcenter">
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading name="loading_demo" type="css" width="56" height="56"
-                                thickness="5" color="#0958D9FF" track-color="#D9D9D9FF"
+                                thickness="5"
                                 time="16" duration="1200" />
-                            <Label text="css" color="#999999FF" height="18" />
+                            <Label text="css" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="gap" width="56" height="56"
-                                thickness="5" color="#0958D9FF" time="16" duration="1200" />
-                            <Label text="gap" color="#999999FF" height="18" />
+                                thickness="5" time="16" duration="1200" />
+                            <Label text="gap" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="fade" width="56" height="56"
-                                thickness="5" color="#0958D9FF" time="16" duration="1200" />
-                            <Label text="fade" color="#999999FF" height="18" />
+                                thickness="5" time="16" duration="1200" />
+                            <Label text="fade" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="spoke" width="56" height="56"
-                                spoke="12" color="#0958D9FF" time="16" duration="1200" />
-                            <Label text="spoke" color="#999999FF" height="18" />
+                                spoke="12" time="16" duration="1200" />
+                            <Label text="spoke" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="dots" width="72" height="36"
-                                color="#0958D9FF" time="16" duration="900" />
-                            <Label text="dots" color="#999999FF" height="18" />
+                                time="16" duration="900" />
+                            <Label text="dots" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="wave" width="80" height="32"
-                                thickness="3" color="#0958D9FF" time="16" duration="1000" />
-                            <Label text="wave" color="#999999FF" height="18" />
+                                thickness="3" time="16" duration="1000" />
+                            <Label text="wave" theme="secondary" height="18" />
                           </VBox>
                         </HBox>
                         <HBox height="100" gap="10" align-items="vcenter">
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="bars" width="64" height="40"
-                                spoke="4" color="#0958D9FF" time="16" duration="900" />
-                            <Label text="bars" color="#999999FF" height="18" />
+                                spoke="4" time="16" duration="900" />
+                            <Label text="bars" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="drop" width="56" height="56"
-                                color="#0958D9FF" time="16" duration="1100" />
-                            <Label text="drop" color="#999999FF" height="18" />
+                                time="16" duration="1100" />
+                            <Label text="drop" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="drip" width="56" height="56"
-                                color="#0958D9FF" time="16" duration="1100" />
-                            <Label text="drip" color="#999999FF" height="18" />
+                                time="16" duration="1100" />
+                            <Label text="drip" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="stars" width="56" height="56"
-                                color="#0958D9FF" time="16" duration="1400" />
-                            <Label text="stars" color="#999999FF" height="18" />
+                                time="16" duration="1400" />
+                            <Label text="stars" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="star" width="56" height="56"
-                                color="#0958D9FF" time="16" duration="1200" />
-                            <Label text="star" color="#999999FF" height="18" />
+                                time="16" duration="1200" />
+                            <Label text="star" theme="secondary" height="18" />
                           </VBox>
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="dog" width="64" height="56"
-                                color="#0958D9FF" time="16" duration="650" />
-                            <Label text="dog" color="#999999FF" height="18" />
+                                time="16" duration="650" />
+                            <Label text="dog" theme="secondary" height="18" />
                           </VBox>
                         </HBox>
                         <HBox height="100" gap="10" align-items="vcenter">
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading type="fish" width="64" height="56"
-                                color="#0958D9FF" time="16" duration="1400" />
-                            <Label text="fish" color="#999999FF" height="18" />
+                                time="16" duration="1400" />
+                            <Label text="fish" theme="secondary" height="18" />
                           </VBox>
+                          <VBox width="100" height="96" align-items="center" gap="4">
+                            <Ring width="48" height="48" background-image="loading_ring.png" />
+                            <Label text="Ring" theme="secondary" height="18" />
+                          </VBox>
+                          <Label text="Ring：位图旋转（旧式）；其余为自绘 Loading" theme="secondary" />
                         </HBox>
                         <HBox height="36" gap="8" align-items="vcenter">
                           <Button name="btn_loading_start" text="Start" kind="primary" width="80" height="32" />
                           <Button name="btn_loading_stop" text="Stop" kind="default" width="80" height="32" />
-                          <Label text="← Start/Stop 控制 css" color="#666666FF" />
+                          <Label text="← Start/Stop 控制 css" theme="secondary" />
                         </HBox>
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Empty / Skeleton" active="false" header-align="left">
                       <HBox height="500" gap="16" padding="8,12,8,12">
-                        <Empty description="暂无数据" width="200" height="220" border="1px solid #F0F0F0" border-radius="6">
+                        <Empty description="暂无数据" width="200" height="220" border="1px solid" border-radius="6">
                           <Button text="刷新" kind="primary" width="72" height="28" />
                         </Empty>
                         <VBox width="360" gap="10">
@@ -411,7 +475,7 @@
                           <Skeleton type="button" width="72" height="28" active="true" />
                           <Skeleton type="input" width="140" height="28" active="true" />
                           <Skeleton type="avatar" width="28" height="28" active="true" />
-                          <Label text="Empty 空态；Skeleton 扫光骨架" color="#999999FF" />
+                          <Label text="Empty 空态；Skeleton 扫光骨架" theme="secondary" />
                         </VBox>
                       </HBox>
                     </AccordionItem>
@@ -422,34 +486,30 @@
                     <AccordionItem title="VirtualList" active="true" header-align="left">
                       <VBox height="280" gap="6" padding="4,8,4,8">
                         <HBox height="28" gap="8" align-items="vcenter">
-                          <Label text="10 万行虚拟列表（仅绘可视行）" color="#666666FF" />
-                          <Label name="vlist_status" text="选中: -" color="#1677FFFF" />
+                          <Label text="10 万行虚拟列表（仅绘可视行）" theme="secondary" />
+                          <Label name="vlist_status" text="选中: -" kind="link" />
                         </HBox>
                         <VirtualList name="vlist" item-count="100000" item-height="28" overflow="auto"
                             item-alternate-background="true" item-show-row-line="true"
-                            item-line-color="#F0F0F0FF"
-                            item-background-color-hover="#E6F4FFFF"
-                            item-background-color-selected="#BAE0FFFF"
-                            item-color="#333333FF" item-color-selected="#0958D9FF"
-                            border="1px solid #D9D9D9" background-color="#FFFFFFFF" />
+                            border="1px solid" />
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Image / Avatar" active="false" header-align="left">
                       <VBox height="220" gap="10" padding="8,8,8,8">
-                        <Label text="Img：object-fit + border-radius；失败占位" color="#666666FF" />
-                        <HBox height="80" gap="12" align-items="vcenter">
+                        <Label text="Img：object-fit + border-radius；失败占位" theme="secondary" />
+                        <HBox height="80" gap="12" align-items="vcenter" theme="none">
                           <Img src="menu/menu_bk.png" width="72" height="72" object-fit="cover"
-                              border-radius="8" border="1px solid #D9D9D9" />
+                              border-radius="8" border="1px solid" />
                           <Img src="menu/menu_bk.png" width="72" height="72" object-fit="contain"
-                              border-radius="8" background-color="#F5F5F5FF" border="1px solid #D9D9D9" />
+                              border-radius="8" background-color="#F5F5F5FF" border="1px solid" />
                           <Img src="menu/icon.png" width="72" height="72" object-fit="fill"
                               border-radius="36" />
                           <Img src="menu/not_exist.png" width="72" height="72" object-fit="cover"
                               border-radius="8" background-color="#FAFAFAFF" border="1px dashed #D9D9D9"
                               placeholder-text="加载失败" color="#999999FF" />
                         </HBox>
-                        <Label text="Avatar：圆形裁剪；无图显示缩写" color="#666666FF" />
-                        <HBox height="72" gap="12" align-items="vcenter">
+                        <Label text="Avatar：圆形裁剪；无图显示缩写" theme="secondary" />
+                        <HBox height="72" gap="12" align-items="vcenter" theme="none">
                           <Avatar src="menu/icon.png" size="large" />
                           <Avatar text="Zhang San" size="large" />
                           <Avatar text="李明" size="large" fallback-background-color="#722ED1FF" />
@@ -462,7 +522,7 @@
                     </AccordionItem>
                     <AccordionItem title="Steps / Timeline" active="false" header-align="left">
                       <VBox height="280" gap="10" padding="8,12,8,12">
-                        <Label text="Steps：current=1；可点切换" color="#666666FF" />
+                        <Label text="Steps：current=1；可点切换" theme="secondary" />
                         <Steps name="steps_demo" current="1" height="72" clickable="true"
                             items="填写信息|审核确认|开通完成" />
                         <HBox height="170" gap="24">
@@ -480,7 +540,7 @@
                     <AccordionItem title="Carousel" active="true" header-align="left">
                       <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
                         <Button name="btn_carousel_test" text="打开 Carousel 测试窗口" kind="primary" width="180" height="36" tooltip="自动播放 / 悬停暂停 / 控制栏 / caption" />
-                        <Label text="显隐切换轮播；ride 自动播放；controls 底栏；caption-* 标题条" color="#666666FF" />
+                        <Label text="显隐切换轮播；ride 自动播放；controls 底栏；caption-* 标题条" theme="secondary" />
                       </HBox>
                     </AccordionItem>
                 </Accordion>

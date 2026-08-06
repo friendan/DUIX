@@ -34,6 +34,9 @@ namespace DuiLib
 
 		void SetHomePage(LPCTSTR lpszUrl);
 		LPCTSTR GetHomePage() const;
+		/// 当前页地址（导航过程中缓存；未导航过时回落 HomePage）
+		void SetLocationUrl(LPCTSTR lpszUrl);
+		LPCTSTR GetLocationUrl() const;
 		void SetAutoNavigation(bool bAuto = true);
 		bool IsAutoNavigation() const;
 		void SetUserDataFolder(LPCTSTR path);
@@ -52,6 +55,14 @@ namespace DuiLib
 		void Refresh2(int Level);
 		void GoBack();
 		void GoForward();
+		bool CanGoBack() const;
+		bool CanGoForward() const;
+		void Stop();
+		/// 向引擎查询当前 URL；失败则回落 GetLocationUrl()
+		bool QueryUrl(CDuiString& out) const;
+		void ExecuteScript(LPCTSTR script);
+		/// 转发给当前引擎（CEF 等可在应用消息循环空闲时调用）
+		void DoMessageLoopWork();
 
 		void* GetNative();
 		IWebBrowser2* GetWebBrowser2();
@@ -71,6 +82,7 @@ namespace DuiLib
 		CDuiString m_sEngineName;
 		CDuiString m_sWantedEngine;
 		CDuiString m_sHomePage;
+		CDuiString m_sLocationUrl;
 		CDuiString m_sUserDataFolder;
 		CDuiString m_sHostMode;
 		bool m_bAutoNavi;

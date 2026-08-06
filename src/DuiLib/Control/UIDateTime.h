@@ -48,6 +48,8 @@ namespace DuiLib
 		bool IsDropDownOpened() const;
 		void ActivateDropDown();
 		void CloseDropDown();
+		/// 若日历已打开，按当前主题重刷弹层壳
+		void SyncOpenCalendarShell();
 
 		void UpdateText();
 		SIZE EstimateSize(SIZE szAvailable);
@@ -56,6 +58,7 @@ namespace DuiLib
 		void PaintStatusImage(IRenderContext& ctx);
 
 		SIZE GetDropBoxSize() const;
+		DWORD GetDayTextColor() const;
 
 	protected:
 		void SyncFormatFlags();
@@ -80,6 +83,9 @@ namespace DuiLib
 		DWORD m_dwTodayColor;
 		DWORD m_dwOtherMonthColor;
 		DWORD m_dwHeaderColor;
+		DWORD m_dwDayColor;
+		DWORD m_dwSelectedText;
+		DWORD m_dwMutedBtnColor;
 	};
 }
 #endif // __UIDATETIME_H__

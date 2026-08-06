@@ -509,7 +509,9 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("header-color")) == 0 ) {
 			EnsureHeader();
-			if( m_pTitle != NULL ) m_pTitle->SetColor(ParseColorValue(pstrValue));
+			DWORD clr = ParseColorValue(pstrValue);
+			if( m_pTitle != NULL ) m_pTitle->SetColor(clr);
+			if( m_pChevron != NULL ) m_pChevron->SetColor(clr);
 		}
 		else if( _tcsicmp(pstrName, _T("header-background-color")) == 0 ) {
 			m_dwHeaderBk = ParseColorValue(pstrValue);

@@ -24,6 +24,7 @@ namespace DuiLib
 		SIZE GetImageSize() const;
 		void SetShowImage(bool b);
 		bool IsShowImage() const;
+		void SetDescriptionColor(DWORD dwColor);
 
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		void DoInit();
@@ -38,6 +39,7 @@ namespace DuiLib
 		bool m_bBuilt;
 		bool m_bShowImage;
 		CDuiString m_sDescription;
+		DWORD m_dwDescColor;
 		CDuiString m_sImage;
 		SIZE m_szImage;
 		CControlUI* m_pImageHost;

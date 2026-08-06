@@ -1,0 +1,55 @@
+# Theme
+
+| | |
+|--|--|
+| 类 | `CTheme` / `CThemeManager` |
+| 源码 | `src/DuiLib/Core/UITheme.*`、`UIThemeBuiltin.cpp` |
+
+语义色主题：`g_kindColors`、PaintManager Default、窗口 chrome。与 Skin / HSL 正交。
+
+### 推荐用法
+
+```xml
+<html theme="chrome">
+  <VBox name="root">
+    <VBox theme="panel">...</VBox>
+    <VBox theme="secondary"><Label text="说明" /></VBox>
+    <Switch theme="none" ... />
+    <Edit border-color="var(--color-primary)" />
+  </VBox>
+</html>
+```
+
+也可用 CSS：`html { theme: chrome; }`（与 `action` 一样，窗口级属性落到控件树 root）。  
+root（`body`/`VBox`）上仍可写 `theme`，会覆盖 html 级默认。
+
+进程切换：`CThemeManager::GetInstance()->ApplyTheme(_T("azure"));`
+
+### 继承规则
+
+| 属性 | 行为 |
+|------|------|
+| `theme="chrome"` | 子树按控件类型套表面色 |
+| `theme="panel"` | 仅本节点 elevated |
+| `theme="secondary"` | typed 同 chrome；另将纯 Label/Text（`kind=none`）字色改为次要色 |
+| `theme="none"` | 子树不套 chrome |
+| `theme`/`theme-id` 已注册 id | 换色板 |
+| 未知 `theme` | 忽略 |
+
+### chrome 覆盖
+
+TitleBar、ScrollBar、Edit/HotKey/**IPAddress（含聚焦原生 HWND；打开中热切重刷）**/**RichEdit（placeholder-color 跟 Edit）**/Spin/Number、Combo（含下拉；**打开中热切会重刷壳**）、DateTime（字段 + 日历；**打开中热切重刷壳**）、Accordion、TabBar（含内置右键菜单；**嵌在 TitleBar 内时底/字/图标按标题栏亮度适配**）、List/TreeView/**VirtualList 斑马纹**、**走 List 接口的 Menu / 演示 menu.html 纯色壳**（带 `background-image` 的图片菜单仍不会自动跟）、**Transfer（含左右面板壳）**、GroupBox、PageControl、**Carousel / CarouselItem caption**、**Avatar 默认 fallback 跟 primary**、Tag/Badge/Rate/Steps/Timeline、Empty/Skeleton/Loading/ColorPalette 等。
+
+Toast / Modal：新建时按当前 **kind / token** 建 UI；已打开实例在 `RefreshAllManagers` 中跳过。
+
+### `var(--token)`
+
+热切换重解；可走控件有效色板。
+
+### 内置 id
+
+`default` / `azure` / `emerald` / `graphite`（冷灰 slate：正文微灰、主色 `#334155`、标题栏同族） / `dark`
+
+### 演示
+
+装饰色 / CSS 伪类 / 彩色 Avatar·Img：`theme="none"`。

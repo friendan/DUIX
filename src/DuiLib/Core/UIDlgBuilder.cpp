@@ -173,6 +173,13 @@ namespace DuiLib {
 			else if( _tcsicmp(pstrValue, _T("copy")) == 0 )     act = UIACTION_COPY;
 			pManager->SetWindowAction(act);
 		}
+		else if( _tcsicmp(pstrName, _T("theme")) == 0 ) {
+			// html/Window：chrome 等落到窗口级，Attach 后赋给 root（见 SetWindowTheme）
+			pManager->SetWindowTheme(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("theme-id")) == 0 ) {
+			pManager->SetWindowThemeId(pstrValue);
+		}
 		else if( _tcsicmp(pstrName, _T("shadowsize")) == 0 ) {
 			pManager->GetShadow()->SetSize(_ttoi(pstrValue));
 		}

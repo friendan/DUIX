@@ -270,8 +270,10 @@ namespace DuiLib
 
 	CAvatarUI::CAvatarUI()
 		: m_bCircle(true)
-		, m_dwFallbackBk(0x1677FFFF)
-		, m_dwFallbackColor(0xFFFFFFFF)
+		, m_dwFallbackBk(0)
+		, m_dwFallbackColor(0)
+		, m_bFallbackBkCustom(false)
+		, m_bFallbackColorCustom(false)
 	{
 		SetObjectFit(FitCover);
 		SetFixedWidth(40);
@@ -327,13 +329,35 @@ namespace DuiLib
 	void CAvatarUI::SetFallbackBackgroundColor(DWORD dwColor)
 	{
 		m_dwFallbackBk = dwColor;
+		m_bFallbackBkCustom = true;
 		Invalidate();
 	}
 
 	void CAvatarUI::SetFallbackColor(DWORD dwColor)
 	{
 		m_dwFallbackColor = dwColor;
+		m_bFallbackColorCustom = true;
 		Invalidate();
+	}
+
+	DWORD CAvatarUI::ResolveFallbackBackgroundColor() const
+	{
+		if( m_bFallbackBkCustom && m_dwFallbackBk != 0 )
+			return m_dwFallbackBk;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL )
+			return tm->GetColor(_T("color-primary"), 0x0D6EFDFF);
+		return 0x0D6EFDFF;
+	}
+
+	DWORD CAvatarUI::ResolveFallbackColor() const
+	{
+		if( m_bFallbackColorCustom && m_dwFallbackColor != 0 )
+			return m_dwFallbackColor;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL )
+			return tm->GetColor(_T("color-primary-text"), 0xFFFFFFFF);
+		return 0xFFFFFFFF;
 	}
 
 	void CAvatarUI::SyncCircleRadius()
@@ -432,7 +456,7 @@ namespace DuiLib
 			CLabelUI::PaintBackgroundColor(ctx);
 			return;
 		}
-		DWORD dwBk = m_dwFallbackBk;
+		DWORD dwBk = ResolveFallbackBackgroundColor();
 		if( GetBackgroundColor() != 0 ) dwBk = GetBackgroundColor();
 		if( dwBk == 0 ) return;
 		SIZE szR = GetBorderRadius();
@@ -457,7 +481,7 @@ namespace DuiLib
 
 		CDuiString s = MakeInitials();
 		if( s.IsEmpty() ) return;
-		DWORD clr = m_dwFallbackColor;
+		DWORD clr = ResolveFallbackColor();
 		if( GetColor() != 0 ) clr = GetColor();
 		RECT rc = m_rcItem;
 		ctx.DrawText(rc, s, GetAdjustColor(clr), GetFont(),

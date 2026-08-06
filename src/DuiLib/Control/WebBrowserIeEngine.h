@@ -25,12 +25,18 @@ namespace DuiLib
 		virtual ~CWebBrowserIeHost();
 
 		void SetWebBrowserEventHandler(CWebBrowserEventHandler* pEventHandler);
+		void SetHostEvents(CWebBrowserHostEvents* pEvents);
 		void Navigate2(LPCTSTR lpszUrl);
 		void Refresh();
 		void Refresh2(int Level);
+		void Stop();
 		void GoBack();
 		void GoForward();
 		void NavigateUrl(LPCTSTR lpszUrl);
+		bool CanGoBack() const { return m_bCanGoBack; }
+		bool CanGoForward() const { return m_bCanGoForward; }
+		bool GetUrl(CDuiString& out) const;
+		void ExecuteScript(LPCTSTR script);
 		virtual bool DoCreateControl();
 		IWebBrowser2* GetWebBrowser2(void);
 		IDispatch* GetHtmlWindow();
@@ -46,6 +52,9 @@ namespace DuiLib
 		DWORD m_dwCookie;
 		CWebBrowserUI* m_pFacade;
 		CWebBrowserEventHandler* m_pWebBrowserEventHandler;
+		CWebBrowserHostEvents* m_pHostEvents;
+		bool m_bCanGoBack;
+		bool m_bCanGoForward;
 		virtual void ReleaseControl();
 		HRESULT RegisterEventHandler(BOOL inAdvise);
 
@@ -121,6 +130,11 @@ namespace DuiLib
 		virtual void GoBack();
 		virtual void GoForward();
 		virtual void Refresh();
+		virtual void Stop();
+		virtual bool CanGoBack() const;
+		virtual bool CanGoForward() const;
+		virtual bool GetUrl(CDuiString& out) const;
+		virtual void ExecuteScript(LPCTSTR script);
 		virtual HWND GetHostWindow() const;
 		virtual void* GetNative();
 		virtual void SetHostEvents(CWebBrowserHostEvents* pEvents);

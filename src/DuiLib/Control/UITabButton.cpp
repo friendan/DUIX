@@ -2,6 +2,7 @@
 #include "UITabButton.h"
 #include "UITabBar.h"
 #include "UISvgBox.h"
+#include "UILoading.h"
 
 namespace DuiLib
 {
@@ -20,6 +21,8 @@ namespace DuiLib
 	CTabButtonUI::CTabButtonUI()
 		: m_pLeftPad(NULL)
 		, m_pIcon(NULL)
+		, m_pRasterIcon(NULL)
+		, m_pLoading(NULL)
 		, m_pIconGap(NULL)
 		, m_pTitle(NULL)
 		, m_pClose(NULL)
@@ -27,7 +30,16 @@ namespace DuiLib
 		, m_bLocked(false)
 		, m_bCloseHovered(false)
 		, m_bHover(false)
+		, m_bMemIcon(false)
+		, m_bIconTint(false)
+		, m_dwIconTint(0)
 		, m_nIconSize(14)
+		, m_pPendingIconData(NULL)
+		, m_dwPendingIconSize(0)
+		, m_hPendingIcon(NULL)
+		, m_nPendingIconW(0)
+		, m_nPendingIconH(0)
+		, m_bPendingIconAlpha(true)
 	{
 		SetFixedWidth(150);
 		SetMouseEnabled(false);
@@ -38,6 +50,8 @@ namespace DuiLib
 
 	CTabButtonUI::~CTabButtonUI()
 	{
+		ClearPendingMemIcon();
+		ReleaseMemIcon();
 	}
 
 	LPCTSTR CTabButtonUI::GetClass() const
@@ -73,6 +87,22 @@ namespace DuiLib
 		m_pIcon->SetFixedHeight(0);
 		CHorizontalLayoutUI::Add(m_pIcon);
 
+		m_pRasterIcon = new CControlUI;
+		m_pRasterIcon->SetMouseEnabled(false);
+		m_pRasterIcon->SetVisible(false);
+		m_pRasterIcon->SetFixedWidth(0);
+		m_pRasterIcon->SetFixedHeight(0);
+		CHorizontalLayoutUI::Add(m_pRasterIcon);
+
+		m_pLoading = new CLoadingUI;
+		m_pLoading->SetMouseEnabled(false);
+		m_pLoading->SetVisible(false);
+		m_pLoading->SetFixedWidth(0);
+		m_pLoading->SetFixedHeight(0);
+		m_pLoading->SetAttribute(_T("type"), _T("spoke"));
+		CHorizontalLayoutUI::Add(m_pLoading);
+		m_pLoading->Stop();
+
 		m_pIconGap = new CControlUI;
 		m_pIconGap->SetMouseEnabled(false);
 		m_pIconGap->SetFixedWidth(0);
@@ -80,9 +110,9 @@ namespace DuiLib
 
 		m_pTitle = new CLabelUI;
 		m_pTitle->SetMouseEnabled(false);
-		m_pTitle->SetAttribute(_T("text-align"), _T("left"));
 		m_pTitle->SetAttribute(_T("text-overflow"), _T("ellipsis"));
 		CHorizontalLayoutUI::Add(m_pTitle);
+		ApplyTitleTextAlign();
 
 		m_pClose = new CLabelUI;
 		m_pClose->SetText(_T("\x2715"));
@@ -100,7 +130,10 @@ namespace DuiLib
 	void CTabButtonUI::DoInit()
 	{
 		EnsureChildren();
+		FlushPendingMemIcon();
 		UpdateStyle();
+		if( m_pLoading != NULL && m_pLoading->IsVisible() && m_pLoading->IsStopped() )
+			m_pLoading->Start();
 		CHorizontalLayoutUI::DoInit();
 	}
 
@@ -108,6 +141,13 @@ namespace DuiLib
 	{
 		EnsureChildren();
 		if( m_pTitle != NULL ) m_pTitle->SetText(pstrTitle ? pstrTitle : _T(""));
+	}
+
+	void CTabButtonUI::SetText(LPCTSTR pstrText)
+	{
+		// 可见标题在子 Label 上；勿只写基类 m_sText
+		SetTabTitle(pstrText);
+		CHorizontalLayoutUI::SetText(pstrText);
 	}
 
 	CDuiString CTabButtonUI::GetTabTitle() const
@@ -216,33 +256,485 @@ namespace DuiLib
 		NeedUpdate();
 	}
 
+	void CTabButtonUI::SetIconTint(DWORD dwColor)
+	{
+		m_bIconTint = (dwColor != 0);
+		m_dwIconTint = dwColor;
+		if( m_pIcon != NULL && m_pIcon->IsVisible() ) {
+			DWORD c = m_bIconTint ? m_dwIconTint : 0;
+			if( c != 0 ) m_pIcon->SetColor(c);
+			else UpdateStyle();
+		}
+		Invalidate();
+	}
+
 	void CTabButtonUI::ApplyIconSize()
 	{
 		EnsureChildren();
-		if( m_pIcon == NULL ) return;
-		if( !m_pIcon->IsVisible() ) {
+		const bool bSvg = (m_pIcon != NULL && m_pIcon->IsVisible());
+		const bool bRaster = (m_pRasterIcon != NULL && m_pRasterIcon->IsVisible());
+		const bool bLoading = (m_pLoading != NULL && m_pLoading->IsVisible());
+		if( m_pIcon != NULL ) {
+			if( !bSvg ) {
+				m_pIcon->SetFixedWidth(0);
+				m_pIcon->SetFixedHeight(0);
+			}
+			else {
+				m_pIcon->SetFixedWidth(m_nIconSize);
+				m_pIcon->SetFixedHeight(m_nIconSize);
+			}
+		}
+		if( m_pRasterIcon != NULL ) {
+			if( !bRaster ) {
+				m_pRasterIcon->SetFixedWidth(0);
+				m_pRasterIcon->SetFixedHeight(0);
+			}
+			else {
+				m_pRasterIcon->SetFixedWidth(m_nIconSize);
+				m_pRasterIcon->SetFixedHeight(m_nIconSize);
+				RefreshRasterIconImage();
+			}
+		}
+		if( m_pLoading != NULL ) {
+			if( !bLoading ) {
+				m_pLoading->SetFixedWidth(0);
+				m_pLoading->SetFixedHeight(0);
+			}
+			else {
+				m_pLoading->SetFixedWidth(m_nIconSize);
+				m_pLoading->SetFixedHeight(m_nIconSize);
+			}
+		}
+		if( m_pIconGap != NULL )
+			m_pIconGap->SetFixedWidth((bSvg || bRaster || bLoading) ? 4 : 0);
+	}
+
+	bool CTabButtonUI::IsRasterImagePath(LPCTSTR pstrPath)
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) return false;
+		CDuiString s(pstrPath);
+		s.MakeLower();
+		// 支持 file='xxx.png' dest='...' 形式：取扩展名
+		LPCTSTR pExt = NULL;
+		for( LPCTSTR p = s.GetData(); *p != _T('\0'); ++p ) {
+			if( *p == _T('.') ) pExt = p;
+			else if( *p == _T('\'') || *p == _T('"') || *p == _T(' ') || *p == _T('\t') ) {
+				if( pExt != NULL ) break;
+			}
+		}
+		if( pExt == NULL ) return false;
+		return _tcsncmp(pExt, _T(".bmp"), 4) == 0
+			|| _tcsncmp(pExt, _T(".png"), 4) == 0
+			|| _tcsncmp(pExt, _T(".jpg"), 4) == 0
+			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0;
+	}
+
+	void CTabButtonUI::RefreshRasterIconImage()
+	{
+		if( m_pRasterIcon == NULL || m_sIconPath.IsEmpty() ) return;
+		if( !m_pRasterIcon->IsVisible() ) return;
+		CDuiString sImg;
+		// 必须用 file='name' dest='...'：裸 "name dest=..." 时 TDrawInfo::Parse
+		// 会把整串当成 sImageName，导致 AddImage 缓存键对不上、图标空白。
+		// 内存图已在 PaintManager 按 key 登记，GetImage 命中后不会再按路径读盘。
+		if( m_bMemIcon ) {
+			sImg.Format(_T("file='%s' dest='0,0,%d,%d'"),
+				m_sIconPath.GetData(), m_nIconSize, m_nIconSize);
+		}
+		else {
+			sImg = m_sIconPath;
+			if( sImg.Find(_T("file=")) < 0 && sImg.Find(_T("res=")) < 0
+				&& sImg.Find(_T("url(")) < 0 ) {
+				CDuiString sFmt;
+				sFmt.Format(_T("file='%s' dest='0,0,%d,%d'"), m_sIconPath.GetData(), m_nIconSize, m_nIconSize);
+				sImg = sFmt;
+			}
+			else if( sImg.Find(_T("dest=")) < 0 ) {
+				CDuiString sFmt;
+				sFmt.Format(_T("%s dest='0,0,%d,%d'"), m_sIconPath.GetData(), m_nIconSize, m_nIconSize);
+				sImg = sFmt;
+			}
+		}
+		m_pRasterIcon->SetBackgroundImage(sImg.GetData());
+	}
+
+	void CTabButtonUI::ReleaseMemIcon()
+	{
+		if( !m_sMemIconKey.IsEmpty() && m_pManager != NULL )
+			m_pManager->RemoveImage(m_sMemIconKey.GetData());
+		m_sMemIconKey.Empty();
+		m_bMemIcon = false;
+	}
+
+	void CTabButtonUI::ClearPendingMemIcon()
+	{
+		if( m_pPendingIconData != NULL ) {
+			delete[] m_pPendingIconData;
+			m_pPendingIconData = NULL;
+		}
+		m_dwPendingIconSize = 0;
+		if( m_hPendingIcon != NULL ) {
+			::DeleteObject(m_hPendingIcon);
+			m_hPendingIcon = NULL;
+		}
+		m_nPendingIconW = m_nPendingIconH = 0;
+		m_bPendingIconAlpha = true;
+	}
+
+	bool CTabButtonUI::InstallMemIcon(HBITMAP hBitmap, int nWidth, int nHeight, bool bAlpha)
+	{
+		if( hBitmap == NULL || nWidth <= 0 || nHeight <= 0 ) return false;
+		if( m_pManager == NULL ) return false;
+
+		ReleaseMemIcon();
+		static volatile LONG s_nMemIconSeq = 0;
+		LONG nSeq = ::InterlockedIncrement(&s_nMemIconSeq);
+		m_sMemIconKey.Format(_T("tabicon_mem_%p_%ld"), this, nSeq);
+
+		const TImageInfo* pAdded = m_pManager->AddImage(
+			m_sMemIconKey.GetData(), hBitmap, nWidth, nHeight, bAlpha, false);
+		if( pAdded == NULL ) {
+			::DeleteObject(hBitmap);
+			m_sMemIconKey.Empty();
+			return false;
+		}
+		// AddImage 接管 hBitmap
+		m_bMemIcon = true;
+		ShowRasterIcon(m_sMemIconKey.GetData(), true);
+		ApplyIconSize();
+		UpdateStyle();
+		NeedUpdate();
+		return true;
+	}
+
+	bool CTabButtonUI::FlushPendingMemIcon()
+	{
+		if( m_pManager == NULL ) return false;
+		if( m_hPendingIcon != NULL ) {
+			HBITMAP h = m_hPendingIcon;
+			int w = m_nPendingIconW;
+			int hgt = m_nPendingIconH;
+			bool bA = m_bPendingIconAlpha;
+			m_hPendingIcon = NULL;
+			m_nPendingIconW = m_nPendingIconH = 0;
+			return InstallMemIcon(h, w, hgt, bA);
+		}
+		if( m_pPendingIconData != NULL && m_dwPendingIconSize > 0 ) {
+			TImageInfo* pInfo = CRenderEngine::LoadImageFromMemory(
+				m_pPendingIconData, m_dwPendingIconSize, 0);
+			delete[] m_pPendingIconData;
+			m_pPendingIconData = NULL;
+			m_dwPendingIconSize = 0;
+			if( pInfo == NULL || pInfo->hBitmap == NULL ) {
+				if( pInfo != NULL ) CRenderEngine::FreeImage(pInfo);
+				return false;
+			}
+			HBITMAP hBmp = pInfo->hBitmap;
+			int w = pInfo->nX;
+			int h = pInfo->nY;
+			bool bA = pInfo->bAlpha;
+			pInfo->hBitmap = NULL;
+			CRenderEngine::FreeImage(pInfo);
+			return InstallMemIcon(hBmp, w, h, bA);
+		}
+		return false;
+	}
+
+	void CTabButtonUI::HideLoadingIcon()
+	{
+		if( m_pLoading == NULL ) return;
+		m_pLoading->Stop();
+		m_pLoading->SetVisible(false);
+		m_pLoading->SetFixedWidth(0);
+		m_pLoading->SetFixedHeight(0);
+	}
+
+	void CTabButtonUI::ApplyLoadingAppearance()
+	{
+		if( m_pLoading == NULL ) return;
+		CTabBarUI* pBar = GetOwnerBar();
+		LPCTSTR pType = NULL;
+		if( !m_sLoadingType.IsEmpty() )
+			pType = m_sLoadingType.GetData();
+		else if( pBar != NULL )
+			pType = pBar->GetTabLoadingType();
+		if( pType == NULL || *pType == _T('\0') )
+			pType = _T("spoke");
+		m_pLoading->SetAttribute(_T("type"), pType);
+
+		DWORD dwColor = 0;
+		if( pBar != NULL )
+			dwColor = pBar->GetTabLoadingColor();
+		if( dwColor == 0 )
+			dwColor = ResolveIconColor();
+		if( dwColor == 0 )
+			dwColor = 0x4FC3F7FF;
+		CDuiString sClr;
+		sClr.Format(_T("#%08X"), dwColor);
+		m_pLoading->SetAttribute(_T("color"), sClr.GetData());
+	}
+
+	DWORD CTabButtonUI::ResolveIconColor() const
+	{
+		if( m_bIconTint && m_dwIconTint != 0 )
+			return m_dwIconTint;
+		CTabBarUI* pBar = GetOwnerBar();
+		if( pBar == NULL ) return 0;
+		DWORD dwBarIcon = 0;
+		if( m_bActive )
+			dwBarIcon = pBar->GetTabIconSelectedColor();
+		else if( m_bHover )
+			dwBarIcon = pBar->GetTabIconHoverColor();
+		else
+			dwBarIcon = pBar->GetTabIconColor();
+		if( dwBarIcon == 0 )
+			dwBarIcon = pBar->GetTabIconColor();
+		return dwBarIcon;
+	}
+
+	void CTabButtonUI::SetTabLoading(bool bLoading)
+	{
+		EnsureChildren();
+		if( m_pLoading == NULL ) return;
+		if( bLoading ) {
+			if( m_pIcon != NULL ) {
+				m_pIcon->SetVisible(false);
+				m_pIcon->SetFixedWidth(0);
+				m_pIcon->SetFixedHeight(0);
+			}
+			if( m_pRasterIcon != NULL ) {
+				m_pRasterIcon->SetVisible(false);
+				m_pRasterIcon->SetFixedWidth(0);
+				m_pRasterIcon->SetFixedHeight(0);
+			}
+			ApplyLoadingAppearance();
+			m_pLoading->SetVisible(true);
+			ApplyIconSize();
+			m_pLoading->Start();
+			UpdateStyle();
+			NeedUpdate();
+		}
+		else {
+			HideLoadingIcon();
+			ApplyIconSize();
+			NeedUpdate();
+		}
+	}
+
+	bool CTabButtonUI::IsTabLoading() const
+	{
+		return m_pLoading != NULL && m_pLoading->IsVisible();
+	}
+
+	void CTabButtonUI::SetLoadingType(LPCTSTR pstrType)
+	{
+		m_sLoadingType = pstrType ? pstrType : _T("");
+		if( IsTabLoading() )
+			ApplyLoadingAppearance();
+	}
+
+	void CTabButtonUI::ShowSvgIcon()
+	{
+		EnsureChildren();
+		HideLoadingIcon();
+		ReleaseMemIcon();
+		ClearPendingMemIcon();
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(false);
+			m_pRasterIcon->SetBackgroundImage(_T(""));
+			m_pRasterIcon->SetFixedWidth(0);
+			m_pRasterIcon->SetFixedHeight(0);
+		}
+		if( m_pIcon != NULL )
+			m_pIcon->SetVisible(true);
+	}
+
+	void CTabButtonUI::ShowRasterIcon(LPCTSTR pstrPath, bool bMemoryKey)
+	{
+		EnsureChildren();
+		HideLoadingIcon();
+		if( m_pIcon != NULL ) {
+			m_pIcon->SetVisible(false);
 			m_pIcon->SetFixedWidth(0);
 			m_pIcon->SetFixedHeight(0);
-			if( m_pIconGap != NULL ) m_pIconGap->SetFixedWidth(0);
+		}
+		m_sIconPath = pstrPath ? pstrPath : _T("");
+		m_bMemIcon = bMemoryKey;
+		if( m_pRasterIcon != NULL )
+			m_pRasterIcon->SetVisible(true);
+		RefreshRasterIconImage();
+	}
+
+	void CTabButtonUI::SetTabIcon(LPCTSTR pstrPath)
+	{
+		EnsureChildren();
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) {
+			ClearTabIcon();
 			return;
 		}
-		m_pIcon->SetFixedWidth(m_nIconSize);
-		m_pIcon->SetFixedHeight(m_nIconSize);
-		if( m_pIconGap != NULL ) m_pIconGap->SetFixedWidth(4);
+		ClearPendingMemIcon();
+		ReleaseMemIcon();
+		if( IsRasterImagePath(pstrPath) ) {
+			ShowRasterIcon(pstrPath, false);
+		}
+		else {
+			// .svg 或其它：走 SvgBox 文件加载
+			m_sIconPath = pstrPath;
+			m_bMemIcon = false;
+			ShowSvgIcon();
+			if( m_pIcon != NULL )
+				m_pIcon->SetAttribute(_T("src"), pstrPath);
+		}
+		ApplyIconSize();
+		UpdateStyle();
+		NeedUpdate();
+	}
+
+	bool CTabButtonUI::SetTabIcon(const BYTE* pData, DWORD dwSize)
+	{
+		EnsureChildren();
+		if( pData == NULL || dwSize == 0 ) {
+			ClearTabIcon();
+			return false;
+		}
+		ClearPendingMemIcon();
+		ReleaseMemIcon();
+
+		if( m_pManager == NULL ) {
+			m_pPendingIconData = new BYTE[dwSize];
+			if( m_pPendingIconData == NULL ) return false;
+			::CopyMemory(m_pPendingIconData, pData, dwSize);
+			m_dwPendingIconSize = dwSize;
+			return true;
+		}
+
+		TImageInfo* pInfo = CRenderEngine::LoadImageFromMemory(pData, dwSize, 0);
+		if( pInfo == NULL || pInfo->hBitmap == NULL ) {
+			if( pInfo != NULL ) CRenderEngine::FreeImage(pInfo);
+			return false;
+		}
+		HBITMAP hBmp = pInfo->hBitmap;
+		int w = pInfo->nX;
+		int h = pInfo->nY;
+		bool bA = pInfo->bAlpha;
+		pInfo->hBitmap = NULL;
+		CRenderEngine::FreeImage(pInfo);
+		return InstallMemIcon(hBmp, w, h, bA);
+	}
+
+	bool CTabButtonUI::SetTabIcon(HBITMAP hBitmap, int nWidth, int nHeight, bool bAlpha)
+	{
+		EnsureChildren();
+		if( hBitmap == NULL ) {
+			ClearTabIcon();
+			return false;
+		}
+		if( nWidth <= 0 || nHeight <= 0 ) {
+			BITMAP bm = { 0 };
+			if( ::GetObject(hBitmap, sizeof(bm), &bm) == 0 ) return false;
+			nWidth = bm.bmWidth;
+			nHeight = bm.bmHeight;
+		}
+		if( nWidth <= 0 || nHeight <= 0 ) return false;
+
+		ClearPendingMemIcon();
+		ReleaseMemIcon();
+
+		HBITMAP hCopy = (HBITMAP)::CopyImage(hBitmap, IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION);
+		if( hCopy == NULL ) return false;
+
+		if( m_pManager == NULL ) {
+			m_hPendingIcon = hCopy;
+			m_nPendingIconW = nWidth;
+			m_nPendingIconH = nHeight;
+			m_bPendingIconAlpha = bAlpha;
+			return true;
+		}
+		return InstallMemIcon(hCopy, nWidth, nHeight, bAlpha);
+	}
+
+	void CTabButtonUI::SetTabIconLib(LPCTSTR pstrLib, LPCTSTR pstrName)
+	{
+		EnsureChildren();
+		if( pstrLib != NULL && (_tcsicmp(pstrLib, _T("icon-src")) == 0 || _tcsicmp(pstrLib, _T("icon")) == 0) ) {
+			SetTabIcon(pstrName);
+			return;
+		}
+		if( pstrLib == NULL || *pstrLib == _T('\0')
+			|| pstrName == NULL || *pstrName == _T('\0')
+			|| !IsIconAttr(pstrLib) ) {
+			ClearTabIcon();
+			return;
+		}
+		ClearPendingMemIcon();
+		ReleaseMemIcon();
+		m_sIconPath.Empty();
+		m_bMemIcon = false;
+		ShowSvgIcon();
+		if( m_pIcon != NULL )
+			m_pIcon->SetAttribute(pstrLib, pstrName);
+		ApplyIconSize();
+		UpdateStyle();
+		NeedUpdate();
 	}
 
 	void CTabButtonUI::ClearTabIcon()
 	{
 		EnsureChildren();
-		if( m_pIcon == NULL ) return;
-		m_pIcon->SetVisible(false);
-		ApplyIconSize();
+		HideLoadingIcon();
+		ClearPendingMemIcon();
+		ReleaseMemIcon();
+		m_sIconPath.Empty();
+		m_bMemIcon = false;
+		if( m_pIcon != NULL ) {
+			m_pIcon->SetVisible(false);
+			m_pIcon->SetFixedWidth(0);
+			m_pIcon->SetFixedHeight(0);
+		}
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(false);
+			m_pRasterIcon->SetBackgroundImage(_T(""));
+			m_pRasterIcon->SetFixedWidth(0);
+			m_pRasterIcon->SetFixedHeight(0);
+		}
+		if( m_pIconGap != NULL )
+			m_pIconGap->SetFixedWidth(0);
 		NeedUpdate();
 	}
 
 	bool CTabButtonUI::HasTabIcon() const
 	{
-		return m_pIcon != NULL && m_pIcon->IsVisible();
+		return (m_pIcon != NULL && m_pIcon->IsVisible())
+			|| (m_pRasterIcon != NULL && m_pRasterIcon->IsVisible())
+			|| (m_pLoading != NULL && m_pLoading->IsVisible());
+	}
+
+	void CTabButtonUI::SetTitleTextAlign(LPCTSTR pstrAlign)
+	{
+		m_sTextAlign = pstrAlign ? pstrAlign : _T("");
+		ApplyTitleTextAlign();
+		Invalidate();
+	}
+
+	void CTabButtonUI::SetTitleVerticalAlign(LPCTSTR pstrAlign)
+	{
+		m_sVerticalAlign = pstrAlign ? pstrAlign : _T("");
+		ApplyTitleTextAlign();
+		Invalidate();
+	}
+
+	void CTabButtonUI::ApplyTitleTextAlign()
+	{
+		if( m_pTitle == NULL ) return;
+		CDuiString sH = m_sTextAlign;
+		CDuiString sV = m_sVerticalAlign;
+		CTabBarUI* pBar = GetOwnerBar();
+		if( sH.IsEmpty() && pBar != NULL ) sH = pBar->GetTabTextAlign();
+		if( sV.IsEmpty() && pBar != NULL ) sV = pBar->GetTabVerticalAlign();
+		if( sH.IsEmpty() ) sH = _T("left");
+		if( sV.IsEmpty() ) sV = _T("vcenter");
+		m_pTitle->SetAttribute(_T("text-align"), sH.GetData());
+		m_pTitle->SetAttribute(_T("vertical-align"), sV.GetData());
 	}
 
 	void CTabButtonUI::ApplyHoverStyle(bool bHover)
@@ -325,8 +817,18 @@ namespace DuiLib
 		}
 
 		if( m_pTitle != NULL ) m_pTitle->SetColor(clrText);
-		if( m_pIcon != NULL && m_pIcon->IsVisible() )
-			m_pIcon->SetColor(clrText);
+		ApplyTitleTextAlign();
+		if( m_pIcon != NULL && m_pIcon->IsVisible() ) {
+			DWORD clrIcon = clrText;
+			DWORD dwBarIcon = ResolveIconColor();
+			if( dwBarIcon != 0 )
+				clrIcon = dwBarIcon;
+			else if( m_bIconTint )
+				clrIcon = m_dwIconTint;
+			m_pIcon->SetColor(clrIcon);
+		}
+		if( m_pLoading != NULL && m_pLoading->IsVisible() )
+			ApplyLoadingAppearance();
 
 		if( m_pClose != NULL && !m_bCloseHovered ) {
 			m_pClose->SetBackgroundColor(0);
@@ -381,24 +883,30 @@ namespace DuiLib
 			SetIconSize(_ttoi(pstrValue));
 		}
 		else if( IsIconAttr(pstrName) ) {
-			EnsureChildren();
-			if( m_pIcon == NULL ) return;
 			if( pstrValue == NULL || *pstrValue == _T('\0') ) {
 				ClearTabIcon();
 				return;
 			}
 			if( _tcsicmp(pstrName, _T("icon-src")) == 0 || _tcsicmp(pstrName, _T("icon")) == 0 )
-				m_pIcon->SetAttribute(_T("src"), pstrValue);
+				SetTabIcon(pstrValue);
 			else
-				m_pIcon->SetAttribute(pstrName, pstrValue);
-			m_pIcon->SetVisible(true);
-			ApplyIconSize();
-			UpdateStyle();
-			NeedUpdate();
+				SetTabIconLib(pstrName, pstrValue);
 		}
 		else if( _tcsicmp(pstrName, _T("icon-tint")) == 0 ) {
 			EnsureChildren();
-			if( m_pIcon != NULL ) m_pIcon->SetColor(ParseTabColor(pstrValue));
+			SetIconTint(ParseTabColor(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("loading")) == 0 ) {
+			SetTabLoading(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("loading-type")) == 0 ) {
+			SetLoadingType(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("text-align")) == 0 || _tcsicmp(pstrName, _T("align")) == 0 ) {
+			SetTitleTextAlign(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("vertical-align")) == 0 || _tcsicmp(pstrName, _T("valign")) == 0 ) {
+			SetTitleVerticalAlign(pstrValue);
 		}
 		else {
 			CHorizontalLayoutUI::SetAttribute(pstrName, pstrValue);

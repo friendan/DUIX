@@ -62,33 +62,55 @@ namespace DuiLib
 
 	void CTagUI::ApplyStatusColors()
 	{
+		DWORD bg = 0xFAFAFAFF, fg = 0x000000E0, bd = 0xD9D9D9FF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		CTheme* th = NULL;
+		if( tm != NULL ) {
+			CDuiString mode;
+			tm->ResolveEffectiveTheme(this, mode, &th);
+			if( th == NULL ) th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+		}
+		DWORD baseBg = th ? th->GetToken(_T("color-bg-elevated"), 0xFAFAFAFF) : 0xFAFAFAFF;
+		DWORD text = th ? th->GetToken(_T("color-text"), 0x000000E0) : 0x000000E0;
+		DWORD border = th ? th->GetToken(_T("color-border"), 0xD9D9D9FF) : 0xD9D9D9FF;
+		DWORD primary = th ? th->GetToken(_T("color-primary"), 0x1677FFFF) : 0x1677FFFF;
+		DWORD success = th ? th->GetToken(_T("color-success"), 0x52C41AFF) : 0x52C41AFF;
+		DWORD danger = th ? th->GetToken(_T("color-danger"), 0xFF4D4FFF) : 0xFF4D4FFF;
+		DWORD warning = th ? th->GetToken(_T("color-warning"), 0xFAAD14FF) : 0xFAAD14FF;
+
+		auto soft = [](DWORD accent, DWORD base) -> DWORD {
+			const int w = 36, iw = 255 - w;
+			return DuiColorFromRGB(
+				(BYTE)((DuiColorR(accent) * w + DuiColorR(base) * iw) / 255),
+				(BYTE)((DuiColorG(accent) * w + DuiColorG(base) * iw) / 255),
+				(BYTE)((DuiColorB(accent) * w + DuiColorB(base) * iw) / 255),
+				0xFF);
+		};
+		auto softBd = [](DWORD accent, DWORD base) -> DWORD {
+			const int w = 90, iw = 255 - w;
+			return DuiColorFromRGB(
+				(BYTE)((DuiColorR(accent) * w + DuiColorR(base) * iw) / 255),
+				(BYTE)((DuiColorG(accent) * w + DuiColorG(base) * iw) / 255),
+				(BYTE)((DuiColorB(accent) * w + DuiColorB(base) * iw) / 255),
+				0xFF);
+		};
+
 		switch( m_eStatus ) {
 		case StatusSuccess:
-			SetBackgroundColor(0xF6FFEDFF);
-			SetColor(0x52C41AFF);
-			SetBorderColor(0xB7EB8FFF);
-			break;
+			fg = success; bg = soft(success, baseBg); bd = softBd(success, border); break;
 		case StatusProcessing:
-			SetBackgroundColor(0xE6F4FFFF);
-			SetColor(0x1677FFFF);
-			SetBorderColor(0x91CAFFFF);
-			break;
+			fg = primary; bg = soft(primary, baseBg); bd = softBd(primary, border); break;
 		case StatusError:
-			SetBackgroundColor(0xFFF2F0FF);
-			SetColor(0xFF4D4FFF);
-			SetBorderColor(0xFFCCC7FF);
-			break;
+			fg = danger; bg = soft(danger, baseBg); bd = softBd(danger, border); break;
 		case StatusWarning:
-			SetBackgroundColor(0xFFFBE6FF);
-			SetColor(0xFAAD14FF);
-			SetBorderColor(0xFFE58FFF);
-			break;
+			fg = warning; bg = soft(warning, baseBg); bd = softBd(warning, border); break;
 		default:
-			SetBackgroundColor(0xFAFAFAFF);
-			SetColor(0x000000E0);
-			SetBorderColor(0xD9D9D9FF);
-			break;
+			fg = text; bg = baseBg; bd = border; break;
 		}
+		SetBackgroundColor(bg);
+		SetColor(fg);
+		SetBorderColor(bd);
 		SetBorderWidth(1);
 	}
 

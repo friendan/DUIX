@@ -14,6 +14,9 @@ namespace DuiLib
 		: m_pWebBrowser2(NULL)
 		, _pHtmlWnd2(NULL)
 		, m_pWebBrowserEventHandler(NULL)
+		, m_pHostEvents(NULL)
+		, m_bCanGoBack(false)
+		, m_bCanGoForward(false)
 		, m_dwRef(0)
 		, m_dwCookie(0)
 		, m_pFacade(pFacade)
@@ -179,6 +182,51 @@ namespace DuiLib
 			m_pWebBrowser2->Refresh();
 		}
 	}
+
+	void CWebBrowserIeHost::Stop()
+	{
+		if( m_pWebBrowser2 )
+			m_pWebBrowser2->Stop();
+	}
+
+	bool CWebBrowserIeHost::GetUrl(CDuiString& out) const
+	{
+		out.Empty();
+		if( m_pWebBrowser2 == NULL ) return false;
+		BSTR bstr = NULL;
+		if( FAILED(m_pWebBrowser2->get_LocationURL(&bstr)) || bstr == NULL ) return false;
+#ifdef _UNICODE
+		out = bstr;
+#else
+		out = CDuiString(bstr);
+#endif
+		SysFreeString(bstr);
+		return !out.IsEmpty();
+	}
+
+	void CWebBrowserIeHost::ExecuteScript(LPCTSTR script)
+	{
+		if( script == NULL || *script == _T('\0') ) return;
+		IDispatch* pWin = GetHtmlWindow();
+		if( pWin == NULL ) return;
+		CComQIPtr<IHTMLWindow2> spWin(pWin);
+		if( !spWin ) return;
+		CComBSTR bstrCode(script);
+		CComBSTR bstrLang(L"javascript");
+		CComVariant vRet;
+		HRESULT hr = spWin->execScript(bstrCode, bstrLang, &vRet);
+		if( m_pHostEvents && m_pFacade ) {
+			CDuiString s;
+			if( SUCCEEDED(hr) && vRet.vt == VT_BSTR && vRet.bstrVal )
+#ifdef _UNICODE
+				s = vRet.bstrVal;
+#else
+				s = CDuiString(vRet.bstrVal);
+#endif
+			m_pHostEvents->OnExecuteScriptResult(m_pFacade, s.IsEmpty() ? NULL : s.GetData(), SUCCEEDED(hr));
+		}
+	}
+
 	void CWebBrowserIeHost::GoBack()
 	{
 		if (m_pWebBrowser2)
@@ -207,6 +255,21 @@ namespace DuiLib
 		if (m_pWebBrowserEventHandler)
 		{
 			m_pWebBrowserEventHandler->NavigateError(m_pFacade, pDisp,url,TargetFrameName,StatusCode,Cancel);
+		}
+		if( m_pHostEvents && m_pFacade ) {
+			CDuiString sUrl;
+			int nCode = 0;
+			if( url && url->vt == VT_BSTR && url->bstrVal )
+#ifdef _UNICODE
+				sUrl = url->bstrVal;
+#else
+				sUrl = CDuiString(url->bstrVal);
+#endif
+			if( StatusCode && StatusCode->vt == VT_I4 )
+				nCode = StatusCode->lVal;
+			else if( StatusCode && StatusCode->vt == VT_I2 )
+				nCode = StatusCode->iVal;
+			m_pHostEvents->OnLoadError(m_pFacade, sUrl.GetData(), nCode, _T("NavigateError"));
 		}
 	}
 
@@ -242,6 +305,21 @@ namespace DuiLib
 		{
 			m_pWebBrowserEventHandler->NewWindow3(m_pFacade, pDisp,Cancel,dwFlags,bstrUrlContext,bstrUrl);
 		}
+		if( m_pHostEvents && m_pFacade ) {
+			bool handled = false;
+#ifdef _UNICODE
+			m_pHostEvents->OnNewWindowRequested(m_pFacade, bstrUrl ? bstrUrl : _T(""), &handled);
+#else
+			CDuiString sUrl;
+			if( bstrUrl ) sUrl = CDuiString(bstrUrl);
+			m_pHostEvents->OnNewWindowRequested(m_pFacade, sUrl, &handled);
+#endif
+			if( handled && Cancel != NULL )
+				*Cancel = VARIANT_TRUE;
+		}
+		(void)pDisp;
+		(void)dwFlags;
+		(void)bstrUrlContext;
 	}
 	void CWebBrowserIeHost::CommandStateChange(long Command,VARIANT_BOOL Enable)
 	{
@@ -249,6 +327,17 @@ namespace DuiLib
 		{
 			m_pWebBrowserEventHandler->CommandStateChange(m_pFacade, Command,Enable);
 		}
+		bool bNav = false;
+		if( Command == CSC_NAVIGATEBACK ) {
+			m_bCanGoBack = (Enable != VARIANT_FALSE);
+			bNav = true;
+		}
+		else if( Command == CSC_NAVIGATEFORWARD ) {
+			m_bCanGoForward = (Enable != VARIANT_FALSE);
+			bNav = true;
+		}
+		if( bNav && m_pHostEvents && m_pFacade )
+			m_pHostEvents->OnHistoryChanged(m_pFacade);
 	}
 
 	void CWebBrowserIeHost::TitleChange(BSTR bstrTitle)
@@ -256,6 +345,15 @@ namespace DuiLib
 		if (m_pWebBrowserEventHandler)
 		{
 			m_pWebBrowserEventHandler->TitleChange(m_pFacade, bstrTitle);
+		}
+		if( m_pHostEvents && m_pFacade ) {
+#ifdef _UNICODE
+			m_pHostEvents->OnDocumentTitleChanged(m_pFacade, bstrTitle ? bstrTitle : _T(""));
+#else
+			CDuiString s;
+			if( bstrTitle ) s = CDuiString(bstrTitle);
+			m_pHostEvents->OnDocumentTitleChanged(m_pFacade, s);
+#endif
 		}
 	}
 
@@ -462,6 +560,11 @@ namespace DuiLib
 	{
 		if ( pEventHandler!=NULL && m_pWebBrowserEventHandler!=pEventHandler)
 			m_pWebBrowserEventHandler=pEventHandler;
+	}
+
+	void CWebBrowserIeHost::SetHostEvents(CWebBrowserHostEvents* pEvents)
+	{
+		m_pHostEvents = pEvents;
 	}
 
 	void CWebBrowserIeHost::Refresh2( int Level )
@@ -732,6 +835,7 @@ namespace DuiLib
 		CWebBrowserUI* pFacade = static_cast<CWebBrowserUI*>(pOwner->GetInterface(DUI_CTR_WEBBROWSER));
 		if( pFacade == NULL ) return false;
 		m_pHost = new CWebBrowserIeHost(pFacade);
+		m_pHost->SetHostEvents(m_pHostEvents);
 		m_pHost->SetManager(pOwner->GetManager(), pOwner, false);
 		m_pHost->SetDelayCreate(false);
 		RECT rcPos = rc;
@@ -767,9 +871,35 @@ namespace DuiLib
 		if( m_pHost ) m_pHost->GoForward();
 	}
 
+	bool CWebBrowserIeEngine::CanGoBack() const
+	{
+		return m_pHost != NULL && m_pHost->CanGoBack();
+	}
+
+	bool CWebBrowserIeEngine::CanGoForward() const
+	{
+		return m_pHost != NULL && m_pHost->CanGoForward();
+	}
+
 	void CWebBrowserIeEngine::Refresh()
 	{
 		if( m_pHost ) m_pHost->Refresh();
+	}
+
+	void CWebBrowserIeEngine::Stop()
+	{
+		if( m_pHost ) m_pHost->Stop();
+	}
+
+	bool CWebBrowserIeEngine::GetUrl(CDuiString& out) const
+	{
+		if( m_pHost == NULL ) { out.Empty(); return false; }
+		return m_pHost->GetUrl(out);
+	}
+
+	void CWebBrowserIeEngine::ExecuteScript(LPCTSTR script)
+	{
+		if( m_pHost ) m_pHost->ExecuteScript(script);
 	}
 
 	HWND CWebBrowserIeEngine::GetHostWindow() const
@@ -785,6 +915,7 @@ namespace DuiLib
 	void CWebBrowserIeEngine::SetHostEvents(CWebBrowserHostEvents* pEvents)
 	{
 		m_pHostEvents = pEvents;
+		if( m_pHost ) m_pHost->SetHostEvents(pEvents);
 	}
 
 	void CWebBrowserIeEngine::SetIeEventHandler(CWebBrowserEventHandler* pHandler)

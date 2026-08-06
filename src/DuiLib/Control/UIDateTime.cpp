@@ -80,8 +80,18 @@ namespace DuiLib
 			::ZeroMemory(m_rcTimeBtn, sizeof(m_rcTimeBtn));
 			::ZeroMemory(m_rcTimeVal, sizeof(m_rcTimeVal));
 			::ZeroMemory(&m_stPending, sizeof(m_stPending));
-			SetBackgroundColor(0xFFFFFFFF);
-			SetBorderColor(0xD9D9D9FF);
+			DWORD bg = 0xFFFFFFFF, bd = 0xD9D9D9FF;
+			CThemeManager* tm = CThemeManager::GetInstance();
+			if( tm != NULL ) {
+				CTheme* th = tm->GetCurrentTheme();
+				if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+				if( th != NULL ) {
+					bg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), bg));
+					bd = th->GetToken(_T("color-control-border"), th->GetToken(_T("color-border"), bd));
+				}
+			}
+			SetBackgroundColor(bg);
+			SetBorderColor(bd);
 			SetBorderWidth(1);
 			SIZE szR = { 6, 6 };
 			SetBorderRadius(szR);
@@ -597,10 +607,11 @@ namespace DuiLib
 			SYSTEMTIME today = { 0 };
 			::GetLocalTime(&today);
 			SYSTEMTIME sel = m_pOwner->GetTime();
-			DWORD clrText = 0x333333FF;
+			DWORD clrText = m_pOwner->GetDayTextColor();
 			DWORD clrSelBk = m_pOwner->m_dwSelectedBk;
 			DWORD clrHover = m_pOwner->m_dwHoverBk;
 			DWORD clrToday = m_pOwner->m_dwTodayColor;
+			DWORD clrSelText = m_pOwner->m_dwSelectedText;
 			SIZE szR = { Scale(4), Scale(4) };
 
 			for( int i = 0; i < 42; ++i ) {
@@ -627,7 +638,7 @@ namespace DuiLib
 
 				DWORD clr = clrText;
 				if( m_bOtherMonth[i] ) clr = clrMuted;
-				if( bSel ) clr = 0xFFFFFFFF;
+				if( bSel ) clr = clrSelText;
 				else if( bToday ) clr = clrToday;
 				CDuiString s;
 				s.SmallFormat(_T("%d"), day);
@@ -650,7 +661,7 @@ namespace DuiLib
 				bool bHover = (i == m_nHoverMonth);
 				if( bSel ) ctx.FillRoundRect(rc, szR.cx, szR.cy, GetAdjustColor(m_pOwner->m_dwSelectedBk));
 				else if( bHover ) ctx.FillRoundRect(rc, szR.cx, szR.cy, GetAdjustColor(m_pOwner->m_dwHoverBk));
-				DWORD clr = bSel ? 0xFFFFFFFF : 0x333333FF;
+				DWORD clr = bSel ? m_pOwner->m_dwSelectedText : m_pOwner->GetDayTextColor();
 				ctx.DrawText(rc, kMon[i], GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 			}
 		}
@@ -667,7 +678,8 @@ namespace DuiLib
 				bool bOut = (y < m_nDecadeStart || y > m_nDecadeStart + 9);
 				if( bSel ) ctx.FillRoundRect(rc, szR.cx, szR.cy, GetAdjustColor(m_pOwner->m_dwSelectedBk));
 				else if( bHover ) ctx.FillRoundRect(rc, szR.cx, szR.cy, GetAdjustColor(m_pOwner->m_dwHoverBk));
-				DWORD clr = bSel ? 0xFFFFFFFF : (bOut ? m_pOwner->m_dwOtherMonthColor : 0x333333FF);
+				DWORD clr = bSel ? m_pOwner->m_dwSelectedText
+					: (bOut ? m_pOwner->m_dwOtherMonthColor : m_pOwner->GetDayTextColor());
 				CDuiString s;
 				s.SmallFormat(_T("%d"), y);
 				ctx.DrawText(rc, s, GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
@@ -679,8 +691,8 @@ namespace DuiLib
 			SYSTEMTIME st = m_pOwner->GetTime();
 			int parts = m_pOwner->IsShowSeconds() ? 3 : 2;
 			int vals[3] = { st.wHour, st.wMinute, st.wSecond };
-			DWORD clr = 0x333333FF;
-			DWORD clrBtn = 0x8C8C8CFF;
+			DWORD clr = m_pOwner->GetDayTextColor();
+			DWORD clrBtn = m_pOwner->m_dwMutedBtnColor;
 			SIZE szR = { Scale(3), Scale(3) };
 			for( int i = 0; i < parts; ++i ) {
 				if( i == m_nHoverTimePart )
@@ -841,6 +853,25 @@ namespace DuiLib
 			return CWindowWnd::HandleMessage(uMsg, wParam, lParam);
 		}
 
+		void SyncThemeShell()
+		{
+			if( m_pPanel == NULL ) return;
+			DWORD bg = 0xFFFFFFFF, bd = 0xD9D9D9FF;
+			CThemeManager* tm = CThemeManager::GetInstance();
+			if( tm != NULL ) {
+				CTheme* th = tm->GetCurrentTheme();
+				if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+				if( th != NULL ) {
+					bg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), bg));
+					bd = th->GetToken(_T("color-control-border"), th->GetToken(_T("color-border"), bd));
+				}
+			}
+			m_pPanel->SetBackgroundColor(bg);
+			m_pPanel->SetBorderColor(bd);
+			m_pPanel->Invalidate();
+			m_pm.NeedUpdate();
+		}
+
 	private:
 		CPaintManagerUI m_pm;
 		CDateTimeUI* m_pOwner;
@@ -864,6 +895,9 @@ namespace DuiLib
 		, m_dwTodayColor(0x1677FFFF)
 		, m_dwOtherMonthColor(0xBFBFBFFF)
 		, m_dwHeaderColor(0x333333FF)
+		, m_dwDayColor(0x333333FF)
+		, m_dwSelectedText(0xFFFFFFFF)
+		, m_dwMutedBtnColor(0x8C8C8CFF)
 	{
 		::GetLocalTime(&m_sysTime);
 		m_sFormat = _T("yyyy-MM-dd");
@@ -1067,6 +1101,12 @@ namespace DuiLib
 		}
 	}
 
+	void CDateTimeUI::SyncOpenCalendarShell()
+	{
+		if( m_pWindow == NULL ) return;
+		m_pWindow->SyncThemeShell();
+	}
+
 	void CDateTimeUI::OnLiveTimeChanged(const SYSTEMTIME& st)
 	{
 		m_sysTime = st;
@@ -1172,8 +1212,15 @@ namespace DuiLib
 	{
 		RECT rc = m_rcItem;
 		RECT rcArrow = { rc.right - ScaleValue(18), rc.top, rc.right - ScaleValue(6), rc.bottom };
-		DWORD clr = IsEnabled() ? 0x8C8C8CFF : 0xBFBFBFFF;
+		DWORD clr = IsEnabled() ? m_dwMutedBtnColor : m_dwOtherMonthColor;
 		ctx.DrawText(rcArrow, _T("▼"), GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+	}
+
+	DWORD CDateTimeUI::GetDayTextColor() const
+	{
+		DWORD c = GetColor();
+		if( c != 0 ) return c;
+		return m_dwDayColor;
 	}
 
 	void CDateTimeUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -1221,6 +1268,22 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("other-month-color")) == 0 ) {
 			DWORD clr = 0;
 			if( ParseColorString(pstrValue, clr) ) m_dwOtherMonthColor = clr;
+		}
+		else if( _tcsicmp(pstrName, _T("header-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) m_dwHeaderColor = clr;
+		}
+		else if( _tcsicmp(pstrName, _T("day-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) m_dwDayColor = clr;
+		}
+		else if( _tcsicmp(pstrName, _T("selected-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) m_dwSelectedText = clr;
+		}
+		else if( _tcsicmp(pstrName, _T("muted-color")) == 0 || _tcsicmp(pstrName, _T("arrow-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) m_dwMutedBtnColor = clr;
 		}
 		else {
 			CLabelUI::SetAttribute(pstrName, pstrValue);

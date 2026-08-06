@@ -538,7 +538,16 @@ namespace DuiLib
 		InitKindColors();
 		CControlUI::SetKind(kind);
 
-		if (kind == CONTROLKIND_NONE) return;
+		if (kind == CONTROLKIND_NONE) {
+			// 清掉 ctor/上一 kind 残留的悬停·按下色，避免 none 仍带 default 灰底
+			SetHoverBackgroundColor(0);
+			SetHoverBorderColor(0);
+			SetActiveBackgroundColor(0);
+			SetActiveBorderColor(0);
+			SetDisabledBackgroundColor(0);
+			SetDisabledBorderColor(0);
+			return;
+		}
 		if (m_bOutline) return;
 
 		int idx = (int)kind;

@@ -121,6 +121,7 @@ namespace DuiLib
 #define DUI_MSGTYPE_TREEITEMDBCLICK 		(_T("treeitemdbclick"))
 #define DUI_MSGTYPE_CHECKCLICK				(_T("checkclick"))
 #define DUI_MSGTYPE_TEXTROLLEND 			(_T("textrollend"))
+#define DUI_MSGTYPE_COLORCHANGING		    (_T("colorchanging"))
 #define DUI_MSGTYPE_COLORCHANGED		    (_T("colorchanged"))
 
 #define DUI_MSGTYPE_LISTITEMSELECT 		   	(_T("listitemselect"))
@@ -332,6 +333,7 @@ protected:                                                                \
 #define  DUI_CTR_AVATAR                          (_T("Avatar"))
 #define  DUI_CTR_COMBOBOX                        (_T("ComboBox"))
 #define  DUI_CTR_DATETIME                        (_T("DateTime"))
+#define  DUI_CTR_HOTKEY                          (_T("HotKey"))
 #define  DUI_CTR_STEPS                           (_T("Steps"))
 #define  DUI_CTR_STEPITEM                        (_T("StepItem"))
 #define  DUI_CTR_TIMELINE                        (_T("Timeline"))

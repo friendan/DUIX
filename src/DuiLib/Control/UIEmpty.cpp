@@ -9,6 +9,7 @@ namespace DuiLib
 		: m_bBuilt(false)
 		, m_bShowImage(true)
 		, m_sDescription(_T("暂无数据"))
+		, m_dwDescColor(0x00000073)
 		, m_pImageHost(NULL)
 		, m_pDesc(NULL)
 		, m_pExtra(NULL)
@@ -81,6 +82,13 @@ namespace DuiLib
 
 	bool CEmptyUI::IsShowImage() const { return m_bShowImage; }
 
+	void CEmptyUI::SetDescriptionColor(DWORD dwColor)
+	{
+		m_dwDescColor = dwColor;
+		if( m_pDesc ) m_pDesc->SetColor(dwColor);
+		Invalidate();
+	}
+
 	void CEmptyUI::EnsureBuilt()
 	{
 		if( m_bBuilt ) return;
@@ -116,7 +124,7 @@ namespace DuiLib
 
 		m_pDesc = new CLabelUI();
 		m_pDesc->SetText(m_sDescription);
-		m_pDesc->SetColor(0x00000073);
+		m_pDesc->SetColor(m_dwDescColor);
 		m_pDesc->SetTextStyle(DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 		m_pDesc->SetFixedHeight(ScaleValue(22));
 		m_pDesc->SetMouseEnabled(false);
@@ -143,26 +151,37 @@ namespace DuiLib
 		if( rc.right - rc.left < 8 || rc.bottom - rc.top < 8 ) return;
 		int w = rc.right - rc.left;
 		int h = rc.bottom - rc.top;
+		DWORD bg = 0xF5F5F5FF, bd = 0xD9D9D9FF, lid = 0xE6E6E6FF, lidBd = 0xBFBFBFFF, dot = 0xBFBFBFFF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL && tm->IsEnabled() ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL ) {
+				bg = th->GetToken(_T("color-bg-elevated"), bg);
+				bd = th->GetToken(_T("color-border"), bd);
+				lid = th->GetToken(_T("color-bg-hover"), lid);
+				lidBd = th->GetToken(_T("color-border-strong"), lidBd);
+				dot = lidBd;
+			}
+		}
 		int pad = ScaleValue(8);
 		RECT rcBox = { rc.left + pad, rc.top + pad + ScaleValue(8), rc.right - pad, rc.bottom - pad };
 		int rx = ScaleValue(8);
-		ctx.FillRoundRect(rcBox, rx, rx, GetAdjustColor(0xF5F5F5FF));
-		ctx.DrawRoundRect(rcBox, ScaleValue(1), rx, rx, GetAdjustColor(0xD9D9D9FF), PS_SOLID);
+		ctx.FillRoundRect(rcBox, rx, rx, GetAdjustColor(bg));
+		ctx.DrawRoundRect(rcBox, ScaleValue(1), rx, rx, GetAdjustColor(bd), PS_SOLID);
 
-		// 盒盖
 		RECT rcLid = rcBox;
 		rcLid.bottom = rcLid.top + ScaleValue(14);
 		rcLid.left -= ScaleValue(4);
 		rcLid.right += ScaleValue(4);
-		ctx.FillRoundRect(rcLid, ScaleValue(4), ScaleValue(4), GetAdjustColor(0xE6E6E6FF));
-		ctx.DrawRoundRect(rcLid, ScaleValue(1), ScaleValue(4), ScaleValue(4), GetAdjustColor(0xBFBFBFFF), PS_SOLID);
+		ctx.FillRoundRect(rcLid, ScaleValue(4), ScaleValue(4), GetAdjustColor(lid));
+		ctx.DrawRoundRect(rcLid, ScaleValue(1), ScaleValue(4), ScaleValue(4), GetAdjustColor(lidBd), PS_SOLID);
 
-		// 中间小圆点暗示空
 		int cx = (rc.left + rc.right) / 2;
 		int cy = (rcBox.top + rcBox.bottom) / 2 + ScaleValue(6);
 		int r = ScaleValue(4);
 		RECT rcDot = { cx - r, cy - r, cx + r, cy + r };
-		ctx.FillRoundRect(rcDot, r, r, GetAdjustColor(0xBFBFBFFF));
+		ctx.FillRoundRect(rcDot, r, r, GetAdjustColor(dot));
 		(void)w; (void)h;
 	}
 
@@ -201,6 +220,10 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("show-image")) == 0 || _tcsicmp(pstrName, _T("showimage")) == 0 ) {
 			SetShowImage(_tcsicmp(pstrValue, _T("true")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("description-color")) == 0 || _tcsicmp(pstrName, _T("color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetDescriptionColor(clr);
 		}
 		else {
 			CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);

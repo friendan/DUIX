@@ -323,6 +323,11 @@ namespace DuiLib {
 		// html/Window 的 action（如 title）；Attach 后落到 root（root 已有 action 则不覆盖）
 		UIAction GetWindowAction() const;
 		void SetWindowAction(UIAction action);
+		/// html/Window 上的 theme / theme-id（Attach 后落到 root，见 ApplyDefaultWindowTheme）
+		LPCTSTR GetWindowTheme() const;
+		void SetWindowTheme(LPCTSTR pstrTheme);
+		LPCTSTR GetWindowThemeId() const;
+		void SetWindowThemeId(LPCTSTR pstrThemeId);
 
 		bool IsLayered();
 		void SetLayered(bool bLayered);
@@ -538,6 +543,7 @@ namespace DuiLib {
 		void PostAsyncNotify();
 		void ApplyDefaultWindowBackgroundColor();
 		void ApplyDefaultWindowAction();
+		void ApplyDefaultWindowTheme();
 
 	private:
 		CDuiString m_sName;
@@ -580,6 +586,8 @@ namespace DuiLib {
 		DWORD m_dwWindowBackgroundColor;
 		bool m_bWindowBackgroundColorCustom;
 		UIAction m_windowAction;
+		CDuiString m_sWindowTheme;
+		CDuiString m_sWindowThemeId;
 		bool m_bLayered;
 		RECT m_rcLayeredPadding;
 		bool m_bLayeredChanged;

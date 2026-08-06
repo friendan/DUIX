@@ -29,3 +29,8 @@
 | `line-padding` | CSS `top,right,bottom,left` | padding |
 
 菜单项属性全部非标准（接近桌面菜单模型，非 HTML `<menu>`）。
+
+### 主题
+
+- 纯色菜单（`background-color` / `item-color*`，无 `background-image`）：可跟 `theme` token；duidemo `menu.html` 打开时由演示代码套当前主题色。
+- **图片壳菜单**（`background-image` 九宫等）：不会自动跟主题，需自备多套皮或改纯色。

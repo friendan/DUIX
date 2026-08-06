@@ -119,24 +119,23 @@ namespace DuiLib
 
             POINT p = event.ptMouse;
             RECT r = GetPos();
-            // 判鋧⚭붭袇湖钭韩 芥迧গ丿
-            int nFocus = (r.right - r.left) / 4;
-            if(p.x - r.left <= nFocus)
-            {
+            RECT rcPad = GetPadding();
+            RECT rcTextPad = GetTextPadding();
+            r.left += rcPad.left + rcTextPad.left;
+            r.right -= rcPad.right + rcTextPad.right;
+            int nW = r.right - r.left;
+            if( nW < 1 ) nW = 1;
+            int nFocus = nW / 4;
+            int nRel = p.x - r.left;
+            if( nRel < 0 ) nRel = 0;
+            if( nRel <= nFocus )
                 m_nActiveSection = 1;
-            }
-            else if((p.x - r.left > nFocus) && (p.x - r.left <= nFocus * 2))
-            {
+            else if( nRel <= nFocus * 2 )
                 m_nActiveSection = 2;
-            }
-            else if ((p.x - r.left > nFocus * 2) && (p.x - r.left <= nFocus * 3))
-            {
+            else if( nRel <= nFocus * 3 )
                 m_nActiveSection = 3;
-            }
             else
-            {
                 m_nActiveSection = 4;
-            }
 
             UpdateText();
         }
@@ -244,86 +243,70 @@ namespace DuiLib
         if( m_sText.IsEmpty() ) return;
 
         RECT rc = m_rcItem;
-        rc.left += m_rcTextPadding.left;
-        rc.right -= m_rcTextPadding.right;
-        rc.top += m_rcTextPadding.top;
-        rc.bottom -= m_rcTextPadding.bottom;
+        RECT rcPad = GetPadding();
+        RECT rcTextPadding = GetTextPadding();
+        rc.left += rcPad.left + rcTextPadding.left;
+        rc.right -= rcPad.right + rcTextPadding.right;
+        rc.top += rcPad.top + rcTextPadding.top;
+        rc.bottom -= rcPad.bottom + rcTextPadding.bottom;
+        if( rc.right <= rc.left || rc.bottom <= rc.top ) return;
 
         DWORD dwColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
-        UINT uStyle = DT_SINGLELINE | m_uTextStyle | DT_NOPREFIX;
+        const UINT uMeasure = DT_SINGLELINE | DT_NOPREFIX;
+        const UINT uDraw = DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_NOPREFIX;
         const DWORD dwSelTextColor = 0xFFFFFFFF;
         const DWORD dwSelBkColor = 0x3399FFFF;
 
-        CDuiString sFirst, sSecond, sThird, sFourth;
-        sFirst.Format(_T("%d"), m_nFirst);
-        sSecond.Format(_T("%d"), m_nSecond);
-        sThird.Format(_T("%d"), m_nThird);
-        sFourth.Format(_T("%d"), m_nFourth);
+        CDuiString sSec[4];
+        sSec[0].Format(_T("%d"), m_nFirst);
+        sSec[1].Format(_T("%d"), m_nSecond);
+        sSec[2].Format(_T("%d"), m_nThird);
+        sSec[3].Format(_T("%d"), m_nFourth);
 
-        RECT rcPoint = rc;
-        RECT rcIP = rc;
-        int nIPAddrWidth = rcPoint.right - rcPoint.left;
-        int nPointPos = nIPAddrWidth / 4;
-        for (int i = 0; i < 3; i++)
-        {
-            rcPoint.left += nPointPos;
-            RECT rcDot = rcPoint;
-            ctx.DrawText(rcDot, _T("."), dwColor, m_iFont, uStyle);
+        // 四段数字等分内容区；点号单独占宽并居中，避免贴数字 / 末段被裁切
+        SIZE szDot = ctx.GetTextSize(_T("."), m_iFont, uMeasure);
+        int nDotSlot = szDot.cx + 8;
+        if( nDotSlot < 10 ) nDotSlot = 10;
+        int nWidth = rc.right - rc.left;
+        int nNumTotal = nWidth - nDotSlot * 3;
+        if( nNumTotal < 4 ) {
+            nDotSlot = 6;
+            nNumTotal = nWidth - nDotSlot * 3;
+            if( nNumTotal < 4 ) nNumTotal = 4;
         }
+        int nCell = nNumTotal / 4;
+        int nExtra = nNumTotal - nCell * 4;
 
-        if (m_nFirst == 0 &&
-            m_nSecond == 0 &&
-            m_nThird == 0 &&
-            m_nFourth == 0 && 
-            m_nActiveSection == 0
-            )
-        {
-            return;
-        }
+        bool bShowNums = !(m_nFirst == 0 && m_nSecond == 0 && m_nThird == 0 && m_nFourth == 0 && m_nActiveSection == 0);
 
-        int nIPPos = nPointPos / 2;
-        rcIP.left = rc.left + nIPPos;
-        if( 1 == m_nActiveSection && IsEnabled() ) {
-            SIZE sz = ctx.GetTextSize(sFirst.GetData(), m_iFont, uStyle);
-            RECT rcSel = { rcIP.left, rcIP.top, rcIP.left + sz.cx, rcIP.bottom };
-            ctx.DrawColor(rcSel, dwSelBkColor);
-            ctx.DrawText(rcIP, sFirst.GetData(), dwSelTextColor, m_iFont, uStyle);
-        }
-        else
-            ctx.DrawText(rcIP, sFirst.GetData(), dwColor, m_iFont, uStyle);
-        rc.left += nPointPos;
+        int x = rc.left;
+        for( int i = 0; i < 4; ++i ) {
+            int cellW = nCell + (i < nExtra ? 1 : 0);
+            RECT rcCell = { x, rc.top, x + cellW, rc.bottom };
 
-        rcIP.left = rc.left + nIPPos;
-        if( 2 == m_nActiveSection && IsEnabled() ) {
-            SIZE sz = ctx.GetTextSize(sSecond.GetData(), m_iFont, uStyle);
-            RECT rcSel = { rcIP.left, rcIP.top, rcIP.left + sz.cx, rcIP.bottom };
-            ctx.DrawColor(rcSel, dwSelBkColor);
-            ctx.DrawText(rcIP, sSecond.GetData(), dwSelTextColor, m_iFont, uStyle);
-        }
-        else
-            ctx.DrawText(rcIP, sSecond.GetData(), dwColor, m_iFont, uStyle);
-        rc.left += nPointPos;
+            if( bShowNums ) {
+                if( m_nActiveSection == i + 1 && IsEnabled() ) {
+                    SIZE sz = ctx.GetTextSize(sSec[i].GetData(), m_iFont, uMeasure);
+                    int nSelL = rcCell.left + (cellW - sz.cx) / 2;
+                    if( nSelL < rcCell.left ) nSelL = rcCell.left;
+                    int nSelR = nSelL + sz.cx;
+                    if( nSelR > rcCell.right ) nSelR = rcCell.right;
+                    RECT rcSel = { nSelL, rcCell.top, nSelR, rcCell.bottom };
+                    ctx.DrawColor(rcSel, dwSelBkColor);
+                    ctx.DrawText(rcCell, sSec[i].GetData(), dwSelTextColor, m_iFont, uDraw);
+                }
+                else {
+                    ctx.DrawText(rcCell, sSec[i].GetData(), dwColor, m_iFont, uDraw);
+                }
+            }
 
-        rcIP.left = rc.left + nIPPos;
-        if( 3 == m_nActiveSection && IsEnabled() ) {
-            SIZE sz = ctx.GetTextSize(sThird.GetData(), m_iFont, uStyle);
-            RECT rcSel = { rcIP.left, rcIP.top, rcIP.left + sz.cx, rcIP.bottom };
-            ctx.DrawColor(rcSel, dwSelBkColor);
-            ctx.DrawText(rcIP, sThird.GetData(), dwSelTextColor, m_iFont, uStyle);
+            x += cellW;
+            if( i < 3 ) {
+                RECT rcDot = { x, rc.top, x + nDotSlot, rc.bottom };
+                ctx.DrawText(rcDot, _T("."), dwColor, m_iFont, uDraw);
+                x += nDotSlot;
+            }
         }
-        else
-            ctx.DrawText(rcIP, sThird.GetData(), dwColor, m_iFont, uStyle);
-        rc.left += nPointPos;
-
-        rcIP.left = rc.left + nIPPos;
-        if( 4 == m_nActiveSection && IsEnabled() ) {
-            SIZE sz = ctx.GetTextSize(sFourth.GetData(), m_iFont, uStyle);
-            RECT rcSel = { rcIP.left, rcIP.top, rcIP.left + sz.cx, rcIP.bottom };
-            ctx.DrawColor(rcSel, dwSelBkColor);
-            ctx.DrawText(rcIP, sFourth.GetData(), dwSelTextColor, m_iFont, uStyle);
-        }
-        else
-            ctx.DrawText(rcIP, sFourth.GetData(), dwColor, m_iFont, uStyle);
     }
 
     void CIPAddressExUI::SetIP(LPCTSTR lpIP)

@@ -77,6 +77,8 @@ namespace DuiLib
 		void SyncSysButtonVisibility();
 		void SyncSysButtonMetrics();
 		void ApplySysButtonStyle(CButtonUI* pBtn, bool bClose);
+		/// 按标题栏底/标题色同步系统按钮图标与悬停（主题热切换会走这里）
+		void SyncSysButtonChrome();
 		bool OnSysButtonNotify(void* param);
 		bool QueryAllowNotify(LPCTSTR pstrMsg, WPARAM wParam, LPARAM lParam);
 		void DoSysMin();

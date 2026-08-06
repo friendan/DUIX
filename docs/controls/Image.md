@@ -51,8 +51,8 @@
 | `alt` | 显式缩写（优先于 `text`） | 空 |
 | `size` | `small` 24 / `default`\|`medium` 32 / `large` 40 / `xlarge`\|`xl` 64，或像素 | `40` |
 | `circle` | `true`/`false`；`false` 时可自设 `border-radius` | `true` |
-| `fallback-background-color` | 无图底色 | `#1677FFFF` |
-| `fallback-color` | 缩写文字色 | `#FFFFFFFF` |
+| `fallback-background-color` | 无图底色；未设则跟当前主题 `color-primary`（热切也会变） | 主题 primary |
+| `fallback-color` | 缩写文字色；未设则跟 `color-primary-text` | 主题 primary-text |
 | `background-color` / `color` | 覆盖 fallback 色 | — |
 
 失败且未配 `error-image` 时走缩写占位（不画破图）。

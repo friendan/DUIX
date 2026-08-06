@@ -150,8 +150,19 @@ namespace DuiLib {
 				m_pLayout->ApplyAttributeList(pDefaultAttributes);
 			}
 			m_pLayout->SetPadding(CDuiBox(1));
-			m_pLayout->SetBackgroundColor(0xFFFFFFFF);
-			m_pLayout->SetBorderColor(0xC6C7D2FF);
+			DWORD dropBg = 0xFFFFFFFF;
+			DWORD dropBd = 0xC6C7D2FF;
+			CThemeManager* tm = CThemeManager::GetInstance();
+			if( tm != NULL ) {
+				CTheme* th = tm->GetCurrentTheme();
+				if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+				if( th != NULL ) {
+					dropBg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), dropBg));
+					dropBd = th->GetToken(_T("color-control-border"), th->GetToken(_T("color-border"), dropBd));
+				}
+			}
+			m_pLayout->SetBackgroundColor(dropBg);
+			m_pLayout->SetBorderColor(dropBd);
 			m_pLayout->SetBorderWidth(1);
 			m_pLayout->SetAutoDestroy(false);
 			m_pLayout->EnableScrollBar();
@@ -598,6 +609,26 @@ namespace DuiLib {
 		if( m_pManager != NULL ) m_pManager->SendNotify(this, DUI_MSGTYPE_DROPDOWN);
 		Invalidate();
 		return true;
+	}
+
+	void CComboUI::SyncOpenDropShell()
+	{
+		if( m_pWindow == NULL || m_pWindow->m_pLayout == NULL ) return;
+		DWORD dropBg = 0xFFFFFFFF;
+		DWORD dropBd = 0xC6C7D2FF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL ) {
+				dropBg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), dropBg));
+				dropBd = th->GetToken(_T("color-control-border"), th->GetToken(_T("color-border"), dropBd));
+			}
+		}
+		m_pWindow->m_pLayout->SetBackgroundColor(dropBg);
+		m_pWindow->m_pLayout->SetBorderColor(dropBd);
+		m_pWindow->m_pLayout->Invalidate();
+		m_pWindow->m_pm.NeedUpdate();
 	}
 
 	CDuiString CComboUI::GetText() const

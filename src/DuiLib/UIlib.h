@@ -65,6 +65,7 @@
 #include "Core/ControlFactory.h"
 #include "Core/UIControl.h"
 #include "Core/UIContainer.h"
+#include "Core/UITheme.h"
 
 #include "Core/UIDlgBuilder.h"
 #include "Core/UIRender.h"

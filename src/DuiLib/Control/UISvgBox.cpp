@@ -336,17 +336,30 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("twicon")) == 0 ) {
 			LoadFromUtf8Data(TwemojiIcons::GetIcon(pstrValue));
 		}
-		else if( _tcsicmp(pstrName, _T("color")) == 0 ) {
-			SetColor(ParseColorValue(pstrValue));
-		}
-		else if( _tcsicmp(pstrName, _T("color-hover")) == 0 ) {
-			SetHoverColor(ParseColorValue(pstrValue));
-		}
-		else if( _tcsicmp(pstrName, _T("color-active")) == 0 ) {
-			SetActiveColor(ParseColorValue(pstrValue));
-		}
-		else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 ) {
-			SetDisabledColor(ParseColorValue(pstrValue));
+		else if( _tcsicmp(pstrName, _T("color")) == 0
+			|| _tcsicmp(pstrName, _T("color-hover")) == 0
+			|| _tcsicmp(pstrName, _T("color-active")) == 0
+			|| _tcsicmp(pstrName, _T("color-disabled")) == 0
+			|| _tcsicmp(pstrName, _T("tint")) == 0
+			|| _tcsicmp(pstrName, _T("tint-hover")) == 0
+			|| _tcsicmp(pstrName, _T("tint-active")) == 0
+			|| _tcsicmp(pstrName, _T("tint-disabled")) == 0
+			|| _tcsicmp(pstrName, _T("fill")) == 0 ) {
+			// 记录 var(--token)，热切主题时由 RefreshThemeVarAttributes 重解
+			if( pstrValue != NULL && _tcsnicmp(pstrValue, _T("var("), 4) == 0 ) {
+				CDuiString key;
+				key.Format(_T("_tvar:%s"), pstrName);
+				AddCustomAttribute(key.GetData(), pstrValue);
+			}
+			if( _tcsicmp(pstrName, _T("color")) == 0 || _tcsicmp(pstrName, _T("tint")) == 0
+				|| _tcsicmp(pstrName, _T("fill")) == 0 )
+				SetColor(ParseColorValue(pstrValue));
+			else if( _tcsicmp(pstrName, _T("color-hover")) == 0 || _tcsicmp(pstrName, _T("tint-hover")) == 0 )
+				SetHoverColor(ParseColorValue(pstrValue));
+			else if( _tcsicmp(pstrName, _T("color-active")) == 0 || _tcsicmp(pstrName, _T("tint-active")) == 0 )
+				SetActiveColor(ParseColorValue(pstrValue));
+			else
+				SetDisabledColor(ParseColorValue(pstrValue));
 		}
 		else {
 			CControlUI::SetAttribute(pstrName, pstrValue);
@@ -405,9 +418,9 @@ namespace DuiLib
 
 			const TintMode mode = sProbe.empty() ? TintBoth : DetectTintMode(sProbe);
 			if( mode != TintSkip ) {
-				const BYTE r = (BYTE)((dwColor >> 16) & 0xFF);
-				const BYTE g = (BYTE)((dwColor >> 8) & 0xFF);
-				const BYTE b = (BYTE)(dwColor & 0xFF);
+				const BYTE r = DuiColorR(dwColor);
+				const BYTE g = DuiColorG(dwColor);
+				const BYTE b = DuiColorB(dwColor);
 				char style[256];
 				if( mode == TintStroke ) {
 					// 描边图标：保持 fill:none，只改 stroke，避免 fill 把线标糊成色块

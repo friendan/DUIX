@@ -9,6 +9,7 @@ namespace DuiLib {
 	//
 
 	class IRenderContext;
+	class CTheme;
 	typedef CControlUI* (CALLBACK* FINDCONTROLPROC)(CControlUI*, LPVOID);
 
 	// Bootstrap 5.3.8 风格枚举
@@ -43,6 +44,9 @@ namespace DuiLib {
 
 	extern UILIB_API KindColors g_kindColors[11];
 	UILIB_API void InitKindColors();
+	UILIB_API void MarkKindColorsInitialized();
+	/// 填入历史 Bootstrap kind 表（主题禁用时回退）
+	UILIB_API void FillBuiltinKindColors();
 
 	class UILIB_API CControlUI
 	{
@@ -271,6 +275,8 @@ namespace DuiLib {
 		LPCTSTR GetCustomAttribute(LPCTSTR pstrName) const;
 		bool RemoveCustomAttribute(LPCTSTR pstrName);
 		void RemoveAllCustomAttribute();
+		/// 重解 markup 中记录的 var(--token) 颜色属性（热切换主题）
+		void RefreshThemeVarAttributes(CTheme* pParseTheme);
 
 		virtual void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		CControlUI* ApplyAttributeList(LPCTSTR pstrList);

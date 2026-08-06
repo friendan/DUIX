@@ -25,6 +25,8 @@ namespace DuiLib
 		, m_pGapAfterPage(NULL)
 		, m_pGapAfterFirst(NULL)
 		, m_pGapBeforeLast(NULL)
+		, m_dwIndicatorColor(0x808080FF)
+		, m_dwIndicatorActiveColor(0xFFFFFFFF)
 	{
 		SetBackgroundColor(0xC8C8C8FF);
 		EnsureControlBar();
@@ -231,7 +233,7 @@ namespace DuiLib
 			for( int i = 0; i < pBox->GetCount(); ++i ) {
 				CControlUI* pDot = pBox->GetItemAt(i);
 				if( pDot == NULL ) continue;
-				pDot->SetBackgroundColor(i == m_nCurrentIndex ? 0xFFFFFFFF : 0x808080FF);
+				pDot->SetBackgroundColor(i == m_nCurrentIndex ? m_dwIndicatorActiveColor : m_dwIndicatorColor);
 			}
 			break;
 		}
@@ -380,9 +382,46 @@ namespace DuiLib
 			if( m_pGapBeforePage ) m_pGapBeforePage->SetFixedWidth(m_nPageGap);
 			if( m_pGapAfterPage ) m_pGapAfterPage->SetFixedWidth(m_nPageGap);
 		}
+		else if( _tcsicmp(pstrName, _T("controls-background-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) {
+				EnsureControlBar();
+				if( m_pControlBar ) m_pControlBar->SetBackgroundColor(clr);
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("page-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) && m_pPageLabel )
+				m_pPageLabel->SetColor(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("indicator-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) {
+				m_dwIndicatorColor = clr;
+				UpdateIndicators();
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("indicator-color-active")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) {
+				m_dwIndicatorActiveColor = clr;
+				UpdateIndicators();
+			}
+		}
 		else {
 			CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);
 		}
+	}
+
+	void CCarouselUI::ApplyThemeChrome(DWORD dwBarBg, DWORD dwPageColor, DWORD dwDot, DWORD dwDotActive)
+	{
+		EnsureControlBar();
+		if( m_pControlBar ) m_pControlBar->SetBackgroundColor(dwBarBg);
+		if( m_pPageLabel ) m_pPageLabel->SetColor(dwPageColor);
+		m_dwIndicatorColor = dwDot;
+		m_dwIndicatorActiveColor = dwDotActive;
+		UpdateIndicators();
+		Invalidate();
 	}
 
 	// ====== CCarouselItemUI ======
@@ -522,14 +561,36 @@ namespace DuiLib
 			EnsureCaptionBar();
 			ApplyCaptionKind(pstrValue);
 		}
-		else if( _tcsicmp(pstrName, _T("caption-background")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("caption-background")) == 0
+			|| _tcsicmp(pstrName, _T("caption-background-color")) == 0 ) {
 			EnsureCaptionBar();
 			DWORD clr = 0;
 			if( ParseColorString(pstrValue, clr) && m_pCaptionBar )
 				m_pCaptionBar->SetBackgroundColor(clr);
 		}
+		else if( _tcsicmp(pstrName, _T("caption-title-color")) == 0 ) {
+			EnsureCaptionBar();
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) && m_pCaptionTitle )
+				m_pCaptionTitle->SetColor(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("caption-text-color")) == 0 ) {
+			EnsureCaptionBar();
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) && m_pCaptionText )
+				m_pCaptionText->SetColor(clr);
+		}
 		else {
 			CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);
 		}
+	}
+
+	void CCarouselItemUI::ApplyThemeCaption(DWORD dwBarBg, DWORD dwTitleColor, DWORD dwTextColor)
+	{
+		if( m_pCaptionBar == NULL ) return;
+		m_pCaptionBar->SetBackgroundColor(dwBarBg);
+		if( m_pCaptionTitle ) m_pCaptionTitle->SetColor(dwTitleColor);
+		if( m_pCaptionText ) m_pCaptionText->SetColor(dwTextColor);
+		m_pCaptionBar->Invalidate();
 	}
 }

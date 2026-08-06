@@ -156,11 +156,84 @@ namespace DuiLib
 	{
 		if( pBtn == NULL ) return;
 		pBtn->SetKind(CONTROLKIND_NONE);
-		pBtn->SetBackgroundColor(0x333333FF);
+		// 常态透明：整条标题栏只画 TitleBar 底色，避免按钮不透明底与栏色有缝
+		pBtn->SetBackgroundColor(0);
+		pBtn->SetBorderColor(0);
+		pBtn->SetBorderWidth(0);
 		pBtn->SetColor(0xB4B4BEFF);
 		pBtn->SetHoverColor(0xFFFFFFFF);
-		pBtn->SetHoverBackgroundColor(bClose ? 0xE81123FF : 0x505050FF);
+		DWORD closeHover = 0xE81123FF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL )
+				closeHover = th->GetToken(_T("color-titlebar-close-hover"),
+					th->GetToken(_T("color-danger"), closeHover));
+		}
+		pBtn->SetHoverBackgroundColor(bClose ? closeHover : 0x505050FF);
+		pBtn->SetActiveBackgroundColor(bClose ? closeHover : 0x505050FF);
 		pBtn->SetTextStyle(DT_SINGLELINE | DT_VCENTER | DT_CENTER);
+	}
+
+	void CTitleBarUI::SyncSysButtonChrome()
+	{
+		if( !m_bChromeReady ) return;
+		DWORD dwBk = GetBackgroundColor();
+		if( dwBk == 0 ) dwBk = 0x333333FF;
+
+		int r = (int)((dwBk >> 24) & 0xFF);
+		int g = (int)((dwBk >> 16) & 0xFF);
+		int b = (int)((dwBk >> 8) & 0xFF);
+		int lum = (r * 299 + g * 587 + b * 114) / 1000;
+		const bool bLightBar = (lum >= 160);
+
+		DWORD dwIcon = bLightBar ? 0x000000A6 : 0xFFFFFFB4;
+		DWORD dwIconHover = bLightBar ? 0x000000E0 : 0xFFFFFFFF;
+		DWORD dwHoverBk = bLightBar ? 0x0000001A : 0xFFFFFF33;
+		DWORD closeHover = 0xE81123FF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL )
+				closeHover = th->GetToken(_T("color-titlebar-close-hover"),
+					th->GetToken(_T("color-danger"), closeHover));
+		}
+		if( m_pTitleLabel != NULL ) {
+			DWORD dwTitle = m_pTitleLabel->GetColor();
+			if( dwTitle != 0 ) {
+				dwIconHover = dwTitle;
+				dwIcon = (dwTitle & 0xFFFFFF00) | 0xB4;
+			}
+		}
+
+		CButtonUI* btns[] = { m_pMinBtn, m_pMaxBtn, m_pRestoreBtn, m_pCloseBtn };
+		for( int i = 0; i < 4; ++i ) {
+			if( btns[i] == NULL ) continue;
+			btns[i]->SetKind(CONTROLKIND_NONE);
+			btns[i]->SetBackgroundColor(0);
+			btns[i]->SetBorderColor(0);
+			btns[i]->SetBorderWidth(0);
+			btns[i]->SetColor(dwIcon);
+			btns[i]->SetHoverColor(dwIconHover);
+			const bool bClose = (btns[i] == m_pCloseBtn);
+			const DWORD dwHov = bClose ? closeHover : dwHoverBk;
+			btns[i]->SetHoverBackgroundColor(dwHov);
+			btns[i]->SetActiveBackgroundColor(dwHov);
+		}
+
+		// 系统钮槽必须与 TitleBar 同色；透明时若槽上另有底/脏区，会看成「按钮区」分界
+		if( m_pSys != NULL ) {
+			m_pSys->SetBackgroundColor(dwBk);
+			m_pSys->SetBorderColor(0);
+			m_pSys->SetBorderWidth(0);
+		}
+		if( m_pLeft != NULL ) {
+			m_pLeft->SetBackgroundColor(0);
+			m_pLeft->SetBorderColor(0);
+			m_pLeft->SetBorderWidth(0);
+		}
 	}
 
 	void CTitleBarUI::ApplySysButtonIcons()
@@ -212,6 +285,8 @@ namespace DuiLib
 		m_pLeft->Add(m_pTitleLabel);
 
 		m_pSys = new CTitleBarSysUI;
+		// 初始即与 TitleBar 同色，避免主题套色前短暂露出默认浅底
+		m_pSys->SetBackgroundColor(GetBackgroundColor() != 0 ? GetBackgroundColor() : 0x333333FF);
 		CHorizontalLayoutUI::Add(m_pSys);
 
 		m_pMinBtn = new CButtonUI;
@@ -455,18 +530,20 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("btn-width")) == 0 ) {
 			if( pstrValue != NULL ) SetBtnWidth(_ttoi(pstrValue));
 		}
+		else if( _tcsicmp(pstrName, _T("color")) == 0 || _tcsicmp(pstrName, _T("textcolor")) == 0 ) {
+			EnsureChrome();
+			DWORD dwColor = 0;
+			if( pstrValue != NULL && ParseColorString(pstrValue, dwColor) && m_pTitleLabel != NULL )
+				m_pTitleLabel->SetColor(dwColor);
+			SyncSysButtonChrome();
+		}
 		else {
 			CHorizontalLayoutUI::SetAttribute(pstrName, pstrValue);
 			if( _tcsicmp(pstrName, _T("height")) == 0 && m_bChromeReady )
 				SyncSysButtonMetrics();
 			if( _tcsicmp(pstrName, _T("background-color")) == 0
 				|| _tcsicmp(pstrName, _T("bkcolor")) == 0 ) {
-				DWORD dwBk = GetBackgroundColor();
-				CButtonUI* btns[] = { m_pMinBtn, m_pMaxBtn, m_pRestoreBtn, m_pCloseBtn };
-				for( int i = 0; i < 4; ++i ) {
-					if( btns[i] == NULL ) continue;
-					btns[i]->SetBackgroundColor(dwBk);
-				}
+				SyncSysButtonChrome();
 			}
 		}
 	}

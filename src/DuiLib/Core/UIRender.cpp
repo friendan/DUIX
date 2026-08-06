@@ -610,10 +610,18 @@ namespace DuiLib {
 			return NULL;
 		}
 
-		LPBYTE pImage = NULL;
-		int x,y,n;
-		pImage = stbi_load_from_memory(pData, dwSize, &x, &y, &n, 4);
+		TImageInfo* data = LoadImageFromMemory(pData, dwSize, mask);
 		delete[] pData;
+		return data;
+	}
+
+	TImageInfo* CRenderEngine::LoadImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask)
+	{
+		if( pData == NULL || dwSize == 0 ) return NULL;
+
+		LPBYTE pImage = NULL;
+		int x = 0, y = 0, n = 0;
+		pImage = stbi_load_from_memory(pData, (int)dwSize, &x, &y, &n, 4);
 		if( !pImage ) {
 			return NULL;
 		}
@@ -632,6 +640,7 @@ namespace DuiLib {
 		LPBYTE pDest = NULL;
 		HBITMAP hBitmap = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
 		if( !hBitmap ) {
+			stbi_image_free(pImage);
 			return NULL;
 		}
 

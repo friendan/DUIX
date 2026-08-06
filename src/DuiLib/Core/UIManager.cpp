@@ -920,6 +920,44 @@ namespace DuiLib {
 		m_pRoot->SetAction(m_windowAction);
 	}
 
+	LPCTSTR CPaintManagerUI::GetWindowTheme() const
+	{
+		return m_sWindowTheme.GetData();
+	}
+
+	void CPaintManagerUI::SetWindowTheme(LPCTSTR pstrTheme)
+	{
+		m_sWindowTheme = (pstrTheme != NULL) ? pstrTheme : _T("");
+		ApplyDefaultWindowTheme();
+	}
+
+	LPCTSTR CPaintManagerUI::GetWindowThemeId() const
+	{
+		return m_sWindowThemeId.GetData();
+	}
+
+	void CPaintManagerUI::SetWindowThemeId(LPCTSTR pstrThemeId)
+	{
+		m_sWindowThemeId = (pstrThemeId != NULL) ? pstrThemeId : _T("");
+		ApplyDefaultWindowTheme();
+	}
+
+	void CPaintManagerUI::ApplyDefaultWindowTheme()
+	{
+		if( m_pRoot == NULL ) return;
+		// root 已有内联 theme / theme-id 时不覆盖（与 action 一致）
+		if( !m_sWindowTheme.IsEmpty() ) {
+			LPCTSTR t = m_pRoot->GetCustomAttribute(_T("theme"));
+			if( t == NULL || *t == _T('\0') )
+				m_pRoot->SetAttribute(_T("theme"), m_sWindowTheme.GetData());
+		}
+		if( !m_sWindowThemeId.IsEmpty() ) {
+			LPCTSTR tid = m_pRoot->GetCustomAttribute(_T("theme-id"));
+			if( tid == NULL || *tid == _T('\0') )
+				m_pRoot->SetAttribute(_T("theme-id"), m_sWindowThemeId.GetData());
+		}
+	}
+
 	bool CPaintManagerUI::IsLayered()
 	{
 		return m_bLayered;
@@ -2160,14 +2198,20 @@ namespace DuiLib {
 		}
 		// Set the dialog root element
 		m_pRoot = pControl;
+		// 先写主题 Default，再 InitControls，使新建控件吃到共享 Default
+		CThemeManager::GetInstance()->ApplyManagerDefaults(this);
 		ApplyDefaultWindowBackgroundColor();
 		ApplyDefaultWindowAction();
+		ApplyDefaultWindowTheme();
 		// Go ahead...
 		m_bUpdateNeeded = true;
 		m_bFirstLayout = true;
 		m_bFocusNeeded = true;
 		// Initiate all control
-		return InitControls(pControl);
+		bool bOk = InitControls(pControl);
+		// root 就绪后再套 chrome（TitleBar 默认；表单需 theme=chrome）
+		CThemeManager::GetInstance()->ApplyToExistingManager(this);
+		return bOk;
 	}
 
 	bool CPaintManagerUI::InitControls(CControlUI* pControl, CControlUI* pParent /*= NULL*/)

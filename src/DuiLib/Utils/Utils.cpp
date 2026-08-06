@@ -1451,6 +1451,45 @@ namespace DuiLib
 		while( *pstrColor == _T(' ') || *pstrColor == _T('\t') ) ++pstrColor;
 		if( *pstrColor == _T('\0') ) return false;
 
+		// var(--token) / var(--token, #fallback)
+		if( _tcsnicmp(pstrColor, _T("var("), 4) == 0 ) {
+			LPCTSTR p = pstrColor + 4;
+			while( *p == _T(' ') || *p == _T('\t') ) ++p;
+			if( p[0] == _T('-') && p[1] == _T('-') ) p += 2;
+			CDuiString name;
+			while( *p && *p != _T(')') && *p != _T(',') && *p != _T(' ') && *p != _T('\t') )
+				name += *p++;
+			while( *p == _T(' ') || *p == _T('\t') ) ++p;
+			DWORD fallback = 0;
+			bool bHasFallback = false;
+			if( *p == _T(',') ) {
+				++p;
+				while( *p == _T(' ') || *p == _T('\t') ) ++p;
+				CDuiString fb;
+				while( *p && *p != _T(')') ) fb += *p++;
+				fb.Trim();
+				bHasFallback = ParseColorString(fb.GetData(), fallback);
+			}
+			if( !name.IsEmpty() ) {
+				CTheme* th = CThemeManager::GetColorParseTheme();
+				if( th == NULL ) {
+					CThemeManager* tm = CThemeManager::GetInstance();
+					if( tm != NULL ) {
+						th = tm->GetCurrentTheme();
+						if( th == NULL )
+							th = tm->FindTheme(tm->GetDefaultThemeId());
+					}
+				}
+				DWORD tok = 0;
+				if( th != NULL && th->TryGetToken(name.GetData(), tok) ) {
+					dwColor = tok;
+					return true;
+				}
+			}
+			if( bHasFallback ) { dwColor = fallback; return true; }
+			return false;
+		}
+
 		if( ParseRgbColorString(pstrColor, dwColor) )
 			return true;
 		if( ParseHslColorString(pstrColor, dwColor) )
@@ -1479,7 +1518,14 @@ namespace DuiLib
 		if( *p == _T('\0') ) return false;
 
 		CDuiString sTok;
-		if( _tcsnicmp(p, _T("rgb"), 3) == 0 || _tcsnicmp(p, _T("hsl"), 3) == 0 ) {
+		if( _tcsnicmp(p, _T("var("), 4) == 0 ) {
+			LPCTSTR pOpen = p;
+			LPCTSTR pClose = _tcschr(pOpen, _T(')'));
+			if( pClose == NULL ) return false;
+			sTok.Assign(pOpen, (int)(pClose - pOpen + 1));
+			p = pClose + 1;
+		}
+		else if( _tcsnicmp(p, _T("rgb"), 3) == 0 || _tcsnicmp(p, _T("hsl"), 3) == 0 ) {
 			LPCTSTR pOpen = _tcschr(p, _T('('));
 			if( pOpen == NULL ) return false;
 			LPCTSTR pClose = _tcschr(pOpen, _T(')'));

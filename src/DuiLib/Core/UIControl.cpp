@@ -2,81 +2,78 @@
 
 namespace DuiLib {
 
-	// Bootstrap 5.3.8 全局颜色表
+	// Bootstrap / 主题色表（由 CTheme::ApplyKindColors 或下方 fallback 填充）
 	UILIB_API KindColors g_kindColors[11] = {};
 	static bool s_kindColorsInited = false;
 
-	UILIB_API void InitKindColors()
+	UILIB_API void MarkKindColorsInitialized()
 	{
-		if (s_kindColorsInited) return;
 		s_kindColorsInited = true;
+	}
 
-		// None（索引0）— 无样式，全零
-		g_kindColors[0] = {
-			{0, 0, 0},
-			{0, 0, 0},
-			{0, 0, 0}
-		};
-		// Default（索引1）— 浅色背景 + 灰边框；hover/active 加深以便辨认
+	UILIB_API void FillBuiltinKindColors()
+	{
+		g_kindColors[0] = { {0, 0, 0}, {0, 0, 0}, {0, 0, 0} };
 		g_kindColors[1] = {
 			{0xEEEEEEFF, 0xDEE2E6FF, 0x212529FF},
 			{0xD3D4D5FF, 0xC6C7C8FF, 0x212529FF},
 			{0xC6C7C8FF, 0xBABBBCFF, 0x212529FF}
 		};
-		// Primary
 		g_kindColors[2] = {
 			{0x0D6EFDFF, 0x0D6EFDFF, 0xFFFFFFFF},
 			{0x0B5ED7FF, 0x0A58CAFF, 0xFFFFFFFF},
 			{0x0A58CAFF, 0x0A53BEFF, 0xFFFFFFFF}
 		};
-		// Secondary
 		g_kindColors[3] = {
 			{0x6C757DFF, 0x6C757DFF, 0xFFFFFFFF},
 			{0x5C636AFF, 0x565E64FF, 0xFFFFFFFF},
 			{0x565E64FF, 0x51585EFF, 0xFFFFFFFF}
 		};
-		// Success
 		g_kindColors[4] = {
 			{0x198754FF, 0x198754FF, 0xFFFFFFFF},
 			{0x157347FF, 0x146C43FF, 0xFFFFFFFF},
 			{0x146C43FF, 0x13653FFF, 0xFFFFFFFF}
 		};
-		// Danger
 		g_kindColors[5] = {
 			{0xDC3545FF, 0xDC3545FF, 0xFFFFFFFF},
 			{0xBB2D3BFF, 0xB02A37FF, 0xFFFFFFFF},
 			{0xB02A37FF, 0xA52834FF, 0xFFFFFFFF}
 		};
-		// Warning — hover/active 加深，避免 Bootstrap 5 提亮在黄色上几乎看不出变化
 		g_kindColors[6] = {
 			{0xFFC107FF, 0xFFC107FF, 0x000000FF},
 			{0xE0A800FF, 0xD39E00FF, 0x000000FF},
 			{0xD39E00FF, 0xC69500FF, 0x000000FF}
 		};
-		// Info — hover/active 加深，避免提亮在青色上几乎看不出变化
 		g_kindColors[7] = {
 			{0x0DCAF0FF, 0x0DCAF0FF, 0x000000FF},
 			{0x0BA5C7FF, 0x0A98B8FF, 0x000000FF},
 			{0x0A98B8FF, 0x098BA8FF, 0x000000FF}
 		};
-		// Light
 		g_kindColors[8] = {
 			{0xF8F9FAFF, 0xF8F9FAFF, 0x000000FF},
 			{0xD3D4D5FF, 0xC6C7C8FF, 0x000000FF},
 			{0xC6C7C8FF, 0xBABBBCFF, 0x000000FF}
 		};
-		// Dark
 		g_kindColors[9] = {
 			{0x212529FF, 0x212529FF, 0xFFFFFFFF},
 			{0x424649FF, 0x373B3EFF, 0xFFFFFFFF},
 			{0x4D5154FF, 0x373B3EFF, 0xFFFFFFFF}
 		};
-		// Link
 		g_kindColors[10] = {
 			{0, 0, 0x0D6EFDFF},
 			{0, 0, 0x0A58CAFF},
 			{0, 0, 0x0A58CAFF}
 		};
+		s_kindColorsInited = true;
+	}
+
+	UILIB_API void InitKindColors()
+	{
+		if (s_kindColorsInited) return;
+		// 先填 Bootstrap，避免主题初始化中途失败时 kind 表全零
+		FillBuiltinKindColors();
+		// 若主题启用，EnsureInitialized 会再用当前主题覆盖 g_kindColors
+		CThemeManager::GetInstance();
 	}
 
 	IMPLEMENT_DUICONTROL(CControlUI)
@@ -1498,12 +1495,14 @@ namespace DuiLib {
 	{
 		if( pstrName == NULL || pstrName[0] == _T('\0') || pstrAttr == NULL || pstrAttr[0] == _T('\0') ) return;
 
-		if (m_mCustomAttrHash.Find(pstrName) == NULL) {
-			CDuiString* pCostomAttr = new CDuiString(pstrAttr);
-			if (pCostomAttr != NULL) {
-				m_mCustomAttrHash.Set(pstrName, (LPVOID)pCostomAttr);
-			}
+		CDuiString* pCostomAttr = static_cast<CDuiString*>(m_mCustomAttrHash.Find(pstrName));
+		if( pCostomAttr != NULL ) {
+			*pCostomAttr = pstrAttr;
+			return;
 		}
+		pCostomAttr = new CDuiString(pstrAttr);
+		if( pCostomAttr != NULL )
+			m_mCustomAttrHash.Set(pstrName, (LPVOID)pCostomAttr);
 	}
 
 	LPCTSTR CControlUI::GetCustomAttribute(LPCTSTR pstrName) const
@@ -1534,6 +1533,31 @@ namespace DuiLib {
 			}
 		}
 		m_mCustomAttrHash.Resize();
+	}
+
+	void CControlUI::RefreshThemeVarAttributes(CTheme* pParseTheme)
+	{
+		CStdPtrArray names;
+		CStdPtrArray vals;
+		for( int i = 0; i < m_mCustomAttrHash.GetSize(); ++i ) {
+			LPCTSTR key = m_mCustomAttrHash.GetAt(i);
+			if( key == NULL || _tcsnicmp(key, _T("_tvar:"), 6) != 0 ) continue;
+			CDuiString* pVal = static_cast<CDuiString*>(m_mCustomAttrHash.Find(key));
+			if( pVal == NULL || pVal->IsEmpty() ) continue;
+			if( _tcsnicmp(pVal->GetData(), _T("var("), 4) != 0 ) continue;
+			names.Add(new CDuiString(key + 6));
+			vals.Add(new CDuiString(pVal->GetData()));
+		}
+		if( names.GetSize() == 0 ) return;
+		CThemeManager::PushColorParseTheme(pParseTheme);
+		for( int i = 0; i < names.GetSize(); ++i ) {
+			CDuiString* pn = static_cast<CDuiString*>(names[i]);
+			CDuiString* pv = static_cast<CDuiString*>(vals[i]);
+			if( pn && pv ) SetAttribute(pn->GetData(), pv->GetData());
+			delete pn;
+			delete pv;
+		}
+		CThemeManager::PopColorParseTheme();
 	}
 
 	namespace {
@@ -1645,6 +1669,14 @@ namespace DuiLib {
 
 	void CControlUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
+		// 记录 var(--token) 原串，供主题热切换时重解
+		if( pstrName != NULL && pstrValue != NULL
+			&& _tcsnicmp(pstrName, _T("_tvar:"), 6) != 0
+			&& _tcsnicmp(pstrValue, _T("var("), 4) == 0 ) {
+			CDuiString key;
+			key.Format(_T("_tvar:%s"), pstrName);
+			AddCustomAttribute(key.GetData(), pstrValue);
+		}
 		// 样式表名：style / class（HTML class ≈ Default/style 名）
 		if(m_pManager != NULL && ( _tcsicmp(pstrName, _T("style")) == 0 || _tcsicmp(pstrName, _T("class")) == 0 )) {
 			LPCTSTR pStyle = m_pManager->GetStyle(pstrValue);

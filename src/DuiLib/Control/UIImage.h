@@ -73,6 +73,9 @@ namespace DuiLib
 		void SetSizePreset(int nSize);
 		void SetFallbackBackgroundColor(DWORD dwColor);
 		void SetFallbackColor(DWORD dwColor);
+		/// 由 markup/chrome 显式设置过则不再跟主题默认 primary
+		bool IsFallbackBackgroundCustom() const { return m_bFallbackBkCustom; }
+		bool IsFallbackColorCustom() const { return m_bFallbackColorCustom; }
 
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		void SetPos(RECT rc, bool bNeedInvalidate = true);
@@ -84,12 +87,16 @@ namespace DuiLib
 	protected:
 		void SyncCircleRadius();
 		CDuiString MakeInitials() const;
+		DWORD ResolveFallbackBackgroundColor() const;
+		DWORD ResolveFallbackColor() const;
 
 	protected:
 		bool m_bCircle;
 		CDuiString m_sAlt;
 		DWORD m_dwFallbackBk;
 		DWORD m_dwFallbackColor;
+		bool m_bFallbackBkCustom;
+		bool m_bFallbackColorCustom;
 	};
 }
 

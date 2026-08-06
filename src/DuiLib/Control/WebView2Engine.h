@@ -32,6 +32,11 @@ namespace DuiLib
 		virtual void GoBack();
 		virtual void GoForward();
 		virtual void Refresh();
+		virtual void Stop();
+		virtual bool CanGoBack() const;
+		virtual bool CanGoForward() const;
+		virtual bool GetUrl(CDuiString& out) const;
+		virtual void ExecuteScript(LPCTSTR script);
 		virtual HWND GetHostWindow() const;
 		virtual void* GetNative();
 		virtual void SetHostEvents(CWebBrowserHostEvents* pEvents);
@@ -50,6 +55,7 @@ namespace DuiLib
 		void FlushPendingNavigate();
 		void AttachHandlers();
 		void OnControllerReady(bool composition);
+		void RequestFavicon();
 		HRESULT StartWindowController(ICoreWebView2Environment* env);
 		HRESULT StartCompositionController(ICoreWebView2Environment* env);
 		void ForwardMouse(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -71,6 +77,7 @@ namespace DuiLib
 		CDuiString m_sHostMode;
 		CDuiString m_sPendingUrl;
 		CDuiString m_sEffectiveHost;
+		mutable CDuiString m_sCachedUrl;
 
 		ICoreWebView2Controller* m_pController;
 		ICoreWebView2CompositionController* m_pCompController;
@@ -84,6 +91,9 @@ namespace DuiLib
 		EventRegistrationToken m_tokTitleChanged;
 		EventRegistrationToken m_tokNewWindow;
 		EventRegistrationToken m_tokCursorChanged;
+		EventRegistrationToken m_tokFaviconChanged;
+		EventRegistrationToken m_tokHistoryChanged;
+		EventRegistrationToken m_tokDownloadStarting;
 	};
 }
 

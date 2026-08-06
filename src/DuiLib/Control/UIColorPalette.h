@@ -4,7 +4,7 @@
 
 namespace DuiLib {
 	/////////////////////////////////////////////////////////////////////////////////////
-	//
+	// HSL 调色板：上方面板 = 色相(H)×明度(B)；下方条 = 饱和度(S)
 	class UILIB_API CColorPaletteUI : public CControlUI
 	{
 		DECLARE_DUICONTROL(CColorPaletteUI)
@@ -12,7 +12,7 @@ namespace DuiLib {
 		CColorPaletteUI();
 		virtual ~CColorPaletteUI();
 
-		//获取最终被选择的颜色，可以直接用于设置duilib背景色
+		/// 当前色（DuiLib DWORD = RRGGBBAA），可直接作背景色
 		DWORD GetSelectColor();
 		void SetSelectColor(DWORD dwColor);
 
@@ -20,17 +20,18 @@ namespace DuiLib {
 		virtual LPVOID GetInterface(LPCTSTR pstrName);
 		virtual void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
-		//设置/获取 Pallet（调色板主界面）的高度
 		void SetPalletHeight(int nHeight);
-		int	GetPalletHeight() const;
+		int GetPalletHeight() const;
+		void SetPaletteHeight(int nHeight) { SetPalletHeight(nHeight); }
+		int GetPaletteHeight() const { return GetPalletHeight(); }
 
-		//设置/获取 下方Bar（亮度选择栏）的高度
 		void SetBarHeight(int nHeight);
 		int GetBarHeight() const;
-		//设置/获取 选择图标的路径
+
 		void SetThumbImage(LPCTSTR pszImage);
 		LPCTSTR GetThumbImage() const;
 
+		virtual UINT GetControlFlags() const;
 		virtual void SetPos(RECT rc, bool bNeedInvalidate = true);
 		virtual void DoInit();
 		virtual void DoEvent(TEventUI& event);
@@ -38,13 +39,23 @@ namespace DuiLib {
 		virtual void PaintPallet(IRenderContext& ctx);
 
 	protected:
-		//更新数据
+		void EnsureOffscreen();
+		void ReleaseOffscreen();
+		void SyncCursorFromValues();
+		void GetPalletBarRect(RECT& rcPallet, RECT& rcBar) const;
+		void NotifyColorChanging();
+		void NotifyColorChanged();
+		bool ApplyPalletPoint(POINT pt);
+		bool ApplyBarPoint(POINT pt);
+		bool NudgeByKey(WPARAM chKey);
 		void UpdatePalletData();
 		void UpdateBarData();
+		void PaintThumb(IRenderContext& ctx, RECT rcThumb);
 
 	private:
 		HDC			m_MemDc;
 		HBITMAP		m_hMemBitmap;
+		HBITMAP		m_hOldBitmap;
 		BITMAP		m_bmInfo;
 		BYTE		*m_pBits;
 		UINT		m_uButtonState;

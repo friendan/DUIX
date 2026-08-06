@@ -136,14 +136,13 @@ namespace DuiLib
 				CControlUI* p = GetItemAt(it);
 				p->SetInternVisible(true);
 				p->SetVisible(true);
-				p->SetFocus();
+				// 不在此 SetFocus：右键菜单 / WebBrowser 等会在切页时崩或抢焦点
 			}
 			else GetItemAt(it)->SetVisible(false);
 		}
 		NeedParentUpdate();
 
 		if( m_pManager != NULL ) {
-			m_pManager->SetNextTabControl();
 			m_pManager->SendNotify(this, DUI_MSGTYPE_TABSELECT, m_iCurSel, iOldSel);
 		}
 		return true;

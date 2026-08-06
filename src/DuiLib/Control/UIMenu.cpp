@@ -148,7 +148,6 @@ namespace DuiLib {
 
 	void CMenuWnd::Close(UINT nRet)
 	{
-		ASSERT(::IsWindow(m_hWnd));
 		if (!::IsWindow(m_hWnd)) return;
 		PostMessage(WM_CLOSE, (WPARAM)nRet, 0L);
 		isClosing = true;
@@ -358,10 +357,16 @@ namespace DuiLib {
 		}
 		else {
 			m_pm.Init(m_hWnd);
-			m_pm.GetDPIObj()->SetScale(CMenuWnd::GetGlobalContextMenuObserver().GetManager()->GetDPIObj()->GetDPI());
+			CPaintManagerUI* pMainPm = CMenuWnd::GetGlobalContextMenuObserver().GetManager();
+			if( pMainPm != NULL && pMainPm->GetDPIObj() != NULL )
+				m_pm.GetDPIObj()->SetScale(pMainPm->GetDPIObj()->GetDPI());
 			CDialogBuilder builder;
 
 			CControlUI* pRoot = builder.Create(m_xml,UINT(0), this, &m_pm);
+			if( pRoot == NULL ) {
+				bHandled = TRUE;
+				return -1;
+			}
 			bShowShadow = m_pm.GetShadow()->IsShowShadow();
 			m_pm.GetShadow()->ShowShadow(false);
 			m_pm.AttachDialog(pRoot);
@@ -369,7 +374,9 @@ namespace DuiLib {
 
 			ResizeMenu();
 		}
-		GetMenuUI()->m_pWindow = this;
+		CMenuUI* pMenuUI = GetMenuUI();
+		if( pMenuUI != NULL )
+			pMenuUI->m_pWindow = this;
 		m_pm.GetShadow()->ShowShadow(bShowShadow);
 		m_pm.GetShadow()->Create(&m_pm);
 		return 0;
@@ -377,12 +384,15 @@ namespace DuiLib {
 
 	CMenuUI* CMenuWnd::GetMenuUI()
 	{
-		return static_cast<CMenuUI*>(m_pm.GetRoot());
+		CControlUI* pRoot = m_pm.GetRoot();
+		if( pRoot == NULL ) return NULL;
+		return static_cast<CMenuUI*>(pRoot->GetInterface(_T("Menu")));
 	}
 
 	void CMenuWnd::ResizeMenu()
 	{
 		CControlUI* pRoot = m_pm.GetRoot();
+		if( pRoot == NULL ) return;
 
 #if defined(WIN32) && !defined(UNDER_CE)
 		MONITORINFO oMonitor = {}; 
@@ -398,8 +408,8 @@ namespace DuiLib {
 		m_pm.SetInitSize(szAvailable.cx, szAvailable.cy);
 
 		//必须是Menu标签作为xml的根节点
-		CMenuUI *pMenuRoot = static_cast<CMenuUI*>(pRoot);
-		ASSERT(pMenuRoot);
+		CMenuUI *pMenuRoot = static_cast<CMenuUI*>(pRoot->GetInterface(_T("Menu")));
+		if( pMenuRoot == NULL ) return;
 
 		SIZE szInit = m_pm.GetInitSize();
 		CDuiRect rc;

@@ -22,9 +22,10 @@ namespace DuiLib
 		, m_dwItemDisabledColor(0xBFBFBFFF)
 		, m_dwItemDisabledBackgroundColor(0)
 		, m_dwItemLineColor(0xF0F0F0FF)
+		, m_dwItemAlternateBackgroundColor(0xFAFAFAFF)
 		, m_bAlternateBk(false)
 		, m_bShowRowLine(false)
-		, 		m_bShowHtml(false)
+		, m_bShowHtml(false)
 	{
 		m_rcItemPadding.left = 12;
 		m_rcItemPadding.top = 0;
@@ -275,7 +276,8 @@ namespace DuiLib
 			if( m_dwItemHoverColor != 0 ) dwText = m_dwItemHoverColor;
 		}
 		else if( m_bAlternateBk && (iIndex % 2) == 1 ) {
-			dwBk = 0xFAFAFAFF;
+			if( m_dwItemAlternateBackgroundColor != 0 )
+				dwBk = m_dwItemAlternateBackgroundColor;
 		}
 
 		if( dwBk != 0 )
@@ -387,6 +389,17 @@ namespace DuiLib
 		}
 
 		if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK ) {
+			// 点在滚动条上：交给 ScrollBar（勿吞掉；配合 PreferClientHit 避免 action=title 变 HTCAPTION）
+			if( m_pVerticalScrollBar != NULL && m_pVerticalScrollBar->IsVisible()
+				&& ::PtInRect(&m_pVerticalScrollBar->GetPos(), event.ptMouse) ) {
+				m_pVerticalScrollBar->DoEvent(event);
+				return;
+			}
+			if( m_pHorizontalScrollBar != NULL && m_pHorizontalScrollBar->IsVisible()
+				&& ::PtInRect(&m_pHorizontalScrollBar->GetPos(), event.ptMouse) ) {
+				m_pHorizontalScrollBar->DoEvent(event);
+				return;
+			}
 			if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() ) {
 				int iHit = HitTestItem(event.ptMouse);
 				if( iHit >= 0 ) {
@@ -584,6 +597,10 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("item-alternate-background")) == 0 ) {
 			m_bAlternateBk = (_tcsicmp(pstrValue, _T("true")) == 0);
 			Invalidate();
+		}
+		else if( _tcsicmp(pstrName, _T("item-alternate-background-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) { m_dwItemAlternateBackgroundColor = clr; Invalidate(); }
 		}
 		else if( _tcsicmp(pstrName, _T("item-show-html")) == 0 ) {
 			m_bShowHtml = (_tcsicmp(pstrValue, _T("true")) == 0);

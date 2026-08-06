@@ -15,11 +15,14 @@
 
 构造时若尚未设置文本，会尝试用本机 IP 初始化（`gethostname` / `gethostbyname`）。
 
+聚焦态原生 HWND 通过 `native-background-color` / `native-color` 染色（`WM_CTLCOLOREDIT` / `WM_CTLCOLORSTATIC`）；主题 `chrome` 会写入这两项，打开中热切会 `SyncNativeShellColors`。
+
 ### 示例
 
 ```xml
 <IPAddress name="ip" width="160" height="28"
-    border="1px solid #D9D9D9" background-color="#FFFFFFFF" />
+    border="1px solid #D9D9D9" background-color="#FFFFFFFF"
+    native-background-color="#FFFFFFFF" native-color="#000000E0" />
 ```
 
 ```cpp
@@ -27,12 +30,19 @@ CIPAddressUI* p = static_cast<CIPAddressUI*>(
     m_pm.FindControl(_T("ip"))->GetInterface(DUI_CTR_IPADDRESS));
 DWORD dw = p->GetIP();   // 与 IPM_GETADDRESS 同布局的 DWORD
 p->SetIP(MAKEIPADDRESS(192, 168, 1, 1));
-p->SetReadOnly(true);    // 仅有 C++ API，无 XML readonly
+p->SetReadOnly(true);
 ```
 
 ### 属性
 
-`SetAttribute` 全部转给 Label（盒模型、颜色、字体等）。**无**独立 IP XML 属性；`readonly` 仅 C++ `SetReadOnly`。
+| 属性 | 说明 |
+|------|------|
+| （Label 通用） | 盒模型、`background-color`、`color`、字体等 |
+| `native-background-color` | 聚焦时 SysIPAddress32 底色 |
+| `native-color` | 聚焦时原生文字色；未设则用 Label `color` |
+| `readonly` | 只读 |
+
+`SetAttribute` 支持上述项；另有 C++ `SetReadOnly` / `SyncNativeShellColors`。
 
 ---
 
@@ -71,5 +81,5 @@ CDuiString s = p->GetIP();   // "10.0.0.8"
 |--|-----------|-------------|
 | 实现 | 系统 SysIPAddress32 | 自绘 + 键盘 |
 | 读写 | `DWORD` `GetIP`/`SetIP` | 字符串 `GetIP`/`SetIP` |
-| 皮肤 | 聚焦时原生观感明显 | 更易与 DuiLib 皮肤一致 |
+| 皮肤 | 聚焦态可用 `native-*` 跟主题；关闭视觉样式以免系统白底 | 更易与 DuiLib 皮肤一致 |
 | 依赖 | `ICC_INTERNET_CLASSES` | 无额外 common control |

@@ -91,6 +91,21 @@ namespace DuiLib
 		DWORD GetTabHoverColor() const { return m_dwTabHoverColor; }
 		void SetTabSelectedColor(DWORD dwColor);
 		DWORD GetTabSelectedColor() const { return m_dwTabSelectedColor; }
+		/// SVG 占位/库图标色；0=跟随 tab-color*。TabButton `icon-tint` 优先
+		void SetTabIconColor(DWORD dwColor);
+		DWORD GetTabIconColor() const { return m_dwTabIconColor; }
+		void SetTabIconHoverColor(DWORD dwColor);
+		DWORD GetTabIconHoverColor() const { return m_dwTabIconHoverColor; }
+		void SetTabIconSelectedColor(DWORD dwColor);
+		DWORD GetTabIconSelectedColor() const { return m_dwTabIconSelectedColor; }
+		/// 标签加载中 Loading 样式（SetTabLoading）；color 未设则跟 tab-icon-color
+		void SetTabLoadingType(LPCTSTR pstrType);
+		LPCTSTR GetTabLoadingType() const { return m_sTabLoadingType; }
+		void SetTabLoadingColor(DWORD dwColor);
+		DWORD GetTabLoadingColor() const { return m_dwTabLoadingColor; }
+		/// 测试用：>0 时新建标签延迟 N ms 再导航（方便看 Loading 图标）
+		void SetTabLoadingTestDelay(int nMs);
+		int GetTabLoadingTestDelay() const { return m_nTabLoadingTestDelay; }
 		void SetTabBorderColor(DWORD dwColor);
 		DWORD GetTabBorderColor() const { return m_dwTabBorderColor; }
 		void SetTabSelectedBorderColor(DWORD dwColor);
@@ -109,6 +124,11 @@ namespace DuiLib
 		DWORD GetCloseHoverBackgroundColor() const { return m_dwCloseHoverBackgroundColor; }
 		void SetCloseHoverColor(DWORD dwColor);
 		DWORD GetCloseHoverColor() const { return m_dwCloseHoverColor; }
+		// 标签标题默认对齐（TabButton 未单独设置时生效）；left/center/right，top/vcenter|middle/bottom
+		void SetTabTextAlign(LPCTSTR pstrAlign);
+		LPCTSTR GetTabTextAlign() const { return m_sTabTextAlign; }
+		void SetTabVerticalAlign(LPCTSTR pstrAlign);
+		LPCTSTR GetTabVerticalAlign() const { return m_sTabVerticalAlign; }
 		void RefreshTabStyles();
 
 		// 将 iFrom 处标签移动到最终下标 iTo（插入语义，非互换）
@@ -133,6 +153,8 @@ namespace DuiLib
 		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl) override;
 		// action=title 时仅空白区拖窗；标签 / + / 滚动钮保持可点
 		bool IsCaptionDragHit(POINT pt) const override;
+		/// 主题 chrome 后同步左右/+ 按钮与图标色
+		void SyncThemeChromeButtons();
 
 		// 标签可视区（‹ › / + 之间）
 		RECT GetTabViewportRect() const;
@@ -166,6 +188,10 @@ namespace DuiLib
 		CControlUI* FindMenuItemByName(CMenuUI* pMenu, LPCTSTR pstrName) const;
 		int GetAddReserveWidth() const;
 		DWORD GetChromeBackgroundColor() const;
+		DWORD GetChromeHoverColor() const;
+		DWORD GetChromeAccentColor() const;
+		DWORD GetChromeIconColor() const;
+		DWORD GetChromeIconMutedColor() const;
 		bool QueryAllowNotify(LPCTSTR pstrMsg, WPARAM wParam, LPARAM lParam);
 		void SyncBoundTabLayout();
 		void SyncBoundTabLayoutMove(int iFrom, int iTo);
@@ -238,6 +264,12 @@ namespace DuiLib
 		DWORD m_dwTabColor;
 		DWORD m_dwTabHoverColor;
 		DWORD m_dwTabSelectedColor;
+		DWORD m_dwTabIconColor;
+		DWORD m_dwTabIconHoverColor;
+		DWORD m_dwTabIconSelectedColor;
+		DWORD m_dwTabLoadingColor;
+		int m_nTabLoadingTestDelay;
+		CDuiString m_sTabLoadingType;
 		DWORD m_dwTabBorderColor;
 		DWORD m_dwTabSelectedBorderColor;
 		DWORD m_dwTabSeparatorColor;
@@ -247,6 +279,8 @@ namespace DuiLib
 		DWORD m_dwCloseColor;
 		DWORD m_dwCloseHoverBackgroundColor;
 		DWORD m_dwCloseHoverColor;
+		CDuiString m_sTabTextAlign;
+		CDuiString m_sTabVerticalAlign;
 	};
 }
 

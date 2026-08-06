@@ -62,6 +62,7 @@ namespace DuiLib {
 		void RemoveAll();
 
 		bool Activate();
+		void SyncOpenDropShell();
 
 		LPCTSTR GetImage() const;
 		void SetImage(LPCTSTR pStrImage);

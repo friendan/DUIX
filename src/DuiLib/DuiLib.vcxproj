@@ -982,6 +982,8 @@
     <ClCompile Include="Core\UIBase.cpp" />
     <ClCompile Include="Core\UIContainer.cpp" />
     <ClCompile Include="Core\UIControl.cpp" />
+    <ClCompile Include="Core\UITheme.cpp" />
+    <ClCompile Include="Core\UIThemeBuiltin.cpp" />
     <ClCompile Include="Core\UIDlgBuilder.cpp" />
     <ClCompile Include="Core\UIManager.cpp" />
     <ClCompile Include="Core\UIMarkup.cpp" />
@@ -1049,6 +1051,7 @@
     <ClInclude Include="Core\UIBase.h" />
     <ClInclude Include="Core\UIContainer.h" />
     <ClInclude Include="Core\UIControl.h" />
+    <ClInclude Include="Core\UITheme.h" />
     <ClInclude Include="Core\UIDefine.h" />
     <ClInclude Include="Core\UIDlgBuilder.h" />
     <ClInclude Include="Core\UIManager.h" />

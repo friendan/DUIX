@@ -246,8 +246,15 @@ namespace DuiLib
 				int inset = ScaleValue(3);
 				RECT rcInner = { rcDot.left + inset, rcDot.top + inset, rcDot.right - inset, rcDot.bottom - inset };
 				SIZE szIn = { (rcInner.right - rcInner.left) / 2, (rcInner.bottom - rcInner.top) / 2 };
+				DWORD innerBg = 0xFFFFFFFF;
+				CThemeManager* tm = CThemeManager::GetInstance();
+				if( tm != NULL ) {
+					CTheme* th = tm->GetCurrentTheme();
+					if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+					if( th != NULL ) innerBg = th->GetToken(_T("color-bg"), innerBg);
+				}
 				if( szIn.cx > 0 )
-					ctx.FillRoundRect(rcInner, szIn.cx, szIn.cy, GetAdjustColor(0xFFFFFFFF));
+					ctx.FillRoundRect(rcInner, szIn.cx, szIn.cy, GetAdjustColor(innerBg));
 			}
 
 			int textTop = y - ScaleValue(2);

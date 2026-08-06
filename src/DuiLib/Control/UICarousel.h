@@ -37,6 +37,8 @@ namespace DuiLib
 		void DoEvent(TEventUI& event) override;
 		void DoInit() override;
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
+		/// 主题 chrome：控制栏 / 页签 / 指示点
+		void ApplyThemeChrome(DWORD dwBarBg, DWORD dwPageColor, DWORD dwDot, DWORD dwDotActive);
 
 	protected:
 		enum { TIMER_ID = 0xC401 };
@@ -72,6 +74,8 @@ namespace DuiLib
 		CControlUI* m_pGapAfterPage;
 		CControlUI* m_pGapAfterFirst;
 		CControlUI* m_pGapBeforeLast;
+		DWORD m_dwIndicatorColor;
+		DWORD m_dwIndicatorActiveColor;
 	};
 
 	/// 轮播项：可选 caption 条；内容由皮肤自由布局
@@ -89,6 +93,7 @@ namespace DuiLib
 		bool Add(CControlUI* pControl) override;
 		bool AddAt(CControlUI* pControl, int iIndex) override;
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
+		void ApplyThemeCaption(DWORD dwBarBg, DWORD dwTitleColor, DWORD dwTextColor);
 
 	protected:
 		void EnsureCaptionBar();

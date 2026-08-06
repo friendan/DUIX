@@ -15,7 +15,7 @@
 |------|------|
 | `multiline` / `readonly` / `password` | 编辑模式 |
 | `maxlength` | 最大字符数 |
-| `placeholder` / `placeholder-color` | 占位 |
+| `placeholder` / `placeholder-color` | 占位；`theme="chrome"` 时 `placeholder-color` 跟 `color-text-secondary` |
 | `text-align` / `color` / `font-family` / `font-size` | 文字样式 |
 | `overflow` / `overflow-x` / `overflow-y` | 映射启用滚动；优先于单独写 `v-scrollbar` |
 | `v-scrollbar` / `h-scrollbar` | 布尔开关（兼容） |

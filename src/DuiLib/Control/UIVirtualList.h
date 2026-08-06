@@ -90,6 +90,7 @@ namespace DuiLib
 		DWORD m_dwItemDisabledColor;
 		DWORD m_dwItemDisabledBackgroundColor;
 		DWORD m_dwItemLineColor;
+		DWORD m_dwItemAlternateBackgroundColor;
 		bool m_bAlternateBk;
 		bool m_bShowRowLine;
 		bool m_bShowHtml;

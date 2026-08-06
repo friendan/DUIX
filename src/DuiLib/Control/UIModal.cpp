@@ -329,6 +329,20 @@ namespace DuiLib {
 		int h = m_opts.m_nHeight;
 		DWORD dwTitleFg = KindTitleTextColor(m_opts.m_kind);
 
+		DWORD modalBg = 0xFFFFFFFF;
+		DWORD modalTx = 0x3C3C3CFF;
+		DWORD modalBd = 0xE6E6E6FF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL ) {
+				modalBg = th->GetToken(_T("color-modal-bg"), th->GetToken(_T("color-bg"), modalBg));
+				modalTx = th->GetToken(_T("color-modal-text"), th->GetToken(_T("color-text"), modalTx));
+				modalBd = th->GetToken(_T("color-modal-border"), th->GetToken(_T("color-border"), modalBd));
+			}
+		}
+
 		m_pm.AddFont(0, _T("Microsoft YaHei UI"), 14, true, false, false, false);
 		m_pm.AddFont(1, _T("Microsoft YaHei UI"), 13, false, false, false, false);
 
@@ -337,7 +351,7 @@ namespace DuiLib {
 		pRoot->SetName(_T("modalRoot"));
 		pRoot->SetFixedWidth(w);
 		pRoot->SetFixedHeight(h);
-		pRoot->SetBackgroundColor(0xFFFFFFFF);
+		pRoot->SetBackgroundColor(modalBg);
 		// 分层 + BorderRadius：D2D 抗锯齿圆角；角外透明（勿 SetWindowRgn）
 		SIZE szRound = { kModalRound, kModalRound };
 		pRoot->SetBorderRadius(szRound);
@@ -378,7 +392,7 @@ namespace DuiLib {
 		pText->SetName(_T("modalText"));
 		pText->SetText(m_opts.m_sText.GetData());
 		pText->SetFont(1);
-		pText->SetColor(0x3C3C3CFF);
+		pText->SetColor(modalTx);
 		pText->SetAttribute(_T("text-align"), _T("left"));
 		pText->SetAttribute(_T("vertical-align"), _T("top"));
 		pText->SetAttribute(_T("text-overflow"), _T("clip"));
@@ -394,11 +408,11 @@ namespace DuiLib {
 		pBtnRow->SetAlignItems(DT_VCENTER);
 		pBtnRow->SetGap(8);
 		pBtnRow->SetPadding(CDuiBox(0, 12, 0, 0));
-		pBtnRow->SetBackgroundColor(0xFFFFFFFF);
+		pBtnRow->SetBackgroundColor(modalBg);
 
 		CControlUI* pSep = new CControlUI;
 		pSep->SetFixedHeight(1);
-		pSep->SetBackgroundColor(0xE6E6E6FF);
+		pSep->SetBackgroundColor(modalBd);
 		pRoot->Add(pSep);
 
 		CControlUI* pSpacer = new CControlUI;
@@ -473,7 +487,15 @@ namespace DuiLib {
 
 		m_pm.Init(m_hWnd);
 		m_pm.SetLayered(true);
-		m_pm.SetWindowBackgroundColor(0xFFFFFFFF);
+		DWORD winBg = 0xFFFFFFFF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL )
+				winBg = th->GetToken(_T("color-modal-bg"), th->GetToken(_T("color-bg"), winBg));
+		}
+		m_pm.SetWindowBackgroundColor(winBg);
 		// 圆角跟阴影：不设 SetWindowRgn（分层 AA），靠 RoundCorner 让 CShadowUI 画圆角阴影
 		m_pm.SetBorderRadius(kModalRound, kModalRound);
 		BuildUI();

@@ -29,10 +29,11 @@ namespace DuiLib
 	{
 		if( m_bBuiltins ) return;
 		m_bBuiltins = true;
-		Register(_T("ie"), CreateIeEngine);
-		Register(_T("cef"), CreateCefEngine);
+		// 仅填空：应用若已 Register("cef", ...) 则不会被 stub 盖掉
+		RegisterIfAbsent(_T("ie"), CreateIeEngine);
+		RegisterIfAbsent(_T("cef"), CreateCefEngine);
 #ifdef DUILIB_HAS_WEBVIEW2
-		Register(_T("webview2"), CreateWebView2Engine);
+		RegisterIfAbsent(_T("webview2"), CreateWebView2Engine);
 #endif
 	}
 
@@ -40,6 +41,15 @@ namespace DuiLib
 	{
 		if( name == NULL || *name == _T('\0') || fn == NULL ) return;
 		m_map[CDuiString(name)] = fn;
+	}
+
+	bool CWebBrowserEngineFactory::RegisterIfAbsent(LPCTSTR name, WebBrowserEngineCreator fn)
+	{
+		if( name == NULL || *name == _T('\0') || fn == NULL ) return false;
+		CDuiString key(name);
+		if( m_map.find(key) != m_map.end() ) return false;
+		m_map[key] = fn;
+		return true;
 	}
 
 	IWebBrowserEngine* CWebBrowserEngineFactory::Create(LPCTSTR name) const

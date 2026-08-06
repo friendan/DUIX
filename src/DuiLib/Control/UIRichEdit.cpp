@@ -203,6 +203,8 @@ namespace DuiLib {
 		::GetObject(hfont, sizeof(LOGFONT), &lf);
 
 		DWORD dwColor = re->GetColor();
+		if( dwColor == 0 && re->GetManager() != NULL )
+			dwColor = re->GetManager()->GetDefaultFontColor();
 		if(re->GetManager()->IsLayered()) {
 			CRenderEngine::CheckAlphaColor(dwColor);
 		}
@@ -522,11 +524,13 @@ err:
 	void CTxtWinHost::TxInvalidateRect(LPCRECT prc, BOOL fMode)
 	{
 		if( prc == NULL ) {
-			m_re->GetManager()->Invalidate(rcClient);
+			m_re->Invalidate();
 			return;
 		}
 		RECT rc = *prc;
 		m_re->GetManager()->Invalidate(rc);
+		// 局部脏区在 D2D+不透明底色下常把字擦掉却补不全；顺带标脏整控件
+		m_re->Invalidate();
 	}
 
 	void CTxtWinHost::TxViewChange(BOOL fUpdate) 
@@ -1844,6 +1848,7 @@ err:
 		{ 
 		case EN_CHANGE:
 			{
+				Invalidate();
 				GetManager()->SendNotify(this, DUI_MSGTYPE_TEXTCHANGED);
 				break;
 			}
@@ -2240,22 +2245,56 @@ err:
 		if( m_pTwh ) {
 			RECT rc;
 			m_pTwh->GetControlRect(&rc);
-			HDC hDC = ctx.GetDC();
-			// Remember wparam is actually the hdc and lparam is the update
-			// rect because this message has been preprocessed by the window.
-			m_pTwh->GetTextServices()->TxDraw(
-				DVASPECT_CONTENT,  		// Draw Aspect
-				/*-1*/0,				// Lindex
-				NULL,					// Info for drawing optimazation
-				NULL,					// target device information
-				hDC,			        // Draw device HDC
-				NULL, 				   	// Target device HDC
-				(RECTL*)&rc,			// Bounding client rectangle
-				NULL, 		            // Clipping rectangle for metafiles
-				(RECT*)&rcPaint,		// Update rectangle
-				NULL, 	   				// Call back function
-				NULL,					// Call back parameter
-				0);				        // What view of the object
+			const int nW = rc.right - rc.left;
+			const int nH = rc.bottom - rc.top;
+			// 勿对主 RT GetDC/Flush（会整窗黑屏）。离屏 GDI TxDraw 后再 StretchBlit 贴回。
+			if( nW > 0 && nH > 0 && m_pManager != NULL ) {
+				BYTE* pBits = NULL;
+				void* pNative = NULL;
+				IRenderDevice* pDev = GetRenderDevice();
+				if( pDev != NULL && pDev->CreatePixelBuffer(nW, nH, &pBits, &pNative) && pBits != NULL && pNative != NULL ) {
+					DWORD dwBk = GetPaintBackgroundColor();
+					if( dwBk == 0 ) dwBk = 0xFFFFFFFF;
+					const BYTE nR = (BYTE)DuiColorR(dwBk);
+					const BYTE nG = (BYTE)DuiColorG(dwBk);
+					const BYTE nB = (BYTE)DuiColorB(dwBk);
+					const int nPixels = nW * nH;
+					for( int i = 0; i < nPixels; ++i ) {
+						pBits[i * 4 + 0] = nB;
+						pBits[i * 4 + 1] = nG;
+						pBits[i * 4 + 2] = nR;
+						pBits[i * 4 + 3] = 0xFF;
+					}
+
+					HDC hPaint = m_pManager->GetPaintDC();
+					HDC hMem = ::CreateCompatibleDC(hPaint);
+					HBITMAP hBmp = reinterpret_cast<HBITMAP>(pNative);
+					HBITMAP hOld = (HBITMAP)::SelectObject(hMem, hBmp);
+					POINT ptOrg = { 0 };
+					::SetWindowOrgEx(hMem, rc.left, rc.top, &ptOrg);
+					::SetBkMode(hMem, TRANSPARENT);
+
+					m_pTwh->GetTextServices()->TxDraw(
+						DVASPECT_CONTENT,
+						0,
+						NULL,
+						NULL,
+						hMem,
+						NULL,
+						(RECTL*)&rc,
+						NULL,
+						(RECT*)&rc,
+						NULL,
+						NULL,
+						0);
+
+					::SetWindowOrgEx(hMem, ptOrg.x, ptOrg.y, NULL);
+					ctx.StretchBlit(hMem, rc.left, rc.top, nW, nH, 0, 0, nW, nH, COLORONCOLOR);
+					::SelectObject(hMem, hOld);
+					::DeleteDC(hMem);
+					pDev->DestroyPixelBuffer(pNative);
+				}
+			}
 			if( m_bVScrollBarFixing ) {
 				LONG lWidth = rc.right - rc.left + m_pVerticalScrollBar->GetFixedWidth();
 				LONG lHeight = 0;
@@ -2877,6 +2916,14 @@ err:
 			bHandled = bWasHandled;
 		else if( uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST ) {
 			if( m_pTwh->IsCaptured() ) bHandled = bWasHandled;
+		}
+		// 键鼠改内容后确保刷新（部分环境 TxInvalidate 局部脏区在 D2D 下不可见）
+		if( bHandled && (
+			uMsg == WM_CHAR || uMsg == WM_IME_CHAR ||
+			uMsg == WM_KEYDOWN || uMsg == WM_PASTE || uMsg == WM_CUT || uMsg == WM_CLEAR ||
+			uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONDBLCLK ) )
+		{
+			Invalidate();
 		}
 		return lResult;
 	}

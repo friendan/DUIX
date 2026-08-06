@@ -74,6 +74,11 @@ namespace DuiLib
 
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		void DoInit();
+		/// 主题热切：左右面板 / 表头 / 标题·计数 / 列表行色
+		void ApplyThemeChrome(DWORD dwPanelBg, DWORD dwHeaderBg, DWORD dwBorder,
+			DWORD dwTitleColor, DWORD dwCountColor,
+			DWORD dwListBg, DWORD dwItemColor, DWORD dwItemHoverBg,
+			DWORD dwItemSelBg, DWORD dwItemSelColor, DWORD dwItemLine);
 
 	protected:
 		int ScaleValue(int v) const;

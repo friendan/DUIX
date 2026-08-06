@@ -13,6 +13,8 @@ namespace DuiLib
 
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
+		/// 可交互：不继承 html/父级 action=title 的 HTCAPTION，否则滑块无法拖
+		bool PreferClientHit() const;
 
 		CContainerUI* GetOwner() const;
 		void SetOwner(CContainerUI* pOwner);
@@ -85,6 +87,15 @@ namespace DuiLib
 		int GetThumbMinSize() const;
 		void SetThumbMinSize(int nSize);
 
+		void SetThumbColor(DWORD dwColor);
+		DWORD GetThumbColor() const;
+		void SetThumbHoverColor(DWORD dwColor);
+		DWORD GetThumbHoverColor() const;
+		void SetThumbActiveColor(DWORD dwColor);
+		DWORD GetThumbActiveColor() const;
+		void SetThumbDisabledColor(DWORD dwColor);
+		DWORD GetThumbDisabledColor() const;
+
 		void SetPos(RECT rc, bool bNeedInvalidate = true);
 		void DoEvent(TEventUI& event);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
@@ -150,6 +161,11 @@ namespace DuiLib
 		CDuiString m_sRailDisabledImage;
 
 		CDuiString m_sImageModify;
+
+		DWORD m_dwThumbColor;
+		DWORD m_dwThumbHoverColor;
+		DWORD m_dwThumbActiveColor;
+		DWORD m_dwThumbDisabledColor;
 	};
 }
 

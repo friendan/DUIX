@@ -354,8 +354,6 @@ namespace DuiLib
 			header->Add(count);
 
 			CListUI* list = new CListUI();
-			list->SetAttribute(_T("item-background-color-hover"), _T("#F5F5F5FF"));
-			list->SetAttribute(_T("item-color"), _T("#333333FF"));
 			list->SetAttribute(_T("overflow"), _T("auto"));
 
 			panel->Add(header);
@@ -409,6 +407,68 @@ namespace DuiLib
 		Add(mid);
 
 		Add(MakePanel(false));
+
+		// 建壳后立刻套当前主题，避免先闪浅色
+		CThemeManager* tm = CThemeManager::GetInstance();
+		CTheme* th = NULL;
+		if( tm != NULL ) {
+			th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+		}
+		if( th != NULL ) {
+			DWORD ctrlBg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), 0xFFFFFFFF));
+			DWORD bgElev = th->GetToken(_T("color-bg-elevated"), 0xF8F9FAFF);
+			DWORD border = th->GetToken(_T("color-border"), 0xDEE2E6FF);
+			DWORD text = th->GetToken(_T("color-text"), 0x000000E0);
+			DWORD textSec = th->GetToken(_T("color-text-secondary"), 0x000000A6);
+			DWORD bgHover = th->GetToken(_T("color-bg-hover"), bgElev);
+			DWORD selection = th->GetToken(_T("color-selection"), bgElev);
+			DWORD primaryOn = th->GetToken(_T("color-primary-text"), 0xFFFFFFFF);
+			ApplyThemeChrome(ctrlBg, bgElev, border, text, textSec,
+				ctrlBg, text, bgHover, selection, primaryOn, border);
+		}
+	}
+
+	void CTransferUI::ApplyThemeChrome(DWORD dwPanelBg, DWORD dwHeaderBg, DWORD dwBorder,
+		DWORD dwTitleColor, DWORD dwCountColor,
+		DWORD dwListBg, DWORD dwItemColor, DWORD dwItemHoverBg,
+		DWORD dwItemSelBg, DWORD dwItemSelColor, DWORD dwItemLine)
+	{
+		auto paintSide = [&](CVerticalLayoutUI* panel, CHorizontalLayoutUI* header,
+			CLabelUI* title, CLabelUI* count, CListUI* list) {
+			if( panel != NULL ) {
+				panel->SetBackgroundColor(dwPanelBg);
+				panel->SetBorderColor(dwBorder);
+			}
+			if( header != NULL )
+				header->SetBackgroundColor(dwHeaderBg);
+			if( title != NULL )
+				title->SetColor(dwTitleColor);
+			if( count != NULL )
+				count->SetColor(dwCountColor);
+			if( list != NULL ) {
+				list->SetBackgroundColor(dwListBg);
+				list->SetBorderColor(dwBorder);
+				CDuiString s;
+				s.Format(_T("#%08X"), dwItemColor);
+				list->SetAttribute(_T("item-color"), s.GetData());
+				s.Format(_T("#%08X"), dwListBg);
+				list->SetAttribute(_T("item-background-color"), s.GetData());
+				s.Format(_T("#%08X"), dwItemColor);
+				list->SetAttribute(_T("item-color-hover"), s.GetData());
+				s.Format(_T("#%08X"), dwItemHoverBg);
+				list->SetAttribute(_T("item-background-color-hover"), s.GetData());
+				s.Format(_T("#%08X"), dwItemSelColor);
+				list->SetAttribute(_T("item-color-selected"), s.GetData());
+				s.Format(_T("#%08X"), dwItemSelBg);
+				list->SetAttribute(_T("item-background-color-selected"), s.GetData());
+				s.Format(_T("#%08X"), dwItemLine);
+				list->SetAttribute(_T("item-line-color"), s.GetData());
+			}
+		};
+		paintSide(m_pLeftPanel, m_pLeftHeader, m_pLeftTitle, m_pLeftCount, m_pLeftList);
+		paintSide(m_pRightPanel, m_pRightHeader, m_pRightTitle, m_pRightCount, m_pRightList);
+		Invalidate();
 	}
 
 	void CTransferUI::FillList(CListUI* pList, bool bTarget)

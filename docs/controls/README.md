@@ -61,6 +61,7 @@
 | GifAnim / GifAnimEx | [GifAnim.md](GifAnim.md) | `UIGifAnim.*`、`UIGifAnimEx.*` |
 | Loading | [Loading.md](Loading.md) | `src/DuiLib/Control/UILoading.*` |
 | ColorPalette | [ColorPalette.md](ColorPalette.md) | `src/DuiLib/Control/UIColorPalette.*` |
+| Theme（全局） | [Theme.md](Theme.md) | `src/DuiLib/Core/UITheme.*` |
 | PageControl | [PageControl.md](PageControl.md) | `src/DuiLib/Control/UIPageControl.*` |
 | Toast | [Toast.md](Toast.md) | `src/DuiLib/Control/UIToast.*` |
 | Modal | [Modal.md](Modal.md) | `src/DuiLib/Control/UIModal.*` |

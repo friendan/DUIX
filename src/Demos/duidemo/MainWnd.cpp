@@ -14,9 +14,42 @@
 #include "Icons/TablerFilledIconsData.h"
 #include "Icons/RemixIconIconsData.h"
 #include "Icons/TwemojiIconsData.h"
+#include "Core/UITheme.h"
 
 namespace {
 	HWND g_hLastToast = NULL;
+
+	static void ApplyDemoMenuChrome(CMenuWnd* pMenuWnd)
+	{
+		if( pMenuWnd == NULL ) return;
+		CMenuUI* pMenu = pMenuWnd->GetMenuUI();
+		if( pMenu == NULL ) return;
+		DWORD menuBg = 0xFFFFFFFF, menuBd = 0xD9D9D9FF, menuTx = 0x333333FF;
+		DWORD menuTxH = 0x1677FFFF, menuBgH = 0xE6F4FFFF, menuDis = 0xBFBFBFFF;
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL ) {
+				menuBg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), menuBg));
+				menuBd = th->GetToken(_T("color-border"), menuBd);
+				menuTx = th->GetToken(_T("color-text"), menuTx);
+				menuTxH = th->GetToken(_T("color-primary"), menuTxH);
+				menuBgH = th->GetToken(_T("color-bg-hover"), th->GetToken(_T("color-selection"), menuBgH));
+				menuDis = th->GetToken(_T("color-text-disabled"), menuDis);
+			}
+		}
+		CDuiString s;
+		s.Format(_T("#%08X"), menuBg); pMenu->SetAttribute(_T("background-color"), s);
+		s.Format(_T("#%08X"), menuBd); pMenu->SetAttribute(_T("border-color"), s);
+		s.Format(_T("#%08X"), menuTx); pMenu->SetAttribute(_T("item-color"), s);
+		s.Format(_T("#%08X"), menuTxH); pMenu->SetAttribute(_T("item-color-hover"), s);
+		s.Format(_T("#%08X"), menuBgH); pMenu->SetAttribute(_T("item-background-color-hover"), s);
+		s.Format(_T("#%08X"), menuTxH); pMenu->SetAttribute(_T("item-color-selected"), s);
+		s.Format(_T("#%08X"), menuBgH); pMenu->SetAttribute(_T("item-background-color-selected"), s);
+		s.Format(_T("#%08X"), menuDis); pMenu->SetAttribute(_T("item-color-disabled"), s);
+		pMenu->Invalidate();
+	}
 
 	HWND RememberToast(HWND h)
 	{
@@ -259,13 +292,21 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	{
 		CEditUI* pEdit = (CEditUI*)msg.pSender;
 	}
-	else if( msg.sType == _T("colorchanged") )
+	else if( msg.sType == _T("colorchanging") || msg.sType == _T("colorchanged") )
 	{
-		CControlUI* pRoot = m_pm.FindControl(_T("root"));
-		if( pRoot != NULL ) {
-			CColorPaletteUI* pColorPalette = (CColorPaletteUI*)m_pm.FindControl(_T("Pallet"));
-			pRoot->SetBackgroundColor(pColorPalette->GetSelectColor());
-			pRoot->SetBackgroundImage(_T(""));
+		DWORD dwColor = (DWORD)msg.wParam;
+		if( dwColor == 0 && msg.pSender != NULL ) {
+			CColorPaletteUI* pPal = static_cast<CColorPaletteUI*>(
+				msg.pSender->GetInterface(DUI_CTR_COLORPALETTE));
+			if( pPal != NULL ) dwColor = pPal->GetSelectColor();
+		}
+		CControlUI* pPreview = m_pm.FindControl(_T("palette_preview"));
+		if( pPreview != NULL ) pPreview->SetBackgroundColor(dwColor);
+		CLabelUI* pHex = static_cast<CLabelUI*>(m_pm.FindControl(_T("palette_hex")));
+		if( pHex != NULL ) {
+			CDuiString s;
+			s.Format(_T("#%08X"), dwColor);
+			pHex->SetText(s);
 		}
 	}
 	else if(msg.sType == DUI_MSGTYPE_ITEMACTIVATE) {
@@ -364,6 +405,7 @@ void CMainWnd::Notify(TNotifyUI& msg)
 		CDuiPoint point;
 		::GetCursorPos(&point);
 		m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
+		ApplyDemoMenuChrome(m_pMenu);
 	}
 
 	return WindowImplBase::Notify(msg);
@@ -458,6 +500,46 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("btn_browser_test")) == 0)
 	{
 		CBrowserWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_theme_default")) == 0 ||
+		sName.CompareNoCase(_T("btn_theme_azure")) == 0 ||
+		sName.CompareNoCase(_T("btn_theme_emerald")) == 0 ||
+		sName.CompareNoCase(_T("btn_theme_graphite")) == 0 ||
+		sName.CompareNoCase(_T("btn_theme_dark")) == 0 ||
+		sName.CompareNoCase(_T("btn_theme_toggle")) == 0)
+	{
+		CThemeManager* tm = CThemeManager::GetInstance();
+		CLabelUI* pCur = static_cast<CLabelUI*>(m_pm.FindControl(_T("theme_current")));
+		CButtonUI* pToggle = static_cast<CButtonUI*>(m_pm.FindControl(_T("btn_theme_toggle")));
+
+		if( sName.CompareNoCase(_T("btn_theme_toggle")) == 0 ) {
+			tm->SetEnabled(!tm->IsEnabled());
+		}
+		else {
+			if( !tm->IsEnabled() ) tm->SetEnabled(true);
+			LPCTSTR themeId = _T("default");
+			if( sName.CompareNoCase(_T("btn_theme_azure")) == 0 ) themeId = _T("azure");
+			else if( sName.CompareNoCase(_T("btn_theme_emerald")) == 0 ) themeId = _T("emerald");
+			else if( sName.CompareNoCase(_T("btn_theme_graphite")) == 0 ) themeId = _T("graphite");
+			else if( sName.CompareNoCase(_T("btn_theme_dark")) == 0 ) themeId = _T("dark");
+			tm->ApplyTheme(themeId);
+		}
+
+		if( pToggle != NULL )
+			pToggle->SetText(tm->IsEnabled() ? _T("禁用主题") : _T("启用主题"));
+		if( pCur != NULL ) {
+			if( !tm->IsEnabled() ) {
+				pCur->SetText(_T("当前: 已禁用（kind=Bootstrap，chrome=default）"));
+				pCur->SetColor(0x0D6EFDFF);
+			}
+			else {
+				CTheme* pTheme = tm->GetCurrentTheme();
+				CDuiString s;
+				s.Format(_T("当前: %s"), pTheme != NULL ? pTheme->GetDisplayName() : _T("default"));
+				pCur->SetText(s);
+				pCur->SetColor(tm->GetColor(_T("color-primary"), 0x1677FFFF));
+			}
+		}
 	}
 	else if(sName.CompareNoCase(_T("btn_carousel_test")) == 0)
 	{
@@ -716,6 +798,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		CDuiPoint point;
 		::GetCursorPos(&point);
 		m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
+		ApplyDemoMenuChrome(m_pMenu);
 		// 设置状态
 		CMenuWnd::SetMenuItemInfo(_T("qianting"), true);
 
@@ -862,6 +945,7 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 			::GetCursorPos(&point);
 			point.y -= 100;
 			m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
+			ApplyDemoMenuChrome(m_pMenu);
 			// 动态添加后重新设置菜单的大小
 			m_pMenu->ResizeMenu();
 		}

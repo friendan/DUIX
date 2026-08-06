@@ -527,9 +527,9 @@ namespace DuiLib {
 			m_pCloseBtn->SetBackgroundColor(0);
 			m_pCloseBtn->SetBorderWidth(0);
 			m_pCloseBtn->SetColor(dwFg);
-			m_pCloseBtn->SetHoverBackgroundColor(0x00000040);
+			m_pCloseBtn->SetHoverBackgroundColor(DuiColorSetA(dwFg, 0x40));
 			m_pCloseBtn->SetHoverColor(dwFg);
-			m_pCloseBtn->SetActiveBackgroundColor(0x00000060);
+			m_pCloseBtn->SetActiveBackgroundColor(DuiColorSetA(dwFg, 0x60));
 			m_pCloseBtn->SetActiveColor(dwFg);
 			m_pCloseBtn->SetAttribute(_T("text-align"), _T("center"));
 			m_pCloseBtn->SetAttribute(_T("vertical-align"), _T("vcenter"));

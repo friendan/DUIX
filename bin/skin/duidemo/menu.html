@@ -1,40 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Window layered="true" showshadow="true" >
-<Font font-family="΢���ź�" font-size="12" bold="false" default="true" />
-<Font shared="true" id="30" font-family="΢���ź�" font-size="12" bold="true"/>
-
-<!-- Menu��ʽ -->
-<Default name="Menu" shared="true" value="item-font-family=&quot;΢���ź�&quot; item-font-size=&quot;12&quot; item-font-weight=&quot;bold&quot; border-width=&quot;1&quot; border-radius=&quot;1,1&quot; border-color=&quot;0x303132&quot; padding=&quot;2,2,2,2&quot; item-padding=&quot;0,0,0,30&quot; background-image=&quot;file='menu/menu_bk.png' corner='26,2,2,2' source='6,6,44,24'&quot; item-color-hover=&quot;0xFF0000FF&quot; item-background-color-hover=&quot;0x338ACAFF&quot; item-color-selected=&quot;0xFF0000FF&quot; item-background-color-selected=&quot;0x338ACAFF&quot;" />
-<!-- ExpandIcon��ʽ -->
-<Default name="ExpandIcon" shared="true" value="menu/menu_expand.png" />
-
-  <Menu>
-    <MenuElement name="lan" text="lantext" resource-text="true"/>
-
-    <MenuElement text="��Ʒ����" expand="true" >
-      <MenuElement name="qianting" text="��Ǳͧ" icon="menu/menu_check.png" icon-size="9,9" check-item="true" checked="false"/>
-      <MenuElement name="yuanzidan" text="����ԭ�ӵ�" icon="menu/icon.png"/>
-      <MenuElement name="huojian" text="���̫�ռ���" expand="true">
-        <MenuElement name="huojian" text="CZ-5" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-7" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-9" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888���̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ���" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888���̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ���" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888���̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ���" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888���̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ���" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888���̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ���" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888���̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ���" icon="menu/icon.png"/>
-        <MenuElement name="huojian" text="CZ-888���̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ��ͻ��̫�ռ���" icon="menu/icon.png"/>
+<!-- 纯色 Menu：跟当前主题 token；勿再用 background-image 壳（图片菜单不会自动跟主题） -->
+<Window>
+  <Menu border-width="1" border-radius="4,4" padding="4,4,4,4" item-padding="0,14,0,14">
+    <MenuElement name="lan" text="语言 / Language" resource-text="true"/>
+    <MenuElement text="产品演示" expand="true">
+      <MenuElement name="qianting" text="核潜艇" check-item="true" checked="false"/>
+      <MenuElement name="yuanzidan" text="氢弹原子弹"/>
+      <MenuElement name="huojian" text="长征系列" expand="true">
+        <MenuElement name="cz5" text="CZ-5"/>
+        <MenuElement name="cz7" text="CZ-7"/>
+        <MenuElement name="cz9" text="CZ-9"/>
       </MenuElement>
     </MenuElement>
-
-    <MenuElement height="30" >
-      <vbox background-color="#FFFFFEFF">
-        <Button name="menuitembtn" height="30" text="�˵���ť" kind="default" />
-      </vbox>
+    <MenuElement name="menuitembtn_wrap" height="36">
+      <HBox height="32" padding="0,8,0,8" align-items="vcenter">
+        <Button name="menuitembtn" text="菜单内按钮" kind="default" height="28" width="120"/>
+      </HBox>
     </MenuElement>
-
-    <MenuElement name="exit" text="�˳�"/>
+    <MenuElement name="exit" text="退出"/>
   </Menu>
 </Window>

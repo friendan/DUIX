@@ -51,6 +51,12 @@
 | `context-menu` | 见下文「右键菜单」 |
 | `tab-background-color` / `tab-background-color-hover` / `tab-background-color-selected` | 标签背景 |
 | `tab-color` / `tab-color-hover` / `tab-color-selected` | 文字色 |
+| `tab-icon-color` / `tab-icon-color-hover` / `tab-icon-color-selected` | SVG 库图标色（占位 globe 等）；未设则跟随 `tab-color*`；单标签可用 `icon-tint` 覆盖。别名 `tab-icon-tint*` |
+| `tab-loading-type` | 标签 `SetTabLoading(true)` 时 Loading 图形（默认 `spoke`；同 [Loading.md](Loading.md) 的 `type`） |
+| `tab-loading-color` | Loading 主色；未设则用 `tab-icon-color` |
+| `tab-loading-test-delay` | 测试用毫秒；`>0` 时新建标签先显示 Loading，延迟后再导航（方便看转圈）。正式环境设 `0` |
+| `tab-text-align` | 标题水平对齐：`left`（默认）/ `center` / `right`；可被 TabButton 的 `text-align` 覆盖 |
+| `tab-vertical-align` | 标题垂直对齐：`top` / `vcenter`|`middle`（默认）/ `bottom`；可被 TabButton 的 `vertical-align` 覆盖 |
 | `tab-border-color` / `tab-border-width` | 未选中边框 |
 | `tab-border-color-selected` / `tab-border-width-selected` | 选中底边指示条 |
 | `show-tab-separator` / `tab-separator-color` | 标签间分隔：用**右边框**（末项 / 选中项及其左侧邻居不加） |
@@ -64,12 +70,16 @@
 
 | 属性 | 说明 |
 |------|------|
-| `text` / `title` | 标题 |
+| `text` / `title` | 标题（写入子 Label；`SetText` 与 `SetTabTitle` 等价） |
+| `text-align` / `align` | 标题水平对齐：`left` / `center` / `right`（覆盖 TabBar `tab-text-align`） |
+| `vertical-align` / `valign` | 标题垂直对齐：`top` / `vcenter`|`middle` / `bottom`（覆盖 TabBar `tab-vertical-align`） |
 | `locked` | `true`：锁定（隐藏关闭、不可关；钉到左侧钉住区） |
 | `active` | 初始选中（一般由 TabBar 管理） |
 | `url` / `dir` | 业务自定义数据 |
-| `bsicon` / `iconpark` / `lucide` / `tabler-outline` / `tabler-filled` / `remixicon` / `twicon` / `icon-src` / `icon` | 左侧图标（SvgBox） |
-| `icon-size` / `icon-tint` | 图标尺寸与着色 |
+| `bsicon` / `iconpark` / `lucide` / `tabler-outline` / `tabler-filled` / `remixicon` / `twicon` | 左侧 SVG 图标库（SvgBox） |
+| `icon` / `icon-src` | 图标文件路径：BMP/PNG/JPG/JPEG（光栅）或 `.svg`；运行时亦可用 `SetTabIcon`（含内存图 / HBITMAP） |
+| `icon-size` / `icon-tint` | 图标尺寸；`icon-tint` 仅作用于 SVG 图标库着色 |
+| `loading` / `loading-type` | `loading=true` 显示转圈（`CLoadingUI`，与 Svg/Raster 互斥）；`loading-type` 覆盖 TabBar `tab-loading-type` |
 
 ---
 
@@ -116,6 +126,9 @@
 
 - 关闭 / 关闭其他 / 关闭左侧 / 关闭右侧 / 锁定（解锁）
 - 锁定项、无可关项时对应菜单灰掉
+- 内置壳为 `<Window><Menu …/></Window>`（`DialogBuilder` 只解析根的子节点，Menu 须作为子节点）；自定义文件同样建议 Window 下挂 Menu
+- `CMenuWnd::Close` 在 HWND 无效时直接返回，避免 ASSERT
+- 右键会先激活标签；`TabLayout::SelectItem` 不再对页面 `SetFocus`，减轻 WebBrowser 抢焦点问题
 
 | `context-menu` 值 | 行为 |
 |-------------------|------|
@@ -145,6 +158,17 @@
 
 绑定 `TabLayout` 时，关闭/移动会自动改页面顺序与选中项。
 
+### 与 TabLayout 动态加页
+
+运行时 `TabLayout::Add` 再绑标签时注意：
+
+1. **先**把页 `Add` 进 `TabLayout`，**再** `TabBar::AddTab`（`AddTab` 会 `SyncBoundTabLayout` → `SelectItem`；若页尚未存在，选中会失败）。
+2. `CContainerUI::Add` 在父级不可见时会把子项 `InternVisible=false`；`TabLayout` 已在 `Add`/`SelectItem` 中强制恢复可见，避免「下标对了但引擎/控件仍不可见」。
+3. 同下标再次 `SelectItem` 也会检查可见性（不只早退）。
+4. 多标签业务（如浏览器壳）建议另持 **活动页指针**；`tabselect` 时用页内状态同步 UI（例如 `WebBrowser::GetLocationUrl()` → 地址栏），不要只依赖 `HomePage`。WebView2 下可在 `OnFaviconChanged` 里 `SetTabIcon(bytes)` 显示站点图标。
+
+浏览器壳示例见 [WebBrowser.md](WebBrowser.md) Demo / `CBrowserWnd`。
+
 ---
 
 ## 常用 API
@@ -164,10 +188,25 @@ void MoveTab(int iFrom, int iTo);    // 受钉住区约束
 void SetFlexibleTabWidth(bool);
 void SetContextMenuEnabled(bool);
 void BindTabLayoutName(LPCTSTR);
+void SetTabTextAlign(LPCTSTR);       // left / center / right
+void SetTabVerticalAlign(LPCTSTR);   // top / vcenter|middle / bottom
 void CancelNotify();                 // 仅在 selecting/closing 处理中
 ```
 
-`CTabButtonUI::SetLocked(bool)` 会通知 TabBar 做钉左归位。
+`CTabButtonUI::SetLocked(bool)` 会通知 TabBar 做钉左归位；`SetTitleTextAlign` / `SetTitleVerticalAlign` 可覆盖栏级对齐。
+
+图标：
+
+```cpp
+pTab->SetTabIcon(_T("favicon.png"));              // BMP/PNG/JPG/JPEG；.svg 亦可
+pTab->SetTabIcon(pPngBytes, cbPng);               // 内存编码图（BMP/PNG/JPG）
+pTab->SetTabIcon(hBmp, cx, cy, true);             // HBITMAP（内部复制，不销毁传入句柄）
+pTab->SetTabIconLib(_T("tabler-outline"), _T("home"));
+pTab->SetIconSize(16);
+pTab->ClearTabIcon();
+```
+
+未挂到 `PaintManager` 前调用内存/`HBITMAP` 接口会暂存，`DoInit` 时再入库。
 
 ---
 
@@ -178,9 +217,9 @@ TabBar / TabButton **几乎全部专用属性均为非标准**（桌面标签栏
 | 类别 | 属性 | 说明 |
 |------|------|------|
 | 非标准 | `bind-tab-layout-name`、`flexible`、`tab-min/max-width`、`show-add`、滚动/关闭钮尺寸与色 | 无 HTML 等价 |
-| 非标准 | `tab-background-color*`、`tab-color*`、`tab-*-border-*`、`close-color*`、分隔线 | 皮肤字段 |
+| 非标准 | `tab-background-color*`、`tab-color*`、`tab-text-align`、`tab-vertical-align`、`tab-*-border-*`、`close-color*`、分隔线 | 皮肤字段 |
 | 非标准 | TabButton：`locked`、`url`/`dir`、图标库名（经 SvgBox） | 业务/图标 DSL |
-| 部分接近 | `text`/`title`、`active`、`context-menu` | 仅命名相近 |
+| 部分接近 | `text`/`title`、`active`、`context-menu`、TabButton `text-align`/`vertical-align` | 仅命名相近 |
 
 盒模型 / 颜色等基类属性仍走 [Control.md](Control.md)；总览见 [Attributes.md](Attributes.md)。
 

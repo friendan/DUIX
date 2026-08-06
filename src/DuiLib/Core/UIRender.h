@@ -42,6 +42,8 @@ namespace DuiLib {
 		static void FreeImage(TImageInfo* pImageInfo, bool bDelete = true);
 		static TImageInfo* LoadImage(LPCTSTR pStrImage, LPCTSTR type = NULL, DWORD mask = 0, HINSTANCE instance = NULL);
 		static TImageInfo* LoadImage(UINT nID, LPCTSTR type = NULL, DWORD mask = 0, HINSTANCE instance = NULL);
+		/// 从内存解码 BMP/PNG/JPG/JPEG（stb）；调用方保留 pData，返回的 TImageInfo 由 FreeImage 释放
+		static TImageInfo* LoadImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask = 0);
 
 		static void DrawImage(HDC hDC, HBITMAP hBitmap, const RECT& rc, const RECT& rcPaint, const RECT& rcBmpPart, const RECT& rcCorners, bool bAlpha, UINT uFade = 255, bool hole = false, bool xtiled = false, bool ytiled = false);
 		static bool DrawImageInfo(HDC hDC, CPaintManagerUI* pManager, const RECT& rcItem, const RECT& rcPaint, const TDrawInfo* pDrawInfo, HINSTANCE instance = NULL);

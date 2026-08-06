@@ -8,7 +8,8 @@ namespace DuiLib
 	CScrollBarUI::CScrollBarUI() : m_bHorizontal(false), m_nRange(0), m_nScrollPos(0), m_nLineSize(8), 
 		m_nThumbMinSize(DEFAULT_THUMB_MIN_SIZE),
 		m_pOwner(NULL), m_nLastScrollPos(0), m_nLastScrollOffset(0), m_nScrollRepeatDelay(0), m_uButtonPrevState(0), \
-		m_uButtonNextState(0), m_uThumbState(0), m_bShowButtonPrev(false), m_bShowButtonNext(false), m_bShow(true)
+		m_uButtonNextState(0), m_uThumbState(0), m_bShowButtonPrev(false), m_bShowButtonNext(false), m_bShow(true),
+		m_dwThumbColor(0), m_dwThumbHoverColor(0), m_dwThumbActiveColor(0), m_dwThumbDisabledColor(0)
 	{
 		m_cxyFixed.cx = DEFAULT_SCROLLBAR_SIZE;
 		m_ptLastMouse.x = m_ptLastMouse.y = 0;
@@ -28,6 +29,11 @@ namespace DuiLib
 	{
 		if( _tcsicmp(pstrName, DUI_CTR_SCROLLBAR) == 0 ) return static_cast<CScrollBarUI*>(this);
 		return CControlUI::GetInterface(pstrName);
+	}
+
+	bool CScrollBarUI::PreferClientHit() const
+	{
+		return IsEnabled();
 	}
 
 	CContainerUI* CScrollBarUI::GetOwner() const
@@ -398,6 +404,54 @@ namespace DuiLib
 		m_nThumbMinSize = nSize;
 		if( !::IsRectEmpty(&m_rcItem) ) SetPos(m_rcItem);
 		else Invalidate();
+	}
+
+	void CScrollBarUI::SetThumbColor(DWORD dwColor)
+	{
+		if( m_dwThumbColor == dwColor ) return;
+		m_dwThumbColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CScrollBarUI::GetThumbColor() const
+	{
+		return m_dwThumbColor;
+	}
+
+	void CScrollBarUI::SetThumbHoverColor(DWORD dwColor)
+	{
+		if( m_dwThumbHoverColor == dwColor ) return;
+		m_dwThumbHoverColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CScrollBarUI::GetThumbHoverColor() const
+	{
+		return m_dwThumbHoverColor;
+	}
+
+	void CScrollBarUI::SetThumbActiveColor(DWORD dwColor)
+	{
+		if( m_dwThumbActiveColor == dwColor ) return;
+		m_dwThumbActiveColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CScrollBarUI::GetThumbActiveColor() const
+	{
+		return m_dwThumbActiveColor;
+	}
+
+	void CScrollBarUI::SetThumbDisabledColor(DWORD dwColor)
+	{
+		if( m_dwThumbDisabledColor == dwColor ) return;
+		m_dwThumbDisabledColor = dwColor;
+		Invalidate();
+	}
+
+	DWORD CScrollBarUI::GetThumbDisabledColor() const
+	{
+		return m_dwThumbDisabledColor;
 	}
 
 	void CScrollBarUI::SetPos(RECT rc, bool bNeedInvalidate)
@@ -822,6 +876,18 @@ namespace DuiLib
 		else if( _tcsicmp(pstrName, _T("show-button-prev")) == 0 ) SetShowButtonPrev(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("show-button-next")) == 0 ) SetShowButtonNext(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("thumb-min-size")) == 0 ) SetThumbMinSize(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("thumb-color")) == 0 ) {
+			DWORD c = 0; if( ParseColorString(pstrValue, c) ) SetThumbColor(c);
+		}
+		else if( _tcsicmp(pstrName, _T("thumb-color-hover")) == 0 ) {
+			DWORD c = 0; if( ParseColorString(pstrValue, c) ) SetThumbHoverColor(c);
+		}
+		else if( _tcsicmp(pstrName, _T("thumb-color-active")) == 0 ) {
+			DWORD c = 0; if( ParseColorString(pstrValue, c) ) SetThumbActiveColor(c);
+		}
+		else if( _tcsicmp(pstrName, _T("thumb-color-disabled")) == 0 ) {
+			DWORD c = 0; if( ParseColorString(pstrValue, c) ) SetThumbDisabledColor(c);
+		}
 		else CControlUI::SetAttribute(pstrName, pstrValue);
 	}
 
@@ -1003,10 +1069,13 @@ namespace DuiLib
 		}
 
 		// 无图：实心圆角滑块（原先 DrawRect 空心青框）
-		DWORD dwColor = 0xC0C0C6FF;
-		if( (m_uThumbState & UISTATE_DISABLED) != 0 ) dwColor = 0xD8D8DCFF;
-		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) dwColor = 0x8A8A92FF;
-		else if( (m_uThumbState & UISTATE_HOT) != 0 ) dwColor = 0xA6A6AEFF;
+		DWORD dwColor = (m_dwThumbColor != 0) ? m_dwThumbColor : 0xC0C0C6FF;
+		if( (m_uThumbState & UISTATE_DISABLED) != 0 )
+			dwColor = (m_dwThumbDisabledColor != 0) ? m_dwThumbDisabledColor : 0xD8D8DCFF;
+		else if( (m_uThumbState & UISTATE_PUSHED) != 0 )
+			dwColor = (m_dwThumbActiveColor != 0) ? m_dwThumbActiveColor : 0x8A8A92FF;
+		else if( (m_uThumbState & UISTATE_HOT) != 0 )
+			dwColor = (m_dwThumbHoverColor != 0) ? m_dwThumbHoverColor : 0xA6A6AEFF;
 
 		RECT rc = m_rcThumb;
 		if( rc.right <= rc.left || rc.bottom <= rc.top ) return;

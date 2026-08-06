@@ -26,6 +26,7 @@ docs/controls/ 控件用法知识库（按控件一篇，勿堆本文件）
 - 属性总览与盒模型约定：[Attributes.md](docs/controls/Attributes.md)
 - 窗口级属性：[Window.md](docs/controls/Window.md)
 - 各控件：同目录下对应 `*.md`（如 [TabBar](docs/controls/TabBar.md)）
+- 颜色主题：[Theme.md](docs/controls/Theme.md)（`CTheme` / 内置 azure 等）
 
 **本文件只保留构建、环境与渲染硬约束**，勿再往此处堆属性清单。
 

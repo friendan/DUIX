@@ -1,12 +1,13 @@
-<html>
-    <VBox name="root" background-color="#F5F5F5FF">
-        <HBox name="titlebar" height="40" background-color="#32323CFF" align-items="vcenter" gap="8" padding="0,8,0,8">
-            <Label name="titleText" text="Icons" color="#C8C8C8FF" font-size="13" width="420" />
-            <Edit name="searchEdit" placeholder="搜索图标..." width="220" height="28" background-color="#FFFFFFFF" native-background-color="#FFFFFFFF" padding="4,10,4,10" />
-            <Spacer />
-            <Button name="closebtn" text="✕" width="36" height="36" kind="none" background-color="#32323CFF" color="#B4B4BEFF" color-hover="#FFFFFFFF" background-color-hover="#E81123FF" action="close" />
+<html theme="chrome">
+    <VBox name="root">
+        <TitleBar name="titlebar" title="Icons" height="40"
+            show-min="false" show-max="false" show-close="true" action="title" />
+        <HBox theme="panel" height="40" gap="8" padding="0,8,0,8" align-items="vcenter">
+            <Label name="titleText" text="Icons" width="420" />
+            <Edit name="searchEdit" placeholder="搜索图标..." flexible="true" height="28"
+                padding="4,10,4,10" />
         </HBox>
-        <VBox name="iconList" overflow="auto" background-color="#F5F5F5FF" />
+        <VBox name="iconList" overflow="auto" />
     </VBox>
 </html>
 <style>

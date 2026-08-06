@@ -9,6 +9,12 @@
 
 > 本页聚焦 **属性与 HTML/CSS 的符合度**。盒模型全局约定见 [Attributes.md](Attributes.md)。
 
+### 与 `html { action: title }`
+
+`CScrollBarUI::PreferClientHit()` 恒为可交互，命中滑块/轨道时保持 `HTCLIENT`，不继承窗口级标题拖拽。  
+List / TreeView / VBox / HBox / Transfer / RichEdit / Combo 下拉等凡走 `CContainerUI` 滚动条的，都受益于此。  
+`VirtualList` 另有：在自身 `DoEvent` 里把点在滚动条上的按下转给 `ScrollBar`（避免吞事件）。
+
 ### 接近 HTML/CSS
 
 | 属性 | 说明 |

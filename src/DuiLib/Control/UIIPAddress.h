@@ -9,7 +9,7 @@ namespace DuiLib
 {
 	class CIPAddressWnd;
 
-	/// 时间选择控件
+	/// IP 地址控件（聚焦时创建 SysIPAddress32）
 	class UILIB_API CIPAddressUI : public CLabelUI
 	{
 		DECLARE_DUICONTROL(CIPAddressUI)
@@ -26,6 +26,13 @@ namespace DuiLib
 		void SetReadOnly(bool bReadOnly);
 		bool IsReadOnly() const;
 
+		void SetNativeBackgroundColor(DWORD dwBackgroundColor);
+		DWORD GetNativeBackgroundColor() const;
+		void SetNativeColor(DWORD dwColor);
+		DWORD GetNativeColor() const;
+		/// 主题热切时：已打开的原生 HWND 重刷底/字色
+		void SyncNativeShellColors();
+
 		void UpdateText();
 
 		void DoEvent(TEventUI& event);
@@ -36,6 +43,9 @@ namespace DuiLib
 		DWORD	m_dwIP;
 		bool       m_bReadOnly;
 		int		m_nIPUpdateFlag;
+		DWORD	m_dwNativeBkColor;
+		DWORD	m_dwNativeTextColor;
+		bool	m_bNativeTextColorSet;
 
 		CIPAddressWnd* m_pWindow;
 	};

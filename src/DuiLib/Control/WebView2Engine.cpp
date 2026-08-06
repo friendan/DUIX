@@ -9,6 +9,7 @@
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <dcomp.h>
+#include <vector>
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "dcomp.lib")
@@ -33,6 +34,39 @@ namespace DuiLib
 			if( wParam & MK_XBUTTON1 ) keys |= COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_X_BUTTON1;
 			if( wParam & MK_XBUTTON2 ) keys |= COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_X_BUTTON2;
 			return (COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS)keys;
+		}
+
+		bool ReadIStreamToBuffer(IStream* pStream, std::vector<BYTE>& out)
+		{
+			out.clear();
+			if( pStream == NULL ) return false;
+			STATSTG st = {};
+			if( SUCCEEDED(pStream->Stat(&st, STATFLAG_NONAME)) && st.cbSize.QuadPart > 0
+				&& st.cbSize.QuadPart < 8 * 1024 * 1024 ) {
+				ULONG n = (ULONG)st.cbSize.QuadPart;
+				out.resize(n);
+				ULONG read = 0;
+				LARGE_INTEGER zero = {};
+				pStream->Seek(zero, STREAM_SEEK_SET, NULL);
+				if( FAILED(pStream->Read(out.data(), n, &read)) || read == 0 ) {
+					out.clear();
+					return false;
+				}
+				if( read < n ) out.resize(read);
+				return true;
+			}
+			BYTE chunk[4096];
+			for( ;; ) {
+				ULONG read = 0;
+				HRESULT hr = pStream->Read(chunk, sizeof(chunk), &read);
+				if( read > 0 ) out.insert(out.end(), chunk, chunk + read);
+				if( FAILED(hr) || read == 0 ) break;
+				if( out.size() > 8 * 1024 * 1024 ) {
+					out.clear();
+					return false;
+				}
+			}
+			return !out.empty();
 		}
 	}
 
@@ -83,6 +117,9 @@ namespace DuiLib
 		ZeroMemory(&m_tokTitleChanged, sizeof(m_tokTitleChanged));
 		ZeroMemory(&m_tokNewWindow, sizeof(m_tokNewWindow));
 		ZeroMemory(&m_tokCursorChanged, sizeof(m_tokCursorChanged));
+		ZeroMemory(&m_tokFaviconChanged, sizeof(m_tokFaviconChanged));
+		ZeroMemory(&m_tokHistoryChanged, sizeof(m_tokHistoryChanged));
+		ZeroMemory(&m_tokDownloadStarting, sizeof(m_tokDownloadStarting));
 	}
 
 	CWebView2Engine::~CWebView2Engine()
@@ -372,9 +409,20 @@ namespace DuiLib
 						if( args ) args->get_IsSuccess(&ok);
 						LPWSTR uri = NULL;
 						if( sender ) sender->get_Source(&uri);
-						self->m_pHostEvents->OnNavigationCompleted(self->m_pFacade, uri ? uri : L"", ok ? true : false);
+						const wchar_t* pUri = uri ? uri : L"";
+						self->m_pHostEvents->OnNavigationCompleted(self->m_pFacade, pUri, ok ? true : false);
+						if( !ok && args ) {
+							COREWEBVIEW2_WEB_ERROR_STATUS st = COREWEBVIEW2_WEB_ERROR_STATUS_UNKNOWN;
+							args->get_WebErrorStatus(&st);
+							CDuiString sErr;
+							sErr.Format(_T("WebErrorStatus=%d"), (int)st);
+							self->m_pHostEvents->OnLoadError(self->m_pFacade, pUri, (int)st, sErr.GetData());
+						}
 						if( uri ) CoTaskMemFree(uri);
+						self->m_pHostEvents->OnHistoryChanged(self->m_pFacade);
 					}
+					// 同站/回主页时 FaviconChanged 可能不触发，导航完成再拉一次
+					self->RequestFavicon();
 					return S_OK;
 				}).Get(), &m_tokNavCompleted);
 
@@ -403,6 +451,78 @@ namespace DuiLib
 					}
 					return S_OK;
 				}).Get(), &m_tokNewWindow);
+
+		m_pWebView->add_HistoryChanged(
+			Callback<ICoreWebView2HistoryChangedEventHandler>(
+				[self](ICoreWebView2* /*sender*/, IUnknown* /*args*/) -> HRESULT {
+					if( self->m_pHostEvents && self->m_pFacade )
+						self->m_pHostEvents->OnHistoryChanged(self->m_pFacade);
+					return S_OK;
+				}).Get(), &m_tokHistoryChanged);
+
+		ComPtr<ICoreWebView2_15> wv15;
+		if( SUCCEEDED(m_pWebView->QueryInterface(IID_PPV_ARGS(&wv15))) && wv15 ) {
+			wv15->add_FaviconChanged(
+				Callback<ICoreWebView2FaviconChangedEventHandler>(
+					[self](ICoreWebView2* /*sender*/, IUnknown* /*args*/) -> HRESULT {
+						self->RequestFavicon();
+						return S_OK;
+					}).Get(), &m_tokFaviconChanged);
+			RequestFavicon();
+		}
+
+		ComPtr<ICoreWebView2_4> wv4;
+		if( SUCCEEDED(m_pWebView->QueryInterface(IID_PPV_ARGS(&wv4))) && wv4 ) {
+			wv4->add_DownloadStarting(
+				Callback<ICoreWebView2DownloadStartingEventHandler>(
+					[self](ICoreWebView2* /*sender*/, ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
+						if( !self->m_pHostEvents || !self->m_pFacade || !args ) return S_OK;
+						LPWSTR uri = NULL;
+						LPWSTR path = NULL;
+						ComPtr<ICoreWebView2DownloadOperation> op;
+						if( SUCCEEDED(args->get_DownloadOperation(&op)) && op ) {
+							op->get_Uri(&uri);
+							op->get_ResultFilePath(&path);
+						}
+						if( path == NULL )
+							args->get_ResultFilePath(&path);
+						bool cancel = false;
+						self->m_pHostEvents->OnDownloadStarting(
+							self->m_pFacade,
+							uri ? uri : L"",
+							path ? path : L"",
+							&cancel);
+						if( cancel ) args->put_Cancel(TRUE);
+						if( uri ) CoTaskMemFree(uri);
+						if( path ) CoTaskMemFree(path);
+						return S_OK;
+					}).Get(), &m_tokDownloadStarting);
+		}
+	}
+
+	void CWebView2Engine::RequestFavicon()
+	{
+		if( m_pWebView == NULL || m_pHostEvents == NULL || m_pFacade == NULL ) return;
+		ComPtr<ICoreWebView2_15> wv15;
+		if( FAILED(m_pWebView->QueryInterface(IID_PPV_ARGS(&wv15))) || !wv15 ) return;
+
+		CWebView2Engine* self = this;
+		wv15->GetFavicon(COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG,
+			Callback<ICoreWebView2GetFaviconCompletedHandler>(
+				[self](HRESULT errorCode, IStream* stream) -> HRESULT {
+					if( self->m_pHostEvents == NULL || self->m_pFacade == NULL ) return S_OK;
+					if( FAILED(errorCode) || stream == NULL ) {
+						self->m_pHostEvents->OnFaviconChanged(self->m_pFacade, NULL, 0);
+						return S_OK;
+					}
+					std::vector<BYTE> buf;
+					if( !ReadIStreamToBuffer(stream, buf) || buf.empty() ) {
+						self->m_pHostEvents->OnFaviconChanged(self->m_pFacade, NULL, 0);
+						return S_OK;
+					}
+					self->m_pHostEvents->OnFaviconChanged(self->m_pFacade, buf.data(), (DWORD)buf.size());
+					return S_OK;
+				}).Get());
 	}
 
 	void CWebView2Engine::Destroy()
@@ -412,6 +532,17 @@ namespace DuiLib
 			if( m_tokNavCompleted.value ) m_pWebView->remove_NavigationCompleted(m_tokNavCompleted);
 			if( m_tokTitleChanged.value ) m_pWebView->remove_DocumentTitleChanged(m_tokTitleChanged);
 			if( m_tokNewWindow.value ) m_pWebView->remove_NewWindowRequested(m_tokNewWindow);
+			if( m_tokHistoryChanged.value ) m_pWebView->remove_HistoryChanged(m_tokHistoryChanged);
+			if( m_tokDownloadStarting.value ) {
+				ComPtr<ICoreWebView2_4> wv4;
+				if( SUCCEEDED(m_pWebView->QueryInterface(IID_PPV_ARGS(&wv4))) && wv4 )
+					wv4->remove_DownloadStarting(m_tokDownloadStarting);
+			}
+			if( m_tokFaviconChanged.value ) {
+				ComPtr<ICoreWebView2_15> wv15;
+				if( SUCCEEDED(m_pWebView->QueryInterface(IID_PPV_ARGS(&wv15))) && wv15 )
+					wv15->remove_FaviconChanged(m_tokFaviconChanged);
+			}
 			m_pWebView->Release();
 			m_pWebView = NULL;
 		}
@@ -460,6 +591,9 @@ namespace DuiLib
 		ZeroMemory(&m_tokNavCompleted, sizeof(m_tokNavCompleted));
 		ZeroMemory(&m_tokTitleChanged, sizeof(m_tokTitleChanged));
 		ZeroMemory(&m_tokNewWindow, sizeof(m_tokNewWindow));
+		ZeroMemory(&m_tokFaviconChanged, sizeof(m_tokFaviconChanged));
+		ZeroMemory(&m_tokHistoryChanged, sizeof(m_tokHistoryChanged));
+		ZeroMemory(&m_tokDownloadStarting, sizeof(m_tokDownloadStarting));
 	}
 
 	void CWebView2Engine::ApplyBounds()
@@ -537,9 +671,71 @@ namespace DuiLib
 		}
 	}
 
+	bool CWebView2Engine::CanGoBack() const
+	{
+		if( m_pWebView == NULL ) return false;
+		BOOL can = FALSE;
+		m_pWebView->get_CanGoBack(&can);
+		return can ? true : false;
+	}
+
+	bool CWebView2Engine::CanGoForward() const
+	{
+		if( m_pWebView == NULL ) return false;
+		BOOL can = FALSE;
+		m_pWebView->get_CanGoForward(&can);
+		return can ? true : false;
+	}
+
 	void CWebView2Engine::Refresh()
 	{
 		if( m_pWebView ) m_pWebView->Reload();
+	}
+
+	void CWebView2Engine::Stop()
+	{
+		if( m_pWebView ) m_pWebView->Stop();
+	}
+
+	bool CWebView2Engine::GetUrl(CDuiString& out) const
+	{
+		out.Empty();
+		if( m_pWebView == NULL ) return false;
+		LPWSTR uri = NULL;
+		if( FAILED(m_pWebView->get_Source(&uri)) || uri == NULL ) return false;
+		out = uri;
+		CoTaskMemFree(uri);
+		m_sCachedUrl = out;
+		return !out.IsEmpty();
+	}
+
+	void CWebView2Engine::ExecuteScript(LPCTSTR script)
+	{
+		if( m_pWebView == NULL || script == NULL || *script == _T('\0') ) return;
+		CWebView2Engine* self = this;
+#ifdef _UNICODE
+		LPCWSTR js = script;
+#else
+		CA2W w(script);
+		LPCWSTR js = w;
+#endif
+		m_pWebView->ExecuteScript(js,
+			Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+				[self](HRESULT errorCode, LPCWSTR resultObjectAsJson) -> HRESULT {
+					if( self->m_pHostEvents && self->m_pFacade ) {
+						bool ok = SUCCEEDED(errorCode);
+#ifdef _UNICODE
+						self->m_pHostEvents->OnExecuteScriptResult(
+							self->m_pFacade, resultObjectAsJson, ok);
+#else
+						CDuiString s;
+						if( resultObjectAsJson ) s = CDuiString(resultObjectAsJson);
+						self->m_pHostEvents->OnExecuteScriptResult(
+							self->m_pFacade, s.IsEmpty() ? NULL : s.GetData(), ok);
+#endif
+					}
+					return S_OK;
+				}).Get());
 	}
 
 	HWND CWebView2Engine::GetHostWindow() const
