@@ -532,24 +532,17 @@ namespace DuiLib {
 	{
 		if (pManager == NULL || pstrSrc == NULL || *pstrSrc == _T('\0')) return;
 
-		CDuiString sPath = CPaintManagerUI::GetResourcePath();
-		sPath += pstrSrc;
-
-		HANDLE hFile = ::CreateFile(sPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile == INVALID_HANDLE_VALUE) return;
-
-		DWORD dwSize = ::GetFileSize(hFile, NULL);
-		if (dwSize == 0 || dwSize == INVALID_FILE_SIZE) {
-			::CloseHandle(hFile);
+		BYTE* pRaw = NULL;
+		DWORD dwSize = 0;
+		if (!CPaintManagerUI::LoadResourceData(pstrSrc, &pRaw, &dwSize) || pRaw == NULL || dwSize == 0)
 			return;
-		}
 
 		char* pBuf = new char[dwSize + 1];
-		DWORD dwRead = 0;
-		::ReadFile(hFile, pBuf, dwSize, &dwRead, NULL);
-		::CloseHandle(hFile);
-		pBuf[dwRead] = '\0';
+		::CopyMemory(pBuf, pRaw, dwSize);
+		pBuf[dwSize] = '\0';
+		delete[] pRaw;
 
+		DWORD dwRead = dwSize;
 		char* pText = pBuf;
 		if (dwRead >= 3 && (BYTE)pText[0] == 0xEF && (BYTE)pText[1] == 0xBB && (BYTE)pText[2] == 0xBF) {
 			pText += 3;
@@ -683,6 +676,13 @@ namespace DuiLib {
 			{ _T("image"),              _T("image-hover"),              _T("image-active"),              _T("image-disabled"),            _T("image-focus"),            _T("image-selected") },
 			{ _T("background-image"),   _T("background-image-hover"),   _T("background-image-active"),   _T("background-image-disabled"), _T("background-image-focus"), _T("background-image-selected") },
 			{ _T("foreground-image"),   _T("foreground-image-hover"),   _T("foreground-image-active"),   NULL,                            NULL,                       _T("foreground-image-selected") },
+			{ _T("icon-tint"),          _T("icon-tint-hover"),          _T("icon-tint-active"),          _T("icon-tint-disabled"),        _T("icon-tint-focus"),        _T("icon-tint-selected") },
+			{ _T("icon-color"),         _T("icon-color-hover"),         _T("icon-color-active"),         _T("icon-color-disabled"),       _T("icon-color-focus"),       _T("icon-color-selected") },
+			// List / VirtualList / Combo / Menu 行皮肤
+			{ _T("item-color"),              _T("item-color-hover"),              _T("item-color-selected"),              _T("item-color-disabled"),              NULL, _T("item-color-selected") },
+			{ _T("item-background-color"),   _T("item-background-color-hover"),   _T("item-background-color-selected"),   _T("item-background-color-disabled"),   NULL, _T("item-background-color-selected") },
+			{ _T("item-image"),              _T("item-image-hover"),              _T("item-image-selected"),              _T("item-image-disabled"),              NULL, _T("item-image-selected") },
+			{ _T("item-foreground-image"),   _T("item-foreground-image-hover"),   NULL,                                    NULL,                                    NULL, _T("item-foreground-image-selected") },
 		};
 		for( int i = 0; i < (int)(sizeof(kMap) / sizeof(kMap[0])); ++i ) {
 			if( _tcsicmp(sKey.GetData(), kMap[i].pBase) != 0 ) continue;

@@ -22,6 +22,7 @@ namespace DuiLib {
 		DWORD dwBackgroundColor;
 		CDuiString sBkImage;
 		bool bAlternateBk;
+		DWORD dwAlternateBackgroundColor; // 奇数行；0=透明（露出列表底）
 		DWORD dwSelectedColor;
 		DWORD dwSelectedBackgroundColor;
 		CDuiString sSelectedImage;
@@ -107,6 +108,7 @@ namespace DuiLib {
 	class CListHeaderUI;
 	class CEditUI;
 	class CComboBoxUI;
+	class CEmptyUI;
 	class UILIB_API CListUI : public CVerticalLayoutUI, public IListUI
 	{
 		DECLARE_DUICONTROL(CListUI)
@@ -164,6 +166,7 @@ namespace DuiLib {
 		void SetItemBackgroundColor(DWORD dwBackgroundColor);
 		void SetItemBkImage(LPCTSTR pStrImage);
 		void SetAlternateBk(bool bAlternateBk);
+		void SetAlternateBkColor(DWORD dwColor);
 		void SetSelectedItemColor(DWORD dwColor);
 		void SetSelectedItemBackgroundColor(DWORD dwBackgroundColor);
 		void SetSelectedItemImage(LPCTSTR pStrImage); 
@@ -185,6 +188,7 @@ namespace DuiLib {
 		DWORD GetItemBackgroundColor() const;
 		LPCTSTR GetItemBkImage() const;
 		bool IsAlternateBk() const;
+		DWORD GetAlternateBkColor() const;
 		DWORD GetSelectedItemColor() const;
 		DWORD GetSelectedItemBackgroundColor() const;
 		LPCTSTR GetSelectedItemImage() const;
@@ -233,7 +237,13 @@ namespace DuiLib {
 		virtual BOOL CheckColumComboBoxable(int nColum) { return FALSE; };
 		virtual CComboBoxUI* GetComboBoxUI() { return NULL; };
 
+		/// 空态：嵌套 `<Empty>` 或 `empty-text`；0 项时盖在列表体上
+		void SetEmptyControl(CEmptyUI* pEmpty);
+		CEmptyUI* GetEmptyControl() const { return m_pEmpty; }
+		void UpdateEmptyVisibility();
+
 	protected:
+		bool AttachEmptyControl(CControlUI* pControl);
 		int GetMinSelItemIndex();
 		int GetMaxSelItemIndex();
 
@@ -248,6 +258,7 @@ namespace DuiLib {
 		IListCallbackUI* m_pCallback;
 		CListBodyUI* m_pList;
 		CListHeaderUI* m_pHeader;
+		CEmptyUI* m_pEmpty;
 		TListInfoUI m_ListInfo;
 	};
 
@@ -381,6 +392,7 @@ namespace DuiLib {
 
 		LPCTSTR GetClass() const;
 		UINT GetControlFlags() const;
+		bool PreferClientHit() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
 
 		void SetEnabled(bool bEnable = true);
@@ -417,20 +429,82 @@ namespace DuiLib {
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 
+	class CSvgBoxUI;
+
 	class UILIB_API CListLabelElementUI : public CListElementUI
 	{
 		DECLARE_DUICONTROL(CListLabelElementUI)
 	public:
 		CListLabelElementUI();
+		~CListLabelElementUI();
 
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
+		void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
 
 		void DoEvent(TEventUI& event);
 		SIZE EstimateSize(SIZE szAvailable);
 		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
 		void DrawItemText(IRenderContext& ctx, const RECT& rcItem);
+		/// 在指定内容区绘制图标+文字（Combo 闭合态等复用；rcPaint 用于 SVG 裁剪）
+		void PaintIconAndText(IRenderContext& ctx, const RECT& rcContent, const RECT& rcPaint,
+			DWORD dwTextColor, int iFont, UINT uTextStyle, bool bShowHtml);
+
+		void SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName);
+		void SetIconSrc(LPCTSTR pstrPath);
+		void ClearIcon();
+		bool HasIcon() const;
+		void SetIconSize(int nSize);
+		int GetIconSize() const { return m_nIconSize; }
+		void SetIconGap(int nGap);
+		int GetIconGap() const { return m_nIconGap; }
+		void SetIconPosition(LPCTSTR pstrPos);
+		LPCTSTR GetIconPosition() const { return m_sIconPos; }
+		void SetIconTint(DWORD dwColor);
+		void SetIconTintHover(DWORD dwColor);
+		void SetIconTintSelected(DWORD dwColor);
+		void SetIconTintDisabled(DWORD dwColor);
+		void SetIconTintAuto(bool bAuto);
+		bool IsIconTintAuto() const { return m_bIconTintAuto; }
+
+	protected:
+		enum IconKind { IconNone = 0, IconSvg = 1, IconRaster = 2 };
+
+		void EnsureIcon();
+		void EnsureRasterIcon();
+		bool IsIconAttr(LPCTSTR pstrName) const;
+		static bool IsRasterImagePath(LPCTSTR pstrPath);
+		void ShowSvgIcon();
+		void ShowRasterIcon(LPCTSTR pstrPath);
+		void RefreshRasterIconImage();
+		void ClearRasterTintCache();
+		bool EnsureRasterTintCache(DWORD dwColor);
+		void PaintRasterIcon(IRenderContext& ctx, const RECT& rcIcon);
+		bool ShouldTintRasterIcon() const;
+		void SyncIconAppearance();
+		DWORD ResolveIconColor() const;
+		DWORD ResolvePaintIconColor() const;
+		bool LayoutIconAndText(const RECT& rcContent, RECT& rcIcon, RECT& rcText) const;
+
+		CSvgBoxUI* m_pIcon;
+		CControlUI* m_pRasterIcon;
+		IconKind m_eIconKind;
+		CDuiString m_sRasterPath;
+		HBITMAP m_hRasterTint;
+		DWORD m_dwRasterTintColor;
+		int m_nRasterTintW;
+		int m_nRasterTintH;
+		int m_nIconSize;
+		int m_nIconGap;
+		CDuiString m_sIconPos; // left / right / top / bottom
+		DWORD m_dwIconTint;
+		DWORD m_dwIconTintHover;
+		DWORD m_dwIconTintSelected;
+		DWORD m_dwIconTintDisabled;
+		bool m_bIconTint;
+		bool m_bIconTintAuto;
 	};
 
 
@@ -484,6 +558,7 @@ namespace DuiLib {
 
 		LPCTSTR GetClass() const;
 		UINT GetControlFlags() const;
+		bool PreferClientHit() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
 
 		int GetIndex() const;

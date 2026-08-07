@@ -51,7 +51,7 @@
 | `context-menu` | 见下文「右键菜单」 |
 | `tab-background-color` / `tab-background-color-hover` / `tab-background-color-selected` | 标签背景 |
 | `tab-color` / `tab-color-hover` / `tab-color-selected` | 文字色 |
-| `tab-icon-color` / `tab-icon-color-hover` / `tab-icon-color-selected` | SVG 库图标色（占位 globe 等）；未设则跟随 `tab-color*`；单标签可用 `icon-tint` 覆盖。别名 `tab-icon-tint*` |
+| `tab-icon-color` / `tab-icon-color-hover` / `tab-icon-color-selected` | SVG 库图标色；未设则跟随 `tab-color*`；单标签可用 `icon-tint` 覆盖。光栅仅在 `icon-tint=auto` / 显式色时生效。别名 `tab-icon-tint*` |
 | `tab-loading-type` | 标签 `SetTabLoading(true)` 时 Loading 图形（默认 `spoke`；同 [Loading.md](Loading.md) 的 `type`） |
 | `tab-loading-color` | Loading 主色；未设则用 `tab-icon-color` |
 | `tab-loading-test-delay` | 测试用毫秒；`>0` 时新建标签先显示 Loading，延迟后再导航（方便看转圈）。正式环境设 `0` |
@@ -78,7 +78,8 @@
 | `url` / `dir` | 业务自定义数据 |
 | `bsicon` / `iconpark` / `lucide` / `tabler-outline` / `tabler-filled` / `remixicon` / `twicon` | 左侧 SVG 图标库（SvgBox） |
 | `icon` / `icon-src` | 图标文件路径：BMP/PNG/JPG/JPEG（光栅）或 `.svg`；运行时亦可用 `SetTabIcon`（含内存图 / HBITMAP） |
-| `icon-size` / `icon-tint` | 图标尺寸；`icon-tint` 仅作用于 SVG 图标库着色 |
+| `icon-size` | 图标尺寸 |
+| `icon-tint` / `icon-color` | **SVG**：未设则跟文字色 / `tab-icon-color*`。**光栅**：默认原图；`#色` 强制着色；`auto`/`true` 跟随文字色（及 `tab-icon-color*`）；`none`/`false`/`original` 强制原图 |
 | `loading` / `loading-type` | `loading=true` 显示转圈（`CLoadingUI`，与 Svg/Raster 互斥）；`loading-type` 覆盖 TabBar `tab-loading-type` |
 
 ---
@@ -163,8 +164,8 @@
 运行时 `TabLayout::Add` 再绑标签时注意：
 
 1. **先**把页 `Add` 进 `TabLayout`，**再** `TabBar::AddTab`（`AddTab` 会 `SyncBoundTabLayout` → `SelectItem`；若页尚未存在，选中会失败）。
-2. `CContainerUI::Add` 在父级不可见时会把子项 `InternVisible=false`；`TabLayout` 已在 `Add`/`SelectItem` 中强制恢复可见，避免「下标对了但引擎/控件仍不可见」。
-3. 同下标再次 `SelectItem` 也会检查可见性（不只早退）。
+2. `CContainerUI::Add` 在父级不可见时会把子项 `InternVisible=false`；`TabLayout` 已在 `Add`/`AddAt`/`SelectItem` 中强制恢复可见，并 `NeedUpdate` 自身以便新页立刻 `SetPos`。
+3. 同下标再次 `SelectItem` / `SetActiveTab` 也会同步可见性并重新布局（覆盖「先加标签后补页」的晚到场景）。
 4. 多标签业务（如浏览器壳）建议另持 **活动页指针**；`tabselect` 时用页内状态同步 UI（例如 `WebBrowser::GetLocationUrl()` → 地址栏），不要只依赖 `HomePage`。WebView2 下可在 `OnFaviconChanged` 里 `SetTabIcon(bytes)` 显示站点图标。
 
 浏览器壳示例见 [WebBrowser.md](WebBrowser.md) Demo / `CBrowserWnd`。

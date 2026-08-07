@@ -930,7 +930,6 @@
     <ClCompile Include="ControlEx.cpp" />
     <ClCompile Include="DuiDemo.cpp" />
     <ClCompile Include="MainWnd.cpp" />
-    <ClCompile Include="MsgWnd.cpp" />
     <ClCompile Include="PopWnd.cpp" />
     <ClCompile Include="SkinManager.cpp" />
     <ClCompile Include="SplashWnd.cpp" />

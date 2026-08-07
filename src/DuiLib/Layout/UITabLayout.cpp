@@ -19,6 +19,14 @@ namespace DuiLib
 		return CContainerUI::GetInterface(pstrName);
 	}
 
+	void CTabLayoutUI::RequestLayout()
+	{
+		// 自身 NeedUpdate：下一帧用当前 rc 再 SetPos，给新激活页铺尺寸。
+		// 仅 NeedParentUpdate 时，若父未脏且本控件未脏，子页会一直停在空矩形。
+		NeedUpdate();
+		NeedParentUpdate();
+	}
+
 	bool CTabLayoutUI::Add(CControlUI* pControl)
 	{
 		bool ret = CContainerUI::Add(pControl);
@@ -41,6 +49,10 @@ namespace DuiLib
 			SelectItem(m_iDeferredSel);
 			m_iDeferredSel = -1;
 		}
+		else
+		{
+			RequestLayout();
+		}
 
 		return ret;
 	}
@@ -49,6 +61,8 @@ namespace DuiLib
 	{
 		bool ret = CContainerUI::AddAt(pControl, iIndex);
 		if( !ret ) return ret;
+
+		pControl->SetInternVisible(true);
 
 		if(m_iCurSel == -1 && pControl->IsVisible())
 		{
@@ -64,6 +78,7 @@ namespace DuiLib
 			pControl->SetVisible(false);
 		}
 
+		RequestLayout();
 		return ret;
 	}
 
@@ -80,14 +95,18 @@ namespace DuiLib
 			if( GetCount() > 0 )
 			{
 				m_iCurSel=0;
-				GetItemAt(m_iCurSel)->SetVisible(true);
+				CControlUI* pSel = GetItemAt(m_iCurSel);
+				if( pSel != NULL ) {
+					pSel->SetInternVisible(true);
+					pSel->SetVisible(true);
+				}
 			}
 			else
 				m_iCurSel=-1;
 			if( m_pManager != NULL ) {
 				m_pManager->SendNotify(this, DUI_MSGTYPE_TABSELECT, m_iCurSel, index);
 			}
-			NeedParentUpdate();
+			RequestLayout();
 		}
 		else if( m_iCurSel > index )
 		{
@@ -105,7 +124,7 @@ namespace DuiLib
 		if( m_pManager != NULL && iOldSel != -1 ) {
 			m_pManager->SendNotify(this, DUI_MSGTYPE_TABSELECT, m_iCurSel, iOldSel);
 		}
-		NeedParentUpdate();
+		RequestLayout();
 	}
 
 	int CTabLayoutUI::GetCurSel() const
@@ -117,14 +136,14 @@ namespace DuiLib
 	{
 		if( iIndex < 0 || iIndex >= m_items.GetSize() ) return false;
 		if( iIndex == m_iCurSel ) {
-			// 同页再选：仍确保可见（动态 Add 时可能只改了 m_bVisible / InternVisible）
+			// 同页再选：仍确保可见并重新布局（动态 Add 后下标已对但页从未 SetPos）
 			CControlUI* pSel = GetItemAt(iIndex);
 			if( pSel != NULL ) {
-				if( !pSel->IsVisible() ) {
-					pSel->SetInternVisible(true);
+				pSel->SetInternVisible(true);
+				if( !pSel->IsVisible() )
 					pSel->SetVisible(true);
-				}
 			}
+			RequestLayout();
 			return true;
 		}
 
@@ -140,7 +159,7 @@ namespace DuiLib
 			}
 			else GetItemAt(it)->SetVisible(false);
 		}
-		NeedParentUpdate();
+		RequestLayout();
 
 		if( m_pManager != NULL ) {
 			m_pManager->SendNotify(this, DUI_MSGTYPE_TABSELECT, m_iCurSel, iOldSel);
@@ -185,7 +204,7 @@ namespace DuiLib
 		else
 			m_iCurSel = -1;
 
-		NeedParentUpdate();
+		RequestLayout();
 		return true;
 	}
 

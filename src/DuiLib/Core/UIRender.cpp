@@ -370,68 +370,8 @@ namespace DuiLib {
 		{
 			if( type == NULL )
 			{
-				CDuiString sFile = CPaintManagerUI::GetResourcePath();
-				if( CPaintManagerUI::GetResourceZip().IsEmpty() )
-				{
-					sFile += bitmap.m_lpstr;
-					HANDLE hFile = ::CreateFile(sFile.GetData(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, \
-						FILE_ATTRIBUTE_NORMAL, NULL);
-					if( hFile == INVALID_HANDLE_VALUE ) break;
-					dwSize = ::GetFileSize(hFile, NULL);
-					if( dwSize == 0 ) break;
-
-					DWORD dwRead = 0;
-					pData = new BYTE[ dwSize + 1 ];
-					memset(pData,0,dwSize+1);
-					::ReadFile( hFile, pData, dwSize, &dwRead, NULL );
-					::CloseHandle( hFile );
-
-					if( dwRead != dwSize ) 
-					{
-						delete[] pData;
-						pData = NULL;
-						dwSize = 0U;
-						break;
-					}
-				}
-				else 
-				{
-					sFile += CPaintManagerUI::GetResourceZip();
-					HZIP hz = NULL;
-					if( CPaintManagerUI::IsCachedResourceZip() ) 
-						hz = (HZIP)CPaintManagerUI::GetResourceZipHandle();
-					else {
-						CDuiString sFilePwd = CPaintManagerUI::GetResourceZipPwd();
-#ifdef UNICODE
-						char* pwd = w2a((wchar_t*)sFilePwd.GetData());
-						hz = OpenZip((void*)sFile.GetData(), pwd);
-						if(pwd) delete[] pwd;
-#else
-						hz = OpenZip((void*)sFile.GetData(), sFilePwd.GetData());
-#endif
-					}
-					if( hz == NULL ) break;
-					ZIPENTRY ze; 
-					int i = 0; 
-					CDuiString key = bitmap.m_lpstr;
-					key.Replace(_T("\\"), _T("/")); 
-					if( FindZipItem(hz, key, true, &i, &ze) != 0 ) break;
-					dwSize = ze.unc_size;
-					if( dwSize == 0 ) break;
-					pData = new BYTE[ dwSize ];
-					int res = UnzipItem(hz, i, pData, dwSize, 3);
-					if( res != 0x00000000 && res != 0x00000600)
-					{
-						delete[] pData;
-						pData = NULL;
-						dwSize = 0U;
-						if( !CPaintManagerUI::IsCachedResourceZip() )
-							CloseZip(hz);
-						break;
-					}
-					if( !CPaintManagerUI::IsCachedResourceZip() )
-						CloseZip(hz);
-				}
+				if( !CPaintManagerUI::LoadResourceData(bitmap.m_lpstr, &pData, &dwSize) )
+					break;
 			}
 			else 
 			{
@@ -453,28 +393,6 @@ namespace DuiLib {
 			}
 		} while (0);
 
-		while (!pData)
-		{
-			//读不到图片, 则直接去读取bitmap.m_lpstr指向的路径
-			HANDLE hFile = ::CreateFile(bitmap.m_lpstr, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, \
-				FILE_ATTRIBUTE_NORMAL, NULL);
-			if( hFile == INVALID_HANDLE_VALUE ) break;
-			dwSize = ::GetFileSize(hFile, NULL);
-			if( dwSize == 0 ) break;
-
-			DWORD dwRead = 0;
-			pData = new BYTE[ dwSize ];
-			::ReadFile( hFile, pData, dwSize, &dwRead, NULL );
-			::CloseHandle( hFile );
-
-			if( dwRead != dwSize ) 
-			{
-				delete[] pData;
-				pData = NULL;
-				dwSize = 0U;
-			}
-			break;
-		}
 		return dwSize;
 	}
 	CxImage* CRenderEngine::LoadGifImageX(STRINGorID bitmap, LPCTSTR type , DWORD mask)
@@ -507,59 +425,8 @@ namespace DuiLib {
 		do 
 		{
 			if( type == NULL ) {
-				CDuiString sFile = CPaintManagerUI::GetResourcePath();
-				if( CPaintManagerUI::GetResourceZip().IsEmpty() ) {
-					sFile += bitmap.m_lpstr;
-					HANDLE hFile = ::CreateFile(sFile.GetData(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, \
-						FILE_ATTRIBUTE_NORMAL, NULL);
-					if( hFile == INVALID_HANDLE_VALUE ) break;
-					dwSize = ::GetFileSize(hFile, NULL);
-					if( dwSize == 0 ) break;
-
-					DWORD dwRead = 0;
-					pData = new BYTE[ dwSize ];
-					::ReadFile( hFile, pData, dwSize, &dwRead, NULL );
-					::CloseHandle( hFile );
-
-					if( dwRead != dwSize ) {
-						delete[] pData;
-						pData = NULL;
-						break;
-					}
-				}
-				else {
-					sFile += CPaintManagerUI::GetResourceZip();
-					CDuiString sFilePwd = CPaintManagerUI::GetResourceZipPwd();
-					HZIP hz = NULL;
-					if( CPaintManagerUI::IsCachedResourceZip() ) hz = (HZIP)CPaintManagerUI::GetResourceZipHandle();
-					else
-					{
-#ifdef UNICODE
-						char* pwd = w2a((wchar_t*)sFilePwd.GetData());
-						hz = OpenZip(sFile.GetData(), pwd);
-						if(pwd) delete[] pwd;
-#else
-						hz = OpenZip(sFile.GetData(), sFilePwd.GetData());
-#endif
-					}
-					if( hz == NULL ) break;
-					ZIPENTRY ze; 
-					int i = 0; 
-					CDuiString key = bitmap.m_lpstr;
-					key.Replace(_T("\\"), _T("/"));
-					if( FindZipItem(hz, key, true, &i, &ze) != 0 ) break;
-					dwSize = ze.unc_size;
-					if( dwSize == 0 ) break;
-					pData = new BYTE[ dwSize ];
-					int res = UnzipItem(hz, i, pData, dwSize);
-					if( res != 0x00000000 && res != 0x00000600) {
-						delete[] pData;
-						pData = NULL;
-						if( !CPaintManagerUI::IsCachedResourceZip() ) CloseZip(hz);
-						break;
-					}
-					if( !CPaintManagerUI::IsCachedResourceZip() ) CloseZip(hz);
-				}
+				if( !CPaintManagerUI::LoadResourceData(bitmap.m_lpstr, &pData, &dwSize) )
+					break;
 			}
 			else {
 				HINSTANCE dllinstance = NULL;
@@ -585,26 +452,6 @@ namespace DuiLib {
 			}
 		} while (0);
 
-		while (!pData)
-		{
-			//读不到图片, 则直接去读取bitmap.m_lpstr指向的路径
-			HANDLE hFile = ::CreateFile(bitmap.m_lpstr, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, \
-				FILE_ATTRIBUTE_NORMAL, NULL);
-			if( hFile == INVALID_HANDLE_VALUE ) break;
-			dwSize = ::GetFileSize(hFile, NULL);
-			if( dwSize == 0 ) break;
-
-			DWORD dwRead = 0;
-			pData = new BYTE[ dwSize ];
-			::ReadFile( hFile, pData, dwSize, &dwRead, NULL );
-			::CloseHandle( hFile );
-
-			if( dwRead != dwSize ) {
-				delete[] pData;
-				pData = NULL;
-			}
-			break;
-		}
 		if (!pData)
 		{
 			return NULL;
@@ -1220,59 +1067,8 @@ namespace DuiLib {
 		do 
 		{
 			if( type == NULL ) {
-				CDuiString sFile = CPaintManagerUI::GetResourcePath();
-				if( CPaintManagerUI::GetResourceZip().IsEmpty() ) {
-					sFile += bitmap.m_lpstr;
-					HANDLE hFile = ::CreateFile(sFile.GetData(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, \
-						FILE_ATTRIBUTE_NORMAL, NULL);
-					if( hFile == INVALID_HANDLE_VALUE ) break;
-					dwSize = ::GetFileSize(hFile, NULL);
-					if( dwSize == 0 ) break;
-
-					DWORD dwRead = 0;
-					pData = new BYTE[ dwSize ];
-					::ReadFile( hFile, pData, dwSize, &dwRead, NULL );
-					::CloseHandle( hFile );
-
-					if( dwRead != dwSize ) {
-						delete[] pData;
-						pData = NULL;
-						break;
-					}
-				}
-				else {
-					sFile += CPaintManagerUI::GetResourceZip();
-					CDuiString sFilePwd = CPaintManagerUI::GetResourceZipPwd();
-					HZIP hz = NULL;
-					if( CPaintManagerUI::IsCachedResourceZip() ) hz = (HZIP)CPaintManagerUI::GetResourceZipHandle();
-					else
-					{
-#ifdef UNICODE
-						char* pwd = w2a((wchar_t*)sFilePwd.GetData());
-						hz = OpenZip(sFile.GetData(), pwd);
-						if(pwd) delete[] pwd;
-#else
-						hz = OpenZip(sFile.GetData(), sFilePwd.GetData());
-#endif
-					}
-					if( hz == NULL ) break;
-					ZIPENTRY ze; 
-					int i = 0; 
-					CDuiString key = bitmap.m_lpstr;
-					key.Replace(_T("\\"), _T("/"));
-					if( FindZipItem(hz, key, true, &i, &ze) != 0 ) break;
-					dwSize = ze.unc_size;
-					if( dwSize == 0 ) break;
-					pData = new BYTE[ dwSize ];
-					int res = UnzipItem(hz, i, pData, dwSize);
-					if( res != 0x00000000 && res != 0x00000600) {
-						delete[] pData;
-						pData = NULL;
-						if( !CPaintManagerUI::IsCachedResourceZip() ) CloseZip(hz);
-						break;
-					}
-					if( !CPaintManagerUI::IsCachedResourceZip() ) CloseZip(hz);
-				}
+				if( !CPaintManagerUI::LoadResourceData(bitmap.m_lpstr, &pData, &dwSize) )
+					break;
 			}
 			else {
 				HINSTANCE dllinstance = NULL;
@@ -1297,27 +1093,6 @@ namespace DuiLib {
 				::FreeResource(hGlobal);
 			}
 		} while (0);
-
-		while (!pData)
-		{
-			//读不到图片, 则直接去读取bitmap.m_lpstr指向的路径
-			HANDLE hFile = ::CreateFile(bitmap.m_lpstr, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, \
-				FILE_ATTRIBUTE_NORMAL, NULL);
-			if( hFile == INVALID_HANDLE_VALUE ) break;
-			dwSize = ::GetFileSize(hFile, NULL);
-			if( dwSize == 0 ) break;
-
-			DWORD dwRead = 0;
-			pData = new BYTE[ dwSize ];
-			::ReadFile( hFile, pData, dwSize, &dwRead, NULL );
-			::CloseHandle( hFile );
-
-			if( dwRead != dwSize ) {
-				delete[] pData;
-				pData = NULL;
-			}
-			break;
-		}
 		
 		if(pData == NULL) {
 			return NULL;

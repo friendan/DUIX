@@ -31,8 +31,17 @@ private:
 	/// 校验缓存；关标签后可能已销毁，勿直接用裸指针
 	CWebBrowserUI* GetActiveBrowser();
 	void NavigateAddressBar();
+	CDuiString ReadAddressBarText() const;
+	CDuiString ResolveNavigateInput(LPCTSTR pstrInput) const;
+	static bool LooksLikeUrl(LPCTSTR pstrInput);
+	static CDuiString UrlEncodeUtf8(LPCTSTR pstr);
+	static CDuiString BuildSearchUrl(LPCTSTR pstrQuery);
 	void HandleNavCommand(LPCTSTR pstrName);
 	bool HandleThemeCommand(LPCTSTR pstrName);
+	void ShowBrowserMenu();
+	void HandleMenuCommand(LPCTSTR pstrName);
+	void SetToolbarLoading(bool bLoading);
+	void SyncToolbarLoadingFromActiveTab();
 	void OnBrowserTitleChanged(CWebBrowserUI* pWeb, LPCTSTR title);
 	void OnBrowserNavigated(CWebBrowserUI* pWeb, LPCTSTR url, bool success);
 	void OnBrowserNavigationStarting(CWebBrowserUI* pWeb, LPCTSTR url);
@@ -72,8 +81,10 @@ private:
 	CTabLayoutUI* m_pPages;
 	CEditUI* m_pUrlBox;
 	CWebBrowserUI* m_pActiveBrowser; // 不依赖 TabLayout 下标
+	CMenuWnd* m_pMenu;
 	int m_nNextTabId;
 	UINT_PTR m_nNextDelayTimerId;
+	bool m_bToolbarLoading;
 	std::vector<DelayedNav> m_aDelayedNav;
 	HostEvents m_hostEvents;
 };

@@ -974,10 +974,14 @@ namespace DuiLib
 			else return;
 		}
 
-		// 无图：实心小块，避免空心描边方框
-		DWORD dwColor = 0xB8B8C0FF;
-		if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) dwColor = 0x808088FF;
-		else if( (m_uButtonPrevState & UISTATE_HOT) != 0 ) dwColor = 0x9A9AA2FF;
+		// 无图：跟 thumb chrome 色（未设时回退浅灰）
+		DWORD dwColor = (m_dwThumbColor != 0) ? m_dwThumbColor : 0xB8B8C0FF;
+		if( (m_uButtonPrevState & UISTATE_DISABLED) != 0 )
+			dwColor = (m_dwThumbDisabledColor != 0) ? m_dwThumbDisabledColor : 0xD8D8DCFF;
+		else if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 )
+			dwColor = (m_dwThumbActiveColor != 0) ? m_dwThumbActiveColor : 0x808088FF;
+		else if( (m_uButtonPrevState & UISTATE_HOT) != 0 )
+			dwColor = (m_dwThumbHoverColor != 0) ? m_dwThumbHoverColor : 0x9A9AA2FF;
 		RECT rc = m_rcButtonPrev;
 		int pad = 3;
 		rc.left += pad; rc.top += pad; rc.right -= pad; rc.bottom -= pad;
@@ -1022,9 +1026,13 @@ namespace DuiLib
 			else return;
 		}
 
-		DWORD dwColor = 0xB8B8C0FF;
-		if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) dwColor = 0x808088FF;
-		else if( (m_uButtonNextState & UISTATE_HOT) != 0 ) dwColor = 0x9A9AA2FF;
+		DWORD dwColor = (m_dwThumbColor != 0) ? m_dwThumbColor : 0xB8B8C0FF;
+		if( (m_uButtonNextState & UISTATE_DISABLED) != 0 )
+			dwColor = (m_dwThumbDisabledColor != 0) ? m_dwThumbDisabledColor : 0xD8D8DCFF;
+		else if( (m_uButtonNextState & UISTATE_PUSHED) != 0 )
+			dwColor = (m_dwThumbActiveColor != 0) ? m_dwThumbActiveColor : 0x808088FF;
+		else if( (m_uButtonNextState & UISTATE_HOT) != 0 )
+			dwColor = (m_dwThumbHoverColor != 0) ? m_dwThumbHoverColor : 0x9A9AA2FF;
 		RECT rc = m_rcButtonNext;
 		int pad = 3;
 		rc.left += pad; rc.top += pad; rc.right -= pad; rc.bottom -= pad;

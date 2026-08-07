@@ -36,11 +36,11 @@ namespace DuiLib {
 		m_iCurSel = iIndex;
 		for( int it = 0; it < m_items.GetSize(); it++ ) {
 			if( it == iIndex ) {
-				GetItemAt(it)->SetVisible(true);
-				GetItemAt(it)->SetFocus();
+				CControlUI* p = GetItemAt(it);
+				p->SetInternVisible(true);
+				p->SetVisible(true);
 				m_bControlVisibleFlag = false;
-				m_pCurrentControl = static_cast<CControlUI*>(m_items[it]);
-				
+				m_pCurrentControl = p;
 			}
 			else GetItemAt(it)->SetVisible(false);
 		}

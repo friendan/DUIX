@@ -119,6 +119,7 @@
 #include "Control/UIOption.h"
 #include "Control/UISwitch.h"
 #include "Control/UIImage.h"
+#include "Control/UISidePanel.h"
 
 #include "Control/UIProgress.h"
 #include "Control/UISlider.h"
@@ -148,6 +149,7 @@
 #include "Control/UIPageControl.h"
 #include "Control/UIToast.h"
 #include "Control/UIModal.h"
+#include "Control/UIMessageBox.h"
 
 #pragma comment( lib, "comctl32.lib" )
 #pragma comment( lib, "GdiPlus.lib" )

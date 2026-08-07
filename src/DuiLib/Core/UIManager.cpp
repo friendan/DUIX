@@ -283,6 +283,7 @@ namespace DuiLib {
 		m_bWindowBackgroundColorCustom(false),
 		m_windowAction(UIACTION_NONE),
 		m_bLayered(false),
+		m_bLayeredCompositionEnabled(true),
 		m_bLayeredChanged(false),
 		m_bShowUpdateRect(false),
 		m_bUseGdiplusText(false),
@@ -627,6 +628,98 @@ namespace DuiLib {
 		}
 	}
 
+	static bool ReadFileToBuffer(LPCTSTR pstrPath, BYTE** ppData, DWORD* pdwSize)
+	{
+		if( ppData == NULL || pdwSize == NULL ) return false;
+		*ppData = NULL;
+		*pdwSize = 0;
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) return false;
+
+		HANDLE hFile = ::CreateFile(pstrPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL, NULL);
+		if( hFile == INVALID_HANDLE_VALUE ) return false;
+		DWORD dwSize = ::GetFileSize(hFile, NULL);
+		if( dwSize == 0 || dwSize == INVALID_FILE_SIZE ) {
+			::CloseHandle(hFile);
+			return false;
+		}
+		BYTE* pData = new BYTE[dwSize];
+		DWORD dwRead = 0;
+		BOOL bOk = ::ReadFile(hFile, pData, dwSize, &dwRead, NULL);
+		::CloseHandle(hFile);
+		if( !bOk || dwRead != dwSize ) {
+			delete[] pData;
+			return false;
+		}
+		*ppData = pData;
+		*pdwSize = dwSize;
+		return true;
+	}
+
+	bool CPaintManagerUI::LoadResourceData(LPCTSTR pstrRelativePath, BYTE** ppData, DWORD* pdwSize)
+	{
+		if( ppData == NULL || pdwSize == NULL ) return false;
+		*ppData = NULL;
+		*pdwSize = 0;
+		if( pstrRelativePath == NULL || *pstrRelativePath == _T('\0') ) return false;
+
+		// 1) ResourcePath（skin 目录优先：开发热更新 / 覆盖嵌入包）
+		{
+			CDuiString sFile = GetResourcePath();
+			if( !sFile.IsEmpty() ) {
+				sFile += pstrRelativePath;
+				if( ReadFileToBuffer(sFile.GetData(), ppData, pdwSize) )
+					return true;
+			}
+		}
+
+		// 2) ZIP / ZIPRESOURCE（membuffer）— 磁盘没有时用打包资源
+		if( !GetResourceZip().IsEmpty() ) {
+			HZIP hz = NULL;
+			bool bCloseZip = false;
+			if( IsCachedResourceZip() ) {
+				hz = (HZIP)GetResourceZipHandle();
+			}
+			else {
+				CDuiString sZip = GetResourcePath();
+				sZip += GetResourceZip();
+				CDuiString sPwd = GetResourceZipPwd();
+#ifdef UNICODE
+				char* pwd = w2a((wchar_t*)sPwd.GetData());
+				hz = OpenZip(sZip.GetData(), pwd);
+				if( pwd ) delete[] pwd;
+#else
+				hz = OpenZip(sZip.GetData(), sPwd.GetData());
+#endif
+				bCloseZip = true;
+			}
+			if( hz != NULL ) {
+				ZIPENTRY ze;
+				int i = 0;
+				CDuiString key = pstrRelativePath;
+				key.Replace(_T("\\"), _T("/"));
+				if( FindZipItem(hz, key, true, &i, &ze) == 0 && ze.unc_size > 0 ) {
+					DWORD dwSize = ze.unc_size;
+					BYTE* pData = new BYTE[dwSize];
+					int res = UnzipItem(hz, i, pData, dwSize);
+					if( bCloseZip ) CloseZip(hz);
+					if( res == 0x00000000 || res == 0x00000600 ) {
+						*ppData = pData;
+						*pdwSize = dwSize;
+						return true;
+					}
+					delete[] pData;
+				}
+				else if( bCloseZip ) {
+					CloseZip(hz);
+				}
+			}
+		}
+
+		// 3) 绝对路径 / 原样路径
+		return ReadFileToBuffer(pstrRelativePath, ppData, pdwSize);
+	}
+
 	void CPaintManagerUI::SetResourceType(int nType)
 	{
 		m_nResType = nType;
@@ -882,6 +975,11 @@ namespace DuiLib {
 		return m_dwWindowBackgroundColor;
 	}
 
+	bool CPaintManagerUI::IsWindowBackgroundColorCustom() const
+	{
+		return m_bWindowBackgroundColorCustom;
+	}
+
 	void CPaintManagerUI::SetWindowBackgroundColor(DWORD dwColor)
 	{
 		m_dwWindowBackgroundColor = dwColor;
@@ -980,6 +1078,19 @@ namespace DuiLib {
 			if( m_pRoot != NULL ) m_pRoot->NeedUpdate();
 			Invalidate();
 		}
+	}
+
+	void CPaintManagerUI::SetLayeredCompositionEnabled(bool bEnable)
+	{
+		m_bLayeredCompositionEnabled = bEnable;
+		if( m_pOffscreenSurface != NULL )
+			m_pOffscreenSurface->SetLayeredCompositionEnabled(bEnable);
+		if( m_hWndPaint != NULL ) Invalidate();
+	}
+
+	bool CPaintManagerUI::IsLayeredCompositionEnabled() const
+	{
+		return m_bLayeredCompositionEnabled;
 	}
 
 	RECT& CPaintManagerUI::GetLayeredPadding()
@@ -1365,8 +1476,10 @@ namespace DuiLib {
 					if( !bHwndDirect )
 						m_pOffscreenSurface->Ensure((int)dwWidth, (int)dwHeight, m_hDcPaint);
 					if( m_bLayered && GetRenderDevice()->GetBackendKind() == DUILIB_RENDER_D2D ) {
-						m_pOffscreenSurface->PrepareLayeredComposition(m_hWndPaint, (int)dwWidth, (int)dwHeight);
-						// DComp Flip swapchain ????????????????????????????
+						m_pOffscreenSurface->SetLayeredCompositionEnabled(m_bLayeredCompositionEnabled);
+						if( m_bLayeredCompositionEnabled )
+							m_pOffscreenSurface->PrepareLayeredComposition(m_hWndPaint, (int)dwWidth, (int)dwHeight);
+						// DComp Flip swapchain：脏区需整客户区，否则 Present1 会保留旧帧锯齿角
 						if( m_pOffscreenSurface->IsLayeredComposition() )
 							rcPaint = rcClient;
 						m_pOffscreenSurface->SetDirtyRect(rcPaint);
@@ -1475,6 +1588,13 @@ namespace DuiLib {
 						}
 						else {
 							m_pOffscreenSurface->FixLayeredAlpha(rcPaint, rcClient);
+						}
+
+						// 分层 + 窗口圆角：Present 前对位图做 AA 圆角遮罩（不依赖 RoundClip 是否被 Flush 破坏）
+						{
+							SIZE szRound = GetBorderRadius();
+							if( szRound.cx > 0 || szRound.cy > 0 )
+								m_pOffscreenSurface->ApplyRoundCornerMask(szRound.cx, szRound.cy);
 						}
 
 						RenderPresentParams presentParams;
@@ -3102,82 +3222,9 @@ namespace DuiLib {
 	void CPaintManagerUI::AddFontArray(LPCTSTR pstrPath) {
 		LPBYTE pData = NULL;
 		DWORD dwSize = 0;
-		do
-		{
-			CDuiString sFile = CPaintManagerUI::GetResourcePath();
-			if (CPaintManagerUI::GetResourceZip().IsEmpty()) {
-				sFile += pstrPath;
-				HANDLE hFile = ::CreateFile(sFile.GetData(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, \
-					FILE_ATTRIBUTE_NORMAL, NULL);
-				if (hFile == INVALID_HANDLE_VALUE) break;
-				dwSize = ::GetFileSize(hFile, NULL);
-				if (dwSize == 0) break;
+		if( !CPaintManagerUI::LoadResourceData(pstrPath, &pData, &dwSize) || pData == NULL || dwSize == 0 )
+			return;
 
-				DWORD dwRead = 0;
-				pData = new BYTE[dwSize];
-				::ReadFile(hFile, pData, dwSize, &dwRead, NULL);
-				::CloseHandle(hFile);
-
-				if (dwRead != dwSize) {
-					delete[] pData;
-					pData = NULL;
-					break;
-				}
-			}
-			else {
-				sFile += CPaintManagerUI::GetResourceZip();
-				HZIP hz = NULL;
-				if (CPaintManagerUI::IsCachedResourceZip()) hz = (HZIP)CPaintManagerUI::GetResourceZipHandle();
-				else {
-					CDuiString sFilePwd = CPaintManagerUI::GetResourceZipPwd();
-#ifdef UNICODE
-					char* pwd = w2a((wchar_t*)sFilePwd.GetData());
-					hz = OpenZip(sFile.GetData(), pwd);
-					if (pwd) delete[] pwd;
-#else
-					hz = OpenZip(sFile.GetData(), sFilePwd.GetData());
-#endif
-				}
-				if (hz == NULL) break;
-				ZIPENTRY ze;
-				int i = 0;
-				CDuiString key = pstrPath;
-				key.Replace(_T("\\"), _T("/"));
-				if (FindZipItem(hz, key, true, &i, &ze) != 0) break;
-				dwSize = ze.unc_size;
-				if (dwSize == 0) break;
-				pData = new BYTE[dwSize];
-				int res = UnzipItem(hz, i, pData, dwSize);
-				if (res != 0x00000000 && res != 0x00000600) { // ZR_OK / ZR_MORE
-					delete[] pData;
-					pData = NULL;
-					if (!CPaintManagerUI::IsCachedResourceZip()) CloseZip(hz);
-					break;
-				}
-				if (!CPaintManagerUI::IsCachedResourceZip()) CloseZip(hz);
-			}
-
-		} while (0);
-
-		while (!pData)
-		{
-			//????????, ?????????bitmap.m_lpstr???????
-			HANDLE hFile = ::CreateFile(pstrPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (hFile == INVALID_HANDLE_VALUE) break;
-			dwSize = ::GetFileSize(hFile, NULL);
-			if (dwSize == 0) break;
-
-			DWORD dwRead = 0;
-			pData = new BYTE[dwSize];
-			::ReadFile(hFile, pData, dwSize, &dwRead, NULL);
-			::CloseHandle(hFile);
-
-			if (dwRead != dwSize) {
-				delete[] pData;
-				pData = NULL;
-			}
-			break;
-		}
 		DWORD nFonts;
 		HANDLE hFont = ::AddFontMemResourceEx(pData, dwSize, NULL, &nFonts);
 		delete[] pData;

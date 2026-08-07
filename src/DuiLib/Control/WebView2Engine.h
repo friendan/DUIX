@@ -37,6 +37,7 @@ namespace DuiLib
 		virtual bool CanGoForward() const;
 		virtual bool GetUrl(CDuiString& out) const;
 		virtual void ExecuteScript(LPCTSTR script);
+		virtual void OpenDevToolsWindow();
 		virtual HWND GetHostWindow() const;
 		virtual void* GetNative();
 		virtual void SetHostEvents(CWebBrowserHostEvents* pEvents);

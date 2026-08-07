@@ -2,6 +2,7 @@
 #include "GdiRenderContext.h"
 #include "IRenderDevice.h"
 #include "UIRender.h"
+#include <math.h>
 
 namespace DuiLib {
 
@@ -352,6 +353,97 @@ namespace DuiLib {
 					m_pBits[i + 3] = 255;
 			}
 		}
+	}
+
+	namespace {
+
+		float RoundCornerCoverage(float px, float py, float w, float h, float rx, float ry)
+		{
+			if( rx < 0.5f ) rx = 0.5f;
+			if( ry < 0.5f ) ry = 0.5f;
+			if( rx > w * 0.5f ) rx = w * 0.5f;
+			if( ry > h * 0.5f ) ry = h * 0.5f;
+
+			float cx = px;
+			float cy = py;
+			bool inCorner = false;
+			float dx = 0.0f, dy = 0.0f;
+
+			if( px < rx && py < ry ) {
+				inCorner = true;
+				dx = (rx - 0.5f) - px;
+				dy = (ry - 0.5f) - py;
+			}
+			else if( px >= w - rx && py < ry ) {
+				inCorner = true;
+				dx = px - (w - rx - 0.5f);
+				dy = (ry - 0.5f) - py;
+			}
+			else if( px < rx && py >= h - ry ) {
+				inCorner = true;
+				dx = (rx - 0.5f) - px;
+				dy = py - (h - ry - 0.5f);
+			}
+			else if( px >= w - rx && py >= h - ry ) {
+				inCorner = true;
+				dx = px - (w - rx - 0.5f);
+				dy = py - (h - ry - 0.5f);
+			}
+			if( !inCorner ) return 1.0f;
+
+			// 椭圆归一化距离；=1 在圆弧上
+			float nx = dx / rx;
+			float ny = dy / ry;
+			float dist = sqrtf(nx * nx + ny * ny);
+			const float aa = 1.0f / ((rx < ry) ? rx : ry); // ~1px 过渡
+			if( dist <= 1.0f - aa ) return 1.0f;
+			if( dist >= 1.0f + aa ) return 0.0f;
+			return (1.0f + aa - dist) / (2.0f * aa);
+		}
+
+		void ApplyRoundCornerMaskToBits(BYTE* pBits, int width, int height, int radiusX, int radiusY)
+		{
+			if( pBits == NULL || width <= 0 || height <= 0 ) return;
+			if( radiusX <= 0 && radiusY <= 0 ) return;
+			float rx = (float)((radiusX > 0) ? radiusX : radiusY);
+			float ry = (float)((radiusY > 0) ? radiusY : radiusX);
+			float fw = (float)width;
+			float fh = (float)height;
+
+			int maxRx = (int)(rx + 2.0f);
+			int maxRy = (int)(ry + 2.0f);
+			if( maxRx > width / 2 ) maxRx = width / 2;
+			if( maxRy > height / 2 ) maxRy = height / 2;
+
+			for( int wy = 0; wy < height; ++wy ) {
+				bool nearY = (wy < maxRy) || (wy >= height - maxRy);
+				if( !nearY ) continue;
+				int by = height - 1 - wy; // bottom-up DIB
+				BYTE* pRow = pBits + by * width * 4;
+				for( int wx = 0; wx < width; ++wx ) {
+					bool nearX = (wx < maxRx) || (wx >= width - maxRx);
+					if( !nearX ) continue;
+					float cov = RoundCornerCoverage((float)wx + 0.5f, (float)wy + 0.5f, fw, fh, rx, ry);
+					if( cov >= 0.999f ) continue;
+					BYTE* p = pRow + wx * 4;
+					if( cov <= 0.001f ) {
+						*(DWORD*)p = 0;
+						continue;
+					}
+					// 预乘/直通都按通道乘 coverage，得到 AA 外轮廓
+					p[0] = (BYTE)((float)p[0] * cov + 0.5f);
+					p[1] = (BYTE)((float)p[1] * cov + 0.5f);
+					p[2] = (BYTE)((float)p[2] * cov + 0.5f);
+					p[3] = (BYTE)((float)p[3] * cov + 0.5f);
+				}
+			}
+		}
+
+	} // namespace
+
+	void CGdiRenderSurface::ApplyRoundCornerMask(int radiusX, int radiusY)
+	{
+		ApplyRoundCornerMaskToBits(m_pBits, m_nWidth, m_nHeight, radiusX, radiusY);
 	}
 
 	void CGdiRenderSurface::ApplyLayeredMask(IRenderSurface* pMask, const RECT& rcPaint, const RECT& rcClient)

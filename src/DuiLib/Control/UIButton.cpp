@@ -1,5 +1,7 @@
 #include "StdAfx.h"
 #include "UIButton.h"
+#include "UISvgBox.h"
+#include "UILoading.h"
 
 namespace DuiLib
 {
@@ -13,9 +15,49 @@ namespace DuiLib
 		, m_dwFocusedColor(0)
 		, m_iBindTabIndex(-1)
 		, m_nStateCount(0)
+		, m_pIcon(NULL)
+		, m_pRasterIcon(NULL)
+		, m_pLoading(NULL)
+		, m_eIconKind(IconNone)
+		, m_hRasterTint(NULL)
+		, m_dwRasterTintColor(0)
+		, m_nRasterTintW(0)
+		, m_nRasterTintH(0)
+		, m_sLoadingType(_T("css"))
+		, m_bLoading(false)
+		, m_bLoadingDisable(true)
+		, m_bEnabledBeforeLoading(true)
+		, m_nIconSize(16)
+		, m_nIconGap(4)
+		, m_sIconPos(_T("left"))
+		, m_dwIconTint(0)
+		, m_dwIconTintHover(0)
+		, m_dwIconTintActive(0)
+		, m_dwIconTintDisabled(0)
+		, m_dwIconTintFocus(0)
+		, m_bIconTint(false)
+		, m_bIconTintAuto(false)
 	{
 		m_uTextStyle = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
 		SetKind(CONTROLKIND_DEFAULT);
+	}
+
+	CButtonUI::~CButtonUI()
+	{
+		if( m_pIcon != NULL ) {
+			delete m_pIcon;
+			m_pIcon = NULL;
+		}
+		if( m_pRasterIcon != NULL ) {
+			delete m_pRasterIcon;
+			m_pRasterIcon = NULL;
+		}
+		ClearRasterTintCache();
+		if( m_pLoading != NULL ) {
+			if( m_pManager != NULL ) m_pLoading->Stop();
+			delete m_pLoading;
+			m_pLoading = NULL;
+		}
 	}
 
 	LPCTSTR CButtonUI::GetClass() const
@@ -37,10 +79,22 @@ namespace DuiLib
 	bool CButtonUI::PreferClientHit() const
 	{
 		if( !IsEnabled() ) return false;
+		if( HasIcon() ) return true;
 		if( m_dwFocusedColor != 0 ) return true;
 		if( !m_sHoverImage.IsEmpty() || !m_sHoverForegroundImage.IsEmpty() ) return true;
 		if( !m_sActiveImage.IsEmpty() || !m_sActiveForegroundImage.IsEmpty() ) return true;
 		return CLabelUI::PreferClientHit();
+	}
+
+	void CButtonUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit)
+	{
+		CLabelUI::SetManager(pManager, pParent, bInit);
+		if( m_pIcon != NULL )
+			m_pIcon->SetManager(pManager, this, bInit);
+		if( m_pRasterIcon != NULL )
+			m_pRasterIcon->SetManager(pManager, this, bInit);
+		if( m_pLoading != NULL )
+			m_pLoading->SetManager(pManager, this, bInit);
 	}
 
 	void CButtonUI::SyncControlStateFromButton()
@@ -360,6 +414,74 @@ namespace DuiLib
 			DWORD clrColor = 0;
 			if( ParseColorString(pstrValue, clrColor) ) SetFocusedColor(clrColor);
 		}
+		else if( _tcsicmp(pstrName, _T("icon-size")) == 0 ) {
+			SetIconSize(_ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("icon-gap")) == 0 ) {
+			SetIconGap(_ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("icon-position")) == 0
+			|| _tcsicmp(pstrName, _T("icon-pos")) == 0 ) {
+			SetIconPosition(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color")) == 0 ) {
+			if( pstrValue == NULL || *pstrValue == _T('\0')
+				|| _tcsicmp(pstrValue, _T("none")) == 0
+				|| _tcsicmp(pstrValue, _T("false")) == 0
+				|| _tcsicmp(pstrValue, _T("original")) == 0 ) {
+				SetIconTintAuto(false);
+				SetIconTint(0);
+			}
+			else if( _tcsicmp(pstrValue, _T("auto")) == 0
+				|| _tcsicmp(pstrValue, _T("true")) == 0 ) {
+				SetIconTintAuto(true);
+			}
+			else {
+				DWORD clr = 0;
+				if( ParseColorString(pstrValue, clr) ) SetIconTint(clr);
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint-hover")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-hover")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetIconTintHover(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint-active")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-active")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetIconTintActive(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint-disabled")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-disabled")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetIconTintDisabled(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint-focus")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-focus")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetIconTintFocus(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("loading")) == 0 ) {
+			SetLoading(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("loading-type")) == 0 ) {
+			SetLoadingType(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("loading-disable")) == 0 ) {
+			SetLoadingDisable(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0
+				|| _tcsicmp(pstrValue, _T("yes")) == 0);
+		}
+		else if( IsIconAttr(pstrName) ) {
+			if( pstrValue == NULL || *pstrValue == _T('\0') ) {
+				ClearIcon();
+				return;
+			}
+			if( _tcsicmp(pstrName, _T("icon-src")) == 0 || _tcsicmp(pstrName, _T("icon")) == 0 )
+				SetIconSrc(pstrValue);
+			else
+				SetIconLib(pstrName, pstrValue);
+		}
 		else CLabelUI::SetAttribute(pstrName, pstrValue);
 	}
 
@@ -375,17 +497,37 @@ namespace DuiLib
 		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
 		
 		CDuiString sText = GetText();
-		if( sText.IsEmpty() ) return;
 
 		RECT rcPadding = GetPadding();
 		RECT rcTextPadding = GetTextPadding();
 		GetManager()->GetDPIObj()->Scale(&rcTextPadding);
-		int nLinks = 0;
-		RECT rc = m_rcItem;
-		rc.left += rcPadding.left + rcTextPadding.left;
-		rc.right -= rcPadding.right + rcTextPadding.right;
-		rc.top += rcPadding.top + rcTextPadding.top;
-		rc.bottom -= rcPadding.bottom + rcTextPadding.bottom;
+		RECT rcContent = m_rcItem;
+		rcContent.left += rcPadding.left + rcTextPadding.left;
+		rcContent.right -= rcPadding.right + rcTextPadding.right;
+		rcContent.top += rcPadding.top + rcTextPadding.top;
+		rcContent.bottom -= rcPadding.bottom + rcTextPadding.bottom;
+
+		RECT rcText = rcContent;
+		if( HasIcon() ) {
+			SyncIconAppearance();
+			RECT rcIcon = { 0 };
+			if( LayoutIconAndText(rcContent, rcIcon, rcText) ) {
+				if( IsLoading() && m_pLoading != NULL ) {
+					m_pLoading->SetPos(rcIcon, false);
+					m_pLoading->Paint(ctx, m_rcPaint, NULL);
+				}
+				else if( m_eIconKind == IconRaster && m_pRasterIcon != NULL && m_pRasterIcon->IsVisible() ) {
+					PaintRasterIcon(ctx, rcIcon);
+				}
+				else if( m_pIcon != NULL && m_pIcon->IsVisible() ) {
+					m_pIcon->SetPos(rcIcon, false);
+					// 只贴图标位图，避免 SvgBox 完整 DoPaint；脏区一律由本按钮负责
+					m_pIcon->PaintIcon(ctx, m_rcPaint);
+				}
+			}
+		}
+
+		if( sText.IsEmpty() ) return;
 
 		DWORD clrColor = IsEnabled()?m_dwColor:m_dwDisabledColor;
 		
@@ -404,11 +546,25 @@ namespace DuiLib
 		else if( ((m_uButtonState & UISTATE_FOCUSED) != 0) && (GetFocusedFont() != -1) )
 			iFont = GetFocusedFont();
 
+		int nLinks = 0;
+		UINT uStyle = m_uTextStyle;
+		if( HasIcon() ) {
+			// 图标+文字已作为一组居中；左右排布文字左对齐，上下排布文字水平居中
+			uStyle &= ~(DT_CENTER | DT_RIGHT | DT_LEFT);
+			const bool bVertical = (m_sIconPos.CompareNoCase(_T("top")) == 0
+				|| m_sIconPos.CompareNoCase(_T("bottom")) == 0);
+			if( bVertical )
+				uStyle |= DT_CENTER;
+			else
+				uStyle |= DT_LEFT;
+			if( (uStyle & (DT_VCENTER | DT_BOTTOM | DT_TOP)) == 0 )
+				uStyle |= DT_VCENTER;
+		}
 
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, iFont, m_uTextStyle);
+			ctx.DrawHtmlText(rcText, sText, clrColor, NULL, NULL, nLinks, iFont, uStyle);
 		else
-			ctx.DrawText(rc, sText, clrColor, iFont, m_uTextStyle);
+			ctx.DrawText(rcText, sText, clrColor, iFont, uStyle);
 	}
 
 	void CButtonUI::PaintBackgroundColor(IRenderContext& ctx)
@@ -599,6 +755,747 @@ namespace DuiLib
 		}
 
 		Invalidate();
+	}
+
+	void CButtonUI::EnsureIcon()
+	{
+		if( m_pIcon != NULL ) return;
+		m_pIcon = new CSvgBoxUI;
+		m_pIcon->SetMouseEnabled(false);
+		m_pIcon->SetVisible(false);
+		if( m_pManager != NULL )
+			m_pIcon->SetManager(m_pManager, this, false);
+	}
+
+	void CButtonUI::EnsureRasterIcon()
+	{
+		if( m_pRasterIcon != NULL ) return;
+		m_pRasterIcon = new CControlUI;
+		m_pRasterIcon->SetMouseEnabled(false);
+		m_pRasterIcon->SetVisible(false);
+		if( m_pManager != NULL )
+			m_pRasterIcon->SetManager(m_pManager, this, false);
+	}
+
+	void CButtonUI::EnsureLoading()
+	{
+		if( m_pLoading != NULL ) return;
+		m_pLoading = new CLoadingUI;
+		m_pLoading->SetMouseEnabled(false);
+		m_pLoading->SetVisible(false);
+		m_pLoading->SetAttribute(_T("type"), m_sLoadingType.IsEmpty() ? _T("css") : m_sLoadingType.GetData());
+		m_pLoading->Stop();
+		if( m_pManager != NULL )
+			m_pLoading->SetManager(m_pManager, this, false);
+	}
+
+	bool CButtonUI::IsIconAttr(LPCTSTR pstrName) const
+	{
+		return _tcsicmp(pstrName, _T("bsicon")) == 0
+			|| _tcsicmp(pstrName, _T("iconpark")) == 0
+			|| _tcsicmp(pstrName, _T("lucide")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-outline")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-filled")) == 0
+			|| _tcsicmp(pstrName, _T("remixicon")) == 0
+			|| _tcsicmp(pstrName, _T("twicon")) == 0
+			|| _tcsicmp(pstrName, _T("icon-src")) == 0
+			|| _tcsicmp(pstrName, _T("icon")) == 0;
+	}
+
+	bool CButtonUI::IsRasterImagePath(LPCTSTR pstrPath)
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) return false;
+		CDuiString s(pstrPath);
+		s.MakeLower();
+		LPCTSTR pExt = NULL;
+		for( LPCTSTR p = s.GetData(); *p != _T('\0'); ++p ) {
+			if( *p == _T('.') ) pExt = p;
+			else if( *p == _T('\'') || *p == _T('"') || *p == _T(' ') || *p == _T('\t') ) {
+				if( pExt != NULL ) break;
+			}
+		}
+		if( pExt == NULL ) return false;
+		return _tcsncmp(pExt, _T(".bmp"), 4) == 0
+			|| _tcsncmp(pExt, _T(".png"), 4) == 0
+			|| _tcsncmp(pExt, _T(".jpg"), 4) == 0
+			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0;
+	}
+
+	void CButtonUI::RefreshRasterIconImage()
+	{
+		if( m_pRasterIcon == NULL || m_sRasterPath.IsEmpty() ) return;
+		if( !m_pRasterIcon->IsVisible() ) return;
+		int nSize = m_nIconSize;
+		if( m_pManager != NULL )
+			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+		CDuiString sImg = m_sRasterPath;
+		if( sImg.Find(_T("file=")) < 0 && sImg.Find(_T("res=")) < 0
+			&& sImg.Find(_T("url(")) < 0 ) {
+			CDuiString sFmt;
+			sFmt.Format(_T("file='%s' dest='0,0,%d,%d'"), m_sRasterPath.GetData(), nSize, nSize);
+			sImg = sFmt;
+		}
+		else if( sImg.Find(_T("dest=")) < 0 ) {
+			CDuiString sFmt;
+			sFmt.Format(_T("%s dest='0,0,%d,%d'"), m_sRasterPath.GetData(), nSize, nSize);
+			sImg = sFmt;
+		}
+		m_pRasterIcon->SetBackgroundImage(sImg.GetData());
+		ClearRasterTintCache();
+	}
+
+	void CButtonUI::ClearRasterTintCache()
+	{
+		if( m_hRasterTint != NULL ) {
+			IRenderDevice* pDev = GetRenderDevice();
+			if( pDev != NULL ) pDev->InvalidateBitmapGpu(m_hRasterTint);
+			::DeleteObject(m_hRasterTint);
+			m_hRasterTint = NULL;
+		}
+		m_dwRasterTintColor = 0;
+		m_nRasterTintW = 0;
+		m_nRasterTintH = 0;
+	}
+
+	bool CButtonUI::EnsureRasterTintCache(DWORD dwColor)
+	{
+		if( m_pManager == NULL || m_sRasterPath.IsEmpty() || dwColor == 0 )
+			return false;
+
+		int nSize = m_nIconSize;
+		nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+		if( nSize <= 0 ) return false;
+
+		if( m_hRasterTint != NULL && m_dwRasterTintColor == dwColor
+			&& m_nRasterTintW == nSize && m_nRasterTintH == nSize )
+			return true;
+
+		ClearRasterTintCache();
+
+		CDuiString sName = m_sRasterPath;
+		// file='xxx.png' … → 裸路径给 GetImageEx
+		const int nFile = sName.Find(_T("file='"));
+		if( nFile >= 0 ) {
+			sName = sName.Mid(nFile + 6);
+			const int nEnd = sName.Find(_T('\''));
+			if( nEnd >= 0 ) sName = sName.Left(nEnd);
+		}
+		else {
+			const int nUrl = sName.Find(_T("url("));
+			if( nUrl >= 0 ) {
+				CDuiString sPath;
+				if( ParseCssUrlImage(m_sRasterPath.GetData(), sPath) )
+					sName = sPath;
+			}
+		}
+
+		const TImageInfo* pSrc = m_pManager->GetImageEx(sName.GetData());
+		if( pSrc == NULL || pSrc->hBitmap == NULL || pSrc->nX <= 0 || pSrc->nY <= 0 )
+			return false;
+
+		BITMAP bm = { 0 };
+		if( !::GetObject(pSrc->hBitmap, sizeof(bm), &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0 )
+			return false;
+
+		LPBYTE pSrcBits = NULL;
+		BYTE* pTempBits = NULL;
+		if( bm.bmBits != NULL ) {
+			pSrcBits = (LPBYTE)bm.bmBits;
+		}
+		else if( pSrc->pBits != NULL ) {
+			pSrcBits = pSrc->pBits;
+		}
+		else {
+			pTempBits = new BYTE[pSrc->nX * pSrc->nY * 4];
+			BITMAPINFO bmi = { 0 };
+			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bmi.bmiHeader.biWidth = pSrc->nX;
+			bmi.bmiHeader.biHeight = -pSrc->nY;
+			bmi.bmiHeader.biPlanes = 1;
+			bmi.bmiHeader.biBitCount = 32;
+			bmi.bmiHeader.biCompression = BI_RGB;
+			HDC hScreen = ::GetDC(NULL);
+			int nCopied = ::GetDIBits(hScreen, pSrc->hBitmap, 0, pSrc->nY, pTempBits, &bmi, DIB_RGB_COLORS);
+			::ReleaseDC(NULL, hScreen);
+			if( nCopied == 0 ) {
+				delete[] pTempBits;
+				return false;
+			}
+			pSrcBits = pTempBits;
+		}
+
+		BITMAPINFO bmiOut = { 0 };
+		bmiOut.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmiOut.bmiHeader.biWidth = nSize;
+		bmiOut.bmiHeader.biHeight = -nSize;
+		bmiOut.bmiHeader.biPlanes = 1;
+		bmiOut.bmiHeader.biBitCount = 32;
+		bmiOut.bmiHeader.biCompression = BI_RGB;
+		LPBYTE pDest = NULL;
+		HBITMAP hTint = ::CreateDIBSection(NULL, &bmiOut, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
+		if( hTint == NULL || pDest == NULL ) {
+			delete[] pTempBits;
+			return false;
+		}
+
+		const BYTE tR = DuiColorR(dwColor);
+		const BYTE tG = DuiColorG(dwColor);
+		const BYTE tB = DuiColorB(dwColor);
+		const int srcW = pSrc->nX;
+		const int srcH = pSrc->nY;
+
+		// 最近邻缩放到 icon-size，并按 alpha（无）重着色为 tint（预乘）
+		for( int y = 0; y < nSize; ++y ) {
+			const int sy = y * srcH / nSize;
+			for( int x = 0; x < nSize; ++x ) {
+				const int sx = x * srcW / nSize;
+				const BYTE* pS = pSrcBits + (sy * srcW + sx) * 4;
+				BYTE* pD = pDest + (y * nSize + x) * 4;
+				BYTE a = pS[3];
+				if( !pSrc->bAlpha ) {
+					// 无 alpha（如 JPG）：用暗度作蒙版
+					const int lum = (pS[2] * 30 + pS[1] * 59 + pS[0] * 11) / 100;
+					a = (BYTE)(255 - lum);
+				}
+				pD[0] = (BYTE)((DWORD)tB * a / 255);
+				pD[1] = (BYTE)((DWORD)tG * a / 255);
+				pD[2] = (BYTE)((DWORD)tR * a / 255);
+				pD[3] = a;
+			}
+		}
+
+		delete[] pTempBits;
+		m_hRasterTint = hTint;
+		m_dwRasterTintColor = dwColor;
+		m_nRasterTintW = nSize;
+		m_nRasterTintH = nSize;
+		return true;
+	}
+
+	void CButtonUI::PaintRasterIcon(IRenderContext& ctx, const RECT& rcIcon)
+	{
+		if( ShouldTintRasterIcon() ) {
+			const DWORD paint = ResolvePaintIconColor();
+			if( EnsureRasterTintCache(paint) && m_hRasterTint != NULL ) {
+				RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
+				RECT rcCorners = { 0, 0, 0, 0 };
+				ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true);
+				return;
+			}
+		}
+		// 未请求着色 / 着色失败 → 原图
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetPos(rcIcon, false);
+			m_pRasterIcon->Paint(ctx, m_rcPaint, NULL);
+		}
+	}
+
+	bool CButtonUI::ShouldTintRasterIcon() const
+	{
+		if( m_eIconKind != IconRaster ) return false;
+		if( m_bIconTintAuto || m_bIconTint ) return true;
+		if( !IsEnabled() || (m_uButtonState & UISTATE_DISABLED) != 0 )
+			return m_dwIconTintDisabled != 0;
+		if( (m_uButtonState & UISTATE_PUSHED) != 0 )
+			return m_dwIconTintActive != 0;
+		if( (m_uButtonState & UISTATE_HOT) != 0 )
+			return m_dwIconTintHover != 0;
+		if( (m_uButtonState & UISTATE_FOCUSED) != 0 )
+			return m_dwIconTintFocus != 0;
+		return false;
+	}
+
+	void CButtonUI::ShowSvgIcon()
+	{
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(false);
+			m_pRasterIcon->SetBackgroundImage(_T(""));
+		}
+		m_sRasterPath.Empty();
+		ClearRasterTintCache();
+		m_eIconKind = IconSvg;
+		if( m_pIcon != NULL && !m_bLoading )
+			m_pIcon->SetVisible(true);
+	}
+
+	void CButtonUI::ShowRasterIcon(LPCTSTR pstrPath)
+	{
+		EnsureRasterIcon();
+		if( m_pIcon != NULL )
+			m_pIcon->SetVisible(false);
+		m_sRasterPath = pstrPath ? pstrPath : _T("");
+		m_eIconKind = IconRaster;
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(!m_bLoading);
+			if( !m_bLoading )
+				RefreshRasterIconImage();
+		}
+	}
+
+	void CButtonUI::SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName)
+	{
+		if( pstrLib == NULL || *pstrLib == _T('\0')
+			|| pstrName == NULL || *pstrName == _T('\0')
+			|| !IsIconAttr(pstrLib) ) {
+			ClearIcon();
+			return;
+		}
+		EnsureIcon();
+		m_pIcon->SetAttribute(pstrLib, pstrName);
+		ShowSvgIcon();
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconSrc(LPCTSTR pstrPath)
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) {
+			ClearIcon();
+			return;
+		}
+		if( IsRasterImagePath(pstrPath) ) {
+			ShowRasterIcon(pstrPath);
+		}
+		else {
+			EnsureIcon();
+			m_pIcon->SetAttribute(_T("src"), pstrPath);
+			ShowSvgIcon();
+		}
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::ClearIcon()
+	{
+		m_eIconKind = IconNone;
+		m_sRasterPath.Empty();
+		ClearRasterTintCache();
+		if( m_pIcon != NULL ) {
+			m_pIcon->SetVisible(false);
+			m_pIcon->LoadFromUtf8Data("");
+		}
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(false);
+			m_pRasterIcon->SetBackgroundImage(_T(""));
+		}
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	bool CButtonUI::HasIcon() const
+	{
+		if( m_bLoading ) return true;
+		if( m_eIconKind == IconSvg && m_pIcon != NULL && m_pIcon->IsVisible() ) return true;
+		if( m_eIconKind == IconRaster && m_pRasterIcon != NULL && m_pRasterIcon->IsVisible() ) return true;
+		return false;
+	}
+
+	void CButtonUI::SetLoading(bool bLoading)
+	{
+		if( m_bLoading == bLoading ) return;
+		EnsureLoading();
+		if( bLoading ) {
+			m_bEnabledBeforeLoading = IsEnabled();
+			m_bLoading = true;
+			if( m_pIcon != NULL ) m_pIcon->SetVisible(false);
+			if( m_pRasterIcon != NULL ) m_pRasterIcon->SetVisible(false);
+			SyncLoadingAppearance();
+			m_pLoading->SetVisible(true);
+			m_pLoading->Start();
+			if( m_bLoadingDisable )
+				SetEnabled(false);
+		}
+		else {
+			m_bLoading = false;
+			if( m_pLoading != NULL ) {
+				m_pLoading->Stop();
+				m_pLoading->SetVisible(false);
+			}
+			RestoreIconAfterLoading();
+			if( m_bLoadingDisable )
+				SetEnabled(m_bEnabledBeforeLoading);
+		}
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	bool CButtonUI::IsLoading() const
+	{
+		return m_bLoading && m_pLoading != NULL && m_pLoading->IsVisible();
+	}
+
+	void CButtonUI::SetLoadingType(LPCTSTR pstrType)
+	{
+		m_sLoadingType = pstrType ? pstrType : _T("css");
+		if( m_sLoadingType.IsEmpty() ) m_sLoadingType = _T("css");
+		if( IsLoading() )
+			SyncLoadingAppearance();
+		Invalidate();
+	}
+
+	void CButtonUI::SetLoadingDisable(bool bDisable)
+	{
+		if( m_bLoadingDisable == bDisable ) return;
+		m_bLoadingDisable = bDisable;
+		if( m_bLoading ) {
+			if( bDisable )
+				SetEnabled(false);
+			else
+				SetEnabled(m_bEnabledBeforeLoading);
+		}
+	}
+
+	void CButtonUI::RestoreIconAfterLoading()
+	{
+		if( m_eIconKind == IconSvg && m_pIcon != NULL )
+			m_pIcon->SetVisible(true);
+		else if( m_eIconKind == IconRaster && m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(true);
+			RefreshRasterIconImage();
+		}
+	}
+
+	void CButtonUI::SyncLoadingAppearance()
+	{
+		if( m_pLoading == NULL || !m_bLoading ) return;
+		LPCTSTR pType = m_sLoadingType.IsEmpty() ? _T("css") : m_sLoadingType.GetData();
+		m_pLoading->SetAttribute(_T("type"), pType);
+		DWORD dwColor = ResolvePaintIconColor();
+		if( dwColor == 0 ) dwColor = 0x1677FFFF;
+		CDuiString sClr;
+		sClr.Format(_T("#%08X"), dwColor);
+		m_pLoading->SetAttribute(_T("color"), sClr.GetData());
+	}
+
+	void CButtonUI::SetIconSize(int nSize)
+	{
+		if( nSize < 8 ) nSize = 8;
+		if( nSize > 64 ) nSize = 64;
+		if( m_nIconSize == nSize ) return;
+		m_nIconSize = nSize;
+		if( m_eIconKind == IconRaster ) {
+			ClearRasterTintCache();
+			RefreshRasterIconImage();
+		}
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconGap(int nGap)
+	{
+		if( nGap < 0 ) nGap = 0;
+		if( m_nIconGap == nGap ) return;
+		m_nIconGap = nGap;
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconPosition(LPCTSTR pstrPos)
+	{
+		CDuiString s = pstrPos ? pstrPos : _T("left");
+		if( s.CompareNoCase(_T("right")) != 0
+			&& s.CompareNoCase(_T("top")) != 0
+			&& s.CompareNoCase(_T("bottom")) != 0 )
+			s = _T("left");
+		if( m_sIconPos == s ) return;
+		m_sIconPos = s;
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconTint(DWORD dwColor)
+	{
+		m_bIconTint = (dwColor != 0);
+		m_dwIconTint = dwColor;
+		if( m_bIconTint ) m_bIconTintAuto = false;
+		ClearRasterTintCache();
+		if( m_bLoading ) SyncLoadingAppearance();
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconTintAuto(bool bAuto)
+	{
+		const bool bClearExplicit = bAuto && m_bIconTint;
+		if( m_bIconTintAuto == bAuto && !bClearExplicit ) return;
+		m_bIconTintAuto = bAuto;
+		if( bAuto ) {
+			m_bIconTint = false;
+			m_dwIconTint = 0;
+		}
+		ClearRasterTintCache();
+		if( m_bLoading ) SyncLoadingAppearance();
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconTintHover(DWORD dwColor)
+	{
+		m_dwIconTintHover = dwColor;
+		ClearRasterTintCache();
+		if( m_bLoading ) SyncLoadingAppearance();
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconTintActive(DWORD dwColor)
+	{
+		m_dwIconTintActive = dwColor;
+		ClearRasterTintCache();
+		if( m_bLoading ) SyncLoadingAppearance();
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconTintDisabled(DWORD dwColor)
+	{
+		m_dwIconTintDisabled = dwColor;
+		ClearRasterTintCache();
+		if( m_bLoading ) SyncLoadingAppearance();
+		Invalidate();
+	}
+
+	void CButtonUI::SetIconTintFocus(DWORD dwColor)
+	{
+		m_dwIconTintFocus = dwColor;
+		ClearRasterTintCache();
+		if( m_bLoading ) SyncLoadingAppearance();
+		Invalidate();
+	}
+
+	DWORD CButtonUI::ResolveIconColor() const
+	{
+		if( m_bIconTint && m_dwIconTint != 0 )
+			return m_dwIconTint;
+		if( m_dwColor != 0 ) return m_dwColor;
+		if( m_pManager != NULL ) return m_pManager->GetDefaultFontColor();
+		return 0x000000E0;
+	}
+
+	DWORD CButtonUI::ResolvePaintIconColor() const
+	{
+		DWORD clr = ResolveIconColor();
+		DWORD clrHover = m_dwIconTintHover != 0 ? m_dwIconTintHover
+			: (GetHoverColor() != 0 ? GetHoverColor() : clr);
+		DWORD clrActive = m_dwIconTintActive != 0 ? m_dwIconTintActive
+			: (GetActiveColor() != 0 ? GetActiveColor() : clr);
+		DWORD clrDisabled = m_dwIconTintDisabled != 0 ? m_dwIconTintDisabled
+			: (m_dwDisabledColor != 0 ? m_dwDisabledColor : clr);
+		DWORD clrFocus = m_dwIconTintFocus != 0 ? m_dwIconTintFocus
+			: (GetFocusedColor() != 0 ? GetFocusedColor() : clr);
+
+		if( !IsEnabled() || (m_uButtonState & UISTATE_DISABLED) != 0 )
+			return clrDisabled;
+		if( (m_uButtonState & UISTATE_PUSHED) != 0 )
+			return clrActive;
+		if( (m_uButtonState & UISTATE_HOT) != 0 )
+			return clrHover;
+		if( (m_uButtonState & UISTATE_FOCUSED) != 0 )
+			return clrFocus;
+		return clr;
+	}
+
+	void CButtonUI::SyncIconAppearance()
+	{
+		if( m_pIcon == NULL || m_eIconKind != IconSvg ) return;
+		m_pIcon->SetEnabled(IsEnabled());
+		DWORD paint = ResolvePaintIconColor();
+		// 绘制路径内勿 Invalidate：父 Button 已整控件刷新；只脏图标矩形会在圆角按钮上露出白角
+		m_pIcon->SetColor(paint, false);
+		m_pIcon->SetHoverColor(0, false);
+		m_pIcon->SetActiveColor(0, false);
+		m_pIcon->SetDisabledColor(0, false);
+	}
+
+	SIZE CButtonUI::EstimateSize(SIZE szAvailable)
+	{
+		SIZE sz = CLabelUI::EstimateSize(szAvailable);
+		if( !HasIcon() ) return sz;
+		// 宽高都写死时不改
+		if( m_cxyFixed.cx > 0 && m_cxyFixed.cy > 0 ) return sz;
+
+		int nSize = m_nIconSize;
+		int nGap = m_nIconGap;
+		if( m_pManager != NULL ) {
+			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+			nGap = m_pManager->GetDPIObj()->Scale(m_nIconGap);
+		}
+
+		RECT rcTextPadding = GetTextPadding();
+		RECT rcPadding = GetPadding();
+		const int padL = rcPadding.left + rcTextPadding.left;
+		const int padR = rcPadding.right + rcTextPadding.right;
+		const int padT = rcPadding.top + rcTextPadding.top;
+		const int padB = rcPadding.bottom + rcTextPadding.bottom;
+
+		const bool bHasText = !GetText().IsEmpty();
+		const bool bVertical = (m_sIconPos.CompareNoCase(_T("top")) == 0
+			|| m_sIconPos.CompareNoCase(_T("bottom")) == 0);
+
+		if( m_cxyFixed.cx == 0 ) {
+			if( !bHasText ) {
+				sz.cx = nSize + padL + padR;
+			}
+			else if( bVertical ) {
+				const int minW = nSize + padL + padR;
+				if( sz.cx < minW ) sz.cx = minW;
+			}
+			else {
+				sz.cx += nSize + nGap;
+			}
+		}
+		if( m_cxyFixed.cy == 0 ) {
+			if( !bHasText ) {
+				sz.cy = nSize + padT + padB;
+			}
+			else if( bVertical ) {
+				sz.cy += nSize + nGap;
+			}
+			else {
+				const int minH = nSize + padT + padB;
+				if( sz.cy < minH ) sz.cy = minH;
+			}
+		}
+
+		m_cxyFixedLast = sz;
+		return sz;
+	}
+
+	bool CButtonUI::LayoutIconAndText(const RECT& rcContent, RECT& rcIcon, RECT& rcText) const
+	{
+		rcText = rcContent;
+		::ZeroMemory(&rcIcon, sizeof(rcIcon));
+		if( !HasIcon() ) return false;
+
+		int nSize = m_nIconSize;
+		int nGap = m_nIconGap;
+		if( m_pManager != NULL ) {
+			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+			nGap = m_pManager->GetDPIObj()->Scale(m_nIconGap);
+		}
+		const int cw = rcContent.right - rcContent.left;
+		const int ch = rcContent.bottom - rcContent.top;
+		if( cw <= 0 || ch <= 0 ) return false;
+		if( nSize > cw ) nSize = cw;
+
+		const bool bHasText = !GetText().IsEmpty();
+		const bool bTop = (m_sIconPos.CompareNoCase(_T("top")) == 0);
+		const bool bBottom = (m_sIconPos.CompareNoCase(_T("bottom")) == 0);
+		const bool bRight = (m_sIconPos.CompareNoCase(_T("right")) == 0);
+
+		if( !bHasText ) {
+			if( nSize > ch ) nSize = ch;
+			// 纯图标：居中
+			rcIcon.left = rcContent.left + (cw - nSize) / 2;
+			rcIcon.top = rcContent.top + (ch - nSize) / 2;
+			rcIcon.right = rcIcon.left + nSize;
+			rcIcon.bottom = rcIcon.top + nSize;
+			rcText = rcContent;
+			return true;
+		}
+
+		// 测量文字，使「图标 + gap + 文字」整体在内容区居中
+		int iFont = GetFont();
+		if( ((m_uButtonState & UISTATE_PUSHED) != 0) && (GetActiveFont() != -1) )
+			iFont = GetActiveFont();
+		else if( ((m_uButtonState & UISTATE_HOT) != 0) && (GetHoverFont() != -1) )
+			iFont = GetHoverFont();
+		else if( ((m_uButtonState & UISTATE_FOCUSED) != 0) && (GetFocusedFont() != -1) )
+			iFont = GetFocusedFont();
+
+		SIZE szText = { 0, 0 };
+		if( m_pManager != NULL ) {
+			CDuiString sText = GetText();
+			UINT uMeas = DT_SINGLELINE | DT_LEFT | DT_TOP | DT_CALCRECT;
+			szText = RenderMeasureTextSize(const_cast<CPaintManagerUI*>(m_pManager),
+				sText.GetData(), iFont, uMeas);
+		}
+		if( szText.cx < 0 ) szText.cx = 0;
+		if( szText.cy < 0 ) szText.cy = 0;
+
+		if( bTop || bBottom ) {
+			// 给文字留高度，避免图标占满导致文字被裁
+			const int nTextReserve = szText.cy + nGap;
+			if( nSize > ch - nTextReserve && ch > nTextReserve )
+				nSize = ch - nTextReserve;
+			else if( nSize > ch )
+				nSize = ch;
+
+			int blockH = nSize + nGap + szText.cy;
+			if( blockH > ch ) blockH = ch;
+			int y = rcContent.top + (ch - blockH) / 2;
+			const int yEnd = (y + blockH > rcContent.bottom) ? rcContent.bottom : (y + blockH);
+			rcIcon.left = rcContent.left + (cw - nSize) / 2;
+			rcIcon.right = rcIcon.left + nSize;
+			rcText.left = rcContent.left;
+			rcText.right = rcContent.right;
+			if( bBottom ) {
+				// 文字在上、图标在下
+				rcText.top = y;
+				rcText.bottom = y + szText.cy;
+				if( rcText.bottom > yEnd ) rcText.bottom = yEnd;
+				if( rcText.top > rcText.bottom ) rcText.top = rcText.bottom;
+				rcIcon.top = rcText.bottom + nGap;
+				rcIcon.bottom = rcIcon.top + nSize;
+				if( rcIcon.bottom > yEnd ) {
+					rcIcon.bottom = yEnd;
+					rcIcon.top = rcIcon.bottom - nSize;
+					if( rcIcon.top < rcText.bottom ) rcIcon.top = rcText.bottom;
+				}
+			}
+			else {
+				// 图标在上、文字在下
+				rcIcon.top = y;
+				rcIcon.bottom = rcIcon.top + nSize;
+				rcText.top = rcIcon.bottom + nGap;
+				rcText.bottom = yEnd;
+				if( rcText.top > rcText.bottom ) rcText.top = rcText.bottom;
+			}
+			return true;
+		}
+
+		if( nSize > ch ) nSize = ch;
+
+		int blockW = nSize + nGap + szText.cx;
+		if( blockW > cw ) {
+			// 内容过宽：贴边排布，文字吃剩余空间
+			if( bRight ) {
+				rcIcon.right = rcContent.right;
+				rcIcon.left = rcIcon.right - nSize;
+				rcIcon.top = rcContent.top + (ch - nSize) / 2;
+				rcIcon.bottom = rcIcon.top + nSize;
+				rcText.left = rcContent.left;
+				rcText.right = rcIcon.left - nGap;
+				if( rcText.right < rcText.left ) rcText.right = rcText.left;
+			}
+			else {
+				rcIcon.left = rcContent.left;
+				rcIcon.right = rcIcon.left + nSize;
+				rcIcon.top = rcContent.top + (ch - nSize) / 2;
+				rcIcon.bottom = rcIcon.top + nSize;
+				rcText.left = rcIcon.right + nGap;
+				rcText.right = rcContent.right;
+				if( rcText.left > rcText.right ) rcText.left = rcText.right;
+			}
+			rcText.top = rcContent.top;
+			rcText.bottom = rcContent.bottom;
+			return true;
+		}
+
+		int x = rcContent.left + (cw - blockW) / 2;
+		if( bRight ) {
+			rcText.left = x;
+			rcText.right = x + szText.cx;
+			rcIcon.left = rcText.right + nGap;
+			rcIcon.right = rcIcon.left + nSize;
+		}
+		else {
+			rcIcon.left = x;
+			rcIcon.right = x + nSize;
+			rcText.left = rcIcon.right + nGap;
+			rcText.right = rcText.left + szText.cx;
+		}
+		rcIcon.top = rcContent.top + (ch - nSize) / 2;
+		rcIcon.bottom = rcIcon.top + nSize;
+		rcText.top = rcContent.top;
+		rcText.bottom = rcContent.bottom;
+		return true;
 	}
 
 }

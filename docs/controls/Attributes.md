@@ -49,6 +49,11 @@
 | `image` | `image-hover` / `-active` / `-disabled` / `-focus` / `-selected` |
 | `background-image` | `background-image-hover` / `-active` / `-disabled` / `-focus` / `-selected` |
 | `foreground-image` | `foreground-image-hover` / `-active` / `-selected` |
+| `icon-tint` / `icon-color` | `icon-tint-hover` / `-active` / `-disabled` / `-focus` / `-selected`；Button / ListLabel / TabButton / Menu / TreeNode |
+| `item-color` | `item-color-hover` / `-selected`（含 `:active`）/ `-disabled`；List / VirtualList / Combo / Menu |
+| `item-background-color` | `item-background-color-hover` / `-selected` / `-disabled` |
+| `item-image` | `item-image-hover` / `-selected` / `-disabled` |
+| `item-foreground-image` | `item-foreground-image-hover` / `-selected` |
 
 基类已支持容器直接写 `VBox:hover { background-color: ... }`。
 

@@ -18,9 +18,9 @@ namespace DuiLib
         , m_ConCurSel(nullptr)
         , m_nMaxPage(0)
         , m_nSelPageNo(-1)
-        , m_dwHoverBackgroundColor(0xC3C3C3FF)
-        , m_dwSelTextColor(0x00FF00FF)
-        , m_dwNormalTextColor(0x000000FF)
+        , m_dwHoverBackgroundColor(0x00000014)
+        , m_dwSelTextColor(0x0D6EFDFF)
+        , m_dwNormalTextColor(0x000000E0)
         , m_dwNormalBackgroundColor(0)
         , m_dwHoverColor(0x000000FF)
         , m_dwSelectedBackgroundColor(0)
@@ -30,21 +30,25 @@ namespace DuiLib
         SetGotoEditSize();
 
         m_BtnPrevious->SetText(_T("<"));
+        m_BtnPrevious->SetColor(m_dwNormalTextColor);
         m_BtnPrevious->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnPrevious->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnPrevious);
 
         m_BtnNext->SetText(_T(">"));
+        m_BtnNext->SetColor(m_dwNormalTextColor);
         m_BtnNext->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnNext->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnNext);
 
         m_BtnNextMore->SetText(_T("..."));
+        m_BtnNextMore->SetColor(m_dwNormalTextColor);
         m_BtnNextMore->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnNextMore->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnNextMore);
 
         m_BtnGoto->SetText(_T("Go to"));
+        m_BtnGoto->SetColor(m_dwNormalTextColor);
         m_BtnGoto->SetHoverBackgroundColor(m_dwHoverBackgroundColor);
         m_BtnGoto->OnNotify += MakeDelegate(this, &CPageControlUI::OnBtnClick);
         Add(m_BtnGoto);
@@ -115,6 +119,10 @@ namespace DuiLib
     void DuiLib::CPageControlUI::SetPageNormalTextColor(DWORD cr /*= 0x000000FF*/)
     {
         m_dwNormalTextColor = cr;
+        m_BtnPrevious->SetColor(cr);
+        m_BtnNext->SetColor(cr);
+        m_BtnGoto->SetColor(cr);
+        m_BtnNextMore->SetColor(cr);
         for (int i = 0; i < m_OptPageNoArr.GetSize(); i++)
         {
             COptionUI* page = (COptionUI*)m_OptPageNoArr[i];

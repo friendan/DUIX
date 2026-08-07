@@ -23,9 +23,6 @@
     <ClCompile Include="PopWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MsgWnd.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ControlEx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

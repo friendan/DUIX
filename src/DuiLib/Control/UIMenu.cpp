@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 
 #include "UIMenu.h"
+#include "UISvgBox.h"
 
 namespace DuiLib {
 
@@ -437,6 +438,9 @@ namespace DuiLib {
 		SetForegroundWindow(m_hWnd);
 		MoveWindow(m_hWnd, rc.left, rc.top, rc.GetWidth(), rc.GetHeight(), FALSE);
 		SetWindowPos(m_hWnd, HWND_TOPMOST, rc.left, rc.top, rc.GetWidth(), rc.GetHeight() + pMenuRoot->GetPadding().bottom + pMenuRoot->GetPadding().top, SWP_SHOWWINDOW);
+
+		CThemeManager* pTm = CThemeManager::GetInstance();
+		if( pTm != NULL ) pTm->ApplyMenuChrome(pMenuRoot);
 	}
 
 	void CMenuWnd::ResizeSubMenu()
@@ -536,6 +540,9 @@ namespace DuiLib {
 		}
 
 		MoveWindow(m_hWnd, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top + m_pLayout->GetPadding().top + m_pLayout->GetPadding().bottom, FALSE);
+
+		CThemeManager* pTm = CThemeManager::GetInstance();
+		if( pTm != NULL && m_pLayout != NULL ) pTm->ApplyMenuChrome(m_pLayout);
 	}
 
 	void CMenuWnd::setDPI(int DPI) {
@@ -648,6 +655,14 @@ namespace DuiLib {
 	m_pWindow(NULL),
 		m_bDrawLine(false),
 		m_dwLineColor((DWORD)DEFAULT_LINE_COLOR),
+		m_pIcon(NULL),
+		m_dwIconTint(0),
+		m_bIconTint(false),
+		m_bIconTintAuto(false),
+		m_hRasterTint(NULL),
+		m_dwRasterTintColor(0),
+		m_nRasterTintW(0),
+		m_nRasterTintH(0),
 		m_bCheckItem(false),
 		m_bShowExplandIcon(false)
 	{
@@ -662,7 +677,13 @@ namespace DuiLib {
 	}
 
 	CMenuElementUI::~CMenuElementUI()
-	{}
+	{
+		ClearRasterTintCache();
+		if( m_pIcon != NULL ) {
+			delete m_pIcon;
+			m_pIcon = NULL;
+		}
+	}
 
 	LPCTSTR CMenuElementUI::GetClass() const
 	{
@@ -673,6 +694,13 @@ namespace DuiLib {
 	{
 		if( _tcsicmp(pstrName, _T("MenuElement")) == 0 ) return static_cast<CMenuElementUI*>(this);    
 		return CListContainerElementUI::GetInterface(pstrName);
+	}
+
+	void CMenuElementUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit)
+	{
+		CListContainerElementUI::SetManager(pManager, pParent, bInit);
+		if( m_pIcon != NULL )
+			m_pIcon->SetManager(pManager, this, bInit);
 	}
 
 	bool CMenuElementUI::DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
@@ -772,24 +800,67 @@ namespace DuiLib {
 
 	void CMenuElementUI::DrawItemIcon(IRenderContext& ctx, const RECT& rcItem)
 	{
-		if (!m_strIcon.IsEmpty() && !(m_bCheckItem && !GetChecked())) {
-			SIZE cxyFixed = GetFixedSize();
-			SIZE szIconSize = GetIconSize();
-			TListInfoUI* pInfo = m_pOwner->GetListInfo();
-			RECT rcTextPadding = GetManager()->GetDPIObj()->Scale(pInfo->rcTextPadding);
-			RECT rcDest =
-			{
-				(rcTextPadding.left - szIconSize.cx) / 2,
-				(cxyFixed.cy - szIconSize.cy) / 2,
-				(rcTextPadding.left - szIconSize.cx) / 2 + szIconSize.cx,
-				(cxyFixed.cy - szIconSize.cy) / 2 + szIconSize.cy
-			};
-			// dest 以逻辑坐标写入，由 TDrawInfo::Parse 再 Scale（与 DrawItemExpland 一致）
-			GetManager()->GetDPIObj()->ScaleBack(&rcDest);
-			CDuiString pStrImage;
-			pStrImage.Format(_T("dest='%d,%d,%d,%d'"), rcDest.left, rcDest.top, rcDest.right, rcDest.bottom);
-			DrawImage(ctx, m_strIcon, pStrImage);
+		if( m_bCheckItem && !GetChecked() ) return;
+		const bool bSvg = (m_pIcon != NULL && m_pIcon->IsVisible());
+		if( !bSvg && m_strIcon.IsEmpty() ) return;
+
+		SIZE cxyFixed = GetFixedSize();
+		SIZE szIconSize = GetIconSize();
+		TListInfoUI* pInfo = m_pOwner->GetListInfo();
+		RECT rcTextPadding = GetManager()->GetDPIObj()->Scale(pInfo->rcTextPadding);
+		RECT rcDest =
+		{
+			(rcTextPadding.left - szIconSize.cx) / 2,
+			(cxyFixed.cy - szIconSize.cy) / 2,
+			(rcTextPadding.left - szIconSize.cx) / 2 + szIconSize.cx,
+			(cxyFixed.cy - szIconSize.cy) / 2 + szIconSize.cy
+		};
+
+		RECT rcAbs = {
+			m_rcItem.left + rcDest.left,
+			m_rcItem.top + rcDest.top,
+			m_rcItem.left + rcDest.right,
+			m_rcItem.top + rcDest.bottom
+		};
+
+		if( bSvg ) {
+			m_pIcon->SetEnabled(IsEnabled());
+			m_pIcon->SetColor(ResolveMenuIconColor(), false);
+			m_pIcon->SetHoverColor(0, false);
+			m_pIcon->SetActiveColor(0, false);
+			m_pIcon->SetDisabledColor(0, false);
+			m_pIcon->SetPos(rcAbs, false);
+			m_pIcon->PaintIcon(ctx, m_rcPaint);
+			return;
 		}
+
+		if( ShouldTintRasterIcon() ) {
+			PaintRasterIcon(ctx, rcAbs);
+			return;
+		}
+
+		// dest 以逻辑坐标写入，由 TDrawInfo::Parse 再 Scale（与 DrawItemExpland 一致）
+		GetManager()->GetDPIObj()->ScaleBack(&rcDest);
+		CDuiString pStrImage;
+		pStrImage.Format(_T("dest='%d,%d,%d,%d'"), rcDest.left, rcDest.top, rcDest.right, rcDest.bottom);
+		DrawImage(ctx, m_strIcon, pStrImage);
+	}
+
+	DWORD CMenuElementUI::ResolveMenuIconColor() const
+	{
+		if( m_bIconTint && m_dwIconTint != 0 )
+			return m_dwIconTint;
+		if( m_pOwner == NULL ) return 0x333333FF;
+		TListInfoUI* pInfo = m_pOwner->GetListInfo();
+		if( pInfo == NULL ) return 0x333333FF;
+		DWORD clr = pInfo->dwColor;
+		if( (m_uButtonState & UISTATE_HOT) != 0 && pInfo->dwHoverColor != 0 )
+			clr = pInfo->dwHoverColor;
+		if( IsSelected() && pInfo->dwSelectedColor != 0 )
+			clr = pInfo->dwSelectedColor;
+		if( !IsEnabled() && pInfo->dwDisabledColor != 0 )
+			clr = pInfo->dwDisabledColor;
+		return clr != 0 ? clr : 0x333333FF;
 	}
 
 	void CMenuElementUI::DrawItemExpland(IRenderContext& ctx, const RECT& rcItem)
@@ -1073,6 +1144,11 @@ namespace DuiLib {
 		SetEnabled(false);
 	}
 
+	bool CMenuElementUI::GetLineType() const
+	{
+		return m_bDrawLine;
+	}
+
 	void CMenuElementUI::SetLineColor(DWORD color)
 	{
 		m_dwLineColor = color;
@@ -1096,13 +1172,234 @@ namespace DuiLib {
 
 	void CMenuElementUI::SetIcon(LPCTSTR strIcon)
 	{
-		m_strIcon = strIcon;
+		ClearSvgIcon();
+		ClearRasterTintCache();
+		m_strIcon = strIcon ? strIcon : _T("");
+		Invalidate();
+	}
+
+	void CMenuElementUI::EnsureSvgIcon()
+	{
+		if( m_pIcon != NULL ) return;
+		m_pIcon = new CSvgBoxUI;
+		m_pIcon->SetMouseEnabled(false);
+		m_pIcon->SetVisible(false);
+		if( m_pManager != NULL )
+			m_pIcon->SetManager(m_pManager, this, false);
+	}
+
+	void CMenuElementUI::ClearSvgIcon()
+	{
+		if( m_pIcon != NULL ) {
+			m_pIcon->SetVisible(false);
+			m_pIcon->LoadFromUtf8Data("");
+		}
+	}
+
+	bool CMenuElementUI::IsIconLibAttr(LPCTSTR pstrName) const
+	{
+		return _tcsicmp(pstrName, _T("bsicon")) == 0
+			|| _tcsicmp(pstrName, _T("iconpark")) == 0
+			|| _tcsicmp(pstrName, _T("lucide")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-outline")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-filled")) == 0
+			|| _tcsicmp(pstrName, _T("remixicon")) == 0
+			|| _tcsicmp(pstrName, _T("twicon")) == 0;
+	}
+
+	void CMenuElementUI::SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName)
+	{
+		if( pstrLib == NULL || *pstrLib == _T('\0')
+			|| pstrName == NULL || *pstrName == _T('\0')
+			|| !IsIconLibAttr(pstrLib) ) {
+			ClearSvgIcon();
+			return;
+		}
+		m_strIcon.Empty();
+		EnsureSvgIcon();
+		m_pIcon->SetAttribute(pstrLib, pstrName);
+		m_pIcon->SetVisible(true);
+		Invalidate();
+	}
+
+	void CMenuElementUI::SetIconTint(DWORD dwColor)
+	{
+		m_bIconTint = (dwColor != 0);
+		m_dwIconTint = dwColor;
+		if( m_bIconTint ) m_bIconTintAuto = false;
+		ClearRasterTintCache();
+		Invalidate();
+	}
+
+	void CMenuElementUI::SetIconTintAuto(bool bAuto)
+	{
+		const bool bClearExplicit = bAuto && m_bIconTint;
+		if( m_bIconTintAuto == bAuto && !bClearExplicit ) return;
+		m_bIconTintAuto = bAuto;
+		if( bAuto ) {
+			m_bIconTint = false;
+			m_dwIconTint = 0;
+		}
+		ClearRasterTintCache();
+		Invalidate();
 	}
 
 	void CMenuElementUI::SetIconSize(LONG cx, LONG cy)
 	{
 		m_szIconSize.cx = cx;
 		m_szIconSize.cy = cy;
+		ClearRasterTintCache();
+		Invalidate();
+	}
+
+	void CMenuElementUI::ClearRasterTintCache()
+	{
+		if( m_hRasterTint != NULL ) {
+			IRenderDevice* pDev = GetRenderDevice();
+			if( pDev != NULL ) pDev->InvalidateBitmapGpu(m_hRasterTint);
+			::DeleteObject(m_hRasterTint);
+			m_hRasterTint = NULL;
+		}
+		m_dwRasterTintColor = 0;
+		m_nRasterTintW = 0;
+		m_nRasterTintH = 0;
+	}
+
+	bool CMenuElementUI::ShouldTintRasterIcon() const
+	{
+		if( m_strIcon.IsEmpty() ) return false;
+		if( m_pIcon != NULL && m_pIcon->IsVisible() ) return false;
+		return m_bIconTintAuto || m_bIconTint;
+	}
+
+	bool CMenuElementUI::EnsureRasterTintCache(DWORD dwColor)
+	{
+		if( m_pManager == NULL || m_strIcon.IsEmpty() || dwColor == 0 )
+			return false;
+
+		SIZE sz = GetIconSize();
+		const int nSize = (sz.cx > 0) ? sz.cx : ITEM_DEFAULT_ICON_SIZE;
+		if( nSize <= 0 ) return false;
+
+		if( m_hRasterTint != NULL && m_dwRasterTintColor == dwColor
+			&& m_nRasterTintW == nSize && m_nRasterTintH == nSize )
+			return true;
+
+		ClearRasterTintCache();
+
+		CDuiString sName = m_strIcon;
+		const int nFile = sName.Find(_T("file='"));
+		if( nFile >= 0 ) {
+			sName = sName.Mid(nFile + 6);
+			const int nEnd = sName.Find(_T('\''));
+			if( nEnd >= 0 ) sName = sName.Left(nEnd);
+		}
+		else {
+			CDuiString sPath;
+			if( ParseCssUrlImage(m_strIcon.GetData(), sPath) )
+				sName = sPath;
+		}
+
+		const TImageInfo* pSrc = m_pManager->GetImageEx(sName.GetData());
+		if( pSrc == NULL || pSrc->hBitmap == NULL || pSrc->nX <= 0 || pSrc->nY <= 0 )
+			return false;
+
+		BITMAP bm = { 0 };
+		if( !::GetObject(pSrc->hBitmap, sizeof(bm), &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0 )
+			return false;
+
+		LPBYTE pSrcBits = NULL;
+		BYTE* pTempBits = NULL;
+		if( bm.bmBits != NULL ) {
+			pSrcBits = (LPBYTE)bm.bmBits;
+		}
+		else if( pSrc->pBits != NULL ) {
+			pSrcBits = pSrc->pBits;
+		}
+		else {
+			pTempBits = new BYTE[pSrc->nX * pSrc->nY * 4];
+			BITMAPINFO bmi = { 0 };
+			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bmi.bmiHeader.biWidth = pSrc->nX;
+			bmi.bmiHeader.biHeight = -pSrc->nY;
+			bmi.bmiHeader.biPlanes = 1;
+			bmi.bmiHeader.biBitCount = 32;
+			bmi.bmiHeader.biCompression = BI_RGB;
+			HDC hScreen = ::GetDC(NULL);
+			int nCopied = ::GetDIBits(hScreen, pSrc->hBitmap, 0, pSrc->nY, pTempBits, &bmi, DIB_RGB_COLORS);
+			::ReleaseDC(NULL, hScreen);
+			if( nCopied == 0 ) {
+				delete[] pTempBits;
+				return false;
+			}
+			pSrcBits = pTempBits;
+		}
+
+		BITMAPINFO bmiOut = { 0 };
+		bmiOut.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmiOut.bmiHeader.biWidth = nSize;
+		bmiOut.bmiHeader.biHeight = -nSize;
+		bmiOut.bmiHeader.biPlanes = 1;
+		bmiOut.bmiHeader.biBitCount = 32;
+		bmiOut.bmiHeader.biCompression = BI_RGB;
+		LPBYTE pDest = NULL;
+		HBITMAP hTint = ::CreateDIBSection(NULL, &bmiOut, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
+		if( hTint == NULL || pDest == NULL ) {
+			delete[] pTempBits;
+			return false;
+		}
+
+		const BYTE tR = DuiColorR(dwColor);
+		const BYTE tG = DuiColorG(dwColor);
+		const BYTE tB = DuiColorB(dwColor);
+		const int srcW = pSrc->nX;
+		const int srcH = pSrc->nY;
+
+		for( int y = 0; y < nSize; ++y ) {
+			const int sy = y * srcH / nSize;
+			for( int x = 0; x < nSize; ++x ) {
+				const int sx = x * srcW / nSize;
+				const BYTE* pS = pSrcBits + (sy * srcW + sx) * 4;
+				BYTE* pD = pDest + (y * nSize + x) * 4;
+				BYTE a = pS[3];
+				if( !pSrc->bAlpha ) {
+					const int lum = (pS[2] * 30 + pS[1] * 59 + pS[0] * 11) / 100;
+					a = (BYTE)(255 - lum);
+				}
+				pD[0] = (BYTE)((DWORD)tB * a / 255);
+				pD[1] = (BYTE)((DWORD)tG * a / 255);
+				pD[2] = (BYTE)((DWORD)tR * a / 255);
+				pD[3] = a;
+			}
+		}
+
+		delete[] pTempBits;
+		m_hRasterTint = hTint;
+		m_dwRasterTintColor = dwColor;
+		m_nRasterTintW = nSize;
+		m_nRasterTintH = nSize;
+		return true;
+	}
+
+	void CMenuElementUI::PaintRasterIcon(IRenderContext& ctx, const RECT& rcIcon)
+	{
+		const DWORD paint = ResolveMenuIconColor();
+		if( EnsureRasterTintCache(paint) && m_hRasterTint != NULL ) {
+			RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
+			RECT rcCorners = { 0, 0, 0, 0 };
+			ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true);
+			return;
+		}
+		RECT rcDest = {
+			rcIcon.left - m_rcItem.left,
+			rcIcon.top - m_rcItem.top,
+			rcIcon.right - m_rcItem.left,
+			rcIcon.bottom - m_rcItem.top
+		};
+		GetManager()->GetDPIObj()->ScaleBack(&rcDest);
+		CDuiString pStrImage;
+		pStrImage.Format(_T("dest='%d,%d,%d,%d'"), rcDest.left, rcDest.top, rcDest.right, rcDest.bottom);
+		DrawImage(ctx, m_strIcon, pStrImage);
 	}
 
 	SIZE CMenuElementUI::GetIconSize()
@@ -1152,14 +1449,44 @@ namespace DuiLib {
 
 	void CMenuElementUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
-		if( _tcsicmp(pstrName, _T("icon")) == 0){
+		if( _tcsicmp(pstrName, _T("icon")) == 0 || _tcsicmp(pstrName, _T("icon-src")) == 0 ){
 			SetIcon(pstrValue);
+		}
+		else if( IsIconLibAttr(pstrName) ) {
+			if( pstrValue == NULL || *pstrValue == _T('\0') )
+				ClearSvgIcon();
+			else
+				SetIconLib(pstrName, pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color")) == 0 ) {
+			if( pstrValue == NULL || *pstrValue == _T('\0')
+				|| _tcsicmp(pstrValue, _T("none")) == 0
+				|| _tcsicmp(pstrValue, _T("false")) == 0
+				|| _tcsicmp(pstrValue, _T("original")) == 0 ) {
+				SetIconTintAuto(false);
+				SetIconTint(0);
+			}
+			else if( _tcsicmp(pstrValue, _T("auto")) == 0
+				|| _tcsicmp(pstrValue, _T("true")) == 0 ) {
+				SetIconTintAuto(true);
+			}
+			else {
+				DWORD clr = 0;
+				if( ParseColorString(pstrValue, clr) ) SetIconTint(clr);
+			}
 		}
 		else if( _tcsicmp(pstrName, _T("icon-size")) == 0 ) {
 			LPTSTR pstr = NULL;
-			LONG cx = 0, cy = 0;
-			cx = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);    
-			cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);   
+			LONG cx = _tcstol(pstrValue, &pstr, 10);
+			LONG cy = cx;
+			if( pstr != NULL && (*pstr == _T(',') || *pstr == _T(' ') || *pstr == _T('x') || *pstr == _T('X')) ) {
+				++pstr;
+				while( *pstr == _T(' ') ) ++pstr;
+				cy = _tcstol(pstr, &pstr, 10);
+			}
+			if( cx <= 0 ) cx = ITEM_DEFAULT_ICON_SIZE;
+			if( cy <= 0 ) cy = cx;
 			SetIconSize(cx, cy);
 		}
 		else if( _tcsicmp(pstrName, _T("check-item")) == 0 ) {		

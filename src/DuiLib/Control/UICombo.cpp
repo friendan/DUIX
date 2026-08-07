@@ -301,6 +301,7 @@ namespace DuiLib {
 		m_ListInfo.dwColor = 0x000000FF;
 		m_ListInfo.dwBackgroundColor = 0;
 		m_ListInfo.bAlternateBk = false;
+		m_ListInfo.dwAlternateBackgroundColor = 0;
 		m_ListInfo.dwSelectedColor = 0x000000FF;
 		m_ListInfo.dwSelectedBackgroundColor = 0xC1E3FFFF;
 		m_ListInfo.dwHoverColor = 0x000000FF;
@@ -886,6 +887,16 @@ namespace DuiLib {
 		m_ListInfo.bAlternateBk = bAlternateBk;
 	}
 
+	DWORD CComboUI::GetAlternateBkColor() const
+	{
+		return m_ListInfo.dwAlternateBackgroundColor;
+	}
+
+	void CComboUI::SetAlternateBkColor(DWORD dwColor)
+	{
+		m_ListInfo.dwAlternateBackgroundColor = dwColor;
+	}
+
 	void CComboUI::SetSelectedItemColor(DWORD dwColor)
 	{
 		m_ListInfo.dwSelectedColor = dwColor;
@@ -1191,6 +1202,12 @@ namespace DuiLib {
 		}
 		else if( _tcsicmp(pstrName, _T("item-background-image")) == 0 ) SetItemBkImage(pstrValue);
 		else if( _tcsicmp(pstrName, _T("item-alternate-background")) == 0 ) SetAlternateBk(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("item-alternate-background-color")) == 0 ) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetAlternateBkColor(clrColor);
+			if( clrColor != 0 ) SetAlternateBk(true);
+		}
 		else if( _tcsicmp(pstrName, _T("item-color-selected")) == 0 ) {
 			DWORD clrColor = 0;
 			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
@@ -1289,11 +1306,27 @@ namespace DuiLib {
 		rc.top += rcPad.top + rcTextPad.top;
 		rc.bottom -= rcPad.bottom + rcTextPad.bottom;
 
+		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
+
+		// 选中项为 ListLabel 且带图标时：闭合态一并绘制（与下拉项一致）
+		if( m_iCurSel >= 0 ) {
+			CControlUI* pSel = GetItemAt(m_iCurSel);
+			CListLabelElementUI* pLabel = (pSel != NULL)
+				? static_cast<CListLabelElementUI*>(pSel->GetInterface(DUI_CTR_LISTLABELELEMENT))
+				: NULL;
+			if( pLabel != NULL && pLabel->HasIcon() ) {
+				UINT uStyle = m_uTextStyle;
+				if( (uStyle & (DT_VCENTER | DT_BOTTOM | DT_TOP)) == 0 )
+					uStyle |= DT_VCENTER;
+				pLabel->PaintIconAndText(ctx, rc, m_rcPaint, clrColor, m_iFont, uStyle, m_bShowHtml);
+				return;
+			}
+		}
+
 		CDuiString sText = GetText();
 		if( sText.IsEmpty() ) return;
 
 		int nLinks = 0;
-		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		if( m_bShowHtml )
 			ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
 		else

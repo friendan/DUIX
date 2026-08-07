@@ -600,7 +600,11 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("item-alternate-background-color")) == 0 ) {
 			DWORD clr = 0;
-			if( ParseColorString(pstrValue, clr) ) { m_dwItemAlternateBackgroundColor = clr; Invalidate(); }
+			if( ParseColorString(pstrValue, clr) ) {
+				m_dwItemAlternateBackgroundColor = clr;
+				if( clr != 0 ) m_bAlternateBk = true;
+				Invalidate();
+			}
 		}
 		else if( _tcsicmp(pstrName, _T("item-show-html")) == 0 ) {
 			m_bShowHtml = (_tcsicmp(pstrValue, _T("true")) == 0);

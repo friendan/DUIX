@@ -22,19 +22,22 @@ namespace DuiLib
 		void LoadFromFile(LPCTSTR pstrPath);
 		void LoadFromData(LPCTSTR pstrSvgContent);
 		void LoadFromUtf8Data(const char* utf8Svg);
-		void SetColor(DWORD dwColor);
+		void SetColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetColor() const;
-		void SetHoverColor(DWORD dwColor);
+		void SetHoverColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetHoverColor() const;
-		void SetActiveColor(DWORD dwColor);
+		void SetActiveColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetActiveColor() const;
-		void SetDisabledColor(DWORD dwColor);
+		void SetDisabledColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetDisabledColor() const;
 
-		void SetEnabled(bool bEnable);
+		void SetEnabled(bool bEnable = true);
+		void Invalidate() override;
 		void DoEvent(TEventUI& event);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		void PaintStatusImage(IRenderContext& ctx);
+		/// 仅绘制缓存位图（供 Button 等父控件内嵌时调用，不走完整 DoPaint）
+		void PaintIcon(IRenderContext& ctx, const RECT& rcPaint);
 
 	protected:
 		static DWORD ParseColorValue(LPCTSTR pstrValue);

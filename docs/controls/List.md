@@ -55,6 +55,56 @@
 | `item-background-color` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-background-image` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-alternate-background` | — | nth-child 斑马纹 |
+| `item-alternate-background-color` | 奇数行底色；设置非 0 色时自动开启斑马纹（Theme 会写入） | nth-child |
+
+### ListLabelElement 图标（对齐 Button 子集）
+
+| 属性 | 说明 |
+|------|------|
+| `bsicon` / `lucide` / `tabler-outline` / `tabler-filled` / `iconpark` / `remixicon` / `twicon` | SVG 图标库 |
+| `icon` / `icon-src` | SVG 文件或 PNG/BMP/JPG |
+| `icon-size` / `icon-gap` | 图标边长、与文字间距（逻辑像素） |
+| `icon-position` / `icon-pos` | `left`（默认）/ `right` / `top` / `bottom`；上下排布时文字水平居中，未写死 `height` 时 `EstimateSize` 会计入图标高度 |
+| `icon-tint` / `icon-color` | **SVG**：未设则跟 `item-color*`（悬停/选中/禁用）。**光栅**：默认原图；`#色` 强制；`auto` 跟文字色；`none`/`original` 原图。亦用于 [Combo](Combo.md) 下拉项；闭合态会复用选中项图标 |
+| `icon-tint-hover` / `-selected`（`-active` 同 selected）/ `-disabled` | 状态覆盖 |
+
+```xml
+<ListLabelElement text="主页" lucide="home" icon-size="16" />
+<ListLabelElement text="上传" lucide="upload" icon-position="top" height="56" />
+<ListLabelElement text="PNG" icon="menu/icon.png" icon-tint="auto" />
+```
+
+CSS 伪类（解析期改写到 `item-*-hover` / `item-*-selected` 等）：
+
+```css
+#list_css_demo:hover { item-background-color: #E6F4FFFF; item-color: #1677FFFF; }
+#list_css_demo:checked { item-background-color: #BAE0FFFF; item-color: #0958D9FF; }
+```
+
+### 空态（Empty）
+
+0 项时在列表体上盖一层 [Empty](Empty.md)（不计入 `GetCount`，不进行数据）。
+
+| 属性 / 写法 | 说明 |
+|-------------|------|
+| 嵌套 `<Empty>` | `List::Add` 识别后挂为绝对定位覆盖层 |
+| `empty-text` / `empty-description` | 懒建 Empty，并设 `description` |
+| `empty-image` | 懒建 Empty，并设自定义图 |
+
+```xml
+<List empty-text="暂无数据" header="hidden" height="160" />
+
+<List header="hidden" height="160">
+  <Empty description="还没有项">
+    <Button text="添加" kind="primary" width="80" height="28" />
+  </Empty>
+</List>
+```
+
+### 其它非标准 / 无 HTML 等价（续）
+
+| 属性 | 说明 | HTML/CSS 对照 |
+|------|------|---------------|
 | `item-foreground-image` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-foreground-image-selected` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-color-selected` | — | 无标准等价（控件皮肤/列表项专用） |

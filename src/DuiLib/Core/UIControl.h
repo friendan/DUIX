@@ -256,7 +256,7 @@ namespace DuiLib {
 
 		virtual CControlUI* FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT uFlags);
 
-		void Invalidate();
+		virtual void Invalidate();
 		bool IsUpdateNeeded() const;
 		void NeedUpdate();
 		void NeedParentUpdate();

@@ -29,6 +29,8 @@ namespace DuiLib
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
 	protected:
+		void RequestLayout();
+
 		int m_iCurSel;
 		int m_iDeferredSel;
 	};

@@ -110,8 +110,20 @@ CLoadingUI::CLoadingUI()
 	, m_bMorphType(false)
 {
 	m_CenterPoint = PointF(0, 0);
-	m_Color = Color(255, 22, 119, 255);
-	m_TrackColor = Color(255, 243, 243, 243);
+	// 默认跟当前主题 primary；无主题时中性灰，避免首帧钉死 #1677FF
+	DWORD dwSpin = 0x808080FF;
+	DWORD dwTrack = 0x0000001A;
+	CThemeManager* pTm = CThemeManager::GetInstance();
+	if( pTm != NULL ) {
+		CTheme* pTh = pTm->GetCurrentTheme();
+		if( pTh == NULL ) pTh = pTm->FindTheme(pTm->GetDefaultThemeId());
+		if( pTh != NULL ) {
+			dwSpin = pTh->GetToken(_T("color-primary"), dwSpin);
+			dwTrack = pTh->GetToken(_T("color-border"), dwTrack);
+		}
+	}
+	m_Color = Color(DuiColorA(dwSpin), DuiColorR(dwSpin), DuiColorG(dwSpin), DuiColorB(dwSpin));
+	m_TrackColor = Color(DuiColorA(dwTrack), DuiColorR(dwTrack), DuiColorG(dwTrack), DuiColorB(dwTrack));
 	SetKind(CONTROLKIND_NONE);
 	SetMouseEnabled(false);
 }

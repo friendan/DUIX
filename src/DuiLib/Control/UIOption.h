@@ -126,6 +126,8 @@ namespace DuiLib
 		DWORD m_dwBoxHoverBorderColor;
 		DWORD m_dwSelectedBoxBackgroundColor;
 		DWORD m_dwSelectedBoxBorderColor;
+		DWORD m_dwSelectedBoxHoverBackgroundColor;
+		DWORD m_dwSelectedBoxHoverBorderColor;
 		DWORD m_dwCheckMarkColor;
 		DWORD m_dwDisabledBoxBackgroundColor;
 		DWORD m_dwDisabledBoxBorderColor;

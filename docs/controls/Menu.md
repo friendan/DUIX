@@ -19,8 +19,10 @@
 
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
-| `icon` | — | 无 |
-| `icon-size` | — | 无 |
+| `icon` / `icon-src` | SVG 文件或 PNG/BMP/JPG 路径 | 无 |
+| `lucide` / `tabler-outline` / `bsicon` 等 | SVG 图标库（与 Button / ListLabel 同名） | 无 |
+| `icon-size` | `16` 或 `16,16` | 无 |
+| `icon-tint` / `icon-color` | **SVG**：未设则跟 `item-color*`。**光栅**：默认原图；`#色` 强制；`auto`/`true` 跟文字色；`none`/`original` 原图 | 无 |
 | `check-item` | — | 无 |
 | `checked` | — | checked |
 | `line-type` | — | 无 |
@@ -32,5 +34,5 @@
 
 ### 主题
 
-- 纯色菜单（`background-color` / `item-color*`，无 `background-image`）：可跟 `theme` token；duidemo `menu.html` 打开时由演示代码套当前主题色。
-- **图片壳菜单**（`background-image` 九宫等）：不会自动跟主题，需自备多套皮或改纯色。
+- 纯色弹出菜单：`CMenuWnd` 在 `ResizeMenu` / `ResizeSubMenu` 时自动调用 `CThemeManager::ApplyMenuChrome`（list chrome + 分隔线 `line-color`）；热切主题时已打开菜单也会刷新。
+- 退出自动套色：根 `Menu` 上 `theme="none"`，或使用 `background-image` 图片壳（九宫等不会自动跟色，需自备多套皮或改纯色）。

@@ -469,10 +469,70 @@ namespace DuiLib
 	// 参数信息: LPCTSTR pstrValue
 	// 函数说明: 
 	//************************************
+	bool CTreeNodeUI::IsIconAttrName(LPCTSTR pstrName)
+	{
+		if( pstrName == NULL || *pstrName == _T('\0') ) return false;
+		if( _tcsicmp(pstrName, _T("icon")) == 0 ) return true;
+		if( _tcsnicmp(pstrName, _T("icon-"), 5) == 0 ) return true;
+		if( _tcsicmp(pstrName, _T("bsicon")) == 0
+			|| _tcsicmp(pstrName, _T("iconpark")) == 0
+			|| _tcsicmp(pstrName, _T("lucide")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-outline")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-filled")) == 0
+			|| _tcsicmp(pstrName, _T("remixicon")) == 0
+			|| _tcsicmp(pstrName, _T("twicon")) == 0 )
+			return true;
+		return false;
+	}
+
+	void CTreeNodeUI::SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName)
+	{
+		if( pItemButton != NULL ) pItemButton->SetIconLib(pstrLib, pstrName);
+	}
+
+	void CTreeNodeUI::SetIconSrc(LPCTSTR pstrPath)
+	{
+		if( pItemButton != NULL ) pItemButton->SetIconSrc(pstrPath);
+	}
+
+	void CTreeNodeUI::ClearIcon()
+	{
+		if( pItemButton != NULL ) pItemButton->ClearIcon();
+	}
+
+	bool CTreeNodeUI::HasIcon() const
+	{
+		return pItemButton != NULL && pItemButton->HasIcon();
+	}
+
+	void CTreeNodeUI::SetIconSize(int nSize)
+	{
+		if( pItemButton != NULL ) pItemButton->SetIconSize(nSize);
+	}
+
+	int CTreeNodeUI::GetIconSize() const
+	{
+		return pItemButton != NULL ? pItemButton->GetIconSize() : 0;
+	}
+
+	void CTreeNodeUI::SetIconTint(DWORD dwColor)
+	{
+		if( pItemButton != NULL ) pItemButton->SetIconTint(dwColor);
+	}
+
+	void CTreeNodeUI::SetIconTintAuto(bool bAuto)
+	{
+		if( pItemButton != NULL ) pItemButton->SetIconTintAuto(bAuto);
+	}
+
 	void CTreeNodeUI::SetAttribute( LPCTSTR pstrName, LPCTSTR pstrValue )
 	{
 		if(_tcsicmp(pstrName, _T("text")) == 0 )
 			pItemButton->SetText(pstrValue);
+		else if( IsIconAttrName(pstrName) ) {
+			// 节点标签是内部 Option/Button：lucide / icon / icon-tint* 等直接转发
+			pItemButton->SetAttribute(pstrName, pstrValue);
+		}
 		else if(_tcsicmp(pstrName, _T("horizattr")) == 0 )
 			pHoriz->ApplyAttributeList(pstrValue);
 		else if(_tcsicmp(pstrName, _T("dotlineattr")) == 0 )

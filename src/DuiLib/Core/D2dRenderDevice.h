@@ -41,7 +41,8 @@ namespace DuiLib {
 
 	struct TD2dClipEntry
 	{
-		RECT rcBound;
+		RECT rcBound;   // 内容范围（通常为脏区∩控件）
+		RECT rcRound;   // 圆角几何所依据的完整控件矩形（与 GDI GenerateRoundClip 的 rcItem 一致）
 		bool bRound;
 		float radiusX;
 		float radiusY;
@@ -164,6 +165,7 @@ namespace DuiLib {
 
 		bool PrepareLayeredComposition(HWND hWnd, int width, int height) override;
 		bool IsLayeredComposition() const override { return m_bCompDirectDraw; }
+		void SetLayeredCompositionEnabled(bool bEnable) override;
 		void OnBackendBeginDraw() override;
 
 		bool EnsureWindowTarget(HWND hWnd, int width, int height) override;
@@ -172,6 +174,7 @@ namespace DuiLib {
 		void ClearPaintRect(const RECT& rcPaint, const RECT& rcClient) override;
 		void ClearAll() override;
 		void FixLayeredAlpha(const RECT& rcPaint, const RECT& rcClient) override;
+		void ApplyRoundCornerMask(int radiusX, int radiusY) override;
 		void ApplyLayeredMask(IRenderSurface* pMask, const RECT& rcPaint, const RECT& rcClient) override;
 
 		bool Present(const RenderPresentParams& params) override;
@@ -260,6 +263,7 @@ namespace DuiLib {
 		TImageInfo* GdiplusLoadImage(UINT nID, LPCTSTR type = NULL, DWORD mask = 0, HINSTANCE instance = NULL) override;
 		void FreeImage(TImageInfo* pImageInfo, bool bDelete = true) override;
 		void InvalidateImageGpu(TImageInfo* pImageInfo) override;
+		void InvalidateBitmapGpu(HBITMAP hBitmap) override;
 
 		bool CreateNativeFont(TFontInfo* pFontInfo, int nHeightPx, void* measureNative = NULL) override;
 		void DestroyNativeFont(TFontInfo* pFontInfo) override;

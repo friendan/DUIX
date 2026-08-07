@@ -1,4 +1,6 @@
 #include "StdAfx.h"
+#include "UISvgBox.h"
+#include "UIEmpty.h"
 
 namespace DuiLib {
 
@@ -17,6 +19,7 @@ namespace DuiLib {
 	{
 		m_pList = new CListBodyUI(this);
 		m_pHeader = new CListHeaderUI;
+		m_pEmpty = NULL;
 		Add(m_pHeader);
 		Add(m_pList);
 
@@ -27,6 +30,7 @@ namespace DuiLib {
 		m_ListInfo.dwColor = 0x000000FF;
 		m_ListInfo.dwBackgroundColor = 0;
 		m_ListInfo.bAlternateBk = false;
+		m_ListInfo.dwAlternateBackgroundColor = 0;
 		m_ListInfo.dwSelectedColor = 0x000000FF;
 		m_ListInfo.dwSelectedBackgroundColor = 0xC1E3FFFF;
 		m_ListInfo.dwHoverColor = 0x000000FF;
@@ -110,6 +114,7 @@ namespace DuiLib {
 
 	bool CListUI::Add(CControlUI* pControl)
 	{
+		if( AttachEmptyControl(pControl) ) return true;
 		// Override the Add() method so we can add items specifically to
 		// the intended widgets. Headers are assumed to be
 		// answer the correct interface so we can add multiple list headers.
@@ -132,13 +137,16 @@ namespace DuiLib {
 		if (pListItem != NULL) {
 			pListItem->SetOwner(this);
 			pListItem->SetIndex(GetCount());
-			return m_pList->Add(pControl);
+			bool bOk = m_pList->Add(pControl);
+			UpdateEmptyVisibility();
+			return bOk;
 		}
 		return CVerticalLayoutUI::Add(pControl);
 	}
 
 	bool CListUI::AddAt(CControlUI* pControl, int iIndex)
 	{
+		if( AttachEmptyControl(pControl) ) return true;
 		// Override the AddAt() method so we can add items specifically to
 		// the intended widgets. Headers and are assumed to be
 		// answer the correct interface so we can add multiple list headers.
@@ -180,11 +188,18 @@ namespace DuiLib {
 			}
 			m_iCurSel += 1;
 		}
+		UpdateEmptyVisibility();
 		return true;
 	}
 
 	bool CListUI::Remove(CControlUI* pControl)
 	{
+		if( pControl != NULL && pControl == m_pEmpty ) {
+			m_pEmpty = NULL;
+			bool bOk = CVerticalLayoutUI::Remove(pControl);
+			UpdateEmptyVisibility();
+			return bOk;
+		}
 		if (pControl->GetInterface(_T("ListHeader")) != NULL) return CVerticalLayoutUI::Remove(pControl);
 		// We also need to recognize header sub-items
 		if (_tcsstr(pControl->GetClass(), _T("ListHeaderItemUI")) != NULL) return m_pHeader->Remove(pControl);
@@ -223,6 +238,7 @@ namespace DuiLib {
 			}
 		}
 
+		UpdateEmptyVisibility();
 		return true;
 	}
 
@@ -258,6 +274,7 @@ namespace DuiLib {
 			}
 		}
 
+		UpdateEmptyVisibility();
 		return true;
 	}
 
@@ -267,38 +284,88 @@ namespace DuiLib {
 		m_iExpandedItem = -1;
 		m_aSelItems.Empty();
 		m_pList->RemoveAll();
+		UpdateEmptyVisibility();
+	}
+
+	bool CListUI::AttachEmptyControl(CControlUI* pControl)
+	{
+		if( pControl == NULL ) return false;
+		CEmptyUI* pEmpty = static_cast<CEmptyUI*>(pControl->GetInterface(DUI_CTR_EMPTY));
+		if( pEmpty == NULL ) return false;
+		SetEmptyControl(pEmpty);
+		return true;
+	}
+
+	void CListUI::SetEmptyControl(CEmptyUI* pEmpty)
+	{
+		if( m_pEmpty == pEmpty ) {
+			UpdateEmptyVisibility();
+			return;
+		}
+		if( m_pEmpty != NULL ) {
+			CEmptyUI* pOld = m_pEmpty;
+			m_pEmpty = NULL;
+			CVerticalLayoutUI::Remove(pOld);
+		}
+		m_pEmpty = pEmpty;
+		if( m_pEmpty == NULL ) return;
+		m_pEmpty->SetAbsolute(true);
+		m_pEmpty->SetMouseEnabled(true);
+		m_pEmpty->SetMouseChildEnabled(true);
+		// Empty 挂在 List 容器层，不进 m_pList；勿用 CListUI::GetItemIndex（只查 body）
+		if( CVerticalLayoutUI::GetItemIndex(m_pEmpty) < 0 )
+			CVerticalLayoutUI::Add(m_pEmpty);
+		UpdateEmptyVisibility();
+		NeedUpdate();
+	}
+
+	void CListUI::UpdateEmptyVisibility()
+	{
+		if( m_pEmpty == NULL ) return;
+		const bool bEmpty = (GetCount() == 0);
+		m_pEmpty->SetVisible(bEmpty);
+		if( bEmpty && m_pList != NULL ) {
+			RECT rcBody = m_pList->GetPos();
+			if( rcBody.right > rcBody.left && rcBody.bottom > rcBody.top )
+				m_pEmpty->SetPos(rcBody, false);
+		}
+		Invalidate();
 	}
 
 	void CListUI::SetPos(RECT rc, bool bNeedInvalidate)
 	{
 		CVerticalLayoutUI::SetPos(rc, bNeedInvalidate);
 
-		if (m_pHeader == NULL) return;
-		// Determine general list information and the size of header columns
-		m_ListInfo.nColumns = MIN(m_pHeader->GetCount(), UILIST_MAX_COLUMNS);
-		// The header/columns may or may not be visible at runtime. In either case
-		// we should determine the correct dimensions...
+		if (m_pHeader != NULL) {
+			// Determine general list information and the size of header columns
+			m_ListInfo.nColumns = MIN(m_pHeader->GetCount(), UILIST_MAX_COLUMNS);
+			// The header/columns may or may not be visible at runtime. In either case
+			// we should determine the correct dimensions...
 
-		if (!m_pHeader->IsVisible()) {
-			for (int it = 0; it < m_pHeader->GetCount(); it++) {
-				static_cast<CControlUI*>(m_pHeader->GetItemAt(it))->SetInternVisible(true);
+			if (!m_pHeader->IsVisible()) {
+				for (int it = 0; it < m_pHeader->GetCount(); it++) {
+					static_cast<CControlUI*>(m_pHeader->GetItemAt(it))->SetInternVisible(true);
+				}
+				m_pHeader->SetPos(CDuiRect(rc.left, 0, rc.right, 0), bNeedInvalidate);
 			}
-			m_pHeader->SetPos(CDuiRect(rc.left, 0, rc.right, 0), bNeedInvalidate);
+
+			for (int i = 0; i < m_ListInfo.nColumns; i++) {
+				CControlUI* pControl = static_cast<CControlUI*>(m_pHeader->GetItemAt(i));
+				if (!pControl->IsVisible()) continue;
+				if (pControl->IsAbsolute()) continue;
+				RECT rcPos = pControl->GetPos();
+				m_ListInfo.rcColumn[i] = pControl->GetPos();
+			}
+			if (!m_pHeader->IsVisible()) {
+				for (int it = 0; it < m_pHeader->GetCount(); it++) {
+					static_cast<CControlUI*>(m_pHeader->GetItemAt(it))->SetInternVisible(false);
+				}
+			}
+			m_pList->SetPos(m_pList->GetPos(), bNeedInvalidate);
 		}
 
-		for (int i = 0; i < m_ListInfo.nColumns; i++) {
-			CControlUI* pControl = static_cast<CControlUI*>(m_pHeader->GetItemAt(i));
-			if (!pControl->IsVisible()) continue;
-			if (pControl->IsAbsolute()) continue;
-			RECT rcPos = pControl->GetPos();
-			m_ListInfo.rcColumn[i] = pControl->GetPos();
-		}
-		if (!m_pHeader->IsVisible()) {
-			for (int it = 0; it < m_pHeader->GetCount(); it++) {
-				static_cast<CControlUI*>(m_pHeader->GetItemAt(it))->SetInternVisible(false);
-			}
-		}
-		m_pList->SetPos(m_pList->GetPos(), bNeedInvalidate);
+		if( m_pEmpty != NULL && m_pEmpty->IsVisible() && m_pList != NULL )
+			m_pEmpty->SetPos(m_pList->GetPos(), bNeedInvalidate);
 	}
 
 	void CListUI::Move(SIZE szOffset, bool bNeedInvalidate)
@@ -780,6 +847,12 @@ namespace DuiLib {
 		Invalidate();
 	}
 
+	void CListUI::SetAlternateBkColor(DWORD dwColor)
+	{
+		m_ListInfo.dwAlternateBackgroundColor = dwColor;
+		Invalidate();
+	}
+
 	DWORD CListUI::GetItemColor() const
 	{
 		return m_ListInfo.dwColor;
@@ -798,6 +871,11 @@ namespace DuiLib {
 	bool CListUI::IsAlternateBk() const
 	{
 		return m_ListInfo.bAlternateBk;
+	}
+
+	DWORD CListUI::GetAlternateBkColor() const
+	{
+		return m_ListInfo.dwAlternateBackgroundColor;
 	}
 
 	void CListUI::SetSelectedItemColor(DWORD dwColor)
@@ -1092,6 +1170,12 @@ namespace DuiLib {
 		}
 		else if (_tcsicmp(pstrName, _T("item-background-image")) == 0) SetItemBkImage(pstrValue);
 		else if (_tcsicmp(pstrName, _T("item-alternate-background")) == 0) SetAlternateBk(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if (_tcsicmp(pstrName, _T("item-alternate-background-color")) == 0) {
+			DWORD clrColor = 0;
+			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
+			SetAlternateBkColor(clrColor);
+			if( clrColor != 0 ) SetAlternateBk(true);
+		}
 		else if( _tcsicmp(pstrName, _T("item-foreground-image")) == 0 ) {m_ListInfo.sForegroundImage = pstrValue; Invalidate();}
 		else if( _tcsicmp(pstrName, _T("item-foreground-image-hover")) == 0 ) {m_ListInfo.sHoverForegroundImage = pstrValue; Invalidate();}
 		else if( _tcsicmp(pstrName, _T("item-foreground-image-selected")) == 0 ) {m_ListInfo.sSelectedForegroundImage = pstrValue; Invalidate();}
@@ -1138,6 +1222,21 @@ namespace DuiLib {
 		else if (_tcsicmp(pstrName, _T("item-show-html")) == 0) SetItemShowHtml(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if (_tcsicmp(pstrName, _T("multi-select")) == 0) SetMultiSelect(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if (_tcsicmp(pstrName, _T("item-right-selected")) == 0) SetItemRSelected(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("empty-text")) == 0
+			|| _tcsicmp(pstrName, _T("empty-description")) == 0 ) {
+			if( m_pEmpty == NULL ) {
+				CEmptyUI* pEmpty = new CEmptyUI;
+				SetEmptyControl(pEmpty);
+			}
+			if( m_pEmpty != NULL ) m_pEmpty->SetDescription(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("empty-image")) == 0 ) {
+			if( m_pEmpty == NULL ) {
+				CEmptyUI* pEmpty = new CEmptyUI;
+				SetEmptyControl(pEmpty);
+			}
+			if( m_pEmpty != NULL ) m_pEmpty->SetImage(pstrValue);
+		}
 
 		else CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);
 	}
@@ -2153,7 +2252,13 @@ namespace DuiLib {
 
 	UINT CListElementUI::GetControlFlags() const
 	{
-		return UIFLAG_WANTRETURN;
+		// SETCURSOR → PreferClientHit，避免 html{action:title} 下项被当成 HTCAPTION 丢悬停
+		return UIFLAG_WANTRETURN | (IsEnabled() ? UIFLAG_SETCURSOR : 0);
+	}
+
+	bool CListElementUI::PreferClientHit() const
+	{
+		return IsEnabled();
 	}
 
 	LPVOID CListElementUI::GetInterface(LPCTSTR pstrName)
@@ -2344,7 +2449,13 @@ namespace DuiLib {
 
 		TListInfoUI* pInfo = m_pOwner->GetListInfo();
 		DWORD iBackColor = 0;
-		if (!pInfo->bAlternateBk || m_iIndex % 2 == 0) iBackColor = pInfo->dwBackgroundColor;
+		if( pInfo->bAlternateBk && (m_iIndex % 2) == 1 ) {
+			if( pInfo->dwAlternateBackgroundColor != 0 )
+				iBackColor = pInfo->dwAlternateBackgroundColor;
+		}
+		else {
+			iBackColor = pInfo->dwBackgroundColor;
+		}
 		if ((m_uButtonState & UISTATE_HOT) != 0 && pInfo->dwHoverBackgroundColor > 0) {
 			iBackColor = pInfo->dwHoverBackgroundColor;
 		}
@@ -2410,8 +2521,31 @@ namespace DuiLib {
 	//
 	IMPLEMENT_DUICONTROL(CListLabelElementUI)
 
-		CListLabelElementUI::CListLabelElementUI()
+	CListLabelElementUI::CListLabelElementUI()
+		: m_pIcon(NULL)
+		, m_pRasterIcon(NULL)
+		, m_eIconKind(IconNone)
+		, m_hRasterTint(NULL)
+		, m_dwRasterTintColor(0)
+		, m_nRasterTintW(0)
+		, m_nRasterTintH(0)
+		, m_nIconSize(16)
+		, m_nIconGap(6)
+		, m_sIconPos(_T("left"))
+		, m_dwIconTint(0)
+		, m_dwIconTintHover(0)
+		, m_dwIconTintSelected(0)
+		, m_dwIconTintDisabled(0)
+		, m_bIconTint(false)
+		, m_bIconTintAuto(false)
 	{
+	}
+
+	CListLabelElementUI::~CListLabelElementUI()
+	{
+		ClearRasterTintCache();
+		if( m_pIcon != NULL ) { delete m_pIcon; m_pIcon = NULL; }
+		if( m_pRasterIcon != NULL ) { delete m_pRasterIcon; m_pRasterIcon = NULL; }
 	}
 
 	LPCTSTR CListLabelElementUI::GetClass() const
@@ -2423,6 +2557,13 @@ namespace DuiLib {
 	{
 		if (_tcsicmp(pstrName, DUI_CTR_LISTLABELELEMENT) == 0) return static_cast<CListLabelElementUI*>(this);
 		return CListElementUI::GetInterface(pstrName);
+	}
+
+	void CListLabelElementUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit)
+	{
+		CControlUI::SetManager(pManager, pParent, bInit);
+		if( m_pIcon != NULL ) m_pIcon->SetManager(pManager, this, bInit);
+		if( m_pRasterIcon != NULL ) m_pRasterIcon->SetManager(pManager, this, bInit);
 	}
 
 	void CListLabelElementUI::DoEvent(TEventUI& event)
@@ -2494,7 +2635,6 @@ namespace DuiLib {
 		CListElementUI::DoEvent(event);
 	}
 
-
 	SIZE CListLabelElementUI::EstimateSize(SIZE szAvailable)
 	{
 		if (m_pOwner == NULL) return CDuiSize(0, 0);
@@ -2505,6 +2645,21 @@ namespace DuiLib {
 		if (cXY.cy == 0 && m_pManager != NULL) {
 			cXY.cy = m_pManager->GetFontInfo(pInfo->nFont)->tm.tmHeight + 8;
 			cXY.cy += pInfo->rcTextPadding.top + pInfo->rcTextPadding.bottom;
+		}
+
+		if( HasIcon() && m_pManager != NULL ) {
+			const int nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+			const int nGap = m_pManager->GetDPIObj()->Scale(m_nIconGap);
+			const bool bVertical = (m_sIconPos.CompareNoCase(_T("top")) == 0
+				|| m_sIconPos.CompareNoCase(_T("bottom")) == 0);
+			if( bVertical && m_cxyFixed.cy == 0 ) {
+				int nTextH = m_pManager->GetFontInfo(pInfo->nFont)->tm.tmHeight;
+				cXY.cy = nSize + nGap + nTextH + pInfo->rcTextPadding.top + pInfo->rcTextPadding.bottom;
+			}
+			else {
+				const int nMinH = nSize + pInfo->rcTextPadding.top + pInfo->rcTextPadding.bottom;
+				if( cXY.cy < nMinH ) cXY.cy = nMinH;
+			}
 		}
 
 		if (cXY.cx == 0) {
@@ -2523,9 +2678,6 @@ namespace DuiLib {
 
 	void CListLabelElementUI::DrawItemText(IRenderContext& ctx, const RECT& rcItem)
 	{
-		CDuiString sText = GetText();
-		if (sText.IsEmpty()) return;
-
 		if (m_pOwner == NULL) return;
 		TListInfoUI* pInfo = m_pOwner->GetListInfo();
 		DWORD iTextColor = pInfo->dwColor;
@@ -2538,21 +2690,657 @@ namespace DuiLib {
 		if (!IsEnabled()) {
 			iTextColor = pInfo->dwDisabledColor;
 		}
-		int nLinks = 0;
-		RECT rcText = rcItem;
+
 		RECT rcTextPadding = GetManager()->GetDPIObj()->Scale(pInfo->rcTextPadding);
-		rcText.left += rcTextPadding.left;
-		rcText.right -= rcTextPadding.right;
-		rcText.top += rcTextPadding.top;
-		rcText.bottom -= rcTextPadding.bottom;
+		RECT rcContent = rcItem;
+		rcContent.left += rcTextPadding.left;
+		rcContent.right -= rcTextPadding.right;
+		rcContent.top += rcTextPadding.top;
+		rcContent.bottom -= rcTextPadding.bottom;
 
+		UINT uStyle = pInfo->uTextStyle;
+		PaintIconAndText(ctx, rcContent, m_rcPaint, iTextColor, pInfo->nFont, uStyle, pInfo->bShowHtml);
+	}
 
-		if (pInfo->bShowHtml)
-			ctx.DrawHtmlText(rcText, sText, iTextColor, \
-			NULL, NULL, nLinks, pInfo->nFont, pInfo->uTextStyle);
+	void CListLabelElementUI::PaintIconAndText(IRenderContext& ctx, const RECT& rcContent, const RECT& rcPaint,
+		DWORD dwTextColor, int iFont, UINT uTextStyle, bool bShowHtml)
+	{
+		RECT rcOldPaint = m_rcPaint;
+		m_rcPaint = rcPaint;
+
+		RECT rcText = rcContent;
+		if( HasIcon() ) {
+			SyncIconAppearance();
+			RECT rcIcon = { 0 };
+			if( LayoutIconAndText(rcContent, rcIcon, rcText) ) {
+				if( m_eIconKind == IconRaster && m_pRasterIcon != NULL && m_pRasterIcon->IsVisible() )
+					PaintRasterIcon(ctx, rcIcon);
+				else if( m_pIcon != NULL && m_pIcon->IsVisible() ) {
+					m_pIcon->SetPos(rcIcon, false);
+					m_pIcon->PaintIcon(ctx, m_rcPaint);
+				}
+			}
+		}
+
+		CDuiString sText = GetText();
+		if( !sText.IsEmpty() ) {
+			UINT uStyle = uTextStyle;
+			if( HasIcon() ) {
+				uStyle &= ~(DT_CENTER | DT_RIGHT | DT_LEFT);
+				const bool bVertical = (m_sIconPos.CompareNoCase(_T("top")) == 0
+					|| m_sIconPos.CompareNoCase(_T("bottom")) == 0);
+				if( bVertical )
+					uStyle |= DT_CENTER;
+				else
+					uStyle |= DT_LEFT;
+				if( (uStyle & (DT_VCENTER | DT_BOTTOM | DT_TOP)) == 0 )
+					uStyle |= DT_VCENTER;
+			}
+
+			int nLinks = 0;
+			if( bShowHtml )
+				ctx.DrawHtmlText(rcText, sText, dwTextColor, NULL, NULL, nLinks, iFont, uStyle);
+			else
+				ctx.DrawText(rcText, sText, dwTextColor, iFont, uStyle);
+		}
+
+		m_rcPaint = rcOldPaint;
+	}
+
+	void CListLabelElementUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
+	{
+		if( _tcsicmp(pstrName, _T("icon-size")) == 0 ) {
+			SetIconSize(_ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("icon-gap")) == 0 ) {
+			SetIconGap(_ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("icon-position")) == 0
+			|| _tcsicmp(pstrName, _T("icon-pos")) == 0 ) {
+			SetIconPosition(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color")) == 0 ) {
+			if( pstrValue == NULL || *pstrValue == _T('\0')
+				|| _tcsicmp(pstrValue, _T("none")) == 0
+				|| _tcsicmp(pstrValue, _T("false")) == 0
+				|| _tcsicmp(pstrValue, _T("original")) == 0 ) {
+				SetIconTintAuto(false);
+				SetIconTint(0);
+			}
+			else if( _tcsicmp(pstrValue, _T("auto")) == 0
+				|| _tcsicmp(pstrValue, _T("true")) == 0 ) {
+				SetIconTintAuto(true);
+			}
+			else {
+				DWORD clr = 0;
+				if( ParseColorString(pstrValue, clr) ) SetIconTint(clr);
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint-hover")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-hover")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetIconTintHover(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint-selected")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-selected")) == 0
+			|| _tcsicmp(pstrName, _T("icon-tint-active")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-active")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetIconTintSelected(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("icon-tint-disabled")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color-disabled")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetIconTintDisabled(clr);
+		}
+		else if( IsIconAttr(pstrName) ) {
+			if( pstrValue == NULL || *pstrValue == _T('\0') ) {
+				ClearIcon();
+				return;
+			}
+			if( _tcsicmp(pstrName, _T("icon-src")) == 0 || _tcsicmp(pstrName, _T("icon")) == 0 )
+				SetIconSrc(pstrValue);
+			else
+				SetIconLib(pstrName, pstrValue);
+		}
 		else
-			ctx.DrawText(rcText, sText, iTextColor, \
-			pInfo->nFont, pInfo->uTextStyle);
+			CListElementUI::SetAttribute(pstrName, pstrValue);
+	}
+
+	void CListLabelElementUI::EnsureIcon()
+	{
+		if( m_pIcon != NULL ) return;
+		m_pIcon = new CSvgBoxUI;
+		m_pIcon->SetMouseEnabled(false);
+		m_pIcon->SetVisible(false);
+		if( m_pManager != NULL )
+			m_pIcon->SetManager(m_pManager, this, false);
+	}
+
+	void CListLabelElementUI::EnsureRasterIcon()
+	{
+		if( m_pRasterIcon != NULL ) return;
+		m_pRasterIcon = new CControlUI;
+		m_pRasterIcon->SetMouseEnabled(false);
+		m_pRasterIcon->SetVisible(false);
+		if( m_pManager != NULL )
+			m_pRasterIcon->SetManager(m_pManager, this, false);
+	}
+
+	bool CListLabelElementUI::IsIconAttr(LPCTSTR pstrName) const
+	{
+		return _tcsicmp(pstrName, _T("bsicon")) == 0
+			|| _tcsicmp(pstrName, _T("iconpark")) == 0
+			|| _tcsicmp(pstrName, _T("lucide")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-outline")) == 0
+			|| _tcsicmp(pstrName, _T("tabler-filled")) == 0
+			|| _tcsicmp(pstrName, _T("remixicon")) == 0
+			|| _tcsicmp(pstrName, _T("twicon")) == 0
+			|| _tcsicmp(pstrName, _T("icon-src")) == 0
+			|| _tcsicmp(pstrName, _T("icon")) == 0;
+	}
+
+	bool CListLabelElementUI::IsRasterImagePath(LPCTSTR pstrPath)
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) return false;
+		CDuiString s(pstrPath);
+		s.MakeLower();
+		LPCTSTR pExt = NULL;
+		for( LPCTSTR p = s.GetData(); *p != _T('\0'); ++p ) {
+			if( *p == _T('.') ) pExt = p;
+			else if( *p == _T('\'') || *p == _T('"') || *p == _T(' ') || *p == _T('\t') ) {
+				if( pExt != NULL ) break;
+			}
+		}
+		if( pExt == NULL ) return false;
+		return _tcsncmp(pExt, _T(".bmp"), 4) == 0
+			|| _tcsncmp(pExt, _T(".png"), 4) == 0
+			|| _tcsncmp(pExt, _T(".jpg"), 4) == 0
+			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0;
+	}
+
+	void CListLabelElementUI::RefreshRasterIconImage()
+	{
+		if( m_pRasterIcon == NULL || m_sRasterPath.IsEmpty() ) return;
+		if( !m_pRasterIcon->IsVisible() ) return;
+		int nSize = m_nIconSize;
+		if( m_pManager != NULL )
+			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+		CDuiString sImg = m_sRasterPath;
+		if( sImg.Find(_T("file=")) < 0 && sImg.Find(_T("res=")) < 0
+			&& sImg.Find(_T("url(")) < 0 ) {
+			CDuiString sFmt;
+			sFmt.Format(_T("file='%s' dest='0,0,%d,%d'"), m_sRasterPath.GetData(), nSize, nSize);
+			sImg = sFmt;
+		}
+		else if( sImg.Find(_T("dest=")) < 0 ) {
+			CDuiString sFmt;
+			sFmt.Format(_T("%s dest='0,0,%d,%d'"), m_sRasterPath.GetData(), nSize, nSize);
+			sImg = sFmt;
+		}
+		m_pRasterIcon->SetBackgroundImage(sImg.GetData());
+		ClearRasterTintCache();
+	}
+
+	void CListLabelElementUI::ClearRasterTintCache()
+	{
+		if( m_hRasterTint != NULL ) {
+			IRenderDevice* pDev = GetRenderDevice();
+			if( pDev != NULL ) pDev->InvalidateBitmapGpu(m_hRasterTint);
+			::DeleteObject(m_hRasterTint);
+			m_hRasterTint = NULL;
+		}
+		m_dwRasterTintColor = 0;
+		m_nRasterTintW = 0;
+		m_nRasterTintH = 0;
+	}
+
+	bool CListLabelElementUI::EnsureRasterTintCache(DWORD dwColor)
+	{
+		if( m_pManager == NULL || m_sRasterPath.IsEmpty() || dwColor == 0 )
+			return false;
+
+		int nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+		if( nSize <= 0 ) return false;
+
+		if( m_hRasterTint != NULL && m_dwRasterTintColor == dwColor
+			&& m_nRasterTintW == nSize && m_nRasterTintH == nSize )
+			return true;
+
+		ClearRasterTintCache();
+
+		CDuiString sName = m_sRasterPath;
+		const int nFile = sName.Find(_T("file='"));
+		if( nFile >= 0 ) {
+			sName = sName.Mid(nFile + 6);
+			const int nEnd = sName.Find(_T('\''));
+			if( nEnd >= 0 ) sName = sName.Left(nEnd);
+		}
+		else {
+			const int nUrl = sName.Find(_T("url("));
+			if( nUrl >= 0 ) {
+				CDuiString sPath;
+				if( ParseCssUrlImage(m_sRasterPath.GetData(), sPath) )
+					sName = sPath;
+			}
+		}
+
+		const TImageInfo* pSrc = m_pManager->GetImageEx(sName.GetData());
+		if( pSrc == NULL || pSrc->hBitmap == NULL || pSrc->nX <= 0 || pSrc->nY <= 0 )
+			return false;
+
+		BITMAP bm = { 0 };
+		if( !::GetObject(pSrc->hBitmap, sizeof(bm), &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0 )
+			return false;
+
+		LPBYTE pSrcBits = NULL;
+		BYTE* pTempBits = NULL;
+		if( bm.bmBits != NULL ) {
+			pSrcBits = (LPBYTE)bm.bmBits;
+		}
+		else if( pSrc->pBits != NULL ) {
+			pSrcBits = pSrc->pBits;
+		}
+		else {
+			pTempBits = new BYTE[pSrc->nX * pSrc->nY * 4];
+			BITMAPINFO bmi = { 0 };
+			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bmi.bmiHeader.biWidth = pSrc->nX;
+			bmi.bmiHeader.biHeight = -pSrc->nY;
+			bmi.bmiHeader.biPlanes = 1;
+			bmi.bmiHeader.biBitCount = 32;
+			bmi.bmiHeader.biCompression = BI_RGB;
+			HDC hScreen = ::GetDC(NULL);
+			int nCopied = ::GetDIBits(hScreen, pSrc->hBitmap, 0, pSrc->nY, pTempBits, &bmi, DIB_RGB_COLORS);
+			::ReleaseDC(NULL, hScreen);
+			if( nCopied == 0 ) {
+				delete[] pTempBits;
+				return false;
+			}
+			pSrcBits = pTempBits;
+		}
+
+		BITMAPINFO bmiOut = { 0 };
+		bmiOut.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmiOut.bmiHeader.biWidth = nSize;
+		bmiOut.bmiHeader.biHeight = -nSize;
+		bmiOut.bmiHeader.biPlanes = 1;
+		bmiOut.bmiHeader.biBitCount = 32;
+		bmiOut.bmiHeader.biCompression = BI_RGB;
+		LPBYTE pDest = NULL;
+		HBITMAP hTint = ::CreateDIBSection(NULL, &bmiOut, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
+		if( hTint == NULL || pDest == NULL ) {
+			delete[] pTempBits;
+			return false;
+		}
+
+		const BYTE tR = DuiColorR(dwColor);
+		const BYTE tG = DuiColorG(dwColor);
+		const BYTE tB = DuiColorB(dwColor);
+		const int srcW = pSrc->nX;
+		const int srcH = pSrc->nY;
+
+		for( int y = 0; y < nSize; ++y ) {
+			const int sy = y * srcH / nSize;
+			for( int x = 0; x < nSize; ++x ) {
+				const int sx = x * srcW / nSize;
+				const BYTE* pS = pSrcBits + (sy * srcW + sx) * 4;
+				BYTE* pD = pDest + (y * nSize + x) * 4;
+				BYTE a = pS[3];
+				if( !pSrc->bAlpha ) {
+					const int lum = (pS[2] * 30 + pS[1] * 59 + pS[0] * 11) / 100;
+					a = (BYTE)(255 - lum);
+				}
+				pD[0] = (BYTE)((DWORD)tB * a / 255);
+				pD[1] = (BYTE)((DWORD)tG * a / 255);
+				pD[2] = (BYTE)((DWORD)tR * a / 255);
+				pD[3] = a;
+			}
+		}
+
+		delete[] pTempBits;
+		m_hRasterTint = hTint;
+		m_dwRasterTintColor = dwColor;
+		m_nRasterTintW = nSize;
+		m_nRasterTintH = nSize;
+		return true;
+	}
+
+	void CListLabelElementUI::PaintRasterIcon(IRenderContext& ctx, const RECT& rcIcon)
+	{
+		if( ShouldTintRasterIcon() ) {
+			const DWORD paint = ResolvePaintIconColor();
+			if( EnsureRasterTintCache(paint) && m_hRasterTint != NULL ) {
+				RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
+				RECT rcCorners = { 0, 0, 0, 0 };
+				ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true);
+				return;
+			}
+		}
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetPos(rcIcon, false);
+			m_pRasterIcon->Paint(ctx, m_rcPaint, NULL);
+		}
+	}
+
+	bool CListLabelElementUI::ShouldTintRasterIcon() const
+	{
+		if( m_eIconKind != IconRaster ) return false;
+		if( m_bIconTintAuto || m_bIconTint ) return true;
+		if( !IsEnabled() ) return m_dwIconTintDisabled != 0;
+		if( IsSelected() ) return m_dwIconTintSelected != 0;
+		if( (m_uButtonState & UISTATE_HOT) != 0 ) return m_dwIconTintHover != 0;
+		return false;
+	}
+
+	void CListLabelElementUI::ShowSvgIcon()
+	{
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(false);
+			m_pRasterIcon->SetBackgroundImage(_T(""));
+		}
+		m_sRasterPath.Empty();
+		ClearRasterTintCache();
+		m_eIconKind = IconSvg;
+		if( m_pIcon != NULL )
+			m_pIcon->SetVisible(true);
+	}
+
+	void CListLabelElementUI::ShowRasterIcon(LPCTSTR pstrPath)
+	{
+		EnsureRasterIcon();
+		if( m_pIcon != NULL )
+			m_pIcon->SetVisible(false);
+		m_sRasterPath = pstrPath ? pstrPath : _T("");
+		m_eIconKind = IconRaster;
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(true);
+			RefreshRasterIconImage();
+		}
+	}
+
+	void CListLabelElementUI::SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName)
+	{
+		if( pstrLib == NULL || *pstrLib == _T('\0')
+			|| pstrName == NULL || *pstrName == _T('\0')
+			|| !IsIconAttr(pstrLib) ) {
+			ClearIcon();
+			return;
+		}
+		EnsureIcon();
+		m_pIcon->SetAttribute(pstrLib, pstrName);
+		ShowSvgIcon();
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconSrc(LPCTSTR pstrPath)
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) {
+			ClearIcon();
+			return;
+		}
+		if( IsRasterImagePath(pstrPath) ) {
+			ShowRasterIcon(pstrPath);
+		}
+		else {
+			EnsureIcon();
+			m_pIcon->SetAttribute(_T("src"), pstrPath);
+			ShowSvgIcon();
+		}
+		Invalidate();
+	}
+
+	void CListLabelElementUI::ClearIcon()
+	{
+		m_eIconKind = IconNone;
+		m_sRasterPath.Empty();
+		ClearRasterTintCache();
+		if( m_pIcon != NULL ) {
+			m_pIcon->SetVisible(false);
+			m_pIcon->LoadFromUtf8Data("");
+		}
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(false);
+			m_pRasterIcon->SetBackgroundImage(_T(""));
+		}
+		Invalidate();
+	}
+
+	bool CListLabelElementUI::HasIcon() const
+	{
+		if( m_eIconKind == IconSvg && m_pIcon != NULL && m_pIcon->IsVisible() ) return true;
+		if( m_eIconKind == IconRaster && m_pRasterIcon != NULL && m_pRasterIcon->IsVisible() ) return true;
+		return false;
+	}
+
+	void CListLabelElementUI::SetIconSize(int nSize)
+	{
+		if( nSize < 8 ) nSize = 8;
+		if( nSize > 64 ) nSize = 64;
+		if( m_nIconSize == nSize ) return;
+		m_nIconSize = nSize;
+		if( m_eIconKind == IconRaster ) {
+			ClearRasterTintCache();
+			RefreshRasterIconImage();
+		}
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconGap(int nGap)
+	{
+		if( nGap < 0 ) nGap = 0;
+		if( m_nIconGap == nGap ) return;
+		m_nIconGap = nGap;
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconPosition(LPCTSTR pstrPos)
+	{
+		CDuiString s = pstrPos ? pstrPos : _T("left");
+		if( s.CompareNoCase(_T("right")) != 0
+			&& s.CompareNoCase(_T("top")) != 0
+			&& s.CompareNoCase(_T("bottom")) != 0 )
+			s = _T("left");
+		if( m_sIconPos == s ) return;
+		m_sIconPos = s;
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconTint(DWORD dwColor)
+	{
+		m_bIconTint = (dwColor != 0);
+		m_dwIconTint = dwColor;
+		if( m_bIconTint ) m_bIconTintAuto = false;
+		ClearRasterTintCache();
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconTintAuto(bool bAuto)
+	{
+		const bool bClearExplicit = bAuto && m_bIconTint;
+		if( m_bIconTintAuto == bAuto && !bClearExplicit ) return;
+		m_bIconTintAuto = bAuto;
+		if( bAuto ) {
+			m_bIconTint = false;
+			m_dwIconTint = 0;
+		}
+		ClearRasterTintCache();
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconTintHover(DWORD dwColor)
+	{
+		m_dwIconTintHover = dwColor;
+		ClearRasterTintCache();
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconTintSelected(DWORD dwColor)
+	{
+		m_dwIconTintSelected = dwColor;
+		ClearRasterTintCache();
+		Invalidate();
+	}
+
+	void CListLabelElementUI::SetIconTintDisabled(DWORD dwColor)
+	{
+		m_dwIconTintDisabled = dwColor;
+		ClearRasterTintCache();
+		Invalidate();
+	}
+
+	DWORD CListLabelElementUI::ResolveIconColor() const
+	{
+		if( m_bIconTint && m_dwIconTint != 0 )
+			return m_dwIconTint;
+		if( m_pOwner != NULL ) {
+			TListInfoUI* pInfo = m_pOwner->GetListInfo();
+			if( pInfo != NULL && pInfo->dwColor != 0 )
+				return pInfo->dwColor;
+		}
+		if( m_pManager != NULL ) return m_pManager->GetDefaultFontColor();
+		return 0x000000E0;
+	}
+
+	DWORD CListLabelElementUI::ResolvePaintIconColor() const
+	{
+		DWORD clr = ResolveIconColor();
+		DWORD clrHover = m_dwIconTintHover;
+		DWORD clrSelected = m_dwIconTintSelected;
+		DWORD clrDisabled = m_dwIconTintDisabled;
+		if( m_pOwner != NULL ) {
+			TListInfoUI* pInfo = m_pOwner->GetListInfo();
+			if( pInfo != NULL ) {
+				if( clrHover == 0 && pInfo->dwHoverColor != 0 ) clrHover = pInfo->dwHoverColor;
+				if( clrSelected == 0 && pInfo->dwSelectedColor != 0 ) clrSelected = pInfo->dwSelectedColor;
+				if( clrDisabled == 0 && pInfo->dwDisabledColor != 0 ) clrDisabled = pInfo->dwDisabledColor;
+			}
+		}
+		if( clrHover == 0 ) clrHover = clr;
+		if( clrSelected == 0 ) clrSelected = clr;
+		if( clrDisabled == 0 ) clrDisabled = clr;
+
+		if( !IsEnabled() ) return clrDisabled;
+		if( IsSelected() ) return clrSelected;
+		if( (m_uButtonState & UISTATE_HOT) != 0 ) return clrHover;
+		return clr;
+	}
+
+	void CListLabelElementUI::SyncIconAppearance()
+	{
+		if( m_pIcon == NULL || m_eIconKind != IconSvg ) return;
+		m_pIcon->SetEnabled(IsEnabled());
+		m_pIcon->SetColor(ResolvePaintIconColor(), false);
+		m_pIcon->SetHoverColor(0, false);
+		m_pIcon->SetActiveColor(0, false);
+		m_pIcon->SetDisabledColor(0, false);
+	}
+
+	bool CListLabelElementUI::LayoutIconAndText(const RECT& rcContent, RECT& rcIcon, RECT& rcText) const
+	{
+		rcText = rcContent;
+		::ZeroMemory(&rcIcon, sizeof(rcIcon));
+		if( !HasIcon() ) return false;
+
+		int nSize = m_nIconSize;
+		int nGap = m_nIconGap;
+		if( m_pManager != NULL ) {
+			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+			nGap = m_pManager->GetDPIObj()->Scale(m_nIconGap);
+		}
+		const int cw = rcContent.right - rcContent.left;
+		const int ch = rcContent.bottom - rcContent.top;
+		if( cw <= 0 || ch <= 0 ) return false;
+		if( nSize > cw ) nSize = cw;
+
+		const bool bHasText = !GetText().IsEmpty();
+		const bool bTop = (m_sIconPos.CompareNoCase(_T("top")) == 0);
+		const bool bBottom = (m_sIconPos.CompareNoCase(_T("bottom")) == 0);
+		const bool bRight = (m_sIconPos.CompareNoCase(_T("right")) == 0);
+
+		if( !bHasText ) {
+			if( nSize > ch ) nSize = ch;
+			rcIcon.left = rcContent.left + (cw - nSize) / 2;
+			rcIcon.top = rcContent.top + (ch - nSize) / 2;
+			rcIcon.right = rcIcon.left + nSize;
+			rcIcon.bottom = rcIcon.top + nSize;
+			return true;
+		}
+
+		SIZE szText = { 0, 0 };
+		if( m_pManager != NULL && m_pOwner != NULL ) {
+			TListInfoUI* pInfo = m_pOwner->GetListInfo();
+			int iFont = (pInfo != NULL) ? pInfo->nFont : -1;
+			CDuiString sText = GetText();
+			UINT uMeas = DT_SINGLELINE | DT_LEFT | DT_TOP | DT_CALCRECT;
+			szText = RenderMeasureTextSize(const_cast<CPaintManagerUI*>(m_pManager),
+				sText.GetData(), iFont, uMeas);
+		}
+		if( szText.cx < 0 ) szText.cx = 0;
+		if( szText.cy < 0 ) szText.cy = 0;
+
+		if( bTop || bBottom ) {
+			const int nTextReserve = szText.cy + nGap;
+			if( nSize > ch - nTextReserve && ch > nTextReserve )
+				nSize = ch - nTextReserve;
+			else if( nSize > ch )
+				nSize = ch;
+
+			int blockH = nSize + nGap + szText.cy;
+			if( blockH > ch ) blockH = ch;
+			int y = rcContent.top + (ch - blockH) / 2;
+			const int yEnd = (y + blockH > rcContent.bottom) ? rcContent.bottom : (y + blockH);
+			rcIcon.left = rcContent.left + (cw - nSize) / 2;
+			rcIcon.right = rcIcon.left + nSize;
+			rcText.left = rcContent.left;
+			rcText.right = rcContent.right;
+			if( bBottom ) {
+				rcText.top = y;
+				rcText.bottom = y + szText.cy;
+				if( rcText.bottom > yEnd ) rcText.bottom = yEnd;
+				if( rcText.top > rcText.bottom ) rcText.top = rcText.bottom;
+				rcIcon.top = rcText.bottom + nGap;
+				rcIcon.bottom = rcIcon.top + nSize;
+				if( rcIcon.bottom > yEnd ) {
+					rcIcon.bottom = yEnd;
+					rcIcon.top = rcIcon.bottom - nSize;
+					if( rcIcon.top < rcText.bottom ) rcIcon.top = rcText.bottom;
+				}
+			}
+			else {
+				rcIcon.top = y;
+				rcIcon.bottom = rcIcon.top + nSize;
+				rcText.top = rcIcon.bottom + nGap;
+				rcText.bottom = yEnd;
+				if( rcText.top > rcText.bottom ) rcText.top = rcText.bottom;
+			}
+			return true;
+		}
+
+		if( nSize > ch ) nSize = ch;
+
+		if( bRight ) {
+			rcIcon.right = rcContent.right;
+			rcIcon.left = rcIcon.right - nSize;
+			rcIcon.top = rcContent.top + (ch - nSize) / 2;
+			rcIcon.bottom = rcIcon.top + nSize;
+			rcText.left = rcContent.left;
+			rcText.right = rcIcon.left - nGap;
+			if( rcText.right < rcText.left ) rcText.right = rcText.left;
+		}
+		else {
+			rcIcon.left = rcContent.left;
+			rcIcon.right = rcIcon.left + nSize;
+			rcIcon.top = rcContent.top + (ch - nSize) / 2;
+			rcIcon.bottom = rcIcon.top + nSize;
+			rcText.left = rcIcon.right + nGap;
+			rcText.right = rcContent.right;
+			if( rcText.left > rcText.right ) rcText.left = rcText.right;
+		}
+		rcText.top = rcContent.top;
+		rcText.bottom = rcContent.bottom;
+		return true;
 	}
 
 
@@ -2589,7 +3377,9 @@ namespace DuiLib {
 
 	UINT CListTextElementUI::GetControlFlags() const
 	{
-		return UIFLAG_WANTRETURN | ((IsEnabled() && m_nLinks > 0) ? UIFLAG_SETCURSOR : 0);
+		UINT u = UIFLAG_WANTRETURN | (IsEnabled() ? UIFLAG_SETCURSOR : 0);
+		if( IsEnabled() && m_nLinks > 0 ) u |= UIFLAG_SETCURSOR;
+		return u;
 	}
 
 	LPCTSTR CListTextElementUI::GetText(int iIndex) const
@@ -2799,7 +3589,12 @@ namespace DuiLib {
 
 	UINT CListContainerElementUI::GetControlFlags() const
 	{
-		return UIFLAG_WANTRETURN;
+		return UIFLAG_WANTRETURN | (IsEnabled() ? UIFLAG_SETCURSOR : 0);
+	}
+
+	bool CListContainerElementUI::PreferClientHit() const
+	{
+		return IsEnabled();
 	}
 
 	LPVOID CListContainerElementUI::GetInterface(LPCTSTR pstrName)
@@ -3103,7 +3898,13 @@ namespace DuiLib {
 
 		TListInfoUI* pInfo = m_pOwner->GetListInfo();
 		DWORD iBackColor = 0;
-		if (!pInfo->bAlternateBk || m_iIndex % 2 == 0) iBackColor = pInfo->dwBackgroundColor;
+		if( pInfo->bAlternateBk && (m_iIndex % 2) == 1 ) {
+			if( pInfo->dwAlternateBackgroundColor != 0 )
+				iBackColor = pInfo->dwAlternateBackgroundColor;
+		}
+		else {
+			iBackColor = pInfo->dwBackgroundColor;
+		}
 
 		CDuiString sForegroundImage = pInfo->sForegroundImage;
 		if ((m_uButtonState & UISTATE_HOT) != 0 && pInfo->dwHoverBackgroundColor > 0) {

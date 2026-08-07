@@ -49,6 +49,8 @@ namespace DuiLib {
 		// 分层 DComp：在绘制前绑定 DXGI/Composition，使 GetBackendTarget 直出 SwapChain
 		virtual bool PrepareLayeredComposition(HWND /*hWnd*/, int /*width*/, int /*height*/) { return false; }
 		virtual bool IsLayeredComposition() const { return false; }
+		/// false：禁用 DXGI/DComp，分层走 BitmapRT + UpdateLayeredWindow（弹窗首帧更稳）
+		virtual void SetLayeredCompositionEnabled(bool /*bEnable*/) {}
 		// 后端 BeginDraw 后回调（清脏区等）
 		virtual void OnBackendBeginDraw() {}
 
@@ -63,6 +65,8 @@ namespace DuiLib {
 		virtual void ClearAll() {}
 		// 分层窗口：RGB 非零但 A=0 时补 A=255（原 UIManager 像素循环）
 		virtual void FixLayeredAlpha(const RECT& rcPaint, const RECT& rcClient) {}
+		/// 对 GDI 位图做 AA 圆角 alpha 遮罩（分层 Present 前调用，保证外形抗锯齿）
+		virtual void ApplyRoundCornerMask(int /*radiusX*/, int /*radiusY*/) {}
 		// 分层遮罩：用 pMask 的 alpha 调制本表面脏区像素（原 UIManager 双重循环）
 		virtual void ApplyLayeredMask(IRenderSurface* pMask, const RECT& rcPaint, const RECT& rcClient) {}
 

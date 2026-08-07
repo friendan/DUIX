@@ -377,13 +377,25 @@ namespace DuiLib
 		if( bSel && m_dwSelectedBk != 0 ) {
 			RECT rcPill = rc;
 			ctx.FillRoundRect(rcPill, rx, ry, GetAdjustColor(m_dwSelectedBk));
-			// 轻阴影感：顶边细线
+			// 顶边细线：按选中底亮度选黑/白半透明，深色主题也能看见
+			const int r = (int)DuiColorR(m_dwSelectedBk);
+			const int g = (int)DuiColorG(m_dwSelectedBk);
+			const int b = (int)DuiColorB(m_dwSelectedBk);
+			const int lum = (r * 299 + g * 587 + b * 114) / 1000;
+			const DWORD dwEdge = (lum >= 160) ? 0x00000014u : 0xFFFFFF22u;
 			RECT rcTop = rcPill;
 			rcTop.bottom = rcTop.top + ScaleValue(1);
-			ctx.DrawColor(rcTop, GetAdjustColor(0x0000000D));
+			ctx.DrawColor(rcTop, GetAdjustColor(dwEdge));
 		}
 		else if( bHover ) {
-			ctx.FillRoundRect(rc, rx, ry, GetAdjustColor(0x00000008));
+			DWORD dwHoverBk = m_dwTrackColor;
+			if( dwHoverBk == 0 ) dwHoverBk = 0xF0F0F0FF;
+			const int r = (int)DuiColorR(dwHoverBk);
+			const int g = (int)DuiColorG(dwHoverBk);
+			const int b = (int)DuiColorB(dwHoverBk);
+			const int lum = (r * 299 + g * 587 + b * 114) / 1000;
+			const DWORD dwFill = (lum >= 160) ? 0x0000000Cu : 0xFFFFFF18u;
+			ctx.FillRoundRect(rc, rx, ry, GetAdjustColor(dwFill));
 		}
 
 		CDuiString s = ItemText(i);

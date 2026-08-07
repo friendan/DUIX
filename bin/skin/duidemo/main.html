@@ -32,7 +32,7 @@
             <TabLayout name="tab_demo" selected-id="0" padding="0,4,0,0">
                 <!-- 0 基础 -->
                 <Accordion mode="single" header-height="40">
-                    <AccordionItem title="Button" active="true" header-align="left">
+                    <AccordionItem title="Button" active="false" header-align="left">
                       <HBox height="40" gap="8" padding="0,8,0,8">
                         <Button text="Default" kind="default" width="100" height="36" tooltip="默认按钮 kind=default" />
                         <Button text="info" kind="info" width="100" height="36" tooltip="信息按钮 kind=info" />
@@ -41,6 +41,26 @@
                         <Button text="Danger" kind="danger" width="100" height="36" tooltip="危险按钮 kind=danger" />
                         <Button text="Warning" kind="warning" width="100" height="36" tooltip="警告按钮 kind=warning" />
                         <Button text="Link" kind="link" width="100" height="36" tooltip="链接样式按钮 kind=link" />
+                      </HBox>
+                      <HBox height="40" gap="8" padding="0,8,0,8" align-items="vcenter">
+                        <Button text="图标左" kind="primary" lucide="chevron-left" icon-position="left" icon-size="16" width="100" height="36" tooltip="icon-position=left（默认），图标+文字整体居中" />
+                        <Button text="图标右" kind="success" lucide="chevron-right" icon-position="right" icon-size="16" width="100" height="36" tooltip="icon-position=right，图标在文字右侧" />
+                        <Button text="新建" kind="primary" lucide="plus" icon-size="16" width="100" height="36" tooltip="lucide 图标 + 文字（默认 left）" />
+                        <Button text="删除" kind="danger" bsicon="trash" width="100" height="36" />
+                        <Button kind="info" lucide="search" icon-size="18" width="36" height="36" tooltip="纯图标按钮" />
+                      </HBox>
+                      <HBox height="64" gap="8" padding="0,8,0,8" align-items="vcenter">
+                        <Button text="上传" kind="warning" iconpark="upload" icon-position="top" icon-size="18" width="72" height="56" tooltip="icon-position=top（图标在上）" />
+                        <Button text="下载" kind="info" lucide="download" icon-position="bottom" icon-size="18" width="72" height="56" tooltip="icon-position=bottom（文字在上、图标在下）" />
+                        <Label text="top=图标上；bottom=文字上" theme="secondary" />
+                      </HBox>
+                      <HBox height="48" gap="8" padding="0,8,8,8" align-items="vcenter">
+                        <Button text="原图PNG" kind="default" icon="menu/icon.png" icon-size="16" width="90" height="36" tooltip="光栅默认原图，不着色" />
+                        <Button text="auto" kind="primary" icon="menu/icon.png" icon-tint="auto" icon-size="16" width="80" height="36" tooltip="icon-tint=auto 跟随文字色" />
+                        <Button text="红 tint" kind="default" icon="menu/icon.png" icon-tint="#FF4D4FFF" icon-size="16" width="90" height="36" tooltip="icon-tint 强制着色" />
+                        <Button name="btn_icon_loading" text="提交" kind="primary" lucide="upload" loading-type="css" icon-size="16" width="110" height="36" tooltip="点击后 loading+自动禁用，约 2 秒后恢复" />
+                        <Button name="btn_icon_css" text="悬停变色" kind="success" lucide="heart" icon-size="16" width="110" height="36" tooltip="CSS #btn_icon_css:hover { icon-tint }" />
+                        <Label text="PNG · 提交自动禁用 2s · CSS tint" theme="secondary" />
                       </HBox>
                     </AccordionItem>
                     <AccordionItem title="Switch" active="false" header-align="left">
@@ -67,13 +87,13 @@
                     <AccordionItem title="SvgBox" active="false" header-align="left">
                       <VBox height="240" gap="8" padding="4,8,4,8">
                         <HBox height="40" gap="8" align-items="vcenter">
-                          <Button name="btn_bsicon" text="bsicon" kind="info" width="90" height="32" tooltip="打开 Bootstrap Icons 浏览器" />
-                          <Button name="btn_iconpark" text="iconpark" kind="warning" width="90" height="32" tooltip="打开 IconPark 图标浏览器" />
-                          <Button name="btn_lucide" text="lucide" kind="success" width="90" height="32" tooltip="打开 Lucide Icons 浏览器" />
-                          <Button name="btn_tabler_filled" text="tabler-filled" kind="primary" width="110" height="32" tooltip="打开 Tabler Filled 图标浏览器" />
-                          <Button name="btn_tabler_outline" text="tabler-outline" kind="default" width="120" height="32" tooltip="打开 Tabler Outline 图标浏览器" />
-                          <Button name="btn_remixicon" text="remixicon" kind="danger" width="90" height="32" tooltip="打开 Remix Icon 浏览器" />
-                          <Button name="btn_twicon" text="twicon" kind="info" width="90" height="32" tooltip="打开 Twemoji 图标浏览器" />
+                          <Button name="btn_bsicon" text="bsicon" kind="info" bsicon="bootstrap" icon-size="14" width="100" height="32" tooltip="打开 Bootstrap Icons 浏览器" />
+                          <Button name="btn_iconpark" text="iconpark" kind="warning" iconpark="all-application" icon-size="14" width="110" height="32" tooltip="打开 IconPark 图标浏览器" />
+                          <Button name="btn_lucide" text="lucide" kind="success" lucide="smile" icon-size="14" width="100" height="32" tooltip="打开 Lucide Icons 浏览器" />
+                          <Button name="btn_tabler_filled" text="tabler-filled" kind="primary" tabler-filled="brand-tabler" icon-size="14" width="130" height="32" tooltip="打开 Tabler Filled 图标浏览器" />
+                          <Button name="btn_tabler_outline" text="tabler-outline" kind="default" tabler-outline="brand-tabler" icon-size="14" width="140" height="32" tooltip="打开 Tabler Outline 图标浏览器" />
+                          <Button name="btn_remixicon" text="remixicon" kind="danger" remixicon="remixicon-line" icon-size="14" width="110" height="32" tooltip="打开 Remix Icon 浏览器" />
+                          <Button name="btn_twicon" text="twicon" kind="info" twicon="1f600" icon-size="16" width="100" height="32" tooltip="打开 Twemoji 图标浏览器" />
                         </HBox>
                         <HBox height="40" gap="12" align-items="vcenter" theme="none">
                           <Svg lucide="circle-check" width="32" height="32" color="#1677FFFF" color-hover="#69B1FFFF" color-active="#0958D9FF" />
@@ -256,6 +276,27 @@
                         <Label text="IPAddress 聚焦走 SysIPAddress32（native-* 跟主题）；IPAddressEx 自绘四段" theme="secondary" />
                       </VBox>
                     </AccordionItem>
+                    <AccordionItem title="Combo 图标" active="false" header-align="left">
+                      <VBox height="120" gap="10" padding="8,12,8,12">
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="图标项" theme="secondary" width="70" />
+                          <Combo name="combo_icons" width="220" height="32"
+                              drop-box-size="0,180"
+                              padding="0,28,0,8"
+                              border="1px solid" border-radius="4"
+                              item-padding="0,10,0,10">
+                            <ListLabelElement text="主页" lucide="home" icon-size="16" height="28" selected="true" />
+                            <ListLabelElement text="设置" lucide="settings" icon-size="16" height="28" />
+                            <ListLabelElement text="搜索" tabler-outline="search" icon-size="16" height="28" />
+                            <ListLabelElement text="PNG 原图" icon="menu/icon.png" icon-size="16" height="28" />
+                            <ListLabelElement text="PNG auto" icon="menu/icon.png" icon-tint="auto" icon-size="16" height="28" />
+                            <ListLabelElement text="红心" lucide="heart" icon-tint="#FF4D4FFF" icon-size="16" height="28" />
+                          </Combo>
+                          <Label text="下拉项 + 闭合态均显示图标" theme="secondary" />
+                        </HBox>
+                        <Label text="项用 ListLabelElement 的 lucide / icon / icon-tint（同 List）" theme="secondary" />
+                      </VBox>
+                    </AccordionItem>
                     <AccordionItem title="RichEdit" active="false" header-align="left">
                       <VBox height="140" gap="10" padding="8,12,8,12">
                         <RichEdit name="richedit_demo" height="90" multiline="true"
@@ -379,6 +420,18 @@
                         </HBox>
                       </VBox>
                     </AccordionItem>
+                    <AccordionItem title="SidePanel" active="false" header-align="left">
+                      <VBox height="160" gap="8" padding="4,8,4,8">
+                        <Label text="四向抽屉；demo 用 panel-width/height 百分比 + esc-close" theme="secondary" />
+                        <HBox height="40" gap="8" align-items="vcenter">
+                          <Button name="btn_sidepanel_right" text="右" kind="primary" width="56" height="32" />
+                          <Button name="btn_sidepanel_left" text="左" kind="secondary" width="56" height="32" />
+                          <Button name="btn_sidepanel_top" text="上" kind="secondary" width="56" height="32" />
+                          <Button name="btn_sidepanel_bottom" text="下" kind="secondary" width="56" height="32" />
+                          <Button name="btn_sidepanel_close" text="关闭" kind="default" width="72" height="32" />
+                        </HBox>
+                      </VBox>
+                    </AccordionItem>
                     <AccordionItem title="Loading" active="false" header-align="left">
                       <VBox height="390" gap="10" padding="8,12,8,12">
                         <HBox height="100" gap="10" align-items="vcenter">
@@ -483,14 +536,110 @@
 
                 <!-- 4 列表 -->
                 <Accordion mode="single" header-height="40">
-                    <AccordionItem title="VirtualList" active="true" header-align="left">
+                    <AccordionItem title="List 斑马纹" active="true" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <HBox height="28" gap="8" align-items="vcenter">
+                          <Label text="传统 List：偶数行底 / 奇数行 item-alternate-background-color" theme="secondary" />
+                          <Label name="listview_status" text="选中: -" kind="link" />
+                        </HBox>
+                        <List name="listview" header="hidden" height="220" overflow="scroll"
+                            item-alternate-background="true"
+                            item-show-row-line="true"
+                            item-padding="0,12,0,12"
+                            border="1px solid" border-radius="4">
+                          <ListLabelElement text="第 1 行 · index0 偶数（白底）" height="28" />
+                          <ListLabelElement text="第 2 行 · index1 奇数（斑马浅蓝）" height="28" />
+                          <ListLabelElement text="第 3 行 · 偶数" height="28" />
+                          <ListLabelElement text="第 4 行 · 奇数斑马" height="28" />
+                          <ListLabelElement text="第 5 行 · 偶数" height="28" />
+                          <ListLabelElement text="第 6 行 · 奇数斑马" height="28" />
+                          <ListLabelElement text="第 7 行 · 偶数" height="28" />
+                          <ListLabelElement text="第 8 行 · 奇数斑马" height="28" />
+                          <ListLabelElement text="第 9 行 · 偶数" height="28" />
+                          <ListLabelElement text="第 10 行 · 奇数斑马" height="28" />
+                        </List>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="List CSS 伪类" active="false" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <Label text="#list_css_demo:hover / :checked → item-*-hover / item-*-selected（解析期）" theme="secondary" />
+                        <List name="list_css_demo" header="hidden" height="220" overflow="scroll"
+                            item-show-row-line="true"
+                            item-padding="0,12,0,12"
+                            border="1px solid" border-radius="4">
+                          <ListLabelElement text="悬停应变浅蓝底（CSS :hover）" lucide="mouse-pointer" icon-size="16" height="32" />
+                          <ListLabelElement text="选中应变蓝（CSS :checked）" lucide="check" icon-size="16" height="32" />
+                          <ListLabelElement text="第三行" lucide="list" icon-size="16" height="32" />
+                          <ListLabelElement text="第四行" lucide="file" icon-size="16" height="32" />
+                        </List>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="List 图标" active="false" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <Label text="ListLabelElement：lucide / PNG；SVG 跟 item-color*；光栅默认原图" theme="secondary" />
+                        <List name="list_icons" header="hidden" height="230" overflow="scroll"
+                            item-show-row-line="true"
+                            item-padding="0,12,0,12"
+                            border="1px solid" border-radius="4">
+                          <ListLabelElement text="主页" lucide="home" icon-size="16" height="32" />
+                          <ListLabelElement text="设置" lucide="settings" icon-size="16" icon-position="right" height="32" />
+                          <ListLabelElement text="搜索" tabler-outline="search" icon-size="16" height="32" />
+                          <ListLabelElement text="上传" lucide="upload" icon-size="18" icon-position="top" height="56" />
+                          <ListLabelElement text="下载" lucide="download" icon-size="18" icon-position="bottom" height="56" />
+                          <ListLabelElement text="PNG 原图" icon="menu/icon.png" icon-size="16" height="32" />
+                          <ListLabelElement text="PNG auto" icon="menu/icon.png" icon-tint="auto" icon-size="16" height="32" />
+                          <ListLabelElement text="强制红 tint" lucide="heart" icon-tint="#FF4D4FFF" icon-size="16" height="32" />
+                        </List>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="List 空态" active="false" header-align="left">
+                      <VBox height="280" gap="8" padding="4,8,4,8">
+                        <Label text="0 项时显示 Empty；empty-text 懒建，或嵌套 &lt;Empty&gt;" theme="secondary" />
+                        <HBox height="140" gap="12">
+                          <List name="list_empty_attr" header="hidden" height="140" width="200"
+                              empty-text="暂无数据（empty-text）"
+                              border="1px solid" border-radius="4"
+                              item-padding="0,12,0,12" />
+                          <List name="list_empty_nested" header="hidden" height="140" width="220"
+                              border="1px solid" border-radius="4"
+                              item-padding="0,12,0,12">
+                            <Empty description="嵌套 Empty 空态" height="120">
+                              <Button name="btn_list_empty_fill" text="添加一项" kind="primary" width="88" height="28" />
+                            </Empty>
+                          </List>
+                        </HBox>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="TreeView 图标" active="false" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <Label text="TreeNode：lucide / PNG；SVG 跟 item-color*；光栅默认原图" theme="secondary" />
+                        <TreeView name="tree_icons" header="hidden" height="230" overflow="scroll"
+                            item-show-row-line="true"
+                            border="1px solid" border-radius="4">
+                          <TreeNode text="项目" lucide="folder" icon-size="16" height="28">
+                            <TreeNode text="源码" lucide="folder-open" icon-size="16" height="28">
+                              <TreeNode text="main.cpp" lucide="file-code" icon-size="16" height="28" />
+                              <TreeNode text="README.md" lucide="file-text" icon-size="16" height="28" />
+                            </TreeNode>
+                            <TreeNode text="资源" lucide="folder" icon-size="16" height="28">
+                              <TreeNode text="PNG 原图" icon="menu/icon.png" icon-size="16" height="28" />
+                              <TreeNode text="PNG auto" icon="menu/icon.png" icon-tint="auto" icon-size="16" height="28" />
+                            </TreeNode>
+                          </TreeNode>
+                          <TreeNode text="设置" lucide="settings" icon-size="16" height="28" />
+                          <TreeNode text="收藏" lucide="heart" icon-tint="#FF4D4FFF" icon-size="16" height="28" />
+                        </TreeView>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="VirtualList" active="false" header-align="left">
                       <VBox height="280" gap="6" padding="4,8,4,8">
                         <HBox height="28" gap="8" align-items="vcenter">
                           <Label text="10 万行虚拟列表（仅绘可视行）" theme="secondary" />
                           <Label name="vlist_status" text="选中: -" kind="link" />
                         </HBox>
                         <VirtualList name="vlist" item-count="100000" item-height="28" overflow="auto"
-                            item-alternate-background="true" item-show-row-line="true"
+                            item-alternate-background="true"
+                            item-show-row-line="true"
                             border="1px solid" />
                       </VBox>
                     </AccordionItem>
@@ -546,6 +695,13 @@
                 </Accordion>
             </TabLayout>
         </HBox>
+        <SidePanel name="demo_sidepanel" position="0,0,1,1" placement="right" panel-width="40%"
+            panel-height="45%" title="侧滑面板" closable="true" mask="true" mask-color="#00000060"
+            click-mask-close="true" esc-close="true" duration="200" visible="false">
+          <Label text="这是 SidePanel 内容区。可放任意控件。" height="28" />
+          <Label text="点遮罩、关闭钮或「关闭」按钮均可收起。" theme="secondary" height="28" />
+          <Button name="btn_sidepanel_inner_close" text="关闭抽屉" kind="primary" width="120" height="32" />
+        </SidePanel>
     </VBox>
 </html>
 <style>
@@ -577,6 +733,20 @@
   }
   #btn_css_hover:active {
     background-color: #0958d9;
+  }
+  #btn_icon_css:hover {
+    icon-tint: #ff4d4f;
+  }
+  #btn_icon_css:active {
+    icon-tint: #cf1322;
+  }
+  #list_css_demo:hover {
+    item-background-color: var(--color-bg-hover);
+    item-color: var(--color-primary);
+  }
+  #list_css_demo:checked {
+    item-background-color: var(--color-selection);
+    item-color: var(--color-primary);
   }
   #box_css_hover {
     background-color: #f5f5f5;

@@ -319,6 +319,7 @@ namespace DuiLib {
 		// html/Window 默认背景落到 root background-color（默认 #FFF0F0F0）；分层未显式设置则保持透明
 		DWORD GetWindowBackgroundColor() const;
 		void SetWindowBackgroundColor(DWORD dwColor);
+		bool IsWindowBackgroundColorCustom() const;
 
 		// html/Window 的 action（如 title）；Attach 后落到 root（root 已有 action 则不覆盖）
 		UIAction GetWindowAction() const;
@@ -331,6 +332,9 @@ namespace DuiLib {
 
 		bool IsLayered();
 		void SetLayered(bool bLayered);
+		/// 分层 Present：默认 true 走 DComp；弹窗可关，强制 BitmapRT+ULW（避免首帧圆角锯齿要拖一下才好）
+		void SetLayeredCompositionEnabled(bool bEnable);
+		bool IsLayeredCompositionEnabled() const;
 		RECT& GetLayeredPadding();
 		void SetLayeredPadding(RECT& rcLayeredPadding);
 		BYTE GetLayeredOpacity();
@@ -360,6 +364,9 @@ namespace DuiLib {
 		static void SetResourcePath(LPCTSTR pStrPath);
 		static void SetResourceZip(LPVOID pVoid, unsigned int len, LPCTSTR password = NULL);
 		static void SetResourceZip(LPCTSTR pstrZip, bool bCachedResourceZip = false, LPCTSTR password = NULL);
+		/// 读相对资源：优先 ResourcePath（skin），找不到再读 ZIP/ZIPRESOURCE，最后试绝对路径。
+		/// 成功时 *ppData 为 new BYTE[]，调用方负责 delete[]；失败返回 false 且 *ppData=NULL。
+		static bool LoadResourceData(LPCTSTR pstrRelativePath, BYTE** ppData, DWORD* pdwSize);
 		static void SetResourceType(int nType);
 		static int GetResourceType();
 		static bool GetHSL(short* H, short* S, short* L);
@@ -589,6 +596,7 @@ namespace DuiLib {
 		CDuiString m_sWindowTheme;
 		CDuiString m_sWindowThemeId;
 		bool m_bLayered;
+		bool m_bLayeredCompositionEnabled;
 		RECT m_rcLayeredPadding;
 		bool m_bLayeredChanged;
 		RECT m_rcLayeredUpdate;

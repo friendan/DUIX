@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 纯色 Menu：跟当前主题 token；勿再用 background-image 壳（图片菜单不会自动跟主题） -->
+<!-- 纯色 Menu：CMenuWnd 自动 ApplyMenuChrome；勿用 background-image 壳（图片菜单不跟主题） -->
 <Window>
-  <Menu border-width="1" border-radius="4,4" padding="4,4,4,4" item-padding="0,14,0,14">
-    <MenuElement name="lan" text="语言 / Language" resource-text="true"/>
-    <MenuElement text="产品演示" expand="true">
-      <MenuElement name="qianting" text="核潜艇" check-item="true" checked="false"/>
-      <MenuElement name="yuanzidan" text="氢弹原子弹"/>
-      <MenuElement name="huojian" text="长征系列" expand="true">
+  <Menu border-width="1" border-radius="4,4" padding="4,4,4,4" item-padding="0,14,0,32">
+    <MenuElement name="lan" text="语言 / Language" resource-text="true" lucide="languages" icon-size="16"/>
+    <MenuElement text="产品演示" expand="true" lucide="rocket" icon-size="16">
+      <MenuElement name="qianting" text="核潜艇" check-item="true" checked="false" lucide="ship" icon-size="16"/>
+      <MenuElement name="yuanzidan" text="氢弹原子弹" lucide="flame" icon-size="16"/>
+      <MenuElement name="huojian" text="长征系列" expand="true" lucide="orbit" icon-size="16">
         <MenuElement name="cz5" text="CZ-5"/>
         <MenuElement name="cz7" text="CZ-7"/>
         <MenuElement name="cz9" text="CZ-9"/>
@@ -17,6 +17,9 @@
         <Button name="menuitembtn" text="菜单内按钮" kind="default" height="28" width="120"/>
       </HBox>
     </MenuElement>
-    <MenuElement name="exit" text="退出"/>
+    <MenuElement name="png_orig" text="PNG 原图" icon="menu/icon.png" icon-size="16"/>
+    <MenuElement name="png_auto" text="PNG auto tint" icon="menu/icon.png" icon-tint="auto" icon-size="16"/>
+    <MenuElement name="png_red" text="PNG 红 tint" icon="menu/icon.png" icon-tint="#FF4D4FFF" icon-size="16"/>
+    <MenuElement name="exit" text="退出" lucide="log-out" icon-size="16" icon-tint="#FF4D4FFF"/>
   </Menu>
 </Window>

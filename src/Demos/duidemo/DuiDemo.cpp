@@ -17,7 +17,7 @@
 
 void InitResource()
 {
-	// 资源类型
+	// Debug：磁盘 skin；Release：嵌入 ZIP，磁盘仍优先（LoadResourceData：skin → zip）
 #ifdef _DEBUG
 	CPaintManagerUI::SetResourceType(UILIB_FILE);
 #else
@@ -57,6 +57,7 @@ void InitResource()
 		}
 	case UILIB_ZIPRESOURCE:
 		{
+			// ResourcePath 优先于 ZIP；无 skin 文件时才用嵌入包
 			strResourcePath += _T("skin\\duidemo\\");
 			CPaintManagerUI::SetResourcePath(strResourcePath.GetData());
 			HRSRC hResource = ::FindResource(CPaintManagerUI::GetResourceDll(), _T("IDR_ZIPRES"), _T("ZIPRES"));

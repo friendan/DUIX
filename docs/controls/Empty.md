@@ -9,6 +9,8 @@
 
 空状态占位：默认插画（或自定义图）+ 描述文案；子控件作为底部操作区。
 
+嵌在 [List](List.md) 内时：0 项自动显示、有项隐藏；也可用 List 的 `empty-text` / `empty-image` 懒建。
+
 ### 最小示例
 
 ```xml
@@ -19,6 +21,9 @@
 </Empty>
 
 <Empty description="自定义图" image="menu/menu_bk.png" image-size="72,72" height="200" />
+
+<!-- List 空态 -->
+<List empty-text="暂无数据" header="hidden" height="160" />
 ```
 
 ### 属性

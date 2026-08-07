@@ -1,56 +1,32 @@
 ﻿#pragma once
 
 //////////////////////////////////////////////////////////////////////////
-///
-#define MSGID_OK		1
-#define MSGID_CANCEL	0
-class CMsgWnd : public WindowImplBase
+/// Demo 兼容封装：默认走库内 CMessageBox（无需 msg.html）
+#define MSGID_OK		MESSAGEBOX_OK
+#define MSGID_CANCEL	MESSAGEBOX_CANCEL
+
+class CMsgWnd
 {
 public:
+	/// 同步确认框（纯代码 UI，无需皮肤）
 	static int MessageBox(HWND hParent, LPCTSTR lpstrTitle, LPCTSTR lpstrMsg)
 	{
-		CMsgWnd* pWnd = new CMsgWnd();
-		pWnd->Create(hParent, _T("msgwnd"), WS_POPUP | WS_CLIPCHILDREN, WS_EX_TOOLWINDOW);
-		pWnd->CenterWindow();
-		pWnd->SetTitle(lpstrTitle);
-		pWnd->SetMsg(lpstrMsg);
-		return pWnd->ShowModal();
+		return CMessageBox::Show(hParent, lpstrTitle, lpstrMsg);
 	}
 
+	/// 异步弹出（不阻塞）
 	static void ShowMessageBox(HWND hParent, LPCTSTR lpstrTitle, LPCTSTR lpstrMsg)
 	{
-		CMsgWnd* pWnd = new CMsgWnd();
-		pWnd->Create(hParent, _T("msgwnd"), UI_WNDSTYLE_FRAME, 0);
-		pWnd->CenterWindow();
-		pWnd->SetTitle(lpstrTitle);
-		pWnd->SetMsg(lpstrMsg);
-		pWnd->ShowWindow(true);
+		CModal::Show(lpstrTitle, lpstrMsg,
+			CModalOptions()
+				.ShowCancel(true)
+				.Owner(hParent));
 	}
 
-public:
-	CMsgWnd(void);
-	~CMsgWnd(void);
-
-	void SetMsg(LPCTSTR lpstrMsg);
-	void SetTitle(LPCTSTR lpstrTitle);
-
-public:
-	virtual void OnFinalMessage( HWND );
-	virtual CDuiString GetSkinFile();
-	virtual LPCTSTR GetWindowClassName( void ) const;
-	virtual void Notify( TNotifyUI &msg );
-	virtual void InitWindow();
-
-	DUI_DECLARE_MESSAGE_MAP()
-	virtual void OnClick(TNotifyUI& msg);
-
-	virtual LRESULT OnSysCommand( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled );
-	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-
-private:
-	CButtonUI* m_pCloseBtn;
-	CButtonUI* m_pMaxBtn;
-	CButtonUI* m_pRestoreBtn;
-	CButtonUI* m_pMinBtn;
-	CButtonUI* m_pMenuBtn;
+	/// 可选：自定义皮肤（XML_MSG / msg.html / 内联 XML）
+	static int MessageBoxSkin(HWND hParent, LPCTSTR lpstrTitle, LPCTSTR lpstrMsg,
+		LPCTSTR skin = _T("XML_MSG"), LPCTSTR skinType = NULL)
+	{
+		return CMessageBox::ShowSkin(hParent, lpstrTitle, lpstrMsg, skin, skinType);
+	}
 };

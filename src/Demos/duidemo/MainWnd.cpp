@@ -19,38 +19,6 @@
 namespace {
 	HWND g_hLastToast = NULL;
 
-	static void ApplyDemoMenuChrome(CMenuWnd* pMenuWnd)
-	{
-		if( pMenuWnd == NULL ) return;
-		CMenuUI* pMenu = pMenuWnd->GetMenuUI();
-		if( pMenu == NULL ) return;
-		DWORD menuBg = 0xFFFFFFFF, menuBd = 0xD9D9D9FF, menuTx = 0x333333FF;
-		DWORD menuTxH = 0x1677FFFF, menuBgH = 0xE6F4FFFF, menuDis = 0xBFBFBFFF;
-		CThemeManager* tm = CThemeManager::GetInstance();
-		if( tm != NULL ) {
-			CTheme* th = tm->GetCurrentTheme();
-			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
-			if( th != NULL ) {
-				menuBg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), menuBg));
-				menuBd = th->GetToken(_T("color-border"), menuBd);
-				menuTx = th->GetToken(_T("color-text"), menuTx);
-				menuTxH = th->GetToken(_T("color-primary"), menuTxH);
-				menuBgH = th->GetToken(_T("color-bg-hover"), th->GetToken(_T("color-selection"), menuBgH));
-				menuDis = th->GetToken(_T("color-text-disabled"), menuDis);
-			}
-		}
-		CDuiString s;
-		s.Format(_T("#%08X"), menuBg); pMenu->SetAttribute(_T("background-color"), s);
-		s.Format(_T("#%08X"), menuBd); pMenu->SetAttribute(_T("border-color"), s);
-		s.Format(_T("#%08X"), menuTx); pMenu->SetAttribute(_T("item-color"), s);
-		s.Format(_T("#%08X"), menuTxH); pMenu->SetAttribute(_T("item-color-hover"), s);
-		s.Format(_T("#%08X"), menuBgH); pMenu->SetAttribute(_T("item-background-color-hover"), s);
-		s.Format(_T("#%08X"), menuTxH); pMenu->SetAttribute(_T("item-color-selected"), s);
-		s.Format(_T("#%08X"), menuBgH); pMenu->SetAttribute(_T("item-background-color-selected"), s);
-		s.Format(_T("#%08X"), menuDis); pMenu->SetAttribute(_T("item-color-disabled"), s);
-		pMenu->Invalidate();
-	}
-
 	HWND RememberToast(HWND h)
 	{
 		if( h ) g_hLastToast = h;
@@ -268,10 +236,23 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	CDuiString name = msg.pSender ? msg.pSender->GetName() : CDuiString();
 	if(msg.sType == _T("windowinit")) {
 	}
+	else if( msg.sType == DUI_MSGTYPE_TIMER )
+	{
+		if( msg.pSender != NULL && msg.pSender->GetName() == _T("btn_icon_loading")
+			&& msg.wParam == 9101 ) {
+			CButtonUI* pBtn = static_cast<CButtonUI*>(msg.pSender->GetInterface(DUI_CTR_BUTTON));
+			if( pBtn != NULL ) {
+				m_pm.KillTimer(pBtn, 9101);
+				pBtn->SetLoading(false);
+				pBtn->SetText(_T("提交"));
+			}
+			return;
+		}
+	}
 	else if( msg.sType == DUI_MSGTYPE_TITLEBARCLOSING )
 	{
 		CTitleBarUI* pBar = static_cast<CTitleBarUI*>(msg.pSender->GetInterface(DUI_CTR_TITLEBAR));
-		if(MSGID_OK != CMsgWnd::MessageBox(m_hWnd, _T("Duilib旗舰版"), _T("确定退出duidemo演示程序？")))
+		if(MSGID_OK != CMsgWnd::MessageBox(m_hWnd, _T("提示"), _T("确定退出d程序？")))
 		{
 			if( pBar != NULL ) pBar->CancelNotify();
 		}
@@ -281,6 +262,14 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	{
 		if( msg.pSender && msg.pSender->GetName() == _T("vlist") ) {
 			CLabelUI* pStatus = static_cast<CLabelUI*>(m_pm.FindControl(_T("vlist_status")));
+			if( pStatus != NULL ) {
+				CDuiString s;
+				s.Format(_T("选中: %d"), (int)msg.wParam + 1);
+				pStatus->SetText(s);
+			}
+		}
+		else if( msg.pSender && msg.pSender->GetName() == _T("listview") ) {
+			CLabelUI* pStatus = static_cast<CLabelUI*>(m_pm.FindControl(_T("listview_status")));
 			if( pStatus != NULL ) {
 				CDuiString s;
 				s.Format(_T("选中: %d"), (int)msg.wParam + 1);
@@ -310,13 +299,13 @@ void CMainWnd::Notify(TNotifyUI& msg)
 		}
 	}
 	else if(msg.sType == DUI_MSGTYPE_ITEMACTIVATE) {
-		if(MSGID_OK == CMsgWnd::MessageBox(m_hWnd, _T("Duilib旗舰版"), _T("确定退出duidemo演示程序？")))
+		if(MSGID_OK == CMsgWnd::MessageBox(m_hWnd, _T("提示"), _T("确定退出程序？")))
 		{
 			::DestroyWindow(m_hWnd);
 		}
 	}
 	else if(msg.sType == DUI_MSGTYPE_ITEMCLICK) {
-		CListUI* pList = static_cast<CListUI*>(m_pm.FindControl(_T("listview")));
+		// listview / vlist 选中态由 itemselect 更新状态栏
 	}
 	else if( msg.sType == _T("showactivex") ) 
 	{
@@ -405,7 +394,6 @@ void CMainWnd::Notify(TNotifyUI& msg)
 		CDuiPoint point;
 		::GetCursorPos(&point);
 		m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
-		ApplyDemoMenuChrome(m_pMenu);
 	}
 
 	return WindowImplBase::Notify(msg);
@@ -558,6 +546,27 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	{
 		CLoadingUI* p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_demo")));
 		if( p ) p->Stop();
+	}
+	else if(sName.CompareNoCase(_T("btn_icon_loading")) == 0)
+	{
+		CButtonUI* pBtn = static_cast<CButtonUI*>(m_pm.FindControl(_T("btn_icon_loading")));
+		if( pBtn && !pBtn->IsLoading() ) {
+			pBtn->SetText(_T("提交中"));
+			pBtn->SetLoading(true);
+			m_pm.SetTimer(pBtn, 9101, 2000);
+		}
+	}
+	else if(sName.CompareNoCase(_T("btn_list_empty_fill")) == 0)
+	{
+		CListUI* pList = static_cast<CListUI*>(m_pm.FindControl(_T("list_empty_nested")));
+		if( pList != NULL ) {
+			CListLabelElementUI* pItem = new CListLabelElementUI;
+			CDuiString s;
+			s.Format(_T("新项 %d"), pList->GetCount() + 1);
+			pItem->SetText(s);
+			pItem->SetFixedHeight(28);
+			pList->Add(pItem);
+		}
 	}
 	else if(sName.CompareNoCase(_T("btn_toast_success")) == 0)
 	{
@@ -762,6 +771,30 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 				.Owner(m_hWnd)
 				.OnResult(OnModalResult));
 	}
+	else if(sName.CompareNoCase(_T("btn_sidepanel_right")) == 0
+		|| sName.CompareNoCase(_T("btn_sidepanel_left")) == 0
+		|| sName.CompareNoCase(_T("btn_sidepanel_top")) == 0
+		|| sName.CompareNoCase(_T("btn_sidepanel_bottom")) == 0)
+	{
+		CSidePanelUI* pSp = static_cast<CSidePanelUI*>(m_pm.FindControl(_T("demo_sidepanel")));
+		if( pSp != NULL ) {
+			CSidePanelUI::Placement e = CSidePanelUI::PlacementRight;
+			if( sName.CompareNoCase(_T("btn_sidepanel_left")) == 0 )
+				e = CSidePanelUI::PlacementLeft;
+			else if( sName.CompareNoCase(_T("btn_sidepanel_top")) == 0 )
+				e = CSidePanelUI::PlacementTop;
+			else if( sName.CompareNoCase(_T("btn_sidepanel_bottom")) == 0 )
+				e = CSidePanelUI::PlacementBottom;
+			pSp->SetPlacement(e);
+			pSp->Show(true);
+		}
+	}
+	else if(sName.CompareNoCase(_T("btn_sidepanel_close")) == 0
+		|| sName.CompareNoCase(_T("btn_sidepanel_inner_close")) == 0)
+	{
+		CSidePanelUI* pSp = static_cast<CSidePanelUI*>(m_pm.FindControl(_T("demo_sidepanel")));
+		if( pSp != NULL ) pSp->Hide(true);
+	}
 	else if(sName.CompareNoCase(_T("modal_popwnd_btn")) == 0)
 	{
 		CPopWnd* pPopWnd = new CPopWnd();
@@ -798,7 +831,6 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		CDuiPoint point;
 		::GetCursorPos(&point);
 		m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
-		ApplyDemoMenuChrome(m_pMenu);
 		// 设置状态
 		CMenuWnd::SetMenuItemInfo(_T("qianting"), true);
 
@@ -945,7 +977,6 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 			::GetCursorPos(&point);
 			point.y -= 100;
 			m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
-			ApplyDemoMenuChrome(m_pMenu);
 			// 动态添加后重新设置菜单的大小
 			m_pMenu->ResizeMenu();
 		}

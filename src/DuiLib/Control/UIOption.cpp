@@ -384,6 +384,8 @@ namespace DuiLib
 		, m_dwBoxHoverBorderColor(0x1677FFFF)
 		, m_dwSelectedBoxBackgroundColor(0x1677FFFF)
 		, m_dwSelectedBoxBorderColor(0x1677FFFF)
+		, m_dwSelectedBoxHoverBackgroundColor(0x0958D9FF)
+		, m_dwSelectedBoxHoverBorderColor(0x0958D9FF)
 		, m_dwCheckMarkColor(0xFFFFFFFF)
 		, m_dwDisabledBoxBackgroundColor(0xF5F5F5FF)
 		, m_dwDisabledBoxBorderColor(0xD9D9D9FF)
@@ -497,9 +499,8 @@ namespace DuiLib
 			dwBk = m_dwSelectedBoxBackgroundColor;
 			dwBorder = m_dwSelectedBoxBorderColor;
 			if( bHot || bPushed ) {
-				// 选中悬停略加深
-				dwBk = 0x0958D9FF;
-				dwBorder = dwBk;
+				dwBk = m_dwSelectedBoxHoverBackgroundColor;
+				dwBorder = m_dwSelectedBoxHoverBorderColor;
 			}
 		}
 		else if( bHot || bPushed ) {
@@ -691,6 +692,18 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("box-border-color-selected")) == 0 ) {
 			ParseCheckColorAttr(pstrValue, m_dwSelectedBoxBorderColor); Invalidate();
+		}
+		else if( _tcsicmp(pstrName, _T("box-background-color-selected-hover")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwSelectedBoxHoverBackgroundColor); Invalidate();
+		}
+		else if( _tcsicmp(pstrName, _T("box-border-color-selected-hover")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwSelectedBoxHoverBorderColor); Invalidate();
+		}
+		else if( _tcsicmp(pstrName, _T("box-background-color-disabled")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwDisabledBoxBackgroundColor); Invalidate();
+		}
+		else if( _tcsicmp(pstrName, _T("box-border-color-disabled")) == 0 ) {
+			ParseCheckColorAttr(pstrValue, m_dwDisabledBoxBorderColor); Invalidate();
 		}
 		else if( _tcsicmp(pstrName, _T("checkmark-color")) == 0 || _tcsicmp(pstrName, _T("accent-color")) == 0 ) {
 			ParseCheckColorAttr(pstrValue, m_dwCheckMarkColor); Invalidate();

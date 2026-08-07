@@ -44,10 +44,12 @@ namespace DuiLib
 
 		void SetIconSize(int nSize);
 		int GetIconSize() const { return m_nIconSize; }
-		/// SVG 着色；0 表示跟随标签文字色（UpdateStyle）
+		/// SVG 默认跟文字色；光栅默认原图。显式色 / `icon-tint="auto"` 才着色
 		void SetIconTint(DWORD dwColor);
 		DWORD GetIconTint() const { return m_dwIconTint; }
 		bool HasIconTint() const { return m_bIconTint; }
+		void SetIconTintAuto(bool bAuto);
+		bool IsIconTintAuto() const { return m_bIconTintAuto; }
 		/// 文件路径：BMP/PNG/JPG/JPEG，或 .svg
 		void SetTabIcon(LPCTSTR pstrPath);
 		/// 内存图：BMP/PNG/JPG/JPEG 编码字节（不接管 pData）
@@ -89,13 +91,18 @@ namespace DuiLib
 		void HideLoadingIcon();
 		void ApplyLoadingAppearance();
 		void RefreshRasterIconImage();
+		void SyncRasterIconAppearance();
+		void ClearRasterTintCache();
+		bool EnsureRasterTintCache(DWORD dwColor);
+		bool ShouldTintRasterIcon() const;
+		DWORD ResolveIconColor() const;
+		DWORD ResolvePaintIconColor() const;
 		void ReleaseMemIcon();
 		void ClearPendingMemIcon();
 		bool InstallMemIcon(HBITMAP hBitmap, int nWidth, int nHeight, bool bAlpha);
 		bool FlushPendingMemIcon();
 		bool IsIconAttr(LPCTSTR pstrName) const;
 		static bool IsRasterImagePath(LPCTSTR pstrPath);
-		DWORD ResolveIconColor() const;
 
 		CControlUI* m_pLeftPad;
 		CSvgBoxUI* m_pIcon;
@@ -110,8 +117,14 @@ namespace DuiLib
 		bool m_bHover;
 		bool m_bMemIcon;
 		bool m_bIconTint;
+		bool m_bIconTintAuto;
+		bool m_bRasterUsingTint;
 		DWORD m_dwIconTint;
 		int m_nIconSize;
+		HBITMAP m_hRasterTint;
+		DWORD m_dwRasterTintColor;
+		int m_nRasterTintW;
+		int m_nRasterTintH;
 		CDuiString m_sUrl;
 		CDuiString m_sDir;
 		CDuiString m_sTextAlign;

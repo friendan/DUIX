@@ -133,6 +133,8 @@ namespace DuiLib
 
 #define DUI_MSGTYPE_PAGECHANED				(_T("page_selected_changed"))
 #define DUI_MSGTYPE_SLIDECHANGED			(_T("slidechanged"))
+#define DUI_MSGTYPE_SIDEPANELOPEN			(_T("sidepanelopen"))
+#define DUI_MSGTYPE_SIDEPANELCLOSE			(_T("sidepanelclose"))
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -312,6 +314,7 @@ protected:                                                                \
 #define  DUI_CTR_ACCORDIONITEM                   (_T("AccordionItem"))
 #define  DUI_CTR_CAROUSEL                        (_T("Carousel"))
 #define  DUI_CTR_CAROUSELITEM                    (_T("CarouselItem"))
+#define  DUI_CTR_SIDEPANEL                       (_T("SidePanel"))
 #define  DUI_CTR_SVGBOX                          (_T("SvgBox"))
 #define  DUI_CTR_TABBAR                          (_T("TabBar"))
 #define  DUI_CTR_TABBUTTON                       (_T("TabButton"))

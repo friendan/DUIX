@@ -1001,30 +1001,24 @@ namespace DuiLib
 			if( i > iTabIndex ) bHasRight = true;
 		}
 
-		CControlUI* pClose = FindMenuItemByName(pMenu, _T("tabbar_close"));
-		if( pClose != NULL ) {
-			pClose->SetUserData(sIdx);
-			pClose->SetEnabled(!bLocked);
-		}
-		CControlUI* pOthers = FindMenuItemByName(pMenu, _T("tabbar_close_others"));
-		if( pOthers != NULL ) {
-			pOthers->SetUserData(sIdx);
-			pOthers->SetEnabled(bHasOther);
-		}
-		CControlUI* pLeft = FindMenuItemByName(pMenu, _T("tabbar_close_left"));
-		if( pLeft != NULL ) {
-			pLeft->SetUserData(sIdx);
-			pLeft->SetEnabled(bHasLeft);
-		}
-		CControlUI* pRight = FindMenuItemByName(pMenu, _T("tabbar_close_right"));
-		if( pRight != NULL ) {
-			pRight->SetUserData(sIdx);
-			pRight->SetEnabled(bHasRight);
-		}
+		auto prepItem = [&](LPCTSTR pstrName, bool bEnable) {
+			CControlUI* pItem = FindMenuItemByName(pMenu, pstrName);
+			if( pItem == NULL ) return;
+			pItem->SetUserData(sIdx);
+			pItem->SetVisible(true);
+			pItem->SetEnabled(bEnable);
+		};
+
+		prepItem(_T("tabbar_close"), !bLocked);
+		prepItem(_T("tabbar_close_others"), bHasOther);
+		prepItem(_T("tabbar_close_left"), bHasLeft);
+		prepItem(_T("tabbar_close_right"), bHasRight);
+
 		CControlUI* pLock = FindMenuItemByName(pMenu, _T("tabbar_lock"));
 		if( pLock != NULL ) {
 			pLock->SetUserData(sIdx);
 			pLock->SetText(bLocked ? _T("解锁") : _T("锁定"));
+			pLock->SetVisible(true);
 			pLock->SetEnabled(true);
 		}
 	}
@@ -1037,35 +1031,16 @@ namespace DuiLib
 
 		SetActiveTab(iTabIndex, true);
 
-		// DialogBuilder::_Parse 只遍历根的【子节点】，故壳用 Window，Menu 作其子节点
-		DWORD menuBg = 0xFFFFFFFF, menuBd = 0xD9D9D9FF, menuTx = 0x333333FF;
-		DWORD menuTxH = 0x1677FFFF, menuBgH = 0xE6F4FFFF, menuDis = 0xBFBFBFFF;
-		CThemeManager* tm = CThemeManager::GetInstance();
-		if( tm != NULL ) {
-			CTheme* th = tm->GetCurrentTheme();
-			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
-			if( th != NULL ) {
-				menuBg = th->GetToken(_T("color-control-bg"), th->GetToken(_T("color-bg"), menuBg));
-				menuBd = th->GetToken(_T("color-border"), menuBd);
-				menuTx = th->GetToken(_T("color-text"), menuTx);
-				menuTxH = th->GetToken(_T("color-primary"), menuTxH);
-				menuBgH = th->GetToken(_T("color-bg-hover"), th->GetToken(_T("color-selection"), menuBgH));
-				menuDis = th->GetToken(_T("color-text-disabled"), menuDis);
-			}
-		}
-		CDuiString sBuiltinMenuShell;
-		sBuiltinMenuShell.Format(
+		// DialogBuilder::_Parse 只遍历根的【子节点】，故壳用 Window，Menu 作其子节点；
+		// 纯色壳由 CMenuWnd::ResizeMenu → ApplyMenuChrome 套当前主题
+		static LPCTSTR sBuiltinMenuShell =
 			_T("<Window>")
-			_T("<Menu border-width=\"1\" border-color=\"#%08X\" border-radius=\"2,2\" ")
-			_T("padding=\"4,4,4,4\" item-padding=\"0,14,0,14\" background-color=\"#%08X\" ")
-			_T("item-color=\"#%08X\" item-color-hover=\"#%08X\" ")
-			_T("item-background-color-hover=\"#%08X\" item-color-selected=\"#%08X\" ")
-			_T("item-background-color-selected=\"#%08X\" item-color-disabled=\"#%08X\" />")
-			_T("</Window>"),
-			menuBd, menuBg, menuTx, menuTxH, menuBgH, menuTxH, menuBgH, menuDis);
+			_T("<Menu border-width=\"1\" border-radius=\"2,2\" ")
+			_T("padding=\"4,4,4,4\" item-padding=\"0,14,0,14\" />")
+			_T("</Window>");
 
 		bool bCustom = !m_sContextMenuXml.IsEmpty();
-		STRINGorID xml = bCustom ? STRINGorID(m_sContextMenuXml.GetData()) : STRINGorID(sBuiltinMenuShell.GetData());
+		STRINGorID xml = bCustom ? STRINGorID(m_sContextMenuXml.GetData()) : STRINGorID(sBuiltinMenuShell);
 		CMenuWnd* pMenuWnd = CMenuWnd::CreateMenu(NULL, xml, ptScreen, m_pManager, NULL,
 			eMenuAlignment_Left | eMenuAlignment_Top);
 		if( pMenuWnd == NULL ) return;
@@ -1165,6 +1140,8 @@ namespace DuiLib
 		if( iIndex < 0 || iIndex >= (int)m_tabs.size() ) return false;
 		if( iIndex == m_iActive ) {
 			RequestScrollToTab(iIndex);
+			// 同下标再激活仍同步页：常见于先 AddTab（SelectItem 时页尚未 Add）再补页
+			SyncBoundTabLayout();
 			return true;
 		}
 

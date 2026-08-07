@@ -32,8 +32,14 @@ namespace DuiLib
 		, m_bHover(false)
 		, m_bMemIcon(false)
 		, m_bIconTint(false)
+		, m_bIconTintAuto(false)
+		, m_bRasterUsingTint(false)
 		, m_dwIconTint(0)
 		, m_nIconSize(14)
+		, m_hRasterTint(NULL)
+		, m_dwRasterTintColor(0)
+		, m_nRasterTintW(0)
+		, m_nRasterTintH(0)
 		, m_pPendingIconData(NULL)
 		, m_dwPendingIconSize(0)
 		, m_hPendingIcon(NULL)
@@ -50,6 +56,7 @@ namespace DuiLib
 
 	CTabButtonUI::~CTabButtonUI()
 	{
+		ClearRasterTintCache();
 		ClearPendingMemIcon();
 		ReleaseMemIcon();
 	}
@@ -260,11 +267,23 @@ namespace DuiLib
 	{
 		m_bIconTint = (dwColor != 0);
 		m_dwIconTint = dwColor;
-		if( m_pIcon != NULL && m_pIcon->IsVisible() ) {
-			DWORD c = m_bIconTint ? m_dwIconTint : 0;
-			if( c != 0 ) m_pIcon->SetColor(c);
-			else UpdateStyle();
+		if( m_bIconTint ) m_bIconTintAuto = false;
+		ClearRasterTintCache();
+		UpdateStyle();
+		Invalidate();
+	}
+
+	void CTabButtonUI::SetIconTintAuto(bool bAuto)
+	{
+		const bool bClearExplicit = bAuto && m_bIconTint;
+		if( m_bIconTintAuto == bAuto && !bClearExplicit ) return;
+		m_bIconTintAuto = bAuto;
+		if( bAuto ) {
+			m_bIconTint = false;
+			m_dwIconTint = 0;
 		}
+		ClearRasterTintCache();
+		UpdateStyle();
 		Invalidate();
 	}
 
@@ -331,12 +350,175 @@ namespace DuiLib
 
 	void CTabButtonUI::RefreshRasterIconImage()
 	{
-		if( m_pRasterIcon == NULL || m_sIconPath.IsEmpty() ) return;
-		if( !m_pRasterIcon->IsVisible() ) return;
+		SyncRasterIconAppearance();
+	}
+
+	void CTabButtonUI::ClearRasterTintCache()
+	{
+		if( m_hRasterTint != NULL ) {
+			IRenderDevice* pDev = GetRenderDevice();
+			if( pDev != NULL ) pDev->InvalidateBitmapGpu(m_hRasterTint);
+			::DeleteObject(m_hRasterTint);
+			m_hRasterTint = NULL;
+		}
+		m_dwRasterTintColor = 0;
+		m_nRasterTintW = 0;
+		m_nRasterTintH = 0;
+	}
+
+	bool CTabButtonUI::ShouldTintRasterIcon() const
+	{
+		if( m_pRasterIcon == NULL || !m_pRasterIcon->IsVisible() ) return false;
+		if( m_sIconPath.IsEmpty() ) return false;
+		return m_bIconTintAuto || m_bIconTint;
+	}
+
+	DWORD CTabButtonUI::ResolvePaintIconColor() const
+	{
+		DWORD c = ResolveIconColor();
+		if( c != 0 ) return c;
+		// auto：跟标签文字色（与 SVG UpdateStyle 一致）
+		CTabBarUI* pBar = GetOwnerBar();
+		DWORD dwText = pBar ? pBar->GetTabColor() : 0x8C8C8CFF;
+		DWORD dwHotText = pBar ? pBar->GetTabHoverColor() : 0x1677FFFF;
+		DWORD dwSelText = pBar ? pBar->GetTabSelectedColor() : 0x1677FFFF;
+		if( m_bActive ) return dwSelText != 0 ? dwSelText : dwText;
+		if( m_bHover ) return dwHotText != 0 ? dwHotText : dwText;
+		return dwText;
+	}
+
+	bool CTabButtonUI::EnsureRasterTintCache(DWORD dwColor)
+	{
+		if( m_pManager == NULL || m_sIconPath.IsEmpty() || dwColor == 0 )
+			return false;
+
+		const int nSize = m_nIconSize;
+		if( nSize <= 0 ) return false;
+
+		if( m_hRasterTint != NULL && m_dwRasterTintColor == dwColor
+			&& m_nRasterTintW == nSize && m_nRasterTintH == nSize )
+			return true;
+
+		ClearRasterTintCache();
+
+		CDuiString sName = m_sIconPath;
+		const int nFile = sName.Find(_T("file='"));
+		if( nFile >= 0 ) {
+			sName = sName.Mid(nFile + 6);
+			const int nEnd = sName.Find(_T('\''));
+			if( nEnd >= 0 ) sName = sName.Left(nEnd);
+		}
+		else {
+			const int nUrl = sName.Find(_T("url("));
+			if( nUrl >= 0 ) {
+				CDuiString sPath;
+				if( ParseCssUrlImage(m_sIconPath.GetData(), sPath) )
+					sName = sPath;
+			}
+		}
+
+		const TImageInfo* pSrc = m_pManager->GetImageEx(sName.GetData());
+		if( pSrc == NULL || pSrc->hBitmap == NULL || pSrc->nX <= 0 || pSrc->nY <= 0 )
+			return false;
+
+		BITMAP bm = { 0 };
+		if( !::GetObject(pSrc->hBitmap, sizeof(bm), &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0 )
+			return false;
+
+		LPBYTE pSrcBits = NULL;
+		BYTE* pTempBits = NULL;
+		if( bm.bmBits != NULL ) {
+			pSrcBits = (LPBYTE)bm.bmBits;
+		}
+		else if( pSrc->pBits != NULL ) {
+			pSrcBits = pSrc->pBits;
+		}
+		else {
+			pTempBits = new BYTE[pSrc->nX * pSrc->nY * 4];
+			BITMAPINFO bmi = { 0 };
+			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bmi.bmiHeader.biWidth = pSrc->nX;
+			bmi.bmiHeader.biHeight = -pSrc->nY;
+			bmi.bmiHeader.biPlanes = 1;
+			bmi.bmiHeader.biBitCount = 32;
+			bmi.bmiHeader.biCompression = BI_RGB;
+			HDC hScreen = ::GetDC(NULL);
+			int nCopied = ::GetDIBits(hScreen, pSrc->hBitmap, 0, pSrc->nY, pTempBits, &bmi, DIB_RGB_COLORS);
+			::ReleaseDC(NULL, hScreen);
+			if( nCopied == 0 ) {
+				delete[] pTempBits;
+				return false;
+			}
+			pSrcBits = pTempBits;
+		}
+
+		BITMAPINFO bmiOut = { 0 };
+		bmiOut.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmiOut.bmiHeader.biWidth = nSize;
+		bmiOut.bmiHeader.biHeight = -nSize;
+		bmiOut.bmiHeader.biPlanes = 1;
+		bmiOut.bmiHeader.biBitCount = 32;
+		bmiOut.bmiHeader.biCompression = BI_RGB;
+		LPBYTE pDest = NULL;
+		HBITMAP hTint = ::CreateDIBSection(NULL, &bmiOut, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
+		if( hTint == NULL || pDest == NULL ) {
+			delete[] pTempBits;
+			return false;
+		}
+
+		const BYTE tR = DuiColorR(dwColor);
+		const BYTE tG = DuiColorG(dwColor);
+		const BYTE tB = DuiColorB(dwColor);
+		const int srcW = pSrc->nX;
+		const int srcH = pSrc->nY;
+
+		for( int y = 0; y < nSize; ++y ) {
+			const int sy = y * srcH / nSize;
+			for( int x = 0; x < nSize; ++x ) {
+				const int sx = x * srcW / nSize;
+				const BYTE* pS = pSrcBits + (sy * srcW + sx) * 4;
+				BYTE* pD = pDest + (y * nSize + x) * 4;
+				BYTE a = pS[3];
+				if( !pSrc->bAlpha ) {
+					const int lum = (pS[2] * 30 + pS[1] * 59 + pS[0] * 11) / 100;
+					a = (BYTE)(255 - lum);
+				}
+				pD[0] = (BYTE)((DWORD)tB * a / 255);
+				pD[1] = (BYTE)((DWORD)tG * a / 255);
+				pD[2] = (BYTE)((DWORD)tR * a / 255);
+				pD[3] = a;
+			}
+		}
+
+		delete[] pTempBits;
+		m_hRasterTint = hTint;
+		m_dwRasterTintColor = dwColor;
+		m_nRasterTintW = nSize;
+		m_nRasterTintH = nSize;
+		return true;
+	}
+
+	void CTabButtonUI::SyncRasterIconAppearance()
+	{
+		if( m_pRasterIcon == NULL || m_sIconPath.IsEmpty() || !m_pRasterIcon->IsVisible() ) {
+			ClearRasterTintCache();
+			m_bRasterUsingTint = false;
+			return;
+		}
+
+		if( ShouldTintRasterIcon() ) {
+			const DWORD paint = ResolvePaintIconColor();
+			if( paint != 0 && EnsureRasterTintCache(paint) ) {
+				m_pRasterIcon->SetBackgroundImage(_T(""));
+				m_bRasterUsingTint = true;
+				return;
+			}
+		}
+
+		ClearRasterTintCache();
+		m_bRasterUsingTint = false;
+
 		CDuiString sImg;
-		// 必须用 file='name' dest='...'：裸 "name dest=..." 时 TDrawInfo::Parse
-		// 会把整串当成 sImageName，导致 AddImage 缓存键对不上、图标空白。
-		// 内存图已在 PaintManager 按 key 登记，GetImage 命中后不会再按路径读盘。
 		if( m_bMemIcon ) {
 			sImg.Format(_T("file='%s' dest='0,0,%d,%d'"),
 				m_sIconPath.GetData(), m_nIconSize, m_nIconSize);
@@ -539,6 +721,8 @@ namespace DuiLib
 		HideLoadingIcon();
 		ReleaseMemIcon();
 		ClearPendingMemIcon();
+		ClearRasterTintCache();
+		m_bRasterUsingTint = false;
 		if( m_pRasterIcon != NULL ) {
 			m_pRasterIcon->SetVisible(false);
 			m_pRasterIcon->SetBackgroundImage(_T(""));
@@ -553,6 +737,8 @@ namespace DuiLib
 	{
 		EnsureChildren();
 		HideLoadingIcon();
+		ClearRasterTintCache();
+		m_bRasterUsingTint = false;
 		if( m_pIcon != NULL ) {
 			m_pIcon->SetVisible(false);
 			m_pIcon->SetFixedWidth(0);
@@ -684,6 +870,8 @@ namespace DuiLib
 		HideLoadingIcon();
 		ClearPendingMemIcon();
 		ReleaseMemIcon();
+		ClearRasterTintCache();
+		m_bRasterUsingTint = false;
 		m_sIconPath.Empty();
 		m_bMemIcon = false;
 		if( m_pIcon != NULL ) {
@@ -827,6 +1015,8 @@ namespace DuiLib
 				clrIcon = m_dwIconTint;
 			m_pIcon->SetColor(clrIcon);
 		}
+		if( m_pRasterIcon != NULL && m_pRasterIcon->IsVisible() )
+			SyncRasterIconAppearance();
 		if( m_pLoading != NULL && m_pLoading->IsVisible() )
 			ApplyLoadingAppearance();
 
@@ -846,6 +1036,15 @@ namespace DuiLib
 		bool bRet = CHorizontalLayoutUI::DoPaint(ctx, rcPaint, pStopControl);
 		if( bHideClose )
 			m_pClose->SetInternVisible(true);
+
+		// 光栅 tint：子控件清空 bkimage，在此按布局矩形绘制着色位图
+		if( m_bRasterUsingTint && m_hRasterTint != NULL
+			&& m_pRasterIcon != NULL && m_pRasterIcon->IsVisible() ) {
+			RECT rcIcon = m_pRasterIcon->GetPos();
+			RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
+			RECT rcCorners = { 0, 0, 0, 0 };
+			ctx.DrawImage(m_hRasterTint, rcIcon, rcPaint, rcBmp, rcCorners, true);
+		}
 		return bRet;
 	}
 
@@ -892,9 +1091,23 @@ namespace DuiLib
 			else
 				SetTabIconLib(pstrName, pstrValue);
 		}
-		else if( _tcsicmp(pstrName, _T("icon-tint")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("icon-tint")) == 0
+			|| _tcsicmp(pstrName, _T("icon-color")) == 0 ) {
 			EnsureChildren();
-			SetIconTint(ParseTabColor(pstrValue));
+			if( pstrValue == NULL || *pstrValue == _T('\0')
+				|| _tcsicmp(pstrValue, _T("none")) == 0
+				|| _tcsicmp(pstrValue, _T("false")) == 0
+				|| _tcsicmp(pstrValue, _T("original")) == 0 ) {
+				SetIconTintAuto(false);
+				SetIconTint(0);
+			}
+			else if( _tcsicmp(pstrValue, _T("auto")) == 0
+				|| _tcsicmp(pstrValue, _T("true")) == 0 ) {
+				SetIconTintAuto(true);
+			}
+			else {
+				SetIconTint(ParseTabColor(pstrValue));
+			}
 		}
 		else if( _tcsicmp(pstrName, _T("loading")) == 0 ) {
 			SetTabLoading(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);

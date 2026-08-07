@@ -41,6 +41,8 @@ namespace DuiLib {
 		virtual void FreeImage(TImageInfo* pImageInfo, bool bDelete = true) = 0;
 		// 像素被原地修改（如 HSL）后，通知后端丢弃 GPU 纹理缓存
 		virtual void InvalidateImageGpu(TImageInfo* /*pImageInfo*/) {}
+		// 直接按 HBITMAP 丢弃 GPU 缓存（SvgBox 等自管位图，不经 TImageInfo）
+		virtual void InvalidateBitmapGpu(HBITMAP /*hBitmap*/) {}
 
 		// 字体资源（写入 hFont 和/或 pBackend）
 		virtual bool CreateNativeFont(TFontInfo* pFontInfo, int nHeightPx, void* measureNative = NULL) = 0;
@@ -72,6 +74,7 @@ namespace DuiLib {
 		void ClearPaintRect(const RECT& rcPaint, const RECT& rcClient) override;
 		void ClearAll() override;
 		void FixLayeredAlpha(const RECT& rcPaint, const RECT& rcClient) override;
+		void ApplyRoundCornerMask(int radiusX, int radiusY) override;
 		void ApplyLayeredMask(IRenderSurface* pMask, const RECT& rcPaint, const RECT& rcClient) override;
 		bool Present(const RenderPresentParams& params) override;
 

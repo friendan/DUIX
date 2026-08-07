@@ -64,6 +64,7 @@
 | Theme（全局） | [Theme.md](Theme.md) | `src/DuiLib/Core/UITheme.*` |
 | PageControl | [PageControl.md](PageControl.md) | `src/DuiLib/Control/UIPageControl.*` |
 | Toast | [Toast.md](Toast.md) | `src/DuiLib/Control/UIToast.*` |
-| Modal | [Modal.md](Modal.md) | `src/DuiLib/Control/UIModal.*` |
+| Modal / MessageBox | [Modal.md](Modal.md) | `UIModal.*`、`UIMessageBox.*` |
+| SidePanel | [SidePanel.md](SidePanel.md) | `src/DuiLib/Control/UISidePanel.*` |
 
 后续新控件：在此表追加一行，并新增同名 md（用法）或并入对应符合度页。

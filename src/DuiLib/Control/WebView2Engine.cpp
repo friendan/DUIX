@@ -697,6 +697,11 @@ namespace DuiLib
 		if( m_pWebView ) m_pWebView->Stop();
 	}
 
+	void CWebView2Engine::OpenDevToolsWindow()
+	{
+		if( m_pWebView ) m_pWebView->OpenDevToolsWindow();
+	}
+
 	bool CWebView2Engine::GetUrl(CDuiString& out) const
 	{
 		out.Empty();

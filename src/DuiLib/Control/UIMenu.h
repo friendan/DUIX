@@ -335,6 +335,7 @@ public:
 };
 
 class CListContainerElementUI;
+class CSvgBoxUI;
 class UILIB_API CMenuElementUI : public CListContainerElementUI
 {
 	DECLARE_DUICONTROL(CMenuElementUI)
@@ -345,6 +346,7 @@ public:
 
     LPCTSTR GetClass() const;
     LPVOID GetInterface(LPCTSTR pstrName);
+	void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
     bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 	void DrawItemText(IRenderContext& ctx, const RECT& rcItem);
 	SIZE EstimateSize(SIZE szAvailable);
@@ -355,13 +357,17 @@ public:
 	void CreateMenuWnd();
 	
 	void SetLineType();
+	bool GetLineType() const;
 	void SetLineColor(DWORD color);
 	DWORD GetLineColor() const;
 	void SetLinePadding(RECT rcPadding);
 	RECT GetLinePadding() const;
 	void SetIcon(LPCTSTR strIcon);
+	void SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName);
 	void SetIconSize(LONG cx, LONG cy);
 	SIZE GetIconSize();
+	void SetIconTint(DWORD dwColor);
+	void SetIconTintAuto(bool bAuto);
 	void DrawItemIcon(IRenderContext& ctx, const RECT& rcItem);
 	void SetChecked(bool bCheck = true);
 	bool GetChecked() const;
@@ -376,6 +382,15 @@ public:
 	MenuItemInfo* GetItemInfo(LPCTSTR pstrName);
 	MenuItemInfo* SetItemInfo(LPCTSTR pstrName, bool bChecked);
 protected:
+	bool IsIconLibAttr(LPCTSTR pstrName) const;
+	void EnsureSvgIcon();
+	void ClearSvgIcon();
+	DWORD ResolveMenuIconColor() const;
+	void ClearRasterTintCache();
+	bool EnsureRasterTintCache(DWORD dwColor);
+	bool ShouldTintRasterIcon() const;
+	void PaintRasterIcon(IRenderContext& ctx, const RECT& rcIcon);
+
 	CMenuWnd*	m_pWindow;
 
 	bool		m_bDrawLine;	//画分隔线
@@ -384,6 +399,14 @@ protected:
 
 	SIZE		m_szIconSize; 	//画图标
 	CDuiString	m_strIcon;
+	CSvgBoxUI*	m_pIcon;
+	DWORD		m_dwIconTint;
+	bool		m_bIconTint;
+	bool		m_bIconTintAuto;
+	HBITMAP		m_hRasterTint;
+	DWORD		m_dwRasterTintColor;
+	int			m_nRasterTintW;
+	int			m_nRasterTintH;
 	bool		m_bCheckItem;
 
 	bool		m_bShowExplandIcon;

@@ -90,6 +90,8 @@ namespace DuiLib {
 		void SetItemBkImage(LPCTSTR pStrImage);
 		bool IsAlternateBk() const;
 		void SetAlternateBk(bool bAlternateBk);
+		DWORD GetAlternateBkColor() const;
+		void SetAlternateBkColor(DWORD dwColor);
 		DWORD GetSelectedItemColor() const;
 		void SetSelectedItemColor(DWORD dwColor);
 		DWORD GetSelectedItemBackgroundColor() const;

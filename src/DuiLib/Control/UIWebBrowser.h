@@ -61,6 +61,7 @@ namespace DuiLib
 		/// 向引擎查询当前 URL；失败则回落 GetLocationUrl()
 		bool QueryUrl(CDuiString& out) const;
 		void ExecuteScript(LPCTSTR script);
+		void OpenDevToolsWindow();
 		/// 转发给当前引擎（CEF 等可在应用消息循环空闲时调用）
 		void DoMessageLoopWork();
 

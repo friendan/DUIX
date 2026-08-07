@@ -371,6 +371,12 @@ namespace DuiLib
 		if( m_pEngine ) m_pEngine->ExecuteScript(script);
 	}
 
+	void CWebBrowserUI::OpenDevToolsWindow()
+	{
+		EnsureEngine();
+		if( m_pEngine ) m_pEngine->OpenDevToolsWindow();
+	}
+
 	void CWebBrowserUI::DoMessageLoopWork()
 	{
 		if( m_pEngine ) m_pEngine->DoMessageLoopWork();

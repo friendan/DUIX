@@ -38,9 +38,13 @@ root（`body`/`VBox`）上仍可写 `theme`，会覆盖 html 级默认。
 
 ### chrome 覆盖
 
-TitleBar、ScrollBar、Edit/HotKey/**IPAddress（含聚焦原生 HWND；打开中热切重刷）**/**RichEdit（placeholder-color 跟 Edit）**/Spin/Number、Combo（含下拉；**打开中热切会重刷壳**）、DateTime（字段 + 日历；**打开中热切重刷壳**）、Accordion、TabBar（含内置右键菜单；**嵌在 TitleBar 内时底/字/图标按标题栏亮度适配**）、List/TreeView/**VirtualList 斑马纹**、**走 List 接口的 Menu / 演示 menu.html 纯色壳**（带 `background-image` 的图片菜单仍不会自动跟）、**Transfer（含左右面板壳）**、GroupBox、PageControl、**Carousel / CarouselItem caption**、**Avatar 默认 fallback 跟 primary**、Tag/Badge/Rate/Steps/Timeline、Empty/Skeleton/Loading/ColorPalette 等。
+TitleBar、ScrollBar（含无图箭头色跟 thumb）、Edit/HotKey/**IPAddress（含聚焦原生 HWND；打开中热切重刷）**/**RichEdit（placeholder-color 跟 Edit）**/Spin/Number、Combo（含下拉；**打开中热切会重刷壳**）、DateTime（字段 + 日历；**打开中热切重刷壳**）、**Switch**（轨道 / 滑块 / 禁用）、**CheckBox**（方框 / 选中悬停 / 禁用 / 勾号）、**Option**（含 `group` 作 Radio）、Accordion、TabBar（含内置右键菜单；**嵌在 TitleBar 内时底/字/图标按标题栏亮度适配**）、List/TreeView/**VirtualList 斑马纹**、**纯色弹出 Menu**（`ApplyMenuChrome`；禁用项透明底；`theme=none` / `background-image` 壳跳过）、**Transfer（含左右面板壳）**、GroupBox、PageControl、**Carousel / CarouselItem caption**、**SidePanel（面板底/边/标题；遮罩色保留皮肤）**、**Avatar 默认 fallback 跟 primary**、Tag/Badge/Rate/Steps/Timeline、Empty/Skeleton/Loading/ColorPalette、**Segmented（悬停/选中边按亮度自适应）** 等。
+
+装饰色请用 `theme="none"`（如紫色 Switch、自定义 DateTime 日历色）。
 
 Toast / Modal：新建时按当前 **kind / token** 建 UI；已打开实例在 `RefreshAllManagers` 中跳过。
+
+未覆盖（刻意）：Slider 滑块图、Ring 位图、Svg 自动 tint（需皮肤写 `color`/`icon-tint`）。
 
 ### `var(--token)`
 

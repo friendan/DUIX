@@ -148,6 +148,9 @@ namespace DuiLib
 	void CSvgBoxUI::ClearCache()
 	{
 		if( m_hCacheBitmap != NULL ) {
+			// 删除 HBITMAP 前丢掉 D2D 纹理缓存，避免句柄复用后命中旧图
+			IRenderDevice* pDev = GetRenderDevice();
+			if( pDev != NULL ) pDev->InvalidateBitmapGpu(m_hCacheBitmap);
 			::DeleteObject(m_hCacheBitmap);
 			m_hCacheBitmap = NULL;
 		}
@@ -183,11 +186,11 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	void CSvgBoxUI::SetColor(DWORD dwColor)
+	void CSvgBoxUI::SetColor(DWORD dwColor, bool bInvalidate)
 	{
 		if( m_dwColor == dwColor ) return;
 		m_dwColor = dwColor;
-		Invalidate();
+		if( bInvalidate ) Invalidate();
 	}
 
 	DWORD CSvgBoxUI::GetColor() const
@@ -195,11 +198,11 @@ namespace DuiLib
 		return m_dwColor;
 	}
 
-	void CSvgBoxUI::SetHoverColor(DWORD dwColor)
+	void CSvgBoxUI::SetHoverColor(DWORD dwColor, bool bInvalidate)
 	{
 		if( m_dwHoverColor == dwColor ) return;
 		m_dwHoverColor = dwColor;
-		Invalidate();
+		if( bInvalidate ) Invalidate();
 	}
 
 	DWORD CSvgBoxUI::GetHoverColor() const
@@ -207,11 +210,11 @@ namespace DuiLib
 		return m_dwHoverColor;
 	}
 
-	void CSvgBoxUI::SetActiveColor(DWORD dwColor)
+	void CSvgBoxUI::SetActiveColor(DWORD dwColor, bool bInvalidate)
 	{
 		if( m_dwActiveColor == dwColor ) return;
 		m_dwActiveColor = dwColor;
-		Invalidate();
+		if( bInvalidate ) Invalidate();
 	}
 
 	DWORD CSvgBoxUI::GetActiveColor() const
@@ -219,11 +222,11 @@ namespace DuiLib
 		return m_dwActiveColor;
 	}
 
-	void CSvgBoxUI::SetDisabledColor(DWORD dwColor)
+	void CSvgBoxUI::SetDisabledColor(DWORD dwColor, bool bInvalidate)
 	{
 		if( m_dwDisabledColor == dwColor ) return;
 		m_dwDisabledColor = dwColor;
-		Invalidate();
+		if( bInvalidate ) Invalidate();
 	}
 
 	DWORD CSvgBoxUI::GetDisabledColor() const
@@ -233,10 +236,38 @@ namespace DuiLib
 
 	void CSvgBoxUI::SetEnabled(bool bEnable)
 	{
+		// 状态未变时不要 Invalidate：嵌在 Button 绘制中每次 Sync 都会调到这里，
+		// 否则会刷出「仅图标矩形」脏区，下一帧圆角 clip 对小矩形，四角露出窗口白底。
+		if( m_bEnabled == bEnable ) {
+			if( bEnable ) m_uButtonState &= ~UISTATE_DISABLED;
+			else m_uButtonState |= UISTATE_DISABLED;
+			return;
+		}
 		CControlUI::SetEnabled(bEnable);
 		if( bEnable ) m_uButtonState &= ~UISTATE_DISABLED;
 		else m_uButtonState |= UISTATE_DISABLED;
-		Invalidate();
+	}
+
+	void CSvgBoxUI::Invalidate()
+	{
+		// 挂在 Button / 圆角父控件下时，只脏图标矩形会让下一帧 RoundClip 作用在小区域上，
+		// GetUpdateRect 包围盒还会清到旁钮；提升为父控件整区刷新。
+		CControlUI* pParent = GetParent();
+		if( pParent != NULL ) {
+			const bool bButtonParent = (pParent->GetInterface(DUI_CTR_BUTTON) != NULL);
+			SIZE radius = pParent->GetBorderRadius();
+			if( bButtonParent || radius.cx > 0 || radius.cy > 0 ) {
+				pParent->Invalidate();
+				return;
+			}
+		}
+		CControlUI::Invalidate();
+	}
+
+	void CSvgBoxUI::PaintIcon(IRenderContext& ctx, const RECT& rcPaint)
+	{
+		if( !::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem) ) return;
+		PaintStatusImage(ctx);
 	}
 
 	DWORD CSvgBoxUI::GetPaintColor() const
@@ -377,8 +408,17 @@ namespace DuiLib
 
 		std::unique_ptr<lunasvg::Document> document;
 		if( !m_sSvgPath.IsEmpty() ) {
-			CDuiString sPath = ResolveFilePath(m_sSvgPath.GetData());
-			document = lunasvg::Document::loadFromFile(DuiStringToUtf8(sPath.GetData()));
+			BYTE* pSvg = NULL;
+			DWORD nSvg = 0;
+			if( CPaintManagerUI::LoadResourceData(m_sSvgPath.GetData(), &pSvg, &nSvg) && pSvg != NULL && nSvg > 0 ) {
+				std::string sUtf8(reinterpret_cast<const char*>(pSvg), reinterpret_cast<const char*>(pSvg) + nSvg);
+				delete[] pSvg;
+				document = lunasvg::Document::loadFromData(sUtf8);
+			}
+			else {
+				CDuiString sPath = ResolveFilePath(m_sSvgPath.GetData());
+				document = lunasvg::Document::loadFromFile(DuiStringToUtf8(sPath.GetData()));
+			}
 		}
 		else if( !m_sSvgUtf8.empty() ) {
 			document = lunasvg::Document::loadFromData(m_sSvgUtf8);
@@ -397,22 +437,11 @@ namespace DuiLib
 				sProbe = DuiStringToUtf8(m_sSvgData.GetData());
 			}
 			else if( !m_sSvgPath.IsEmpty() ) {
-				CDuiString sPath = ResolveFilePath(m_sSvgPath.GetData());
-				FILE* fp = NULL;
-#ifdef _UNICODE
-				_wfopen_s(&fp, sPath.GetData(), L"rb");
-#else
-				fopen_s(&fp, sPath.GetData(), "rb");
-#endif
-				if( fp != NULL ) {
-					fseek(fp, 0, SEEK_END);
-					long nLen = ftell(fp);
-					fseek(fp, 0, SEEK_SET);
-					if( nLen > 0 && nLen < 2 * 1024 * 1024 ) {
-						sProbe.resize((size_t)nLen);
-						fread(&sProbe[0], 1, (size_t)nLen, fp);
-					}
-					fclose(fp);
+				BYTE* pSvg = NULL;
+				DWORD nSvg = 0;
+				if( CPaintManagerUI::LoadResourceData(m_sSvgPath.GetData(), &pSvg, &nSvg) && pSvg != NULL && nSvg > 0 ) {
+					sProbe.assign(reinterpret_cast<const char*>(pSvg), (size_t)nSvg);
+					delete[] pSvg;
 				}
 			}
 

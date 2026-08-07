@@ -277,19 +277,23 @@ namespace DuiLib {
 	{
 		if( pBitmap == NULL ) return false;
 		float opacity = (uFade >= 255) ? 1.0f : ((float)uFade / 255.0f);
-		RECT rcTemp = { 0 };
 		RECT rcDest = { 0 };
 		RECT rcSrc = { 0 };
 
 		auto BlitClipped = [&](const RECT& dest, int srcL, int srcT, int srcW, int srcH) {
 			if( srcW <= 0 || srcH <= 0 ) return;
-			rcDest = dest;
-			if( !::IntersectRect(&rcTemp, &rcPaint, &rcDest) ) return;
-			rcSrc.left = srcL;
-			rcSrc.top = srcT;
-			rcSrc.right = srcL + srcW;
-			rcSrc.bottom = srcT + srcH;
-			DrawBitmapRect(pBitmap, rcDest, rcSrc, opacity);
+			RECT rcDraw = { 0 };
+			if( !::IntersectRect(&rcDraw, &rcPaint, &dest) ) return;
+			const int destW = dest.right - dest.left;
+			const int destH = dest.bottom - dest.top;
+			if( destW <= 0 || destH <= 0 ) return;
+			// 按 dest→src 比例映射脏区，避免画到 rcPaint 外覆盖已绘好的旁钮
+			rcSrc.left = srcL + ::MulDiv(rcDraw.left - dest.left, srcW, destW);
+			rcSrc.top = srcT + ::MulDiv(rcDraw.top - dest.top, srcH, destH);
+			rcSrc.right = srcL + ::MulDiv(rcDraw.right - dest.left, srcW, destW);
+			rcSrc.bottom = srcT + ::MulDiv(rcDraw.bottom - dest.top, srcH, destH);
+			if( rcSrc.right <= rcSrc.left || rcSrc.bottom <= rcSrc.top ) return;
+			DrawBitmapRect(pBitmap, rcDraw, rcSrc, opacity);
 		};
 
 		// center
@@ -453,6 +457,14 @@ namespace DuiLib {
 			pThis->PopOneClip();
 		}
 
+		// BitBlt 前去掉 GDI 裁剪：若仍挂着 CreateRoundRectRgn，会把 D2D AA 圆角裁成锯齿
+		HDC hGdi = pThis->m_gdiFallback.GetDC();
+		int nGdiSave = 0;
+		if( bSyncPixels && hGdi != NULL )
+			nGdiSave = ::SaveDC(hGdi);
+		if( bSyncPixels && hGdi != NULL )
+			::SelectClipRgn(hGdi, NULL);
+
 		const bool bComp = (pThis->m_pBoundSurface != NULL && pThis->m_pBoundSurface->IsLayeredComposition());
 		bool bCopied = false;
 		// BitmapRT：优先在 EndDraw 前用 GdiInterop；失败则 EndDraw 后走 GetBitmap 回退
@@ -468,6 +480,9 @@ namespace DuiLib {
 			else if( !bCopied )
 				pThis->m_pBoundSurface->CopyBackendToPixelsViaBitmap();
 		}
+
+		if( nGdiSave != 0 && hGdi != NULL )
+			::RestoreDC(hGdi, nGdiSave);
 
 		if( bSyncPixels )
 			pThis->m_bPixelsDirty = false;
@@ -634,11 +649,11 @@ namespace DuiLib {
 		TD2dClipEntry& entry = const_cast<TD2dClipEntry&>(entryIn);
 		if( entry.bRound && m_pFactory != NULL && entry.radiusX > 0.0f && entry.radiusY > 0.0f ) {
 			ID2D1RoundedRectangleGeometry* pGeom = NULL;
-			D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(ToRectF(entry.rcBound), entry.radiusX, entry.radiusY);
+			// 几何必须用完整控件矩形（rcRound），再与 rcBound 内容范围求交——对齐 GDI CombineRgn
+			D2D1_ROUNDED_RECT rr = D2D1::RoundedRect(ToRectF(entry.rcRound), entry.radiusX, entry.radiusY);
 			if( SUCCEEDED(m_pFactory->CreateRoundedRectangleGeometry(rr, &pGeom)) && pGeom != NULL ) {
 				ID2D1Layer* pLayer = NULL;
 				if( SUCCEEDED(m_pRT->CreateLayer(&pLayer)) && pLayer != NULL ) {
-					// 内容范围用 rcBound，避免 InfiniteRect 与 GetDC/SuspendClip 叠加时裁剪态失控
 					m_pRT->PushLayer(
 						D2D1::LayerParameters(ToRectF(entry.rcBound), pGeom, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE),
 						pLayer);
@@ -675,6 +690,7 @@ namespace DuiLib {
 		if( m_nClipCount < kMaxD2dClips ) {
 			TD2dClipEntry& e = m_clipStack[m_nClipCount++];
 			e.rcBound = rc;
+			e.rcRound = rc;
 			e.bRound = false;
 			e.radiusX = e.radiusY = 0.0f;
 			e.bLayer = false;
@@ -685,13 +701,19 @@ namespace DuiLib {
 
 	void CD2dRenderContext::PushRoundClip(const RECT& rcClip, const RECT& rcRound, int width, int height)
 	{
-		m_gdiFallback.PushRoundClip(rcClip, rcRound, width, height);
+		// D2D 已用 PushLayer 做 AA 圆角时，GDI 侧不要 CreateRoundRectRgn：
+		// 帧内 FlushToGdi→BitBlt 若碰上锯齿 RGN，会把抗锯齿边缘裁掉（首帧常见，拖动重绘后消失）。
+		if( m_bInDraw && m_pRT != NULL )
+			m_gdiFallback.PushClip(rcClip);
+		else
+			m_gdiFallback.PushRoundClip(rcClip, rcRound, width, height);
 		if( m_nClipCount < kMaxD2dClips ) {
 			TD2dClipEntry& e = m_clipStack[m_nClipCount++];
 			RECT rcBound = { 0 };
 			if( !::IntersectRect(&rcBound, &rcClip, &rcRound) )
 				rcBound = rcRound;
 			e.rcBound = rcBound;
+			e.rcRound = rcRound;
 			// width/height 为 CSS 半径（与属性 border-radius 一致）
 			e.bRound = (width > 0 || height > 0);
 			e.radiusX = (FLOAT)width;
@@ -1656,7 +1678,9 @@ namespace DuiLib {
 
 		BITMAP bm = { 0 };
 		::GetObject(hBitmap, sizeof(bm), &bm);
-		ID2D1Bitmap* pBitmap = GetOrCreateBitmap(hBitmap, bm.bmWidth, bm.bmHeight, NULL, bAlpha);
+		// CreateDIBSection 有 bmBits：直接上传，避免 GetDIBits(BI_RGB) 弄丢 alpha
+		LPBYTE pBits = (bm.bmBits != NULL) ? (LPBYTE)bm.bmBits : NULL;
+		ID2D1Bitmap* pBitmap = GetOrCreateBitmap(hBitmap, bm.bmWidth, bm.bmHeight, pBits, bAlpha);
 		if( pBitmap == NULL || !DrawImageD2d(pBitmap, rc, rcPaint, rcBmpPart, rcCorners, uFade, hole, xtiled, ytiled) ) {
 			FlushToGdi();
 			m_gdiFallback.DrawImage(hBitmap, rc, rcPaint, rcBmpPart, rcCorners, bAlpha, uFade, hole, xtiled, ytiled);
@@ -1982,6 +2006,17 @@ namespace DuiLib {
 		m_gdiFallback.FixLayeredAlpha(rcPaint, rcClient);
 	}
 
+	void CD2dRenderSurface::ApplyRoundCornerMask(int radiusX, int radiusY)
+	{
+		if( radiusX <= 0 && radiusY <= 0 ) return;
+		// Comp 直绘时先拉回 GDI 再遮罩，Present 走 postprocess 回写
+		if( m_bCompDirectDraw )
+			CopyBackendToPixels();
+		m_gdiFallback.ApplyRoundCornerMask(radiusX, radiusY);
+		if( m_bCompDirectDraw )
+			m_bPostProcessOnGdi = true;
+	}
+
 	void CD2dRenderSurface::ApplyLayeredMask(IRenderSurface* pMask, const RECT& rcPaint, const RECT& rcClient)
 	{
 		// Comp 帧内容在 DXGI：先把脏区拉回 GDI 再做遮罩
@@ -2211,6 +2246,18 @@ namespace DuiLib {
 		m_bPostProcessOnGdi = false;
 		UnbindCompositionTarget();
 		return BindCompositionTarget();
+	}
+
+	void CD2dRenderSurface::SetLayeredCompositionEnabled(bool bEnable)
+	{
+		if( bEnable ) {
+			m_bCompDisabled = false;
+			return;
+		}
+		m_bCompDisabled = true;
+		m_bCompDirectDraw = false;
+		m_bCompFrameActive = false;
+		DestroyComposition();
 	}
 
 	bool CD2dRenderSurface::CreateTopDownBitmap(ID2D1RenderTarget* pRT, int width, int height, const BYTE* pBottomUpBits, ID2D1Bitmap** ppBitmap)
@@ -3205,6 +3252,12 @@ namespace DuiLib {
 			InvalidateBitmapCacheForImage(pImageInfo->hBitmap, pImageInfo->pImage);
 		else if( pImageInfo->pImage != NULL )
 			InvalidateBitmapCacheForImage(NULL, pImageInfo->pImage);
+	}
+
+	void CD2dRenderDevice::InvalidateBitmapGpu(HBITMAP hBitmap)
+	{
+		if( hBitmap == NULL ) return;
+		InvalidateBitmapCacheForImage(hBitmap, NULL);
 	}
 
 	bool CD2dRenderDevice::CreateNativeFont(TFontInfo* pFontInfo, int nHeightPx, void* measureNative)

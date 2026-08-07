@@ -45,6 +45,8 @@
 | `box-border-color` / `box-border-color-hover` | — | 无标准等价（控件皮肤/列表项专用） |
 | `box-background-color-selected` | — | 无标准等价 |
 | `box-border-color-selected` | — | 无标准等价 |
+| `box-background-color-selected-hover` / `box-border-color-selected-hover` | 选中悬停（主题 `color-primary-active`） | 无 |
+| `box-background-color-disabled` / `box-border-color-disabled` | 禁用方框 | 无 |
 | `checkmark-color` / `accent-color` | 勾选标记色 | accent-color（近似） |
 
-`CheckBox` 额外属性为方框/勾选绘制专用，全部无 HTML 标准对等物（最接近 `<input type=checkbox>` + `accent-color`）。
+`CheckBox` 额外属性为方框/勾选绘制专用，全部无 HTML 标准对等物（最接近 `<input type=checkbox>` + `accent-color`）。主题 `chrome` 会写入方框/勾号/禁用色。

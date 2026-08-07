@@ -59,11 +59,28 @@
 | `item-background-color` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-background-image` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-alternate-background` | — | nth-child 斑马纹 |
+| `item-alternate-background-color` | 奇数行底色；非 0 时自动开启 | nth-child |
 | `item-color-selected` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-background-color-selected` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-image-selected` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-line-color` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-show-html` | — | 无 |
 | `arrow-image` | — | 无 |
+
+### 下拉项图标（ListLabelElement）
+
+子项用 `<ListLabelElement>` 时，图标属性与 [List.md](List.md) 相同（`lucide` / `icon` / `icon-tint` 等）。  
+**下拉列表**与**闭合态选中项**都会画图标（`CComboUI::PaintText` → `PaintIconAndText`）。
+
+```xml
+<Combo width="220" height="32" drop-box-size="0,180"
+    padding="0,28,0,8" border="1px solid" border-radius="4"
+    item-padding="0,10,0,10">
+  <ListLabelElement text="主页" lucide="home" icon-size="16" height="28" selected="true" />
+  <ListLabelElement text="PNG" icon="menu/icon.png" icon-tint="auto" icon-size="16" height="28" />
+</Combo>
+```
+
+（`item-color*` / 壳底色可由主题 `chrome` 写入，勿写死浅色 hex。）
 
 `ComboBox` 额外仅 `arrow-image`。下拉皮肤 `drop-box*` 无 HTML `<select>` 标准属性。

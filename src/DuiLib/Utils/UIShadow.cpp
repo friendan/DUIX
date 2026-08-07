@@ -351,6 +351,32 @@ void CShadowUI::Update(HWND hParent)
 	DeleteDC(hMemDC);
 }
 
+// 数学圆角水平跨度（半开区间 [left, right)），避免 CreateRoundRectRgn 锯齿
+static void ShadowRoundRectSpan(int width, int height, int rx, int ry, int y, int& left, int& right)
+{
+	left = 0;
+	right = width;
+	if( rx <= 0 || ry <= 0 || width <= 0 || height <= 0 ) return;
+	if( rx > width / 2 ) rx = width / 2;
+	if( ry > height / 2 ) ry = height / 2;
+	const float yf = (float)y + 0.5f;
+	float dy = -1.f;
+	if( yf < (float)ry )
+		dy = (float)ry - yf;
+	else if( yf > (float)(height - ry) )
+		dy = yf - (float)(height - ry);
+	if( dy >= 0.f ) {
+		float t = 1.f - (dy * dy) / ((float)ry * (float)ry);
+		if( t < 0.f ) t = 0.f;
+		float dx = (float)rx * sqrtf(t);
+		int inset = (int)ceilf((float)rx - dx);
+		if( inset < 0 ) inset = 0;
+		if( inset * 2 > width ) inset = width / 2;
+		left = inset;
+		right = width - inset;
+	}
+}
+
 void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 {
 	// The shadow algorithm:
@@ -362,17 +388,22 @@ void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 	// Determine parent size first (needed for RoundCorner fallback)
 	SIZE szParent = {rcParent->right - rcParent->left, rcParent->bottom - rcParent->top};
 
-	// 父窗外形：优先用 SetWindowRgn；若无 RGN（分层 + BorderRadius 常见），回退到 PaintManager RoundCorner
+	// 父窗外形：优先 SetWindowRgn；无 RGN 时用 BorderRadius。
+	// 分层 + AA 圆角：禁止 CreateRoundRectRgn（锯齿洞叠在透明边上像弹窗锯齿）；
+	// 外沿用数学圆角画模糊，洞用矩形外扩清干净（盖住 AA fringe）。
+	SIZE szRound = { 0, 0 };
+	if( m_pManager != NULL ) szRound = m_pManager->GetBorderRadius();
+	const bool bLayeredRound = (m_pManager != NULL && m_pManager->IsLayered()
+		&& (szRound.cx > 0 || szRound.cy > 0));
+
 	HRGN hParentRgn = CreateRectRgn(0, 0, szParent.cx, szParent.cy);
-	if( GetWindowRgn(hParent, hParentRgn) == ERROR ) {
-		SIZE szRound = { 0, 0 };
-		if( m_pManager != NULL ) szRound = m_pManager->GetBorderRadius();
-		if( szRound.cx > 0 || szRound.cy > 0 ) {
-			DeleteObject(hParentRgn);
-			// CreateRoundRectRgn 右/下为开区间，与 Toast/Menu OnSize 一致 +1
-			hParentRgn = CreateRoundRectRgn(0, 0, szParent.cx + 1, szParent.cy + 1,
-				szRound.cx * 2, szRound.cy * 2);
-		}
+	bool bUseRgn = (GetWindowRgn(hParent, hParentRgn) != ERROR);
+	if( !bUseRgn && !bLayeredRound && (szRound.cx > 0 || szRound.cy > 0) ) {
+		DeleteObject(hParentRgn);
+		// 非分层：CreateRoundRectRgn 右/下开区间，与 Toast/Menu OnSize 一致 +1
+		hParentRgn = CreateRoundRectRgn(0, 0, szParent.cx + 1, szParent.cy + 1,
+			szRound.cx * 2, szRound.cy * 2);
+		bUseRgn = true;
 	}
 	SIZE szShadow = {szParent.cx + 2 * m_nSize, szParent.cy + 2 * m_nSize};
 	// Extra 2 lines (set to be empty) in ptAnchors are used in dilation
@@ -393,6 +424,19 @@ void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 		}
 		ptAnchors += m_nSize;
 	}
+	if( bLayeredRound && !bUseRgn ) {
+		// 外沿 + 洞：数学圆角（勿 CreateRoundRectRgn）。
+		// 圆角外侧口袋留给后面的模糊像素，勿清成整矩形、也不要填实心色（否则透过弹窗透明角是灰块）。
+		for(int i = 0; i < szParent.cy; i++) {
+			int left = 0, right = 0;
+			ShadowRoundRectSpan(szParent.cx, szParent.cy, szRound.cx, szRound.cy, i, left, right);
+			ptAnchors[i + 1][0] = left + m_nSize;
+			ptAnchors[i + 1][1] = right + m_nSize;
+			ptAnchorsOri[i][0] = left;
+			ptAnchorsOri[i][1] = right;
+		}
+	}
+	else {
 	for(int i = 0; i < szParent.cy; i++) {
 		// find start point
 		int j;
@@ -420,6 +464,7 @@ void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 				}
 			}
 		}
+	}
 	}
 
 	if(m_nSize > 0)
@@ -527,12 +572,21 @@ void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 			}
 		}
 		else {
-			for(int j = ptAnchors[i][0]; j < min(ptAnchorsOri[i - m_nSize + m_nyOffset][0] + m_nSize - m_nxOffset, ptAnchors[i][1]); j++)
-				*(pLine + j) = clCenter;
-			for(int j = max(ptAnchorsOri[i - m_nSize + m_nyOffset][0] + m_nSize - m_nxOffset, 0); j < min(ptAnchorsOri[i - m_nSize + m_nyOffset][1] + m_nSize - m_nxOffset, szShadow.cx); j++)
-				*(pLine + j) = 0;
-			for(int j = max(ptAnchorsOri[i - m_nSize + m_nyOffset][1] + m_nSize - m_nxOffset, ptAnchors[i][0]); j < ptAnchors[i][1]; j++)
-				*(pLine + j) = clCenter;
+			int ori0 = ptAnchorsOri[i - m_nSize + m_nyOffset][0] + m_nSize - m_nxOffset;
+			int ori1 = ptAnchorsOri[i - m_nSize + m_nyOffset][1] + m_nSize - m_nxOffset;
+			if( bLayeredRound && !bUseRgn ) {
+				// 只掏洞；左右口袋保留 dilation 软阴影（填 clCenter 会透过 AA 圆角变成灰块）
+				for(int j = max(ori0, 0); j < min(ori1, szShadow.cx); j++)
+					*(pLine + j) = 0;
+			}
+			else {
+				for(int j = ptAnchors[i][0]; j < min(ori0, ptAnchors[i][1]); j++)
+					*(pLine + j) = clCenter;
+				for(int j = max(ori0, 0); j < min(ori1, szShadow.cx); j++)
+					*(pLine + j) = 0;
+				for(int j = max(ori1, ptAnchors[i][0]); j < ptAnchors[i][1]; j++)
+					*(pLine + j) = clCenter;
+			}
 		}
 	}
 

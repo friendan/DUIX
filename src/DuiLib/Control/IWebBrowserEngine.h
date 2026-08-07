@@ -53,6 +53,8 @@ namespace DuiLib
 		virtual bool GetUrl(CDuiString& /*out*/) const { return false; }
 		/// 执行脚本；结果经 OnExecuteScriptResult（若引擎支持）
 		virtual void ExecuteScript(LPCTSTR /*script*/) {}
+		/// WebView2：打开开发者工具；其它引擎默认可空
+		virtual void OpenDevToolsWindow() {}
 		/// CEF 等需在 UI 消息循环空闲时泵送；WebView2/IE 默认可空实现
 		virtual void DoMessageLoopWork() {}
 		virtual HWND GetHostWindow() const = 0;

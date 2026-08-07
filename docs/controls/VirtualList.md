@@ -48,7 +48,8 @@ p->SetItemCount(100000);
 | `item-color-selected` / `item-background-color-selected` | 选中 |
 | `item-color-disabled` / `item-background-color-disabled` | 禁用 |
 | `item-line-color` / `item-show-row-line` | 行底部分割线 |
-| `item-alternate-background` | 斑马纹 |
+| `item-alternate-background` | 斑马纹开关 |
+| `item-alternate-background-color` | 奇数行底色；非 0 时自动开启斑马纹 |
 | `item-show-html` | 行文本按迷你 Html 绘制 |
 | `item-text-align` | `left` / `center` / `right` |
 | `item-font` / `item-font-family` / `item-font-size` | 行字体 |

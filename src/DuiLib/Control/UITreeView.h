@@ -62,6 +62,16 @@ namespace DuiLib
 		DWORD GetSelItemHoverColor() const;
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
+		/// 节点图标（转发到内部 Option/Button，语义同 Button / ListLabel）
+		void SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName);
+		void SetIconSrc(LPCTSTR pstrPath);
+		void ClearIcon();
+		bool HasIcon() const;
+		void SetIconSize(int nSize);
+		int GetIconSize() const;
+		void SetIconTint(DWORD dwColor);
+		void SetIconTintAuto(bool bAuto);
+
 		CStdPtrArray GetTreeNodes();
 		int			 GetTreeIndex();
 		int			 GetNodeIndex();
@@ -74,6 +84,7 @@ namespace DuiLib
 		COptionUI*				GetItemButton() const {return pItemButton;};
 
 	private:
+		static bool IsIconAttrName(LPCTSTR pstrName);
 		CTreeNodeUI* GetLastNode();
 		CTreeNodeUI* CalLocation(CTreeNodeUI* _pTreeNodeUI);
 

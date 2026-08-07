@@ -69,6 +69,7 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 | `GoBack` / `GoForward` / `Refresh` / `Refresh2` | 历史与刷新（`Refresh2` 仅 IE） |
 | `CanGoBack` / `CanGoForward` | 历史栈是否可退/可进 |
 | `Stop` | 停止加载 |
+| `OpenDevToolsWindow` | 打开开发者工具（WebView2；其它引擎可空） |
 | `QueryUrl` | 向引擎查当前 URL，失败回落 `GetLocationUrl` |
 | `ExecuteScript` | 执行脚本；结果经 `OnExecuteScriptResult` |
 | `DoMessageLoopWork` | 转发给引擎（CEF 等在空闲时泵消息） |
@@ -134,7 +135,7 @@ CWebBrowserEngineFactory::Instance().Register(_T("cef"), MyCreateCefEngine);
 
 | 方法 / 事件 | 用途 |
 |-------------|------|
-| `Stop` / `GetUrl` / `ExecuteScript` | 停止、读地址、脚本 |
+| `Stop` / `GetUrl` / `ExecuteScript` / `OpenDevToolsWindow` | 停止、读地址、脚本、开发者工具（WebView2） |
 | `DoMessageLoopWork` | UI 空闲调用 `CefDoMessageLoopWork`（或等价泵） |
 | `OnLoadError` / `OnDownloadStarting` / `OnFaviconChanged` | 与壳 Demo 对齐 |
 | `GetNative` | 返回 `CefBrowser*` 等逃生舱 |

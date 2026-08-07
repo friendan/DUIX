@@ -294,6 +294,9 @@ namespace DuiLib {
 		::InvalidateRect(m_hWnd, NULL, TRUE);
 		::UpdateWindow(m_hWnd);
 		RaiseAboveBackdrop();
+		// 再整窗提交一帧，确保 D2D AA 圆角已经 ULW 呈现（避免首帧残留锯齿）
+		m_pm.Invalidate();
+		::UpdateWindow(m_hWnd);
 		return m_hWnd;
 	}
 
@@ -351,18 +354,23 @@ namespace DuiLib {
 		pRoot->SetName(_T("modalRoot"));
 		pRoot->SetFixedWidth(w);
 		pRoot->SetFixedHeight(h);
-		pRoot->SetBackgroundColor(modalBg);
-		// 分层 + BorderRadius：D2D 抗锯齿圆角；角外透明（勿 SetWindowRgn）
+		// 根节点勿铺不透明底：标题若带圆角（或裁剪不一致）会在顶角落出白底。
+		// 可见底色交给正文/按钮行；角外靠 Clear + RoundClip 保持透明。
+		pRoot->SetBackgroundColor(0);
 		SIZE szRound = { kModalRound, kModalRound };
 		pRoot->SetBorderRadius(szRound);
 
-		// 标题栏
+		// 标题栏：手动画 kind 色，不用 SetKind（会强制 BorderRadius=6，小于根圆角时顶角露白）
 		CHorizontalLayoutUI* pTitle = new CHorizontalLayoutUI;
 		pTitle->SetName(_T("modalTitleBar"));
 		pTitle->SetFixedHeight(kModalTitleH);
-		pTitle->SetKind(m_opts.m_kind);
-		// SetKind 会带上按钮级 BorderRadius(12)，标题四角被裁掉会露出底下灰/白块；
-		// 直角填充，由根节点圆角裁剪即可。
+		{
+			int idx = (int)m_opts.m_kind;
+			if( idx < 0 || idx >= 11 ) idx = (int)CONTROLKIND_PRIMARY;
+			DWORD titleBg = g_kindColors[idx].Normal.dwBackgroundColor;
+			if( titleBg == 0 ) titleBg = 0x0D6EFDFF;
+			pTitle->SetBackgroundColor(titleBg);
+		}
 		SIZE szTitleFlat = { 0, 0 };
 		pTitle->SetBorderRadius(szTitleFlat);
 		pTitle->SetBorderWidth(0);
@@ -385,6 +393,7 @@ namespace DuiLib {
 		// 正文
 		CVerticalLayoutUI* pBody = new CVerticalLayoutUI;
 		pBody->SetName(_T("modalBody"));
+		pBody->SetBackgroundColor(modalBg);
 		pBody->SetPadding(CDuiBox(20, 16, 12, 16));
 		pBody->SetAttribute(_T("action"), _T("title"));
 
@@ -447,6 +456,22 @@ namespace DuiLib {
 
 		m_pm.AttachDialog(pRoot);
 		m_pm.AddNotifier(this);
+
+		// AttachDialog→ApplyToManager 可能改写底色；分层圆角必须保持透明底
+		m_pm.SetWindowBackgroundColor(0);
+		pRoot->SetBackgroundColor(0);
+		pBody->SetBackgroundColor(modalBg);
+		pBtnRow->SetBackgroundColor(modalBg);
+
+		// 再次压平标题圆角，并恢复按钮小圆角
+		{
+			SIZE flat = { 0, 0 };
+			SIZE btnR = { 2, 2 };
+			pTitle->SetBorderRadius(flat);
+			pTitle->SetBorderWidth(0);
+			if( m_pOkBtn ) m_pOkBtn->SetBorderRadius(btnR);
+			if( m_pCancelBtn ) m_pCancelBtn->SetBorderRadius(btnR);
+		}
 	}
 
 	CModalWnd* CModalWnd::FromHwnd(HWND h)
@@ -487,16 +512,9 @@ namespace DuiLib {
 
 		m_pm.Init(m_hWnd);
 		m_pm.SetLayered(true);
-		DWORD winBg = 0xFFFFFFFF;
-		CThemeManager* tm = CThemeManager::GetInstance();
-		if( tm != NULL ) {
-			CTheme* th = tm->GetCurrentTheme();
-			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
-			if( th != NULL )
-				winBg = th->GetToken(_T("color-modal-bg"), th->GetToken(_T("color-bg"), winBg));
-		}
-		m_pm.SetWindowBackgroundColor(winBg);
-		// 圆角跟阴影：不设 SetWindowRgn（分层 AA），靠 RoundCorner 让 CShadowUI 画圆角阴影
+		// 弹窗禁用 DComp：走 BitmapRT + ULW（与圆角遮罩 Present 一致）
+		m_pm.SetLayeredCompositionEnabled(false);
+		m_pm.SetWindowBackgroundColor(0);
 		m_pm.SetBorderRadius(kModalRound, kModalRound);
 		BuildUI();
 		bHandled = FALSE;
@@ -505,6 +523,7 @@ namespace DuiLib {
 
 	LRESULT CModalWnd::OnSize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
+		// 分层圆角靠 D2D RoundClip 抗锯齿；勿 SetWindowRgn（GDI RGN 有锯齿）
 		bHandled = FALSE;
 		return 0;
 	}

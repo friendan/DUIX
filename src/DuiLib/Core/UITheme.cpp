@@ -234,7 +234,10 @@ namespace DuiLib {
 		DWORD linkH = TokenOr(_T("color-link-hover"), link);
 		DWORD selection = TokenOr(_T("color-selection"), bgElev);
 
-		pManager->SetWindowBackgroundColor(bg);
+		// 分层窗若已显式设过窗口底（Modal 圆角要透明），勿用主题色盖掉，
+		// 否则 AttachDialog→ApplyToManager 会把角外重新铺成不透明白。
+		if( !(pManager->IsLayered() && pManager->IsWindowBackgroundColorCustom()) )
+			pManager->SetWindowBackgroundColor(bg);
 		pManager->SetDefaultFontColor(text, true);
 		pManager->SetDefaultDisabledColor(textDis, true);
 		pManager->SetDefaultLinkFontColor(link, true);
@@ -663,6 +666,7 @@ namespace DuiLib {
 			DWORD selection = pUse->GetToken(_T("color-selection"), bgElev);
 			DWORD primary = pUse->GetToken(_T("color-primary"), 0x0D6EFDFF);
 			DWORD primaryH = pUse->GetToken(_T("color-primary-hover"), primary);
+			DWORD primaryA = pUse->GetToken(_T("color-primary-active"), primaryH);
 			DWORD primaryOn = pUse->GetToken(_T("color-primary-text"), 0xFFFFFFFF);
 			DWORD border = pUse->GetToken(_T("color-border"), 0xDEE2E6FF);
 			DWORD sbRail = pUse->GetToken(_T("color-scrollbar-rail"), bgElev);
@@ -716,6 +720,7 @@ namespace DuiLib {
 			const bool bPageControl = (_tcscmp(pControl->GetClass(), _T("PageControlUI")) == 0);
 			const bool bCarousel = (pControl->GetInterface(DUI_CTR_CAROUSEL) != NULL);
 			const bool bCarouselItem = (pControl->GetInterface(DUI_CTR_CAROUSELITEM) != NULL);
+			const bool bSidePanel = (pControl->GetInterface(DUI_CTR_SIDEPANEL) != NULL);
 			const bool bAvatar = (pControl->GetInterface(DUI_CTR_AVATAR) != NULL);
 			const bool bButton = (pControl->GetInterface(DUI_CTR_BUTTON) != NULL);
 			const bool bPlainTextLabel = (pControl->GetInterface(DUI_CTR_LABEL) != NULL
@@ -735,6 +740,8 @@ namespace DuiLib {
 					ThemeSetColorAttr(pControl, _T("background-color"), titleBg);
 					ThemeSetColorAttr(pControl, _T("color"), titleTx);
 					ThemeSetColorAttr(pControl, _T("border-color"), titleBd);
+					CTitleBarUI* pTb = static_cast<CTitleBarUI*>(pControl->GetInterface(DUI_CTR_TITLEBAR));
+					if (pTb != NULL) pTb->SyncSysButtonChrome();
 				}
 				else if (bScrollBar) {
 					CScrollBarUI* pSb = static_cast<CScrollBarUI*>(pControl->GetInterface(DUI_CTR_SCROLLBAR));
@@ -752,14 +759,24 @@ namespace DuiLib {
 					ThemeSetColorAttr(pControl, _T("track-color-checked-hover"), primaryH);
 					ThemeSetColorAttr(pControl, _T("track-color"), borderStrong);
 					ThemeSetColorAttr(pControl, _T("track-color-hover"), border);
+					ThemeSetColorAttr(pControl, _T("track-color-disabled"), DuiColorSetA(borderStrong, 0x40));
+					ThemeSetColorAttr(pControl, _T("track-color-checked-disabled"), DuiColorSetA(primary, 0x80));
+					ThemeSetColorAttr(pControl, _T("thumb-color"), primaryOn);
+					ThemeSetColorAttr(pControl, _T("thumb-color-disabled"), disBg);
 				}
 				else if (bCheckBox) {
 					ThemeSetColorAttr(pControl, _T("color"), text);
 					ThemeSetColorAttr(pControl, _T("box-background-color"), ctrlBg);
 					ThemeSetColorAttr(pControl, _T("box-border-color"), border);
+					ThemeSetColorAttr(pControl, _T("box-background-color-hover"), ctrlBg);
 					ThemeSetColorAttr(pControl, _T("box-border-color-hover"), primary);
 					ThemeSetColorAttr(pControl, _T("box-background-color-selected"), primary);
 					ThemeSetColorAttr(pControl, _T("box-border-color-selected"), primary);
+					ThemeSetColorAttr(pControl, _T("box-background-color-selected-hover"), primaryA);
+					ThemeSetColorAttr(pControl, _T("box-border-color-selected-hover"), primaryA);
+					ThemeSetColorAttr(pControl, _T("box-background-color-disabled"), disBg);
+					ThemeSetColorAttr(pControl, _T("box-border-color-disabled"), border);
+					ThemeSetColorAttr(pControl, _T("checkmark-color"), primaryOn);
 				}
 				else if (bOption) {
 					pControl->SetBackgroundColor(0);
@@ -906,6 +923,7 @@ namespace DuiLib {
 					if (pTabBar != NULL) pTabBar->SyncThemeChromeButtons();
 				}
 				else if (bList) {
+					const bool bMenu = (pControl->GetInterface(_T("Menu")) != NULL);
 					ThemeSetColorAttr(pControl, _T("item-color"), text);
 					ThemeSetColorAttr(pControl, _T("item-background-color"), ctrlBg);
 					ThemeSetColorAttr(pControl, _T("item-color-hover"), text);
@@ -913,11 +931,35 @@ namespace DuiLib {
 					ThemeSetColorAttr(pControl, _T("item-color-selected"), primary);
 					ThemeSetColorAttr(pControl, _T("item-background-color-selected"), selection);
 					ThemeSetColorAttr(pControl, _T("item-color-disabled"), textSec);
-					ThemeSetColorAttr(pControl, _T("item-background-color-disabled"), disBg);
+					// Menu：禁用项只灰字、不铺灰底（否则「关闭左/右/其他」不可用时像整块脏色且无悬停）
+					if( bMenu )
+						ThemeSetColorAttr(pControl, _T("item-background-color-disabled"), 0);
+					else
+						ThemeSetColorAttr(pControl, _T("item-background-color-disabled"), disBg);
 					ThemeSetColorAttr(pControl, _T("item-line-color"), border);
-					ThemeSetColorAttr(pControl, _T("item-alternate-background-color"), bgElev);
+					if( !bMenu ) {
+						ThemeSetColorAttr(pControl, _T("item-alternate-background-color"), bgElev);
+						pControl->SetAttribute(_T("item-alternate-background"), _T("true"));
+					}
+					else {
+						pControl->SetAttribute(_T("item-alternate-background"), _T("false"));
+					}
 					ThemeSetColorAttr(pControl, _T("background-color"), ctrlBg);
 					ThemeSetColorAttr(pControl, _T("border-color"), ctrlBd);
+					// Menu 分隔线用 MenuElement::line-color，不走 List item-line
+					if (bMenu) {
+						IContainerUI* pMenuItems = static_cast<IContainerUI*>(
+							pControl->GetInterface(_T("IContainer")));
+						if (pMenuItems != NULL) {
+							for (int mi = 0; mi < pMenuItems->GetCount(); ++mi) {
+								CControlUI* pItem = pMenuItems->GetItemAt(mi);
+								if (pItem == NULL) continue;
+								CMenuElementUI* pEl = static_cast<CMenuElementUI*>(
+									pItem->GetInterface(_T("MenuElement")));
+								if (pEl != NULL) pEl->SetLineColor(border);
+							}
+						}
+					}
 				}
 				else if (bTransfer) {
 					ThemeSetColorAttr(pControl, _T("background-color"), ctrlBg);
@@ -956,6 +998,12 @@ namespace DuiLib {
 						DWORD barBg = pUse->GetToken(_T("color-titlebar-bg"), 0x32323CFF);
 						pItem->ApplyThemeCaption(barBg, primaryOn, textSec);
 					}
+				}
+				else if (bSidePanel) {
+					CSidePanelUI* pSp = static_cast<CSidePanelUI*>(
+						pControl->GetInterface(DUI_CTR_SIDEPANEL));
+					if (pSp != NULL)
+						pSp->ApplyThemeChrome(bgElev, border, text);
 				}
 				else if (bTag) {
 					CTagUI* pTag = static_cast<CTagUI*>(pControl->GetInterface(DUI_CTR_TAG));
@@ -1029,6 +1077,26 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 			pTheme->ApplyToManager(pManager);
 	}
 
+	void CThemeManager::ApplyMenuChrome(CMenuUI* pMenu)
+	{
+		if (pMenu == NULL || !m_bEnabled) return;
+		EnsureInitialized();
+
+		LPCTSTR mode = pMenu->GetCustomAttribute(_T("theme"));
+		if (mode != NULL && _tcsicmp(mode, _T("none")) == 0) return;
+
+		LPCTSTR img = pMenu->GetBackgroundImage();
+		if (img != NULL && *img != _T('\0')) return;
+
+		if (mode == NULL || *mode == _T('\0'))
+			pMenu->SetAttribute(_T("theme"), _T("chrome"));
+
+		CTheme* pTheme = GetChromeTheme();
+		if (pTheme == NULL) return;
+		ApplyChromeRecursive(pMenu, pTheme);
+		pMenu->Invalidate();
+	}
+
 	void CThemeManager::ApplyChromeToManager(CPaintManagerUI* pManager)
 	{
 		if (pManager == NULL) return;
@@ -1069,7 +1137,10 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 					pChrome->ApplyToManager(pManager);
 				if (pRoot != NULL) {
 					ReapplyKindRecursive(pRoot);
-					if (pChrome != NULL)
+					CMenuUI* pMenuRoot = static_cast<CMenuUI*>(pRoot->GetInterface(_T("Menu")));
+					if (pMenuRoot != NULL)
+						ApplyMenuChrome(pMenuRoot);
+					else if (pChrome != NULL)
 						ApplyChromeRecursive(pRoot, pChrome);
 					RefreshVarAttributesRecursive(pRoot);
 				}

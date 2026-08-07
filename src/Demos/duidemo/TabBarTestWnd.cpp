@@ -95,13 +95,15 @@ void CTabBarTestWnd::AddNewTab()
 
 	CDuiString sTitle;
 	sTitle.Format(_T("新标签 %d"), m_nNextTabId++);
-	CTabButtonUI* pTab = m_pTabBar->AddTab(sTitle);
-	if( pTab == NULL ) return;
-	pTab->SetAttribute(_T("tabler-outline"), _T("file-text"));
 
+	// 先加页再加标签：AddTab 会立刻 SyncBoundTabLayout→SelectItem
 	CDuiString sPage;
 	sPage.Format(_T("这是「%s」的页面内容"), sTitle.GetData());
 	m_pPages->Add(CreatePageLabel(sPage));
+
+	CTabButtonUI* pTab = m_pTabBar->AddTab(sTitle);
+	if( pTab == NULL ) return;
+	pTab->SetAttribute(_T("tabler-outline"), _T("file-text"));
 
 	int iNew = m_pTabBar->GetTabCount() - 1;
 	m_pTabBar->SetActiveTab(iNew);

@@ -70,6 +70,8 @@ namespace DuiLib
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 		void SetFixedHeight(int cy) override;
 		bool IsCaptionDragHit(POINT pt) const override;
+		/// 按标题栏底/标题色同步系统按钮图标与悬停（主题 chrome 可显式调用）
+		void SyncSysButtonChrome();
 
 	protected:
 		void EnsureChrome();
@@ -77,8 +79,6 @@ namespace DuiLib
 		void SyncSysButtonVisibility();
 		void SyncSysButtonMetrics();
 		void ApplySysButtonStyle(CButtonUI* pBtn, bool bClose);
-		/// 按标题栏底/标题色同步系统按钮图标与悬停（主题热切换会走这里）
-		void SyncSysButtonChrome();
 		bool OnSysButtonNotify(void* param);
 		bool QueryAllowNotify(LPCTSTR pstrMsg, WPARAM wParam, LPARAM lParam);
 		void DoSysMin();

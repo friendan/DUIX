@@ -5,6 +5,8 @@
 
 namespace DuiLib {
 
+	class CMessageBox;
+
 	/// 结果回调（ok=true 点确定；false 点取消 / Esc / 关窗 / 点遮罩）
 	typedef void (CALLBACK *ModalResultCallback)(bool ok, LPCTSTR pUserData, void* pUser);
 
@@ -13,6 +15,7 @@ namespace DuiLib {
 	{
 		friend class CModal;
 		friend class CModalWnd;
+		friend class CMessageBox;
 	public:
 		CModalOptions();
 

@@ -11,8 +11,10 @@ CBrowserWnd::CBrowserWnd()
 	, m_pPages(NULL)
 	, m_pUrlBox(NULL)
 	, m_pActiveBrowser(NULL)
+	, m_pMenu(NULL)
 	, m_nNextTabId(1)
 	, m_nNextDelayTimerId(0xB1800001)
+	, m_bToolbarLoading(false)
 	, m_hostEvents(this)
 {
 }
@@ -20,6 +22,10 @@ CBrowserWnd::CBrowserWnd()
 CBrowserWnd::~CBrowserWnd()
 {
 	CancelDelayedNavigates();
+	if( m_pMenu != NULL ) {
+		delete m_pMenu;
+		m_pMenu = NULL;
+	}
 }
 
 void CBrowserWnd::Open(HWND hParent)
@@ -198,6 +204,15 @@ LRESULT CBrowserWnd::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 		}
 	}
+	else if( uMsg == WM_MENUCLICK ) {
+		MenuCmd* pMenuCmd = (MenuCmd*)wParam;
+		if( pMenuCmd != NULL ) {
+			CDuiString sName = pMenuCmd->szName;
+			m_pm.DeletePtr(pMenuCmd);
+			HandleMenuCommand(sName);
+		}
+		return 0;
+	}
 	return WindowImplBase::HandleMessage(uMsg, wParam, lParam);
 }
 
@@ -250,7 +265,18 @@ void CBrowserWnd::NavigateAddressBar()
 	if( m_pPages != NULL )
 		m_pPages->SelectItem(pBrowser);
 
+	CDuiString url = ResolveNavigateInput(ReadAddressBarText());
+	if( url.IsEmpty() ) return;
+
+	pBrowser->NavigateUrl(url);
+	if( m_pUrlBox->GetText() != url )
+		m_pUrlBox->SetText(url);
+}
+
+CDuiString CBrowserWnd::ReadAddressBarText() const
+{
 	CDuiString url;
+	if( m_pUrlBox == NULL ) return url;
 	HWND hEdit = m_pUrlBox->GetHWND();
 	if( hEdit != NULL ) {
 		int cchLen = ::GetWindowTextLength(hEdit) + 1;
@@ -263,8 +289,81 @@ void CBrowserWnd::NavigateAddressBar()
 	if( url.IsEmpty() )
 		url = m_pUrlBox->GetText();
 	url.Trim();
-	if( url.IsEmpty() ) return;
+	return url;
+}
 
+bool CBrowserWnd::LooksLikeUrl(LPCTSTR pstrInput)
+{
+	if( pstrInput == NULL || *pstrInput == _T('\0') ) return false;
+	CDuiString s = pstrInput;
+	s.Trim();
+	if( s.IsEmpty() ) return false;
+	if( s.Find(_T("://")) >= 0 ) return true;
+	if( s.Find(_T("about:")) == 0 || s.Find(_T("data:")) == 0 || s.Find(_T("file:")) == 0 )
+		return true;
+	if( s.Find(_T(' ')) >= 0 || s.Find(_T('\t')) >= 0 ) return false;
+	if( _tcsnicmp(s.GetData(), _T("localhost"), 9) == 0 ) return true;
+	if( s.Find(_T('.')) >= 0 || s.Find(_T(':')) >= 0 ) return true;
+	return false;
+}
+
+CDuiString CBrowserWnd::UrlEncodeUtf8(LPCTSTR pstr)
+{
+	CDuiString out;
+	if( pstr == NULL || *pstr == _T('\0') ) return out;
+
+#ifdef _UNICODE
+	int nBytes = ::WideCharToMultiByte(CP_UTF8, 0, pstr, -1, NULL, 0, NULL, NULL);
+	if( nBytes <= 1 ) return out;
+	char* utf8 = new char[nBytes];
+	::WideCharToMultiByte(CP_UTF8, 0, pstr, -1, utf8, nBytes, NULL, NULL);
+	const unsigned char* p = reinterpret_cast<const unsigned char*>(utf8);
+#else
+	int nWide = ::MultiByteToWideChar(CP_ACP, 0, pstr, -1, NULL, 0);
+	if( nWide <= 1 ) return out;
+	wchar_t* wbuf = new wchar_t[nWide];
+	::MultiByteToWideChar(CP_ACP, 0, pstr, -1, wbuf, nWide);
+	int nBytes = ::WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, NULL, 0, NULL, NULL);
+	char* utf8 = new char[nBytes > 0 ? nBytes : 1];
+	if( nBytes > 0 )
+		::WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, utf8, nBytes, NULL, NULL);
+	delete[] wbuf;
+	const unsigned char* p = reinterpret_cast<const unsigned char*>(utf8);
+#endif
+	for( ; p != NULL && *p != 0; ++p ) {
+		unsigned char c = *p;
+		if( (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+			|| c == '-' || c == '_' || c == '.' || c == '~' ) {
+			out += (TCHAR)c;
+		}
+		else if( c == ' ' ) {
+			out += _T('+');
+		}
+		else {
+			TCHAR hex[8];
+			_stprintf_s(hex, _T("%%%02X"), (unsigned)c);
+			out += hex;
+		}
+	}
+	delete[] utf8;
+	return out;
+}
+
+CDuiString CBrowserWnd::BuildSearchUrl(LPCTSTR pstrQuery)
+{
+	CDuiString q = UrlEncodeUtf8(pstrQuery);
+	CDuiString url;
+	url.Format(_T("https://www.bing.com/search?q=%s"), (LPCTSTR)q);
+	return url;
+}
+
+CDuiString CBrowserWnd::ResolveNavigateInput(LPCTSTR pstrInput) const
+{
+	CDuiString url = pstrInput ? pstrInput : _T("");
+	url.Trim();
+	if( url.IsEmpty() ) return url;
+	if( !LooksLikeUrl(url) )
+		return BuildSearchUrl(url);
 	if( url.Find(_T("://")) < 0
 		&& url.Find(_T("about:")) != 0
 		&& url.Find(_T("data:")) != 0
@@ -272,12 +371,9 @@ void CBrowserWnd::NavigateAddressBar()
 	{
 		CDuiString full;
 		full.Format(_T("https://%s"), (LPCTSTR)url);
-		url = full;
+		return full;
 	}
-
-	pBrowser->NavigateUrl(url);
-	if( m_pUrlBox->GetText() != url )
-		m_pUrlBox->SetText(url);
+	return url;
 }
 
 bool CBrowserWnd::HandleThemeCommand(LPCTSTR pstrName)
@@ -306,15 +402,14 @@ bool CBrowserWnd::HandleThemeCommand(LPCTSTR pstrName)
 void CBrowserWnd::HandleNavCommand(LPCTSTR pstrName)
 {
 	if( pstrName == NULL || *pstrName == _T('\0') ) return;
+	if( _tcscmp(pstrName, _T("menuBtn")) == 0 ) {
+		ShowBrowserMenu();
+		return;
+	}
 	CWebBrowserUI* pBrowser = GetActiveBrowser();
 	if( _tcscmp(pstrName, _T("goBtn")) == 0 ) {
 		if( pBrowser == NULL ) {
-			// 无标签时转到：按地址栏开新页
-			CDuiString url;
-			if( m_pUrlBox ) {
-				url = m_pUrlBox->GetText();
-				url.Trim();
-			}
+			CDuiString url = ResolveNavigateInput(ReadAddressBarText());
 			if( url.IsEmpty() )
 				AddNewTab(_T("新标签页"), _T("https://project.feishu.cn"));
 			else
@@ -336,8 +431,93 @@ void CBrowserWnd::HandleNavCommand(LPCTSTR pstrName)
 		pBrowser->GoBack();
 	else if( _tcscmp(pstrName, _T("forwardBtn")) == 0 )
 		pBrowser->GoForward();
-	else if( _tcscmp(pstrName, _T("refreshBtn")) == 0 )
-		pBrowser->Refresh();
+	else if( _tcscmp(pstrName, _T("refreshBtn")) == 0 ) {
+		if( m_bToolbarLoading ) {
+			pBrowser->Stop();
+			CTabButtonUI* pTab = FindTabForBrowser(pBrowser);
+			if( pTab != NULL && pTab->IsTabLoading() )
+				ApplyPlaceholderTabIcon(pTab);
+			SetToolbarLoading(false);
+		}
+		else {
+			pBrowser->Refresh();
+		}
+	}
+}
+
+void CBrowserWnd::ShowBrowserMenu()
+{
+	CMenuWnd::GetGlobalContextMenuObserver().SetMenuCheckInfo(NULL);
+	if( m_pMenu != NULL ) {
+		delete m_pMenu;
+		m_pMenu = NULL;
+	}
+	m_pMenu = new CMenuWnd();
+	CDuiPoint point;
+	CControlUI* pBtn = m_pm.FindControl(_T("menuBtn"));
+	if( pBtn != NULL ) {
+		RECT rc = pBtn->GetPos();
+		point.x = rc.left;
+		point.y = rc.bottom;
+		::ClientToScreen(m_pm.GetPaintWindow(), &point);
+	}
+	else {
+		::GetCursorPos(&point);
+	}
+	m_pMenu->Init(NULL, _T("browser_menu.html"), point, &m_pm);
+	CThemeManager* tm = CThemeManager::GetInstance();
+	if( tm != NULL && m_pMenu->GetMenuUI() != NULL )
+		tm->ApplyMenuChrome(m_pMenu->GetMenuUI());
+	m_pMenu->ResizeMenu();
+}
+
+void CBrowserWnd::HandleMenuCommand(LPCTSTR pstrName)
+{
+	if( pstrName == NULL || *pstrName == _T('\0') ) return;
+	if( _tcscmp(pstrName, _T("menuNewTab")) == 0 ) {
+		AddNewTab();
+		return;
+	}
+	if( _tcscmp(pstrName, _T("menuDevTools")) == 0 ) {
+		CWebBrowserUI* pBrowser = GetActiveBrowser();
+		if( pBrowser != NULL )
+			pBrowser->OpenDevToolsWindow();
+		else
+			::MessageBox(m_hWnd, _T("请先打开一个标签页。"), _T("开发者工具"), MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+	if( _tcscmp(pstrName, _T("menuAbout")) == 0 ) {
+		::MessageBox(m_hWnd,
+			_T("DuiLib Ultimate 浏览器壳\n\n多标签 · WebView2 · 地址栏支持网址 / 搜索"),
+			_T("关于"), MB_OK | MB_ICONINFORMATION);
+	}
+}
+
+void CBrowserWnd::SetToolbarLoading(bool bLoading)
+{
+	if( m_bToolbarLoading == bLoading ) return;
+	m_bToolbarLoading = bLoading;
+	CControlUI* p = m_pm.FindControl(_T("refreshBtn"));
+	CSvgBoxUI* pSvg = (p != NULL)
+		? static_cast<CSvgBoxUI*>(p->GetInterface(DUI_CTR_SVGBOX))
+		: NULL;
+	if( pSvg == NULL ) return;
+	if( bLoading ) {
+		pSvg->SetAttribute(_T("bsicon"), _T("x-lg"));
+		pSvg->SetToolTip(_T("停止"));
+	}
+	else {
+		pSvg->SetAttribute(_T("bsicon"), _T("arrow-repeat"));
+		pSvg->SetToolTip(_T("刷新"));
+	}
+}
+
+void CBrowserWnd::SyncToolbarLoadingFromActiveTab()
+{
+	CWebBrowserUI* pBrowser = GetActiveBrowser();
+	CTabButtonUI* pTab = FindTabForBrowser(pBrowser);
+	const bool bLoading = (pTab != NULL && pTab->IsTabLoading());
+	SetToolbarLoading(bLoading);
 }
 
 bool CBrowserWnd::OnUrlBoxNotify(void* param)
@@ -407,6 +587,8 @@ void CBrowserWnd::OnBrowserNavigated(CWebBrowserUI* pWeb, LPCTSTR url, bool /*su
 	// 导航结束仍无可读 favicon：关转圈，回占位 globe
 	if( pTab != NULL && pTab->IsTabLoading() )
 		ApplyPlaceholderTabIcon(pTab);
+	if( GetActiveBrowser() == pWeb )
+		SyncToolbarLoadingFromActiveTab();
 	if( m_pUrlBox == NULL ) return;
 	if( GetActiveBrowser() != pWeb ) return;
 	m_pUrlBox->SetText(pWeb->GetLocationUrl());
@@ -417,6 +599,8 @@ void CBrowserWnd::OnBrowserNavigationStarting(CWebBrowserUI* pWeb, LPCTSTR /*url
 	CTabButtonUI* pTab = FindTabForBrowser(pWeb);
 	if( pTab != NULL )
 		ApplyLoadingTabIcon(pTab);
+	if( GetActiveBrowser() == pWeb )
+		SetToolbarLoading(true);
 }
 
 void CBrowserWnd::OnBrowserFaviconChanged(CWebBrowserUI* pWeb, const BYTE* pData, DWORD dwSize)
@@ -514,6 +698,7 @@ void CBrowserWnd::UpdateNavButtons()
 	CControlUI* pForward = m_pm.FindControl(_T("forwardBtn"));
 	if( pBack ) pBack->SetEnabled(bBack);
 	if( pForward ) pForward->SetEnabled(bForward);
+	SyncToolbarLoadingFromActiveTab();
 }
 
 void CBrowserWnd::Notify(TNotifyUI& msg)
@@ -568,6 +753,7 @@ void CBrowserWnd::OnClick(TNotifyUI& msg)
 	CDuiString name = msg.pSender->GetName();
 	if( name == _T("goBtn") || name == _T("backBtn") || name == _T("forwardBtn")
 		|| name == _T("refreshBtn") || name == _T("homeBtn") || name == _T("sideToolHome")
+		|| name == _T("menuBtn")
 		|| name == _T("btn_theme_default") || name == _T("btn_theme_azure")
 		|| name == _T("btn_theme_emerald") || name == _T("btn_theme_graphite")
 		|| name == _T("btn_theme_dark") )
