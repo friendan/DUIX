@@ -205,7 +205,7 @@ namespace DuiLib {
 		if (pManager != NULL && pManager->GetDPIObj()->GetScale() != 100) {
 			CDuiString sScale;
 			sScale.Format(_T("@%d."), pManager->GetDPIObj()->GetScale());
-			sImageName.Replace(_T("."), sScale);
+			sImageName.Replace(_T("."), sScale.GetData());
 		}
 	}
 	void tagTDrawInfo::Clear()
@@ -698,7 +698,7 @@ namespace DuiLib {
 				int i = 0;
 				CDuiString key = pstrRelativePath;
 				key.Replace(_T("\\"), _T("/"));
-				if( FindZipItem(hz, key, true, &i, &ze) == 0 && ze.unc_size > 0 ) {
+				if( FindZipItem(hz, key.GetData(), true, &i, &ze) == 0 && ze.unc_size > 0 ) {
 					DWORD dwSize = ze.unc_size;
 					BYTE* pData = new BYTE[dwSize];
 					int res = UnzipItem(hz, i, pData, dwSize);
@@ -822,7 +822,7 @@ namespace DuiLib {
 
 	LPCTSTR CPaintManagerUI::GetName() const
 	{
-		return m_sName;
+		return m_sName.GetData();
 	}
 
 	HDC CPaintManagerUI::GetPaintDC() const
@@ -984,7 +984,9 @@ namespace DuiLib {
 	{
 		m_dwWindowBackgroundColor = dwColor;
 		m_bWindowBackgroundColorCustom = true;
-		if( m_pRoot != NULL )
+		// Toast 等 kind 根在 Attach 前已 SetKind；主题 ApplyToManager 勿盖掉，
+		// 否则 kind 前景字会打在 color-bg 上（常见白字白底 / 黑字深底）。
+		if( m_pRoot != NULL && m_pRoot->GetKind() == CONTROLKIND_NONE )
 			m_pRoot->SetBackgroundColor(dwColor);
 		if( m_hWndPaint != NULL ) Invalidate();
 	}
@@ -1119,7 +1121,7 @@ namespace DuiLib {
 
 	LPCTSTR CPaintManagerUI::GetLayeredImage()
 	{
-		return m_diLayered.sDrawString;
+		return m_diLayered.sDrawString.GetData();
 	}
 
 	void CPaintManagerUI::SetLayeredImage(LPCTSTR pstrImage)
@@ -1760,7 +1762,7 @@ namespace DuiLib {
 				m_ToolTip.hwnd = m_hWndPaint;
 				m_ToolTip.uId = (UINT_PTR) m_hWndPaint;
 				m_ToolTip.hinst = m_hInstance;
-				m_ToolTip.lpszText = const_cast<LPTSTR>( (LPCTSTR) sToolTip );
+				m_ToolTip.lpszText = const_cast<LPTSTR>( sToolTip.GetData() );
 				m_ToolTip.rect = pHover->GetPos();
 				if( m_hwndTooltip == NULL ) {
 					m_hwndTooltip = ::CreateWindowEx(0, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, m_hWndPaint, NULL, m_hInstance, NULL);
@@ -2353,7 +2355,7 @@ namespace DuiLib {
 		KillTimer(pControl);
 		const CDuiString& sName = pControl->GetName();
 		if( !sName.IsEmpty() ) {
-			if( pControl == FindControl(sName) ) m_mNameHash.Remove(sName);
+			if( pControl == FindControl(sName.GetData()) ) m_mNameHash.Remove(sName);
 		}
 		for( int i = 0; i < m_aAsyncNotify.GetSize(); i++ ) {
 			TNotifyUI* pMsg = static_cast<TNotifyUI*>(m_aAsyncNotify[i]);
@@ -4047,7 +4049,7 @@ namespace DuiLib {
 		LPCTSTR pstrName = static_cast<LPCTSTR>(pData);
 		const CDuiString& sName = pThis->GetName();
 		if( sName.IsEmpty() ) return NULL;
-		return (_tcsicmp(sName, pstrName) == 0) ? pThis : NULL;
+		return (_tcsicmp(sName.GetData(), pstrName) == 0) ? pThis : NULL;
 	}
 
 	CControlUI* CALLBACK CPaintManagerUI::__FindControlFromClass(CControlUI* pThis, LPVOID pData)
@@ -4115,7 +4117,9 @@ namespace DuiLib {
 						if (pT->TranslateAccelerator(pMsg))
 							return true;
 
-						pT->PreMessageHandler(pMsg->message, pMsg->wParam, pMsg->lParam, lRes);
+						// 与顶层窗口一致：PreMessageFilter 处理成功则吞掉消息（否则子 Edit 收键时 PageUp 等无法翻页）
+						if( pT->PreMessageHandler(pMsg->message, pMsg->wParam, pMsg->lParam, lRes) )
+							return true;
 					}
 					hTempParent = GetParent(hTempParent);
 				}
@@ -4370,7 +4374,7 @@ namespace DuiLib {
 				if( *pStrImage++ != _T(' ') ) break;
 			}
 		}
-		return GetImageEx(sImageName, sImageResType, dwMask);
+		return GetImageEx(sImageName.GetData(), sImageResType.GetData(), dwMask);
 	}
 
 	bool CPaintManagerUI::EnableDragDrop(bool bEnable)

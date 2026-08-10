@@ -8,8 +8,167 @@ namespace DuiLib
 		DUI_ON_MSGTYPE(DUI_MSGTYPE_CLICK,WindowImplBase::OnClick)
 	DUI_END_MESSAGE_MAP()
 
+	WindowImplBase::WindowImplBase()
+		: m_bSyncOwnerMove(false)
+		, m_bSyncOwnerSize(false)
+		, m_bHaveOwnerOffset(false)
+		, m_bSyncingOwner(false)
+	{
+		m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
+		m_szOwnerDelta.cx = m_szOwnerDelta.cy = 0;
+	}
+
+	void WindowImplBase::SetSyncOwnerMove(bool sync)
+	{
+		m_bSyncOwnerMove = sync;
+		if( !m_bSyncOwnerMove && !m_bSyncOwnerSize ) {
+			m_bHaveOwnerOffset = false;
+			m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
+			m_szOwnerDelta.cx = m_szOwnerDelta.cy = 0;
+		}
+		else if( m_hWnd != NULL && ::IsWindow(m_hWnd) )
+			CaptureOwnerSyncOffset();
+	}
+
+	void WindowImplBase::SetSyncOwnerSize(bool sync)
+	{
+		m_bSyncOwnerSize = sync;
+		if( !m_bSyncOwnerMove && !m_bSyncOwnerSize ) {
+			m_bHaveOwnerOffset = false;
+			m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
+			m_szOwnerDelta.cx = m_szOwnerDelta.cy = 0;
+		}
+		else if( m_hWnd != NULL && ::IsWindow(m_hWnd) )
+			CaptureOwnerSyncOffset();
+	}
+
+	HWND WindowImplBase::ResolveSyncOwner() const
+	{
+		if( m_hWnd == NULL || !::IsWindow(m_hWnd) ) return NULL;
+		HWND hOwner = ::GetWindow(m_hWnd, GW_OWNER);
+		if( hOwner == NULL || !::IsWindow(hOwner) ) return NULL;
+		return hOwner;
+	}
+
+	void WindowImplBase::CaptureOwnerSyncOffset()
+	{
+		m_bHaveOwnerOffset = false;
+		m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
+		m_szOwnerDelta.cx = m_szOwnerDelta.cy = 0;
+		if( !m_bSyncOwnerMove && !m_bSyncOwnerSize ) return;
+		HWND hOwner = ResolveSyncOwner();
+		if( hOwner == NULL ) return;
+		// GetWindowRect = 屏幕物理像素（副屏可为负坐标）；跨 DPI 屏用打开时像素差，随窗一起平移/缩放
+		RECT rcSelf = { 0 }, rcOwner = { 0 };
+		if( !::GetWindowRect(m_hWnd, &rcSelf) ) return;
+		if( !::GetWindowRect(hOwner, &rcOwner) ) return;
+		m_ptOwnerOffset.x = rcOwner.left - rcSelf.left;
+		m_ptOwnerOffset.y = rcOwner.top - rcSelf.top;
+		m_szOwnerDelta.cx = (rcOwner.right - rcOwner.left) - (rcSelf.right - rcSelf.left);
+		m_szOwnerDelta.cy = (rcOwner.bottom - rcOwner.top) - (rcSelf.bottom - rcSelf.top);
+		m_bHaveOwnerOffset = true;
+	}
+
+	void WindowImplBase::SyncOwnerGeometry(bool bPos, bool bSize)
+	{
+		if( !m_bHaveOwnerOffset || m_bSyncingOwner ) return;
+		if( !bPos && !bSize ) return;
+		HWND hOwner = ResolveSyncOwner();
+		if( hOwner == NULL ) return;
+		if( ::IsZoomed(hOwner) || ::IsIconic(hOwner) ) return;
+		if( ::IsZoomed(m_hWnd) || ::IsIconic(m_hWnd) ) return;
+
+		RECT rcSelf = { 0 };
+		if( !::GetWindowRect(m_hWnd, &rcSelf) ) return;
+		const int selfW = rcSelf.right - rcSelf.left;
+		const int selfH = rcSelf.bottom - rcSelf.top;
+		// 屏幕坐标：主屏/副屏（含负坐标）统一用物理像素偏移
+		const int x = rcSelf.left + m_ptOwnerOffset.x;
+		const int y = rcSelf.top + m_ptOwnerOffset.y;
+		int w = selfW + m_szOwnerDelta.cx;
+		int h = selfH + m_szOwnerDelta.cy;
+		if( w < 1 ) w = 1;
+		if( h < 1 ) h = 1;
+
+		RECT rcOwner = { 0 };
+		if( !::GetWindowRect(hOwner, &rcOwner) ) return;
+		const int ownerW = rcOwner.right - rcOwner.left;
+		const int ownerH = rcOwner.bottom - rcOwner.top;
+		const bool bNeedPos = bPos && (rcOwner.left != x || rcOwner.top != y);
+		const bool bNeedSize = bSize && (ownerW != w || ownerH != h);
+		if( !bNeedPos && !bNeedSize ) return;
+
+		UINT flags = SWP_NOZORDER | SWP_NOACTIVATE;
+		if( !bNeedPos ) flags |= SWP_NOMOVE;
+		if( !bNeedSize ) flags |= SWP_NOSIZE;
+
+		m_bSyncingOwner = true;
+		::SetWindowPos(hOwner, NULL, x, y, w, h, flags);
+		m_bSyncingOwner = false;
+	}
+
+	void WindowImplBase::SyncOwnerPosition()
+	{
+		if( !m_bSyncOwnerMove ) return;
+		SyncOwnerGeometry(true, false);
+	}
+
+	void WindowImplBase::SyncOwnerSize()
+	{
+		if( !m_bSyncOwnerSize ) return;
+		SyncOwnerGeometry(false, true);
+	}
+
+	UINT WindowImplBase::ShowModal()
+	{
+		CaptureOwnerSyncOffset();
+		UINT nRet = CWindowWnd::ShowModal();
+		m_bHaveOwnerOffset = false;
+		return nRet;
+	}
+
+	void WindowImplBase::ShowModalFake()
+	{
+		CaptureOwnerSyncOffset();
+		CWindowWnd::ShowModalFake();
+	}
+
+	// maxbtn/restorebtn 由 WinImplBase 按最大化态互斥显隐；若挂在 TitleBar 且 show-max=false，不得强制显示。
+	static CTitleBarUI* FindOwnerTitleBar(CControlUI* pControl)
+	{
+		for( CControlUI* p = pControl; p != NULL; p = p->GetParent() ) {
+			CTitleBarUI* pBar = static_cast<CTitleBarUI*>(p->GetInterface(DUI_CTR_TITLEBAR));
+			if( pBar != NULL ) return pBar;
+		}
+		return NULL;
+	}
+
+	static void SyncMaxRestoreButtons(CPaintManagerUI& pm, bool bMaximized)
+	{
+		CControlUI* pMax = static_cast<CControlUI*>(pm.FindControl(_T("maxbtn")));
+		CControlUI* pRestore = static_cast<CControlUI*>(pm.FindControl(_T("restorebtn")));
+		if( pMax == NULL && pRestore == NULL ) return;
+
+		CTitleBarUI* pBar = FindOwnerTitleBar(pMax != NULL ? pMax : pRestore);
+		if( pBar != NULL && !pBar->IsShowMax() ) {
+			if( pMax != NULL ) pMax->SetVisible(false);
+			if( pRestore != NULL ) pRestore->SetVisible(false);
+			return;
+		}
+
+		if( bMaximized ) {
+			if( pMax != NULL ) pMax->SetVisible(false);
+			if( pRestore != NULL ) pRestore->SetVisible(true);
+		}
+		else {
+			if( pMax != NULL ) pMax->SetVisible(true);
+			if( pRestore != NULL ) pRestore->SetVisible(false);
+		}
+	}
+
 	void WindowImplBase::OnFinalMessage( HWND hWnd )
 	{
+		m_bHaveOwnerOffset = false;
 		m_pm.RemovePreMessageFilter(this);
 		m_pm.RemoveNotifier(this);
 		m_pm.ReapObjects(m_pm.GetRoot());
@@ -170,6 +329,18 @@ namespace DuiLib
 			if (pt.x > rcClient.right - rcSizeBox.right) return HTRIGHT;
 		}
 
+		// SidePanel fill-host：面板边缘缩放宿主（size-box 为 0 或未盖满客户区时补一刀）
+		{
+			CControlUI* pHitCtrl = m_pm.FindControl(pt);
+			for (CControlUI* pWalk = pHitCtrl; pWalk != NULL; pWalk = pWalk->GetParent()) {
+				CSidePanelUI* pSp = static_cast<CSidePanelUI*>(pWalk->GetInterface(DUI_CTR_SIDEPANEL));
+				if (pSp == NULL) continue;
+				LRESULT ht = pSp->HitHostResize(pt);
+				if (ht != HTCLIENT) return ht;
+				break;
+			}
+		}
+
 		// action 属性驱动的拖拽：不受 caption rect 限制；IsCaptionDragHit 区分空白/交互区
 		{
 			CControlUI* pHitCtrl = m_pm.FindControl(pt);
@@ -277,10 +448,7 @@ namespace DuiLib
 			::DeleteObject(hRgn);
 
 			if (m_pm.IsValid() && wParam == SIZE_RESTORED) {
-				CControlUI* pControl = static_cast<CControlUI*>(m_pm.FindControl(_T("maxbtn")));
-				if (pControl) pControl->SetVisible(true);
-				pControl = static_cast<CControlUI*>(m_pm.FindControl(_T("restorebtn")));
-				if (pControl) pControl->SetVisible(false);
+				SyncMaxRestoreButtons(m_pm, false);
 			}
 		}
 #endif
@@ -306,18 +474,7 @@ namespace DuiLib
 		BOOL bZoomed = ::IsZoomed(*this);
 		LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
 		if( ::IsZoomed(*this) != bZoomed ) {
-			if( !bZoomed ) {
-				CControlUI* pControl = static_cast<CControlUI*>(m_pm.FindControl(_T("maxbtn")));
-				if( pControl ) pControl->SetVisible(false);
-				pControl = static_cast<CControlUI*>(m_pm.FindControl(_T("restorebtn")));
-				if( pControl ) pControl->SetVisible(true);
-			}
-			else {
-				CControlUI* pControl = static_cast<CControlUI*>(m_pm.FindControl(_T("maxbtn")));
-				if( pControl ) pControl->SetVisible(true);
-				pControl = static_cast<CControlUI*>(m_pm.FindControl(_T("restorebtn")));
-				if( pControl ) pControl->SetVisible(false);
-			}
+			SyncMaxRestoreButtons(m_pm, ::IsZoomed(*this) != FALSE);
 		}
 #else
 		LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
@@ -343,7 +500,7 @@ namespace DuiLib
 		CDuiString sSkinType = GetSkinType();
 		if (!sSkinType.IsEmpty()) {
 			STRINGorID xml(_ttoi(GetSkinFile().GetData()));
-			pRoot = builder.Create(xml, sSkinType, this, &m_pm);
+			pRoot = builder.Create(xml, sSkinType.GetData(), this, &m_pm);
 		}
 		else {
 			pRoot = builder.Create(GetSkinFile().GetData(), (UINT)0, this, &m_pm);
@@ -352,7 +509,7 @@ namespace DuiLib
 		if (pRoot == NULL) {
 			CDuiString sError = _T("加载资源文件失败：");
 			sError += GetSkinFile();
-			MessageBox(NULL, sError, _T("Duilib") ,MB_OK|MB_ICONERROR);
+			MessageBox(NULL, sError.GetData(), _T("Duilib") ,MB_OK|MB_ICONERROR);
 			ExitProcess(1);
 			return 0;
 		}
@@ -403,6 +560,64 @@ namespace DuiLib
 	LRESULT WindowImplBase::OnMouseMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
 		bHandled = FALSE;
+		return 0;
+	}
+
+	LRESULT WindowImplBase::OnWindowPosChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
+	{
+		const WINDOWPOS* pwp = reinterpret_cast<const WINDOWPOS*>(lParam);
+		// 正在 SetWindowPos(Owner) 时忽略，避免重入
+		if( pwp != NULL && !m_bSyncingOwner ) {
+			const bool bMoved = (pwp->flags & SWP_NOMOVE) == 0;
+			const bool bSized = (pwp->flags & SWP_NOSIZE) == 0;
+			if( bSized && m_bSyncOwnerSize ) {
+				// 含跨屏 DPI 引起的尺寸变化：同步 Owner；Move 开启时位置一并跟
+				SyncOwnerGeometry(bMoved && m_bSyncOwnerMove, true);
+			}
+			else if( bMoved && m_bSyncOwnerMove ) {
+				if( bSized )
+					CaptureOwnerSyncOffset();
+				else
+					SyncOwnerPosition();
+			}
+		}
+		bHandled = FALSE;
+		return 0;
+	}
+
+	LRESULT WindowImplBase::OnDisplayChange(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		// 显示器插拔 / 布局变化后重抓偏移（屏幕坐标可能整体平移）
+		if( m_bSyncOwnerMove || m_bSyncOwnerSize )
+			CaptureOwnerSyncOffset();
+		bHandled = FALSE;
+		return 0;
+	}
+
+	LRESULT WindowImplBase::OnDPIChanged(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		// 与 MainWnd / HiDPI 一致：系统建议矩形为准，勿再按比例二次缩放窗口
+		m_pm.SetDPI(LOWORD(wParam), false);
+		RECT* const prcNewWindow = reinterpret_cast<RECT*>(lParam);
+		if( prcNewWindow != NULL ) {
+			m_bSyncingOwner = true;
+			::SetWindowPos(m_hWnd, NULL,
+				prcNewWindow->left, prcNewWindow->top,
+				prcNewWindow->right - prcNewWindow->left,
+				prcNewWindow->bottom - prcNewWindow->top,
+				SWP_NOZORDER | SWP_NOACTIVATE);
+			m_bSyncingOwner = false;
+		}
+		if( m_pm.GetRoot() != NULL )
+			m_pm.GetRoot()->NeedUpdate();
+
+		// 跨屏 DPI：本窗已落在新物理矩形上，按原偏移把 Owner 一起带过去，再重抓差
+		if( m_bHaveOwnerOffset )
+			SyncOwnerGeometry(m_bSyncOwnerMove, m_bSyncOwnerSize);
+		if( m_bSyncOwnerMove || m_bSyncOwnerSize )
+			CaptureOwnerSyncOffset();
+
+		bHandled = TRUE;
 		return 0;
 	}
 
@@ -467,6 +682,11 @@ namespace DuiLib
 		case WM_MOUSEWHEEL:		lRes = OnMouseWheel(uMsg, wParam, lParam, bHandled); break;
 #endif
 		case WM_SIZE:			lRes = OnSize(uMsg, wParam, lParam, bHandled); break;
+		case WM_WINDOWPOSCHANGED: lRes = OnWindowPosChanged(uMsg, wParam, lParam, bHandled); break;
+		case WM_DISPLAYCHANGE:	lRes = OnDisplayChange(uMsg, wParam, lParam, bHandled); break;
+#if defined(WIN32) && !defined(UNDER_CE)
+		case WM_DPICHANGED:		lRes = OnDPIChanged(uMsg, wParam, lParam, bHandled); break;
+#endif
 		case WM_CHAR:		lRes = OnChar(uMsg, wParam, lParam, bHandled); break;
 		case WM_SYSCOMMAND:		lRes = OnSysCommand(uMsg, wParam, lParam, bHandled); break;
 		case WM_KEYDOWN:		lRes = OnKeyDown(uMsg, wParam, lParam, bHandled); break;

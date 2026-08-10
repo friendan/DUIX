@@ -19,7 +19,7 @@
 | `background-image` | 渐变、`url(...)`、裸路径，或 `file='…'` DSL；态图：`-hover`/`-active`/`-disabled`/`-focus`/`-selected` |
 | `border` / `border-width` / `border-*-width` / `border-style` / `border-color` | 边框 |
 | `border-radius` | CSS 半径：`12`/`12px`→等轴；或 `rx,ry` |
-| `width` / `height` / `min-*` / `max-*` | 尺寸；支持 `%` |
+| `width` / `height` / `min-*` / `max-*` | 尺寸；支持像素、`%`、`auto`/`fit-content`（见 [Attributes.md](Attributes.md)） |
 | `name` / `id` | 控件名（`id` 为 `name` 别名） |
 | `text` / `tooltip` | 文案 / 提示 |
 | `enabled` / `visible` | 启用 / 可见 |

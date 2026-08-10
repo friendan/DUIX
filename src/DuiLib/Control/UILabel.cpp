@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UILabel.h"
 
 #include <atlconv.h>
@@ -18,8 +18,6 @@ namespace DuiLib
 		m_bFontUnderline(false),
 		m_bFontStrikeout(false),
 		m_bShowHtml(false),
-		m_bAutoCalcWidth(false),
-		m_bAutoCalcHeight(false),
 		m_bClickable(false),
 		m_bLButtonDown(false),
 		m_bNeedEstimateSize(false)
@@ -169,7 +167,7 @@ namespace DuiLib
 		if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
 		if( nSize <= 0 ) nSize = 12;
 
-		int id = m_pManager->EnsureFont(sFamily, nSize, m_bFontBold, m_bFontUnderline, m_bFontItalic, m_bFontStrikeout);
+		int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, m_bFontBold, m_bFontUnderline, m_bFontItalic, m_bFontStrikeout);
 		if( id >= 0 ) SetFont(id);
 	}
 
@@ -181,7 +179,7 @@ namespace DuiLib
 
 	LPCTSTR CLabelUI::GetFontFamily() const
 	{
-		return m_sFontFamily;
+		return m_sFontFamily.GetData();
 	}
 
 	void CLabelUI::SetFontSize(int nSize)
@@ -281,28 +279,28 @@ namespace DuiLib
 				}
 				// 宽度
 				if (m_cxyFixedLast.cx == 0) {
-					if(m_bAutoCalcWidth) {
+					if(GetAutoCalcWidth()) {
 						RECT rcText = { 0, 0, 9999, m_cxyFixedLast.cy };
 						UINT uStyle = DT_CALCRECT | m_uTextStyle & ~DT_RIGHT & ~DT_CENTER;
 						if( m_bShowHtml )
-							RenderMeasureHtmlText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
+							RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), 0, m_iFont, uStyle);
 						else
-							RenderMeasureText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
+							RenderMeasureText(m_pManager, rcText, sText.GetData(), 0, m_iFont, uStyle);
 						m_cxyFixedLast.cx = rcText.right - rcText.left + padL + padR;
 					}
 				}
 			}
 			// 自动计算高度
 			else if(m_cxyFixedLast.cy == 0) {
-				if(m_bAutoCalcHeight) {
+				if(GetAutoCalcHeight()) {
 					RECT rcText = { 0, 0, m_cxyFixedLast.cx, 9999 };
 					rcText.left += padL;
 					rcText.right -= padR;
 					UINT uStyle = DT_CALCRECT | m_uTextStyle & ~DT_RIGHT & ~DT_CENTER;
 					if( m_bShowHtml )
-						RenderMeasureHtmlText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
+						RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), 0, m_iFont, uStyle);
 					else
-						RenderMeasureText(m_pManager, rcText, sText, 0, m_iFont, uStyle);
+						RenderMeasureText(m_pManager, rcText, sText.GetData(), 0, m_iFont, uStyle);
 					m_cxyFixedLast.cy = rcText.bottom - rcText.top + padT + padB;
 				}
 			}
@@ -471,24 +469,6 @@ namespace DuiLib
 			if( ParseColorString(pstrValue, clrColor) ) SetFocusedColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("showhtml")) == 0 ) SetShowHtml(_tcsicmp(pstrValue, _T("true")) == 0);
-		else if( _tcsicmp(pstrName, _T("width")) == 0 ) {
-			if( _tcsicmp(pstrValue, _T("auto")) == 0 || _tcsicmp(pstrValue, _T("fit-content")) == 0 ) {
-				SetAutoCalcWidth(true);
-			}
-			else {
-				SetAutoCalcWidth(false);
-				CControlUI::SetAttribute(pstrName, pstrValue);
-			}
-		}
-		else if( _tcsicmp(pstrName, _T("height")) == 0 ) {
-			if( _tcsicmp(pstrValue, _T("auto")) == 0 || _tcsicmp(pstrValue, _T("fit-content")) == 0 ) {
-				SetAutoCalcHeight(true);
-			}
-			else {
-				SetAutoCalcHeight(false);
-				CControlUI::SetAttribute(pstrName, pstrValue);
-			}
-		}
 		else if( _tcsicmp(pstrName, _T("clickable")) == 0 ) {
 			SetClickable(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
@@ -523,34 +503,17 @@ namespace DuiLib
 				clrColor = m_dwFocusedColor;
 		}
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
 		else
-			ctx.DrawText(rc, sText, clrColor, m_iFont, m_uTextStyle);
-	}
-
-	bool CLabelUI::GetAutoCalcWidth() const
-	{
-		return m_bAutoCalcWidth;
-	}
-
-	void CLabelUI::SetAutoCalcWidth(bool bAutoCalcWidth)
-	{
-		m_bAutoCalcWidth = bAutoCalcWidth;
-	}
-
-	bool CLabelUI::GetAutoCalcHeight() const
-	{
-		return m_bAutoCalcHeight;
-	}
-
-	void CLabelUI::SetAutoCalcHeight(bool bAutoCalcHeight)
-	{
-		m_bAutoCalcHeight = bAutoCalcHeight;
+			ctx.DrawText(rc, sText.GetData(), clrColor, m_iFont, m_uTextStyle);
 	}
 
 	void CLabelUI::SetText( LPCTSTR pstrText )
 	{
 		CControlUI::SetText(pstrText);
+		// 文本变长/变短后必须重测；仅 NeedParentUpdate 时若父级可用尺寸未变，
+		// EstimateSize 会沿用 m_cxyFixedLast（如首帧 "Icons"），标题被裁切直至改窗体大小。
+		m_bNeedEstimateSize = true;
 		if(GetAutoCalcWidth() || GetAutoCalcHeight()) {
 			NeedParentUpdate();
 		}

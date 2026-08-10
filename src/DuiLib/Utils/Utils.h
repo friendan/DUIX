@@ -1,4 +1,4 @@
-﻿#ifndef __UTILS_H__
+#ifndef __UTILS_H__
 #define __UTILS_H__
 
 #pragma once
@@ -171,7 +171,6 @@ namespace DuiLib
 		LPCTSTR GetData() const;
 
 		void SetAt(int nIndex, TCHAR ch);
-		operator LPCTSTR() const;
 
 		TCHAR operator[] (int nIndex) const;
 		const CDuiString& operator=(const CDuiString& src);
@@ -196,6 +195,12 @@ namespace DuiLib
 		bool operator <  (LPCTSTR str) const;
 		bool operator >= (LPCTSTR str) const;
 		bool operator >  (LPCTSTR str) const;
+		bool operator == (const CDuiString& str) const { return Compare(str.GetData()) == 0; }
+		bool operator != (const CDuiString& str) const { return Compare(str.GetData()) != 0; }
+		bool operator <= (const CDuiString& str) const { return Compare(str.GetData()) <= 0; }
+		bool operator <  (const CDuiString& str) const { return Compare(str.GetData()) <  0; }
+		bool operator >= (const CDuiString& str) const { return Compare(str.GetData()) >= 0; }
+		bool operator >  (const CDuiString& str) const { return Compare(str.GetData()) >  0; }
 
 		int Compare(LPCTSTR pstr) const;
 		int CompareNoCase(LPCTSTR pstr) const;
@@ -212,6 +217,7 @@ namespace DuiLib
 
 		int Find(TCHAR ch, int iPos = 0) const;
 		int Find(LPCTSTR pstr, int iPos = 0) const;
+		int Find(const CDuiString& str, int iPos = 0) const { return Find(str.GetData(), iPos); }
 		int ReverseFind(TCHAR ch) const;
 		int Replace(LPCTSTR pstrFrom, LPCTSTR pstrTo);
 
@@ -229,13 +235,13 @@ namespace DuiLib
 	static std::vector<CDuiString> StrSplit(CDuiString text, CDuiString sp)
 	{
 		std::vector<CDuiString> vResults;
-		int pos = text.Find(sp, 0);
+		int pos = text.Find(sp.GetData(), 0);
 		while (pos >= 0)
 		{
 			CDuiString t = text.Left(pos);
 			vResults.push_back(t);
 			text = text.Right(text.GetLength() - pos - sp.GetLength());
-			pos = text.Find(sp);
+			pos = text.Find(sp.GetData());
 		}
 		vResults.push_back(text);
 		return vResults;
@@ -259,9 +265,13 @@ namespace DuiLib
 
 		void Resize(int nSize = 83);
 		LPVOID Find(LPCTSTR key, bool optimize = true) const;
+		LPVOID Find(const CDuiString& key, bool optimize = true) const { return Find(key.GetData(), optimize); }
 		bool Insert(LPCTSTR key, LPVOID pData);
+		bool Insert(const CDuiString& key, LPVOID pData) { return Insert(key.GetData(), pData); }
 		LPVOID Set(LPCTSTR key, LPVOID pData);
+		LPVOID Set(const CDuiString& key, LPVOID pData) { return Set(key.GetData(), pData); }
 		bool Remove(LPCTSTR key);
+		bool Remove(const CDuiString& key) { return Remove(key.GetData()); }
 		void RemoveAll();
 		int GetSize() const;
 		LPCTSTR GetAt(int iIndex) const;

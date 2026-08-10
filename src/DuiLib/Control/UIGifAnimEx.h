@@ -1,4 +1,4 @@
-﻿#ifndef GifAnimUIEX_h__
+#ifndef GifAnimUIEX_h__
 #define GifAnimUIEX_h__
 #pragma once
 /* write by wangji 2016.03.16

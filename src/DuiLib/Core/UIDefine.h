@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace DuiLib
 {
@@ -305,6 +305,7 @@ protected:                                                                \
 #define  DUI_CTR_FLASH							 (_T("Flash"))
 
 #define  DUI_CTR_BUTTON                          (_T("Button"))
+#define  DUI_CTR_THEMESWITCHER                   (_T("ThemeSwitcher"))
 #define  DUI_CTR_OPTION                          (_T("Option"))
 #define  DUI_CTR_SLIDER                          (_T("Slider"))
 #define  DUI_CTR_TAB_BOX					     (_T("TabBox")) //
@@ -334,6 +335,7 @@ protected:                                                                \
 #define  DUI_CTR_SWITCH                          (_T("Switch"))
 #define  DUI_CTR_IMAGE                           (_T("Img"))
 #define  DUI_CTR_AVATAR                          (_T("Avatar"))
+#define  DUI_CTR_FONTICON                        (_T("FontIcon"))
 #define  DUI_CTR_COMBOBOX                        (_T("ComboBox"))
 #define  DUI_CTR_DATETIME                        (_T("DateTime"))
 #define  DUI_CTR_HOTKEY                          (_T("HotKey"))

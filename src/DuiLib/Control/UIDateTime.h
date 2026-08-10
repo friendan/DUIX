@@ -1,4 +1,4 @@
-﻿#ifndef __UIDATETIME_H__
+#ifndef __UIDATETIME_H__
 #define __UIDATETIME_H__
 
 #pragma once

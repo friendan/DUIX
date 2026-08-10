@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIRichEdit.h"
 
 #ifdef _USEIMM
@@ -2401,14 +2401,14 @@ err:
 			UINT uTextAlign = GetPlaceholderAlign();
 			if(IsMultiLine()) uTextAlign |= DT_TOP;
 			else uTextAlign |= DT_VCENTER;
-			ctx.DrawText(rc, sPlaceholder, dwColor, m_iFont, uTextAlign);
+			ctx.DrawText(rc, sPlaceholder.GetData(), dwColor, m_iFont, uTextAlign);
 		}
 		return true;
 	}
 
 	LPCTSTR CRichEditUI::GetImage()
 	{
-		return m_sImage;
+		return m_sImage.GetData();
 	}
 
 	void CRichEditUI::SetImage(LPCTSTR pStrImage)
@@ -2419,7 +2419,7 @@ err:
 
 	LPCTSTR CRichEditUI::GetHoverImage()
 	{
-		return m_sHoverImage;
+		return m_sHoverImage.GetData();
 	}
 
 	void CRichEditUI::SetHoverImage(LPCTSTR pStrImage)
@@ -2430,7 +2430,7 @@ err:
 
 	LPCTSTR CRichEditUI::GetFocusImage()
 	{
-		return m_sFocusImage;
+		return m_sFocusImage.GetData();
 	}
 
 	void CRichEditUI::SetFocusImage(LPCTSTR pStrImage)
@@ -2441,7 +2441,7 @@ err:
 
 	LPCTSTR CRichEditUI::GetDisabledImage()
 	{
-		return m_sDisabledImage;
+		return m_sDisabledImage.GetData();
 	}
 
 	void CRichEditUI::SetDisabledImage(LPCTSTR pStrImage)
@@ -2508,25 +2508,25 @@ err:
 
 		if( (m_uButtonState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sDisabledImage) ) {}
+				if( !DrawImage(ctx, m_sDisabledImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
 			if( !m_sFocusImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
+				if( !DrawImage(ctx, m_sFocusImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT ) != 0 ) {
 			if( !m_sHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
+				if( !DrawImage(ctx, m_sHoverImage.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
+			if( !DrawImage(ctx, m_sImage.GetData()) ) {}
 			else return;
 		}
 	}
@@ -2626,11 +2626,11 @@ err:
 				if( pInfo != NULL ) nSize = pInfo->iSize;
 				if( sFamily.IsEmpty() && pInfo != NULL ) sFamily = pInfo->sFontName;
 				if( !sFamily.IsEmpty() ) {
-					int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+					int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, false, false, false, false);
 					if( id >= 0 ) SetFont(id);
 				}
 			}
-			else if( !sFamily.IsEmpty() ) SetFont(sFamily, nSize, false, false, false);
+			else if( !sFamily.IsEmpty() ) SetFont(sFamily.GetData(), nSize, false, false, false);
 		}
 		else if( _tcsicmp(pstrName, _T("font-size")) == 0 ) {
 			LPTSTR pEnd = NULL;
@@ -2641,10 +2641,10 @@ err:
 					TFontInfo* pInfo = m_pManager->GetFontInfo(m_iFont);
 					if( pInfo == NULL ) pInfo = m_pManager->GetDefaultFontInfo();
 					if( pInfo != NULL ) sFamily = pInfo->sFontName;
-					int id = m_pManager->EnsureFont(sFamily, (int)v, false, false, false, false);
+					int id = m_pManager->EnsureFont(sFamily.GetData(), (int)v, false, false, false, false);
 					if( id >= 0 ) SetFont(id);
 				}
-				else SetFont(sFamily, (int)v, false, false, false);
+				else SetFont(sFamily.GetData(), (int)v, false, false, false);
 			}
 		}
 		else if( _tcscmp(pstrName, _T("color")) == 0 ) {

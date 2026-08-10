@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIWebBrowser.h"
 #include "WebBrowserIeEngine.h"
 #include <ExDisp.h>
@@ -58,7 +58,7 @@ namespace DuiLib
 
 	LPCTSTR CWebBrowserUI::GetEngineName() const
 	{
-		return m_sEngineName;
+		return m_sEngineName.GetData();
 	}
 
 	void CWebBrowserUI::SetEngineFallback(bool bFallback)
@@ -80,7 +80,7 @@ namespace DuiLib
 
 	LPCTSTR CWebBrowserUI::GetHomePage() const
 	{
-		return m_sHomePage;
+		return m_sHomePage.GetData();
 	}
 
 	void CWebBrowserUI::SetLocationUrl(LPCTSTR lpszUrl)
@@ -90,8 +90,8 @@ namespace DuiLib
 
 	LPCTSTR CWebBrowserUI::GetLocationUrl() const
 	{
-		if( !m_sLocationUrl.IsEmpty() ) return m_sLocationUrl;
-		return m_sHomePage;
+		if( !m_sLocationUrl.IsEmpty() ) return m_sLocationUrl.GetData();
+		return m_sHomePage.GetData();
 	}
 
 	void CWebBrowserUI::SetAutoNavigation(bool bAuto)
@@ -107,7 +107,7 @@ namespace DuiLib
 	void CWebBrowserUI::SetUserDataFolder(LPCTSTR path)
 	{
 		m_sUserDataFolder = path ? path : _T("");
-		if( m_pEngine ) m_pEngine->SetUserDataFolder(m_sUserDataFolder);
+		if( m_pEngine ) m_pEngine->SetUserDataFolder(m_sUserDataFolder.GetData());
 	}
 
 	void CWebBrowserUI::SetHostMode(LPCTSTR mode)
@@ -128,7 +128,7 @@ namespace DuiLib
 
 	LPCTSTR CWebBrowserUI::GetHostMode() const
 	{
-		return m_sHostMode.IsEmpty() ? _T("window") : (LPCTSTR)m_sHostMode;
+		return m_sHostMode.IsEmpty() ? _T("window") : m_sHostMode.GetData();
 	}
 
 	void CWebBrowserUI::SetHostEvents(CWebBrowserHostEvents* pEvents)
@@ -140,7 +140,7 @@ namespace DuiLib
 	void CWebBrowserUI::SetWebBrowserEventHandler(CWebBrowserEventHandler* pEventHandler)
 	{
 		m_pWebBrowserEventHandler = pEventHandler;
-		if( m_pEngine && _tcsicmp(m_sEngineName, _T("ie")) == 0 ) {
+		if( m_pEngine && _tcsicmp(m_sEngineName.GetData(), _T("ie")) == 0 ) {
 			CWebBrowserIeEngine* pIe = static_cast<CWebBrowserIeEngine*>(m_pEngine);
 			pIe->SetIeEventHandler(pEventHandler);
 		}
@@ -167,13 +167,13 @@ namespace DuiLib
 		CDuiString want = m_bForceEngine ? m_sWantedEngine : ResolveDefaultEngine();
 		if( want.IsEmpty() ) want = ResolveDefaultEngine();
 
-		IWebBrowserEngine* pEng = CWebBrowserEngineFactory::Instance().Create(want);
-		if( pEng == NULL && m_bFallback && _tcsicmp(want, _T("ie")) != 0 )
+		IWebBrowserEngine* pEng = CWebBrowserEngineFactory::Instance().Create(want.GetData());
+		if( pEng == NULL && m_bFallback && _tcsicmp(want.GetData(), _T("ie")) != 0 )
 			pEng = CWebBrowserEngineFactory::Instance().Create(_T("ie"));
 		if( pEng == NULL ) return;
 
 		if( !m_sUserDataFolder.IsEmpty() )
-			pEng->SetUserDataFolder(m_sUserDataFolder);
+			pEng->SetUserDataFolder(m_sUserDataFolder.GetData());
 		pEng->SetHostMode(GetHostMode());
 		pEng->SetHostEvents(m_pHostEvents);
 
@@ -181,7 +181,7 @@ namespace DuiLib
 		if( !pEng->Create(this, hParent, rc) ) {
 			delete pEng;
 			pEng = NULL;
-			if( m_bFallback && _tcsicmp(want, _T("ie")) != 0 ) {
+			if( m_bFallback && _tcsicmp(want.GetData(), _T("ie")) != 0 ) {
 				pEng = CWebBrowserEngineFactory::Instance().Create(_T("ie"));
 				if( pEng ) {
 					pEng->SetHostEvents(m_pHostEvents);
@@ -196,7 +196,7 @@ namespace DuiLib
 
 		m_pEngine = pEng;
 		m_sEngineName = pEng->GetName();
-		if( _tcsicmp(m_sEngineName, _T("ie")) == 0 && m_pWebBrowserEventHandler ) {
+		if( _tcsicmp(m_sEngineName.GetData(), _T("ie")) == 0 && m_pWebBrowserEventHandler ) {
 			static_cast<CWebBrowserIeEngine*>(m_pEngine)->SetIeEventHandler(m_pWebBrowserEventHandler);
 		}
 
@@ -204,11 +204,11 @@ namespace DuiLib
 		m_pEngine->SetPos(m_rcItem);
 
 		if( !m_sPendingUrl.IsEmpty() ) {
-			m_pEngine->Navigate(m_sPendingUrl);
+			m_pEngine->Navigate(m_sPendingUrl.GetData());
 			m_sPendingUrl.Empty();
 		}
 		else if( m_bAutoNavi && !m_sHomePage.IsEmpty() ) {
-			m_pEngine->Navigate(m_sHomePage);
+			m_pEngine->Navigate(m_sHomePage.GetData());
 		}
 	}
 
@@ -307,7 +307,7 @@ namespace DuiLib
 	void CWebBrowserUI::NavigateHomePage()
 	{
 		if( !m_sHomePage.IsEmpty() )
-			NavigateUrl(m_sHomePage);
+			NavigateUrl(m_sHomePage.GetData());
 	}
 
 	void CWebBrowserUI::Refresh()
@@ -319,7 +319,7 @@ namespace DuiLib
 	void CWebBrowserUI::Refresh2(int Level)
 	{
 		EnsureEngine();
-		if( m_pEngine && _tcsicmp(m_sEngineName, _T("ie")) == 0 ) {
+		if( m_pEngine && _tcsicmp(m_sEngineName.GetData(), _T("ie")) == 0 ) {
 			CWebBrowserIeEngine* pIe = static_cast<CWebBrowserIeEngine*>(m_pEngine);
 			if( pIe->GetHost() ) pIe->GetHost()->Refresh2(Level);
 		}
@@ -390,13 +390,13 @@ namespace DuiLib
 
 	IWebBrowser2* CWebBrowserUI::GetWebBrowser2()
 	{
-		if( m_pEngine == NULL || _tcsicmp(m_sEngineName, _T("ie")) != 0 ) return NULL;
+		if( m_pEngine == NULL || _tcsicmp(m_sEngineName.GetData(), _T("ie")) != 0 ) return NULL;
 		return reinterpret_cast<IWebBrowser2*>(m_pEngine->GetNative());
 	}
 
 	IDispatch* CWebBrowserUI::GetHtmlWindow()
 	{
-		if( m_pEngine == NULL || _tcsicmp(m_sEngineName, _T("ie")) != 0 ) return NULL;
+		if( m_pEngine == NULL || _tcsicmp(m_sEngineName.GetData(), _T("ie")) != 0 ) return NULL;
 		CWebBrowserIeEngine* pIe = static_cast<CWebBrowserIeEngine*>(m_pEngine);
 		return pIe->GetHost() ? pIe->GetHost()->GetHtmlWindow() : NULL;
 	}

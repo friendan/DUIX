@@ -315,10 +315,10 @@ namespace DuiLib
 
         std::vector<CDuiString>vIPs = StrSplit(sIP, _T("."));
         if (vIPs.size() == 4) {
-            m_nFirst = _ttoi(vIPs[0]);
-            m_nSecond = _ttoi(vIPs[1]);
-            m_nThird = _ttoi(vIPs[2]);
-            m_nFourth = _ttoi(vIPs[3]);
+            m_nFirst = _ttoi(vIPs[0].GetData());
+            m_nSecond = _ttoi(vIPs[1].GetData());
+            m_nThird = _ttoi(vIPs[2].GetData());
+            m_nFourth = _ttoi(vIPs[3].GetData());
         }
         UpdateText();
     }

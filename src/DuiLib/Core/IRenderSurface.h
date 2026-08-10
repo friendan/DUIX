@@ -1,4 +1,4 @@
-﻿#ifndef __IRENDERSURFACE_H__
+#ifndef __IRENDERSURFACE_H__
 #define __IRENDERSURFACE_H__
 
 #pragma once

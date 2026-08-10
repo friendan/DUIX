@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 namespace DuiLib {
 
@@ -253,7 +253,7 @@ namespace DuiLib {
 				while( p < pTemp ) sValue += *p++;
 			}
 			if( *p == _T('\"') ) p++;
-			ApplyWindowAttribute(pManager, sItem, sValue);
+			ApplyWindowAttribute(pManager, sItem.GetData(), sValue.GetData());
 			if( *p != _T(' ') && *p != _T(',') && *p != _T('\0') ) break;
 			while( *p == _T(' ') || *p == _T(',') ) p++;
 		}
@@ -793,7 +793,7 @@ namespace DuiLib {
 						AppendCssAttr(sAttrList, sMapped.GetData(), pDecl->sVal.GetData());
 					}
 					if (!sAttrList.IsEmpty())
-						pManager->AddCssRule(sOne, sAttrList);
+						pManager->AddCssRule(sOne.GetData(), sAttrList.GetData());
 				}
 			}
 

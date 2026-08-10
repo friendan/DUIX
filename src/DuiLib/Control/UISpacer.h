@@ -1,4 +1,4 @@
-﻿#ifndef __UISPACER_H__
+#ifndef __UISPACER_H__
 #define __UISPACER_H__
 
 #pragma once

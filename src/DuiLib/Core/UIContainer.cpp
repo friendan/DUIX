@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 namespace DuiLib
 {
@@ -816,7 +816,7 @@ namespace DuiLib
 			m_sVerticalScrollBarStyle = pstrValue;
 			EnableScrollBar(TRUE, GetHorizontalScrollBar() != NULL);
 			if( GetVerticalScrollBar() ) {
-				LPCTSTR pStyle = m_pManager->GetStyle(m_sVerticalScrollBarStyle);
+				LPCTSTR pStyle = m_pManager->GetStyle(m_sVerticalScrollBarStyle.GetData());
 				if( pStyle ) {
 					GetVerticalScrollBar()->ApplyAttributeList(pStyle);
 				}
@@ -832,7 +832,7 @@ namespace DuiLib
 			m_sHorizontalScrollBarStyle = pstrValue;
 			EnableScrollBar(TRUE, GetHorizontalScrollBar() != NULL);
 			if( GetHorizontalScrollBar() ) {
-				LPCTSTR pStyle = m_pManager->GetStyle(m_sHorizontalScrollBarStyle);
+				LPCTSTR pStyle = m_pManager->GetStyle(m_sHorizontalScrollBarStyle.GetData());
 				if( pStyle ) {
 					GetHorizontalScrollBar()->ApplyAttributeList(pStyle);
 				}

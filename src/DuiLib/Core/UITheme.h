@@ -50,6 +50,15 @@ namespace DuiLib {
 		mutable std::vector<CDuiString> m_tokenOrder; // 枚举顺序
 	};
 
+	/// 主题变更监听：便于外部持久化当前主题 id（预览阶段可忽略）
+	class UILIB_API IThemeNotifyUI
+	{
+	public:
+		virtual ~IThemeNotifyUI() {}
+		/// bPreview=true：预览窗临时切换；false：正式提交
+		virtual void OnThemeChanged(LPCTSTR oldId, LPCTSTR newId, bool bPreview) = 0;
+	};
+
 	/// 进程级主题管理：注册、枚举、切换、热刷新
 	class UILIB_API CThemeManager
 	{
@@ -74,10 +83,17 @@ namespace DuiLib {
 		void SetEnabled(bool bEnabled);
 		bool IsEnabled() const;
 
-		bool ApplyTheme(LPCTSTR id);
-		bool ApplyTheme(CTheme* pTheme);
+		bool ApplyTheme(LPCTSTR id, bool bPreview = false);
+		bool ApplyTheme(CTheme* pTheme, bool bPreview = false);
+		/// 当前主题 token 已改：重刷 UI（不改 id）
+		void RefreshCurrentTheme(bool bPreview = false);
 		/// 简易 :root { --token: #RRGGBBAA; } 文件；成功则注册为 id（文件名）并 Apply
 		bool ApplyThemeFile(LPCTSTR path, LPCTSTR idOverride = NULL);
+		/// 写出与 ApplyThemeFile 对称的 :root 文件
+		bool SaveThemeFile(const CTheme* pTheme, LPCTSTR path) const;
+
+		void AddThemeNotify(IThemeNotifyUI* pNotify);
+		void RemoveThemeNotify(IThemeNotifyUI* pNotify);
 
 		DWORD GetColor(LPCTSTR token, DWORD fallback = 0) const;
 
@@ -102,6 +118,9 @@ namespace DuiLib {
 		/// 纯色弹出 Menu：套 list chrome + 分隔线；图片壳 / theme=none 跳过
 		void ApplyMenuChrome(CMenuUI* pMenu);
 
+		/// 热切后同步所有 ThemeSwitcher 显示
+		void SyncThemeSwitchers();
+
 	private:
 		CThemeManager();
 		~CThemeManager();
@@ -109,6 +128,7 @@ namespace DuiLib {
 		CThemeManager& operator=(const CThemeManager&);
 
 		void ApplyCurrentToGlobals();
+		void NotifyThemeChanged(LPCTSTR oldId, LPCTSTR newId, bool bPreview);
 		CTheme* GetChromeTheme() const;
 		void ApplyChromeToManager(CPaintManagerUI* pManager);
 		static void ReapplyKindRecursive(CControlUI* pControl);
@@ -116,6 +136,7 @@ namespace DuiLib {
 		static void RefreshVarAttributesRecursive(CControlUI* pControl);
 		static void ResolveThemeChrome(CControlUI* pControl, CDuiString& modeOut, bool& bSelfPanel,
 			CTheme*& pThemeOut, CTheme* pFallback);
+		static void SyncThemeSwitchersRecursive(CControlUI* pControl);
 
 		struct ThemeEntry {
 			CTheme* pTheme;
@@ -123,6 +144,7 @@ namespace DuiLib {
 		};
 
 		std::vector<ThemeEntry> m_themes;
+		std::vector<IThemeNotifyUI*> m_notifies;
 		CDuiString m_sDefaultId;
 		CDuiString m_sCurrentId;
 		bool m_bInited;

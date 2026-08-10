@@ -37,6 +37,7 @@ namespace DuiLib {
 		, m_nHeight(200)
 		, m_bClickBackdropToClose(true)
 		, m_hOwner(NULL)
+		, m_bSyncOwnerMove(true)
 		, m_fnOnResult(NULL)
 		, m_pResultUser(NULL)
 	{
@@ -52,6 +53,7 @@ namespace DuiLib {
 	CModalOptions& CModalOptions::Height(int h) { m_nHeight = h; return *this; }
 	CModalOptions& CModalOptions::ClickBackdropToClose(bool close) { m_bClickBackdropToClose = close; return *this; }
 	CModalOptions& CModalOptions::Owner(HWND hOwner) { m_hOwner = hOwner; return *this; }
+	CModalOptions& CModalOptions::SyncOwnerMove(bool sync) { m_bSyncOwnerMove = sync; return *this; }
 	CModalOptions& CModalOptions::OnResult(ModalResultCallback fn, void* pUser)
 	{
 		m_fnOnResult = fn;
@@ -91,6 +93,16 @@ namespace DuiLib {
 			if( m_hWnd == NULL ) return NULL;
 			::SetLayeredWindowAttributes(m_hWnd, 0, 96, LWA_ALPHA);
 			return m_hWnd;
+		}
+
+		void Relayout(const RECT& rcWork)
+		{
+			if( m_hWnd == NULL || !::IsWindow(m_hWnd) ) return;
+			int w = rcWork.right - rcWork.left;
+			int h = rcWork.bottom - rcWork.top;
+			if( w < 1 ) w = 1;
+			if( h < 1 ) h = 1;
+			::SetWindowPos(m_hWnd, HWND_TOP, rcWork.left, rcWork.top, w, h, SWP_NOACTIVATE);
 		}
 
 		void ShowBackdrop()
@@ -139,11 +151,15 @@ namespace DuiLib {
 		LRESULT OnClose(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		LRESULT OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		LRESULT OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+		LRESULT OnWindowPosChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 		void BuildUI();
 		void PlaceWindow(RECT* pOutWork);
 		HWND ResolveOwner() const;
 		void EnableOwner(bool enable);
+		void CaptureOwnerSyncOffset();
+		void SyncOwnerPosition();
+		void UpdateBackdropMonitor(bool bForce = false);
 		void DestroyBackdrop();
 		void FireResult(bool ok);
 
@@ -153,7 +169,11 @@ namespace DuiLib {
 		CButtonUI* m_pOkBtn;
 		CButtonUI* m_pCancelBtn;
 		CModalBackdropWnd* m_pBackdrop;
+		HMONITOR m_hBackdropMonitor;
 		HWND m_hDisabledOwner;
+		POINT m_ptOwnerOffset;
+		bool m_bHaveOwnerOffset;
+		bool m_bSyncingOwner;
 		bool m_bResult;
 		bool m_bClosed;
 		bool m_bFired;
@@ -165,11 +185,15 @@ namespace DuiLib {
 		, m_pOkBtn(NULL)
 		, m_pCancelBtn(NULL)
 		, m_pBackdrop(NULL)
+		, m_hBackdropMonitor(NULL)
 		, m_hDisabledOwner(NULL)
+		, m_bHaveOwnerOffset(false)
+		, m_bSyncingOwner(false)
 		, m_bResult(false)
 		, m_bClosed(false)
 		, m_bFired(false)
 	{
+		m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
 		if( m_opts.m_sTitle.IsEmpty() )
 			m_opts.m_sTitle = _T("提示");
 		if( m_opts.m_kind == CONTROLKIND_NONE )
@@ -208,7 +232,73 @@ namespace DuiLib {
 				::SetFocus(h);
 			}
 		}
-		if( enable ) m_hDisabledOwner = NULL;
+		if( enable ) {
+			m_hDisabledOwner = NULL;
+			m_bHaveOwnerOffset = false;
+		}
+	}
+
+	void CModalWnd::CaptureOwnerSyncOffset()
+	{
+		m_bHaveOwnerOffset = false;
+		m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
+		if( !m_opts.m_bSyncOwnerMove ) return;
+		if( m_hWnd == NULL || m_hDisabledOwner == NULL ) return;
+		if( !::IsWindow(m_hWnd) || !::IsWindow(m_hDisabledOwner) ) return;
+		RECT rcModal = { 0 }, rcOwner = { 0 };
+		if( !::GetWindowRect(m_hWnd, &rcModal) ) return;
+		if( !::GetWindowRect(m_hDisabledOwner, &rcOwner) ) return;
+		m_ptOwnerOffset.x = rcOwner.left - rcModal.left;
+		m_ptOwnerOffset.y = rcOwner.top - rcModal.top;
+		m_bHaveOwnerOffset = true;
+	}
+
+	void CModalWnd::SyncOwnerPosition()
+	{
+		if( !m_opts.m_bSyncOwnerMove || !m_bHaveOwnerOffset || m_bSyncingOwner ) return;
+		if( m_hWnd == NULL || m_hDisabledOwner == NULL ) return;
+		if( !::IsWindow(m_hWnd) || !::IsWindow(m_hDisabledOwner) ) return;
+		if( ::IsZoomed(m_hDisabledOwner) || ::IsIconic(m_hDisabledOwner) ) return;
+
+		// 屏幕坐标（含负坐标副屏）；偏移用打开时物理像素差，跨 DPI 显示器随窗一起平移
+		RECT rcModal = { 0 };
+		if( !::GetWindowRect(m_hWnd, &rcModal) ) return;
+		const int x = rcModal.left + m_ptOwnerOffset.x;
+		const int y = rcModal.top + m_ptOwnerOffset.y;
+
+		RECT rcOwner = { 0 };
+		if( !::GetWindowRect(m_hDisabledOwner, &rcOwner) ) return;
+		if( rcOwner.left == x && rcOwner.top == y ) return;
+
+		m_bSyncingOwner = true;
+		::SetWindowPos(m_hDisabledOwner, NULL, x, y, 0, 0,
+			SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+		m_bSyncingOwner = false;
+	}
+
+	void CModalWnd::UpdateBackdropMonitor(bool bForce)
+	{
+		if( m_pBackdrop == NULL || m_pBackdrop->GetHWND() == NULL ) return;
+		if( m_hWnd == NULL || !::IsWindow(m_hWnd) ) return;
+
+		// 以对话框中心判定所在屏，跨屏拖动时比仅靠窗口角更稳
+		RECT rcModal = { 0 };
+		if( !::GetWindowRect(m_hWnd, &rcModal) ) return;
+		POINT ptCenter = {
+			(rcModal.left + rcModal.right) / 2,
+			(rcModal.top + rcModal.bottom) / 2
+		};
+		HMONITOR hm = ::MonitorFromPoint(ptCenter, MONITOR_DEFAULTTONEAREST);
+		if( hm == NULL )
+			hm = ::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+		if( hm == NULL ) return;
+		if( !bForce && hm == m_hBackdropMonitor ) return;
+
+		MONITORINFO mi = { sizeof(MONITORINFO) };
+		if( !::GetMonitorInfo(hm, &mi) ) return;
+		m_hBackdropMonitor = hm;
+		m_pBackdrop->Relayout(mi.rcWork);
+		RaiseAboveBackdrop();
 	}
 
 	void CModalWnd::RaiseAboveBackdrop()
@@ -227,6 +317,7 @@ namespace DuiLib {
 		HWND h = m_pBackdrop->GetHWND();
 		m_pBackdrop->m_pOwner = NULL;
 		m_pBackdrop = NULL;
+		m_hBackdropMonitor = NULL;
 		if( h && ::IsWindow(h) ) {
 			::ShowWindow(h, SW_HIDE);
 			// 可能从遮罩自身消息里关闭，异步销毁避免重入 DestroyWindow
@@ -282,12 +373,14 @@ namespace DuiLib {
 		else {
 			m_pBackdrop->ShowBackdrop();
 		}
+		m_hBackdropMonitor = ::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
 
 		HWND hOwner = ResolveOwner();
 		if( hOwner && ::IsWindow(hOwner) ) {
 			m_hDisabledOwner = hOwner;
 			::EnableWindow(hOwner, FALSE);
 		}
+		CaptureOwnerSyncOffset();
 
 		ShowWindow(true, true);
 		// 分层窗必须先画出一帧（ULW），再抬到遮罩之上
@@ -563,6 +656,17 @@ namespace DuiLib {
 		return HTCLIENT;
 	}
 
+	LRESULT CModalWnd::OnWindowPosChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
+	{
+		const WINDOWPOS* pwp = reinterpret_cast<const WINDOWPOS*>(lParam);
+		if( pwp != NULL && (pwp->flags & SWP_NOMOVE) == 0 ) {
+			SyncOwnerPosition();
+			UpdateBackdropMonitor(false);
+		}
+		bHandled = FALSE;
+		return 0;
+	}
+
 	LRESULT CModalWnd::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
 		if( wParam == VK_ESCAPE ) {
@@ -593,6 +697,13 @@ namespace DuiLib {
 			break;
 		case WM_NCHITTEST:
 			lRes = OnNcHitTest(uMsg, wParam, lParam, bHandled);
+			break;
+		case WM_WINDOWPOSCHANGED:
+			lRes = OnWindowPosChanged(uMsg, wParam, lParam, bHandled);
+			break;
+		case WM_DISPLAYCHANGE:
+			UpdateBackdropMonitor(true);
+			bHandled = FALSE;
 			break;
 		case WM_KEYDOWN:
 			lRes = OnKeyDown(uMsg, wParam, lParam, bHandled);

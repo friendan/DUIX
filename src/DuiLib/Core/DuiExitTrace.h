@@ -1,4 +1,4 @@
-﻿#ifndef __DUIEXITTRACE_H__
+#ifndef __DUIEXITTRACE_H__
 #define __DUIEXITTRACE_H__
 
 #pragma once

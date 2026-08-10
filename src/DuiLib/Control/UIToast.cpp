@@ -539,6 +539,10 @@ namespace DuiLib {
 		}
 
 		m_pm.AttachDialog(pRoot);
+		// AttachDialog→ApplyToManager 会写窗口底；kind 根已在 SetWindowBackgroundColor 中跳过，
+		// 这里再 SetKind 一次，避免以后路径改动再次盖掉底色。
+		pRoot->SetKind(m_opts.m_kind);
+		pRoot->SetBorderRadius(szRound);
 		m_pm.AddNotifier(this);
 		m_pm.SetBorderRadius(szRound.cx, szRound.cy);
 		ResizeClient(w, h);

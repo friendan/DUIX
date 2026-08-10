@@ -9,7 +9,7 @@ public:
 	CDuiString GetSkinFile();
 	CDuiString GetSkinFolder();
 
-	LRESULT OnDPIChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnDPIChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) override;
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	void InitWindow();
 	void Notify(TNotifyUI& msg);

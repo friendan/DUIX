@@ -1,4 +1,4 @@
-﻿#ifndef __UIFLOWLAYOUT_H__
+#ifndef __UIFLOWLAYOUT_H__
 #define __UIFLOWLAYOUT_H__
 
 #pragma once

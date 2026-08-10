@@ -81,7 +81,7 @@ namespace DuiLib
 
 		DWORD dwColor = m_dwColor;
 		if(!IsEnabled()) dwColor = m_dwDisabledColor;
-		ctx.DrawText(rcText, sText, dwColor, m_iFont, m_uTextStyle, GetAdjustColor(m_dwBackColor));
+		ctx.DrawText(rcText, sText.GetData(), dwColor, m_iFont, m_uTextStyle, GetAdjustColor(m_dwBackColor));
 	}
 	void CGroupBoxUI::PaintBorder(IRenderContext& ctx)
 	{
@@ -130,7 +130,7 @@ namespace DuiLib
 		
 		CDuiString sText = GetText();
 
-		RenderMeasureText(m_pManager, rcText, sText, m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
+		RenderMeasureText(m_pManager, rcText, sText.GetData(), m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
 		SIZE cXY = {rcText.right - rcText.left, rcText.bottom - rcText.top};
 		return cXY;
 	}
@@ -167,7 +167,7 @@ namespace DuiLib
 				}
 				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
 				if( nSize <= 0 ) nSize = 12;
-				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, false, false, false, false);
 				if( id >= 0 ) SetFont(id);
 			}
 		}

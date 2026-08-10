@@ -1,4 +1,4 @@
-﻿/*
+/*
 	创建日期：	2012/11/05 15:09:48
 	作者：			daviyang35@gmail.com
 	描述：	FlashEventHandler

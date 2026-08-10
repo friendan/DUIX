@@ -75,7 +75,7 @@ namespace DuiLib
 
 	LPCTSTR CSliderUI::GetThumbImage() const
 	{
-		return m_sThumbImage;
+		return m_sThumbImage.GetData();
 	}
 
 	void CSliderUI::SetThumbImage(LPCTSTR pStrImage)
@@ -86,7 +86,7 @@ namespace DuiLib
 
 	LPCTSTR CSliderUI::GetThumbHoverImage() const
 	{
-		return m_sThumbHoverImage;
+		return m_sThumbHoverImage.GetData();
 	}
 
 	void CSliderUI::SetThumbHoverImage(LPCTSTR pStrImage)
@@ -97,7 +97,7 @@ namespace DuiLib
 
 	LPCTSTR CSliderUI::GetThumbActiveImage() const
 	{
-		return m_sThumbActiveImage;
+		return m_sThumbActiveImage.GetData();
 	}
 
 	void CSliderUI::SetThumbActiveImage(LPCTSTR pStrImage)
@@ -283,7 +283,7 @@ namespace DuiLib
 			if( !m_sThumbActiveImage.IsEmpty() ) {
 				m_sImageModify.Empty();
 				m_sImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbActiveImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sThumbActiveImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
@@ -291,7 +291,7 @@ namespace DuiLib
 			if( !m_sThumbHoverImage.IsEmpty() ) {
 				m_sImageModify.Empty();
 				m_sImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbHoverImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sThumbHoverImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
@@ -299,7 +299,7 @@ namespace DuiLib
 		if( !m_sThumbImage.IsEmpty() ) {
 			m_sImageModify.Empty();
 			m_sImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
-			if( !DrawImage(ctx, (LPCTSTR)m_sThumbImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !DrawImage(ctx, m_sThumbImage.GetData(), m_sImageModify.GetData()) ) {}
 			else return;
 		}
 	}

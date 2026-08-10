@@ -74,19 +74,19 @@ namespace DuiLib {
 
 		if( (m_uButtonState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sDisabledImage) ) {}
+				if( !DrawImage(ctx, m_sDisabledImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sActiveImage) ) {}
+				if( !DrawImage(ctx, m_sActiveImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
 			if( !m_sFocusImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
+				if( !DrawImage(ctx, m_sFocusImage.GetData()) ) {}
 				else return;
 			}
 		}
@@ -111,13 +111,13 @@ namespace DuiLib {
 				CDuiString sFadeOut, sFadeIn;
 				sFadeOut.Format(_T("fade='%d'"), 255 - m_bFadeAlpha);
 				sFadeIn.Format(_T("fade='%d'"), m_bFadeAlpha);
-				if( !DrawImage(ctx, (LPCTSTR)m_sOldImage, sFadeOut) ) {}
-				if( !DrawImage(ctx, (LPCTSTR)m_sNewImage, sFadeIn) ) {}
+				if( !DrawImage(ctx, m_sOldImage.GetData(), sFadeOut.GetData()) ) {}
+				if( !DrawImage(ctx, m_sNewImage.GetData(), sFadeIn.GetData()) ) {}
 				return;
 			}
 			else {
 				if(m_sLastImage.IsEmpty()) m_sLastImage = m_sImage;
-				if( !DrawImage(ctx, (LPCTSTR)m_sLastImage) ) {}
+				if( !DrawImage(ctx, m_sLastImage.GetData()) ) {}
 				return;
 			}
 		}

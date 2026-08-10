@@ -18,8 +18,8 @@
 | `font-weight` / `font-style` / `text-decoration` | `bold`/`700`；`italic`；`underline` / `line-through` |
 | `color` / `color-disabled` | 文字色 |
 | `color-hover` / `color-active` / `color-focus` | 悬停 / 按下 / 焦点文字色 |
-| `width="auto"` / `width="fit-content"` | 按文字自动算宽 |
-| `height="auto"` / `height="fit-content"` | 按文字自动算高 |
+| `width="auto"` / `width="fit-content"` | 基类通用属性；Label 按**文字**自动算宽（改 `text` 会 `NeedParentUpdate`） |
+| `height="auto"` / `height="fit-content"` | 基类通用属性；多行/非单行时可按文字算高 |
 | `text-overflow="ellipsis"` | 尾部省略（`clip` 关闭） |
 | `word-break="break-word"` | 自动换行（`normal` 单行） |
 | `white-space` | `nowrap`→单行；`normal`（及 `pre-wrap`/`pre-line`）→换行 |

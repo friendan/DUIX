@@ -865,7 +865,7 @@ namespace DuiLib {
 
 	LPCTSTR CListUI::GetItemBkImage() const
 	{
-		return m_ListInfo.sBkImage;
+		return m_ListInfo.sBkImage.GetData();
 	}
 
 	bool CListUI::IsAlternateBk() const
@@ -908,7 +908,7 @@ namespace DuiLib {
 
 	LPCTSTR CListUI::GetSelectedItemImage() const
 	{
-		return m_ListInfo.sSelectedImage;
+		return m_ListInfo.sSelectedImage.GetData();
 	}
 
 	void CListUI::SetHoverItemColor(DWORD dwColor)
@@ -940,7 +940,7 @@ namespace DuiLib {
 
 	LPCTSTR CListUI::GetHoverItemImage() const
 	{
-		return m_ListInfo.sHoverImage;
+		return m_ListInfo.sHoverImage.GetData();
 	}
 
 	void CListUI::SetDisabledItemColor(DWORD dwColor)
@@ -973,7 +973,7 @@ namespace DuiLib {
 
 	LPCTSTR CListUI::GetDisabledItemImage() const
 	{
-		return m_ListInfo.sDisabledImage;
+		return m_ListInfo.sDisabledImage.GetData();
 	}
 
 	DWORD CListUI::GetItemLineColor() const
@@ -1117,7 +1117,7 @@ namespace DuiLib {
 				}
 				if (sFamily.IsEmpty()) sFamily = _T("Microsoft YaHei UI");
 				if (nSize <= 0) nSize = 12;
-				int id = m_pManager->EnsureFont(sFamily, nSize, bBold, false, false, false);
+				int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, bBold, false, false, false);
 				if (id >= 0) SetItemFont(id);
 			}
 		}
@@ -1935,7 +1935,7 @@ namespace DuiLib {
 
 	LPCTSTR CListHeaderItemUI::GetImage() const
 	{
-		return m_sImage;
+		return m_sImage.GetData();
 	}
 
 	void CListHeaderItemUI::SetImage(LPCTSTR pStrImage)
@@ -1946,7 +1946,7 @@ namespace DuiLib {
 
 	LPCTSTR CListHeaderItemUI::GetHoverImage() const
 	{
-		return m_sHoverImage;
+		return m_sHoverImage.GetData();
 	}
 
 	void CListHeaderItemUI::SetHoverImage(LPCTSTR pStrImage)
@@ -1957,7 +1957,7 @@ namespace DuiLib {
 
 	LPCTSTR CListHeaderItemUI::GetActiveImage() const
 	{
-		return m_sActiveImage;
+		return m_sActiveImage.GetData();
 	}
 
 	void CListHeaderItemUI::SetActiveImage(LPCTSTR pStrImage)
@@ -1968,7 +1968,7 @@ namespace DuiLib {
 
 	LPCTSTR CListHeaderItemUI::GetFocusImage() const
 	{
-		return m_sFocusImage;
+		return m_sFocusImage.GetData();
 	}
 
 	void CListHeaderItemUI::SetFocusImage(LPCTSTR pStrImage)
@@ -1979,7 +1979,7 @@ namespace DuiLib {
 
 	LPCTSTR CListHeaderItemUI::GetSepImage() const
 	{
-		return m_sSepImage;
+		return m_sSepImage.GetData();
 	}
 
 	void CListHeaderItemUI::SetSepImage(LPCTSTR pStrImage)
@@ -2038,7 +2038,7 @@ namespace DuiLib {
 				}
 				if (sFamily.IsEmpty()) sFamily = _T("Microsoft YaHei UI");
 				if (nSize <= 0) nSize = 12;
-				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, false, false, false, false);
 				if (id >= 0) SetFont(id);
 			}
 		}
@@ -2180,20 +2180,20 @@ namespace DuiLib {
 		else m_uButtonState &= ~UISTATE_FOCUSED;
 
 		if ((m_uButtonState & UISTATE_PUSHED) != 0) {
-			if (m_sActiveImage.IsEmpty() && !m_sImage.IsEmpty()) DrawImage(ctx, (LPCTSTR)m_sImage);
-			if (!DrawImage(ctx, (LPCTSTR)m_sActiveImage)) {}
+			if (m_sActiveImage.IsEmpty() && !m_sImage.IsEmpty()) DrawImage(ctx, m_sImage.GetData());
+			if (!DrawImage(ctx, m_sActiveImage.GetData())) {}
 		}
 		else if ((m_uButtonState & UISTATE_HOT) != 0) {
-			if (m_sHoverImage.IsEmpty() && !m_sImage.IsEmpty()) DrawImage(ctx, (LPCTSTR)m_sImage);
-			if (!DrawImage(ctx, (LPCTSTR)m_sHoverImage)) {}
+			if (m_sHoverImage.IsEmpty() && !m_sImage.IsEmpty()) DrawImage(ctx, m_sImage.GetData());
+			if (!DrawImage(ctx, m_sHoverImage.GetData())) {}
 		}
 		else if ((m_uButtonState & UISTATE_FOCUSED) != 0) {
-			if (m_sFocusImage.IsEmpty() && !m_sImage.IsEmpty()) DrawImage(ctx, (LPCTSTR)m_sImage);
-			if (!DrawImage(ctx, (LPCTSTR)m_sFocusImage)) {}
+			if (m_sFocusImage.IsEmpty() && !m_sImage.IsEmpty()) DrawImage(ctx, m_sImage.GetData());
+			if (!DrawImage(ctx, m_sFocusImage.GetData())) {}
 		}
 		else {
 			if (!m_sImage.IsEmpty()) {
-				if (!DrawImage(ctx, (LPCTSTR)m_sImage)) {}
+				if (!DrawImage(ctx, m_sImage.GetData())) {}
 			}
 		}
 
@@ -2206,7 +2206,7 @@ namespace DuiLib {
 
 			m_sSepImageModify.Empty();
 			m_sSepImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
-			if (!DrawImage(ctx, (LPCTSTR)m_sSepImage, (LPCTSTR)m_sSepImageModify)) {}
+			if (!DrawImage(ctx, m_sSepImage.GetData(), m_sSepImageModify.GetData())) {}
 		}
 	}
 
@@ -2228,10 +2228,10 @@ namespace DuiLib {
 
 		int nLinks = 0;
 		if (m_bShowHtml)
-			ctx.DrawHtmlText(rcText, sText, m_dwColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), m_dwColor, \
 			NULL, NULL, nLinks, m_iFont, m_uTextStyle);
 		else
-			ctx.DrawText(rcText, sText, m_dwColor, \
+			ctx.DrawText(rcText, sText.GetData(), m_dwColor, \
 			m_iFont, m_uTextStyle);
 	}
 
@@ -2472,32 +2472,32 @@ namespace DuiLib {
 
 		if (!IsEnabled()) {
 			if (!pInfo->sDisabledImage.IsEmpty()) {
-				if (!DrawImage(ctx, (LPCTSTR)pInfo->sDisabledImage)) {}
+				if (!DrawImage(ctx, pInfo->sDisabledImage.GetData())) {}
 				else return;
 			}
 		}
 		if (IsSelected()) {
 			if (!pInfo->sSelectedImage.IsEmpty()) {
-				if (!DrawImage(ctx, (LPCTSTR)pInfo->sSelectedImage)) {}
+				if (!DrawImage(ctx, pInfo->sSelectedImage.GetData())) {}
 				else return;
 			}
 		}
 		if ((m_uButtonState & UISTATE_HOT) != 0) {
 			if (!pInfo->sHoverImage.IsEmpty()) {
-				if (!DrawImage(ctx, (LPCTSTR)pInfo->sHoverImage)) {}
+				if (!DrawImage(ctx, pInfo->sHoverImage.GetData())) {}
 				else return;
 			}
 		}
 
 		if (!m_sBackgroundImage.IsEmpty()) {
 			if (!pInfo->bAlternateBk || m_iIndex % 2 == 0) {
-				if (!DrawImage(ctx, (LPCTSTR)m_sBackgroundImage)) {}
+				if (!DrawImage(ctx, m_sBackgroundImage.GetData())) {}
 			}
 		}
 
 		if (m_sBackgroundImage.IsEmpty()) {
 			if (!pInfo->sBkImage.IsEmpty()) {
-				if (!DrawImage(ctx, (LPCTSTR)pInfo->sBkImage)) {}
+				if (!DrawImage(ctx, pInfo->sBkImage.GetData())) {}
 				else return;
 			}
 		}
@@ -2739,9 +2739,9 @@ namespace DuiLib {
 
 			int nLinks = 0;
 			if( bShowHtml )
-				ctx.DrawHtmlText(rcText, sText, dwTextColor, NULL, NULL, nLinks, iFont, uStyle);
+				ctx.DrawHtmlText(rcText, sText.GetData(), dwTextColor, NULL, NULL, nLinks, iFont, uStyle);
 			else
-				ctx.DrawText(rcText, sText, dwTextColor, iFont, uStyle);
+				ctx.DrawText(rcText, sText.GetData(), dwTextColor, iFont, uStyle);
 		}
 
 		m_rcPaint = rcOldPaint;
@@ -3388,7 +3388,7 @@ namespace DuiLib {
 		if (pText) {
 			if (!IsResourceText())
 				return pText->GetData();
-			return CResourceManager::GetInstance()->GetText(*pText);
+			return CResourceManager::GetInstance()->GetText(pText->GetData()).GetData();
 		}
 		return NULL;
 	}
@@ -3883,10 +3883,10 @@ namespace DuiLib {
 
 
 		if (pInfo->bShowHtml)
-			ctx.DrawHtmlText(rcText, sText, iTextColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), iTextColor, \
 			NULL, NULL, nLinks, pInfo->nFont, pInfo->uTextStyle);
 		else
-			ctx.DrawText(rcText, sText, iTextColor, \
+			ctx.DrawText(rcText, sText.GetData(), iTextColor, \
 			pInfo->nFont, pInfo->uTextStyle);
 	}
 
@@ -3926,24 +3926,24 @@ namespace DuiLib {
 
 		if (!IsEnabled()) {
 			if (!pInfo->sDisabledImage.IsEmpty()) {
-				if (!DrawImage(ctx, (LPCTSTR)pInfo->sDisabledImage)) {}
+				if (!DrawImage(ctx, pInfo->sDisabledImage.GetData())) {}
 				else return;
 			}
 		}
 		if (IsSelected()) {
 			if (!pInfo->sSelectedImage.IsEmpty()) {
-				bool bDrawOk = DrawImage(ctx, (LPCTSTR)pInfo->sSelectedImage);
+				bool bDrawOk = DrawImage(ctx, pInfo->sSelectedImage.GetData());
 				if(!pInfo->sSelectedForegroundImage.IsEmpty()) {
-					DrawImage(ctx, (LPCTSTR)pInfo->sSelectedForegroundImage);
+					DrawImage(ctx, pInfo->sSelectedForegroundImage.GetData());
 				}
 				if(bDrawOk) return;
 			}
 		}
 		if ((m_uButtonState & UISTATE_HOT) != 0) {
 			if (!pInfo->sHoverImage.IsEmpty()) {
-				bool bDrawOk = DrawImage(ctx, (LPCTSTR)pInfo->sHoverImage);
+				bool bDrawOk = DrawImage(ctx, pInfo->sHoverImage.GetData());
 				if(!pInfo->sHoverForegroundImage.IsEmpty()) {
-					DrawImage(ctx, (LPCTSTR)pInfo->sHoverForegroundImage);
+					DrawImage(ctx, pInfo->sHoverForegroundImage.GetData());
 				}
 				if(bDrawOk) return;
 			}
@@ -3951,19 +3951,19 @@ namespace DuiLib {
 
 		if (!m_sBackgroundImage.IsEmpty()) {
 			if (!pInfo->bAlternateBk || m_iIndex % 2 == 0) {
-				if (!DrawImage(ctx, (LPCTSTR)m_sBackgroundImage)) {}
+				if (!DrawImage(ctx, m_sBackgroundImage.GetData())) {}
 
 				if(!pInfo->sForegroundImage.IsEmpty()) {
-					DrawImage(ctx, (LPCTSTR)pInfo->sForegroundImage);
+					DrawImage(ctx, pInfo->sForegroundImage.GetData());
 				}
 			}
 		}
 
 		if (m_sBackgroundImage.IsEmpty()) {
 			if (!pInfo->sBkImage.IsEmpty()) {
-				bool bDrawOk = DrawImage(ctx, (LPCTSTR)pInfo->sBkImage);
+				bool bDrawOk = DrawImage(ctx, pInfo->sBkImage.GetData());
 				if(!pInfo->sForegroundImage.IsEmpty()) {
-					DrawImage(ctx, (LPCTSTR)pInfo->sForegroundImage);
+					DrawImage(ctx, pInfo->sForegroundImage.GetData());
 				}
 			}
 		}

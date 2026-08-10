@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIOption.h"
 
 namespace DuiLib
@@ -10,7 +10,7 @@ namespace DuiLib
 
 	COptionUI::~COptionUI()
 	{
-		if( !m_sGroupName.IsEmpty() && m_pManager ) m_pManager->RemoveOptionGroup(m_sGroupName, this);
+		if( !m_sGroupName.IsEmpty() && m_pManager ) m_pManager->RemoveOptionGroup(m_sGroupName.GetData(), this);
 	}
 
 	LPCTSTR COptionUI::GetClass() const
@@ -28,13 +28,13 @@ namespace DuiLib
 	{
 		CControlUI::SetManager(pManager, pParent, bInit);
 		if( bInit && !m_sGroupName.IsEmpty() ) {
-			if (m_pManager) m_pManager->AddOptionGroup(m_sGroupName, this);
+			if (m_pManager) m_pManager->AddOptionGroup(m_sGroupName.GetData(), this);
 		}
 	}
 
 	LPCTSTR COptionUI::GetGroup() const
 	{
-		return m_sGroupName;
+		return m_sGroupName.GetData();
 	}
 
 	void COptionUI::SetGroup(LPCTSTR pStrGroupName)
@@ -45,15 +45,15 @@ namespace DuiLib
 		}
 		else {
 			if( m_sGroupName == pStrGroupName ) return;
-			if (!m_sGroupName.IsEmpty() && m_pManager) m_pManager->RemoveOptionGroup(m_sGroupName, this);
+			if (!m_sGroupName.IsEmpty() && m_pManager) m_pManager->RemoveOptionGroup(m_sGroupName.GetData(), this);
 			m_sGroupName = pStrGroupName;
 		}
 
 		if( !m_sGroupName.IsEmpty() ) {
-			if (m_pManager) m_pManager->AddOptionGroup(m_sGroupName, this);
+			if (m_pManager) m_pManager->AddOptionGroup(m_sGroupName.GetData(), this);
 		}
 		else {
-			if (m_pManager) m_pManager->RemoveOptionGroup(m_sGroupName, this);
+			if (m_pManager) m_pManager->RemoveOptionGroup(m_sGroupName.GetData(), this);
 		}
 
 		Selected(m_bSelected);
@@ -61,7 +61,7 @@ namespace DuiLib
 
 	LPCTSTR COptionUI::GetGroupType() const
 	{
-		return m_sGroupType;
+		return m_sGroupType.GetData();
 	}
 
 	void COptionUI::SetGroupType(LPCTSTR pStrGroupType)
@@ -91,7 +91,7 @@ namespace DuiLib
 		if( m_pManager != NULL ) {
 			if( !m_sGroupName.IsEmpty() ) {
 				if( m_bSelected ) {
-					CStdPtrArray* aOptionGroup = m_pManager->GetOptionGroup(m_sGroupName);
+					CStdPtrArray* aOptionGroup = m_pManager->GetOptionGroup(m_sGroupName.GetData());
 					for( int i = 0; i < aOptionGroup->GetSize(); i++ ) {
 						COptionUI* pControl = static_cast<COptionUI*>(aOptionGroup->GetAt(i));
 						if( pControl != this && (m_sGroupType.IsEmpty() || m_sGroupType.CompareNoCase(pControl->GetGroupType()) != 0)) {
@@ -132,7 +132,7 @@ namespace DuiLib
 
 	LPCTSTR COptionUI::GetSelectedImage()
 	{
-		return m_sSelectedImage;
+		return m_sSelectedImage.GetData();
 	}
 
 	void COptionUI::SetSelectedImage(LPCTSTR pStrImage)
@@ -143,7 +143,7 @@ namespace DuiLib
 
 	LPCTSTR COptionUI::GetSelectedHoverImage()
 	{
-		return m_sSelectedHoverImage;
+		return m_sSelectedHoverImage.GetData();
 	}
 
 	void COptionUI::SetSelectedHoverImage( LPCTSTR pStrImage )
@@ -154,7 +154,7 @@ namespace DuiLib
 
 	LPCTSTR COptionUI::GetSelectedActiveImage()
 	{
-		return m_sSelectedActiveImage;
+		return m_sSelectedActiveImage.GetData();
 	}
 
 	void COptionUI::SetSelectedActiveImage(LPCTSTR pStrImage)
@@ -186,7 +186,7 @@ namespace DuiLib
 
 	LPCTSTR COptionUI::GetSelectedForegroundImage()
 	{
-		return m_sSelectedForegroundImage;
+		return m_sSelectedForegroundImage.GetData();
 	}
 
 	void COptionUI::SetSelectedForegroundImage(LPCTSTR pStrImage)
@@ -208,7 +208,7 @@ namespace DuiLib
 
 	LPCTSTR COptionUI::GetSelectedStateImage()
 	{
-		return m_sSelectedStateImage;
+		return m_sSelectedStateImage.GetData();
 	}
 
 	void COptionUI::SetSelectedStateImage( LPCTSTR pStrImage )
@@ -267,8 +267,8 @@ namespace DuiLib
 			if(!m_sSelectedStateImage.IsEmpty() && m_nSelectedStateCount > 0)
 			{
 				TDrawInfo info;
-				info.Parse(m_sSelectedStateImage, _T(""), m_pManager);
-				const TImageInfo* pImage = m_pManager->GetImageEx(info.sImageName, info.sResType, info.dwMask, info.bHSL, info.bGdiplus);
+				info.Parse(m_sSelectedStateImage.GetData(), _T(""), m_pManager);
+				const TImageInfo* pImage = m_pManager->GetImageEx(info.sImageName.GetData(), info.sResType.GetData(), info.dwMask, info.bHSL, info.bGdiplus);
 				if(m_sSelectedImage.IsEmpty() && pImage != NULL)
 				{
 					SIZE szImage = {pImage->nX, pImage->nY};
@@ -303,16 +303,16 @@ namespace DuiLib
 			}
 
 			if( (m_uButtonState & UISTATE_PUSHED) != 0 && !m_sSelectedActiveImage.IsEmpty()) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedActiveImage) ) {}
+				if( !DrawImage(ctx, m_sSelectedActiveImage.GetData()) ) {}
 				else return;
 			}
 			else if( (m_uButtonState & UISTATE_HOT) != 0 && !m_sSelectedHoverImage.IsEmpty()) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedHoverImage) ) {}
+				if( !DrawImage(ctx, m_sSelectedHoverImage.GetData()) ) {}
 				else return;
 			}
 
 			if( !m_sSelectedImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedImage) ) {}
+				if( !DrawImage(ctx, m_sSelectedImage.GetData()) ) {}
 			}
 		}
 		else {
@@ -324,7 +324,7 @@ namespace DuiLib
 	{
 		if(IsSelected()) {
 			if( !m_sSelectedForegroundImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sSelectedForegroundImage) ) {}
+				if( !DrawImage(ctx, m_sSelectedForegroundImage.GetData()) ) {}
 				else return;
 			}
 		}
@@ -360,9 +360,9 @@ namespace DuiLib
 			DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 			
 			if( m_bShowHtml )
-				ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, iFont, m_uTextStyle);
+				ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, iFont, m_uTextStyle);
 			else
-				ctx.DrawText(rc, sText, clrColor, iFont, m_uTextStyle);
+				ctx.DrawText(rc, sText.GetData(), clrColor, iFont, m_uTextStyle);
 
 			m_dwColor = oldTextColor;
 		}
@@ -577,9 +577,9 @@ namespace DuiLib
 				RECT rcText = { 0, 0, 9999, sz.cy };
 				UINT uStyle = DT_CALCRECT | DT_SINGLELINE | DT_LEFT | DT_VCENTER;
 				if( m_bShowHtml )
-					RenderMeasureHtmlText(m_pManager, rcText, sText, 0, GetFont(), uStyle);
+					RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), 0, GetFont(), uStyle);
 				else
-					RenderMeasureText(m_pManager, rcText, sText, 0, GetFont(), uStyle);
+					RenderMeasureText(m_pManager, rcText, sText.GetData(), 0, GetFont(), uStyle);
 				sz.cx += nGap + (rcText.right - rcText.left);
 				RECT rcPad = GetTextPadding();
 				sz.cx += rcPad.left + rcPad.right;
@@ -638,9 +638,9 @@ namespace DuiLib
 		if( (uStyle & (DT_CENTER | DT_RIGHT)) == 0 )
 			uStyle |= DT_LEFT;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, GetFont(), uStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, GetFont(), uStyle);
 		else
-			ctx.DrawText(rc, sText, clrColor, GetFont(), uStyle);
+			ctx.DrawText(rc, sText.GetData(), clrColor, GetFont(), uStyle);
 	}
 
 	static bool ParseCheckColorAttr(LPCTSTR pstrValue, DWORD& dwColor)
@@ -742,7 +742,7 @@ namespace DuiLib
 		if( m_pManager != NULL ) {
 			if( !m_sGroupName.IsEmpty() ) {
 				if( m_bSelected ) {
-					CStdPtrArray* aOptionGroup = m_pManager->GetOptionGroup(m_sGroupName);
+					CStdPtrArray* aOptionGroup = m_pManager->GetOptionGroup(m_sGroupName.GetData());
 					for( int i = 0; i < aOptionGroup->GetSize(); i++ ) {
 						COptionUI* pControl = static_cast<COptionUI*>(aOptionGroup->GetAt(i));
 						if( pControl != this ) {

@@ -56,7 +56,7 @@ namespace DuiLib
 		bool SetTabIcon(const BYTE* pData, DWORD dwSize);
 		/// HBITMAP：复制一份入库（不销毁传入句柄）；宽高为 0 时从位图读取
 		bool SetTabIcon(HBITMAP hBitmap, int nWidth = 0, int nHeight = 0, bool bAlpha = true);
-		LPCTSTR GetTabIcon() const { return m_sIconPath; }
+		LPCTSTR GetTabIcon() const { return m_sIconPath.GetData(); }
 		/// 图标库：pstrLib 为 lucide / tabler-outline / bsicon 等，与 XML 属性名一致
 		void SetTabIconLib(LPCTSTR pstrLib, LPCTSTR pstrName);
 		void ClearTabIcon();
@@ -65,13 +65,13 @@ namespace DuiLib
 		void SetTabLoading(bool bLoading);
 		bool IsTabLoading() const;
 		void SetLoadingType(LPCTSTR pstrType);
-		LPCTSTR GetLoadingType() const { return m_sLoadingType; }
+		LPCTSTR GetLoadingType() const { return m_sLoadingType.GetData(); }
 
 		// 标题文字对齐（空=继承 TabBar 的 tab-text-align / tab-vertical-align）
 		void SetTitleTextAlign(LPCTSTR pstrAlign);
-		LPCTSTR GetTitleTextAlign() const { return m_sTextAlign; }
+		LPCTSTR GetTitleTextAlign() const { return m_sTextAlign.GetData(); }
 		void SetTitleVerticalAlign(LPCTSTR pstrAlign);
-		LPCTSTR GetTitleVerticalAlign() const { return m_sVerticalAlign; }
+		LPCTSTR GetTitleVerticalAlign() const { return m_sVerticalAlign.GetData(); }
 
 		void ApplyHoverStyle(bool bHover);
 		void UpdateStyle();

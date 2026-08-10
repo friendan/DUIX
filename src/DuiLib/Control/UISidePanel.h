@@ -62,6 +62,18 @@ namespace DuiLib
 		bool IsClosable() const;
 		void SetTitle(LPCTSTR pstrTitle);
 		LPCTSTR GetTitle() const;
+		/// 标题栏 action（默认 title 可拖主窗；none 取消拖动）
+		void SetHeaderAction(UIAction action);
+		UIAction GetHeaderAction() const { return m_eHeaderAction; }
+
+		/// 铺满宿主：面板厚=宿主区 100%，默认关遮罩；标题栏拖宿主；边缘可缩宿主（见 host-resize）
+		void SetFillHost(bool bFill);
+		bool IsFillHost() const { return m_bFillHost; }
+		/// 铺满时是否用面板边缘缩放宿主窗（默认随 fill-host 开启）
+		void SetHostResize(bool bResize);
+		bool IsHostResize() const { return m_bHostResize; }
+		/// 客户区坐标命中宿主缩放边（非 fill-host / 未开 / 未打开 → HTCLIENT）
+		LRESULT HitHostResize(POINT ptClient) const;
 
 		void ApplyThemeChrome(DWORD dwPanelBg, DWORD dwBorder, DWORD dwTitleColor);
 
@@ -88,6 +100,8 @@ namespace DuiLib
 
 		void EnsureChrome();
 		void SyncHeader();
+		void ApplyHeaderAction();
+		void SyncFillHostChrome();
 		void LayoutChrome();
 		RECT CalcPanelRect(float fProgress) const;
 		int ResolvePanelThickness(const RECT& rcHost) const;
@@ -98,6 +112,7 @@ namespace DuiLib
 		void RestoreFocus();
 		static CControlUI* FindFirstTabStop(CControlUI* pRoot);
 		static bool ParseSizeValue(LPCTSTR pstrValue, int& nPx, float& fPercent);
+		static UIAction ParseHeaderAction(LPCTSTR pstrValue);
 		bool OnCloseClick(void* param);
 		bool OnMaskClick(void* param);
 
@@ -115,6 +130,9 @@ namespace DuiLib
 		bool m_bOpen;
 		bool m_bAnimating;
 		bool m_bChromeReady;
+		bool m_bFillHost;
+		bool m_bHostResize;
+		UIAction m_eHeaderAction;
 		CDuiString m_sTitle;
 		CControlUI* m_pRestoreFocus;
 

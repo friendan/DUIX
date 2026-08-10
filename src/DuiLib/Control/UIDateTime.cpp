@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIDateTime.h"
 
 namespace DuiLib
@@ -584,7 +584,7 @@ namespace DuiLib
 				sTitle.SmallFormat(_T("%d年"), m_nViewYear);
 			else
 				sTitle.SmallFormat(_T("%d-%d"), m_nDecadeStart, m_nDecadeStart + 9);
-			ctx.DrawText(m_rcTitle, sTitle, GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+			ctx.DrawText(m_rcTitle, sTitle.GetData(), GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		}
 
 		void PaintDayBody(IRenderContext& ctx)
@@ -642,7 +642,7 @@ namespace DuiLib
 				else if( bToday ) clr = clrToday;
 				CDuiString s;
 				s.SmallFormat(_T("%d"), day);
-				ctx.DrawText(rcD, s, GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+				ctx.DrawText(rcD, s.GetData(), GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 			}
 		}
 
@@ -682,7 +682,7 @@ namespace DuiLib
 					: (bOut ? m_pOwner->m_dwOtherMonthColor : m_pOwner->GetDayTextColor());
 				CDuiString s;
 				s.SmallFormat(_T("%d"), y);
-				ctx.DrawText(rc, s, GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+				ctx.DrawText(rc, s.GetData(), GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 			}
 		}
 
@@ -701,7 +701,7 @@ namespace DuiLib
 				ctx.DrawText(m_rcTimeBtn[i][1], _T("▼"), GetAdjustColor(clrBtn), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 				CDuiString s;
 				s.SmallFormat(_T("%02d"), vals[i]);
-				ctx.DrawText(m_rcTimeVal[i], s, GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+				ctx.DrawText(m_rcTimeVal[i], s.GetData(), GetAdjustColor(clr), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 				if( i + 1 < parts ) {
 					RECT rcColon = m_rcTimeVal[i];
 					rcColon.left = m_rcTimeVal[i].right;
@@ -1171,7 +1171,7 @@ namespace DuiLib
 		else {
 			sText.SmallFormat(_T("%04d-%02d-%02d"), m_sysTime.wYear, m_sysTime.wMonth, m_sysTime.wDay);
 		}
-		SetText(sText);
+		SetText(sText.GetData());
 	}
 
 	SIZE CDateTimeUI::EstimateSize(SIZE szAvailable)

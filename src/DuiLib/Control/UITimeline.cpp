@@ -21,9 +21,9 @@ namespace DuiLib
 	}
 
 	void CTimelineItemUI::SetTimeText(LPCTSTR pstr) { m_sTime = pstr ? pstr : _T(""); }
-	LPCTSTR CTimelineItemUI::GetTimeText() const { return m_sTime; }
+	LPCTSTR CTimelineItemUI::GetTimeText() const { return m_sTime.GetData(); }
 	void CTimelineItemUI::SetDescription(LPCTSTR pstr) { m_sDescription = pstr ? pstr : _T(""); }
-	LPCTSTR CTimelineItemUI::GetDescription() const { return m_sDescription; }
+	LPCTSTR CTimelineItemUI::GetDescription() const { return m_sDescription.GetData(); }
 	void CTimelineItemUI::SetStatus(Status e) { m_eStatus = e; }
 	CTimelineItemUI::Status CTimelineItemUI::GetStatus() const { return m_eStatus; }
 	void CTimelineItemUI::SetDotColor(DWORD clr) { m_dwDotColor = clr; }
@@ -147,13 +147,13 @@ namespace DuiLib
 			// "HH:mm 标题" 或 "标题"
 			int sp = part.Find(_T(' '));
 			if( sp > 0 && sp <= 8 ) {
-				p->SetTimeText(part.Left(sp));
+				p->SetTimeText(part.Left(sp).GetData());
 				CDuiString title = part.Mid(sp + 1);
 				title.TrimLeft();
-				p->SetText(title);
+				p->SetText(title.GetData());
 			}
 			else {
-				p->SetText(part);
+				p->SetText(part.GetData());
 			}
 			p->SetStatus(CTimelineItemUI::StatusFinish);
 			Add(p);
@@ -265,7 +265,8 @@ namespace DuiLib
 					DT_SINGLELINE | DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS);
 				textTop = rcTime.bottom;
 			}
-			LPCTSTR pTitle = pItem->GetText();
+			CDuiString sTitle = pItem->GetText();
+			LPCTSTR pTitle = sTitle.GetData();
 			if( pTitle && *pTitle ) {
 				RECT rcTitle = { contentLeft, textTop, rc.right, textTop + ScaleValue(20) };
 				ctx.DrawText(rcTitle, pTitle, GetAdjustColor(m_dwTitleColor), -1,

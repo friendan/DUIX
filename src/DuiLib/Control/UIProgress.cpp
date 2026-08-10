@@ -147,7 +147,7 @@ namespace DuiLib
 				m_sForegroundImageModify.SmallFormat(_T("dest='%d,%d,%d,%d' source='%d,%d,%d,%d'"), rc.left, rc.top, rc.right, rc.bottom, rc.left, rc.top, rc.right, rc.bottom);
 			}
 
-			if( !DrawImage(ctx, (LPCTSTR)m_sForegroundImage, (LPCTSTR)m_sForegroundImageModify) ) {}
+			if( !DrawImage(ctx, m_sForegroundImage.GetData(), m_sForegroundImageModify.GetData()) ) {}
 			else return;
 		}
 	}
@@ -169,7 +169,7 @@ namespace DuiLib
 		if(m_bShowText) {
 			CDuiString sText;
 			sText.Format(_T("%.0f%%"), (m_nValue - m_nMin) * 100.0f / (m_nMax - m_nMin));
-			SetText(sText);
+			SetText(sText.GetData());
 		}
 	}
 }

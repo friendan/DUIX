@@ -104,7 +104,7 @@ void CChartViewUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 			CDuiString sFamily = _T("Microsoft YaHei UI");
 			TFontInfo* pInfo = m_pManager->GetDefaultFontInfo();
 			if (pInfo != NULL) sFamily = pInfo->sFontName;
-			int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+			int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, false, false, false, false);
 			if (id >= 0) m_iFont = id;
 		}
 	}
@@ -241,12 +241,12 @@ void CChartViewUI::DoPaintPie(HDC hDC, const RECT& rcPaint)
 				if(clrColor << 8 == 0) clrColor = 1;
 				if( m_bShowHtml )
 				{
-					CRenderEngine::DrawHtmlText(hDC, m_pManager, rcText, m_items[i].name, clrColor, \
+					CRenderEngine::DrawHtmlText(hDC, m_pManager, rcText, m_items[i].name.GetData(), clrColor, \
 						NULL, NULL, nLinks, m_iFont, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 				}
 				else
 				{
-					CRenderEngine::DrawText(hDC, m_pManager, rcText, m_items[i].name, clrColor, \
+					CRenderEngine::DrawText(hDC, m_pManager, rcText, m_items[i].name.GetData(), clrColor, \
 						m_iFont, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 				}
 			}
@@ -269,7 +269,7 @@ void CChartViewUI::DoPaintHistogram(HDC hDC, const RECT& rcPaint)
 		rcShadow.top = m_rcItem.bottom - m_ShadowImageHeight - drawTextHeight;
 		rcShadow.right = m_rcItem.right;
 		rcShadow.bottom = m_rcItem.bottom - drawTextHeight;
-		if (!CRenderEngine::DrawImageString(hDC, m_pManager, rcShadow, m_rcPaint, m_sShadowImage, NULL)) 
+		if (!CRenderEngine::DrawImageString(hDC, m_pManager, rcShadow, m_rcPaint, m_sShadowImage.GetData(), NULL)) 
 		{
 			m_sShadowImage.Empty();
 		}
@@ -311,7 +311,7 @@ void CChartViewUI::DoPaintHistogram(HDC hDC, const RECT& rcPaint)
 			rcPillar.top = m_rcItem.bottom - drawTextHeight - (int)( drawHeight * rateOfItem );
 			rcPillar.right = m_rcItem.left + drawLeft + m_PillarImageWidth;
 			rcPillar.bottom = m_rcItem.bottom - drawTextHeight;
-			if (!CRenderEngine::DrawImageString(hDC, m_pManager, rcPillar, m_rcPaint, m_sPillarImage, NULL)) 
+			if (!CRenderEngine::DrawImageString(hDC, m_pManager, rcPillar, m_rcPaint, m_sPillarImage.GetData(), NULL)) 
 			{
 				m_sPillarImage.Empty();
 			}
@@ -331,12 +331,12 @@ void CChartViewUI::DoPaintHistogram(HDC hDC, const RECT& rcPaint)
 			if(clrColor << 8 == 0) clrColor = 1;
 			if( m_bShowHtml )
 			{
-				CRenderEngine::DrawHtmlText(hDC, m_pManager, rcText, m_items[i].name, clrColor, \
+				CRenderEngine::DrawHtmlText(hDC, m_pManager, rcText, m_items[i].name.GetData(), clrColor, \
 					NULL, NULL, nLinks, m_iFont, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			}
 			else
 			{
-				CRenderEngine::DrawText(hDC, m_pManager, rcText, m_items[i].name, clrColor, \
+				CRenderEngine::DrawText(hDC, m_pManager, rcText, m_items[i].name.GetData(), clrColor, \
 					m_iFont, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 			}
 		}

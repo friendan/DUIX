@@ -8,7 +8,7 @@
 | 同步 | `CMessageBox`（阻塞到关闭，**默认无需皮肤**） |
 | 窗口 | `CModalWnd` + `CModalBackdropWnd`（内部） |
 | 头文件 | `UIModal.h`、`UIMessageBox.h` |
-| Demo | Accordion → Modal；退出确认等走 `CMsgWnd` → `CMessageBox` |
+| Demo | Accordion → Modal；「铺满设置窗」测 `WindowImplBase` 同步；退出确认等走 `CMsgWnd` → `CMessageBox` |
 
 参考 EZUI `Modal.cpp`（异步 `Show` + callback）。同步场景用 `CMessageBox::Show`，不必再带 `msg.html`。
 
@@ -72,6 +72,13 @@ CModal::Show(_T("点遮罩不关"), _T("只能点确定或 Esc。"),
         .ClickBackdropToClose(false)
         .Owner(m_hWnd)
         .OnResult(OnModalResult));
+
+// 不需要跟主窗：关掉同步
+CModal::Show(_T("不同步"), _T("只动对话框，主窗留在原地。"),
+    CModalOptions()
+        .Owner(m_hWnd)
+        .SyncOwnerMove(false)
+        .OnResult(OnModalResult));
 ```
 
 `OnResult`：`ok=true` 点确定 / Enter；`false` 点取消 / Esc / 关窗 / 点遮罩（若允许）/ `Dismiss`。
@@ -101,6 +108,7 @@ CModal::Show(_T("点遮罩不关"), _T("只能点确定或 Esc。"),
 | `Width` / `Height` | 420 / 200 | |
 | `ClickBackdropToClose` | true | 点击半透明遮罩 → 取消 |
 | `Owner` | 前台窗 | 对齐显示器 + 禁用该窗；**Create 不挂 HWND Owner** |
+| `SyncOwnerMove` | true | 拖 Modal 时同步移动 Owner（屏幕坐标相对偏移，支持多显示器/负坐标副屏；不同步大小；最大化/最小化 Owner 时跳过）。不需要时 `.SyncOwnerMove(false)`。**带皮肤的业务模态窗请用 `WindowImplBase::SetSyncOwnerMove`，见 [Window.md](Window.md)** |
 | `OnResult(fn, user)` | null | `ok` + `UserData` |
 | `UserData` | | 传给 OnResult |
 
@@ -110,7 +118,8 @@ CModal::Show(_T("点遮罩不关"), _T("只能点确定或 Esc。"),
 
 - 水平居中，垂直约在工作区上方 1/3（同 EZUI）
 - 标题栏 / 正文区 `action="title"` 可拖动；Esc 取消，Enter 确定
-- 半透明遮罩覆盖当前显示器工作区；关闭时恢复 Owner 启用与焦点
+- `SyncOwnerMove` 默认开启：拖动时按打开时屏幕坐标偏移同步移动 Owner（含跨显示器）；不需要时 `.SyncOwnerMove(false)`
+- 半透明遮罩覆盖 **Modal 当前所在显示器** 工作区；跨屏拖动或 `WM_DISPLAYCHANGE` 时会重铺；关闭时恢复 Owner 启用与焦点
 - 结果回调在窗口销毁前同步触发；勿在回调里再同步嵌套阻塞 UI
 - 对话框：`WS_POPUP | WS_EX_TOOLWINDOW | WS_EX_TOPMOST` + 分层圆角
 - 遮罩：`WS_EX_LAYERED`，**不用 TOPMOST**（避免盖住对话框的分层 Present）

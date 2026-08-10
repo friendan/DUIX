@@ -311,9 +311,9 @@ void CShadowUI::Update(HWND hParent)
 	}
 	if (m_bIsImageMode) {
 		RECT rcPaint = {0, 0, nShadWndWid, nShadWndHei};
-		const TDrawInfo* pDrawInfo = m_pManager->GetDrawInfo(m_sShadowImage, _T(""));
+		const TDrawInfo* pDrawInfo = m_pManager->GetDrawInfo(m_sShadowImage.GetData(), _T(""));
 		if(pDrawInfo != NULL) {
-			const TImageInfo* data = m_pManager->GetImageEx(pDrawInfo->sImageName, pDrawInfo->sResType, pDrawInfo->dwMask, pDrawInfo->bHSL, pDrawInfo->bGdiplus);
+			const TImageInfo* data = m_pManager->GetImageEx(pDrawInfo->sImageName.GetData(), pDrawInfo->sResType.GetData(), pDrawInfo->dwMask, pDrawInfo->bHSL, pDrawInfo->bGdiplus);
 			if( !data ) return;    
 			RECT rcBmpPart = {0};
 			rcBmpPart.right = data->nX;
@@ -726,7 +726,7 @@ bool CShadowUI::SetShadowCorner(RECT rcCorner)
 bool CShadowUI::CopyShadow(CShadowUI* pShadow)
 {
 	if (m_bIsImageMode) {
-		pShadow->SetImage(m_sShadowImage);
+		pShadow->SetImage(m_sShadowImage.GetData());
 		pShadow->SetShadowCorner(m_rcShadowCorner);
 		pShadow->SetSize((int)m_nSize);
 	}

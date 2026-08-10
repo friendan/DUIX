@@ -1,4 +1,4 @@
-﻿#ifndef __IRENDERDEVICE_H__
+#ifndef __IRENDERDEVICE_H__
 #define __IRENDERDEVICE_H__
 
 #pragma once

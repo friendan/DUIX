@@ -47,7 +47,7 @@ namespace DuiLib
 		void SetContextMenuEnabled(bool bEnable);
 		bool IsContextMenuEnabled() const { return m_bContextMenuEnabled; }
 		void SetContextMenuXml(LPCTSTR pstrXml);
-		LPCTSTR GetContextMenuXml() const { return m_sContextMenuXml; }
+		LPCTSTR GetContextMenuXml() const { return m_sContextMenuXml.GetData(); }
 
 		int GetTabCount() const;
 		CTabButtonUI* GetTab(int iIndex) const;
@@ -100,7 +100,7 @@ namespace DuiLib
 		DWORD GetTabIconSelectedColor() const { return m_dwTabIconSelectedColor; }
 		/// 标签加载中 Loading 样式（SetTabLoading）；color 未设则跟 tab-icon-color
 		void SetTabLoadingType(LPCTSTR pstrType);
-		LPCTSTR GetTabLoadingType() const { return m_sTabLoadingType; }
+		LPCTSTR GetTabLoadingType() const { return m_sTabLoadingType.GetData(); }
 		void SetTabLoadingColor(DWORD dwColor);
 		DWORD GetTabLoadingColor() const { return m_dwTabLoadingColor; }
 		/// 测试用：>0 时新建标签延迟 N ms 再导航（方便看 Loading 图标）
@@ -126,16 +126,16 @@ namespace DuiLib
 		DWORD GetCloseHoverColor() const { return m_dwCloseHoverColor; }
 		// 标签标题默认对齐（TabButton 未单独设置时生效）；left/center/right，top/vcenter|middle/bottom
 		void SetTabTextAlign(LPCTSTR pstrAlign);
-		LPCTSTR GetTabTextAlign() const { return m_sTabTextAlign; }
+		LPCTSTR GetTabTextAlign() const { return m_sTabTextAlign.GetData(); }
 		void SetTabVerticalAlign(LPCTSTR pstrAlign);
-		LPCTSTR GetTabVerticalAlign() const { return m_sTabVerticalAlign; }
+		LPCTSTR GetTabVerticalAlign() const { return m_sTabVerticalAlign.GetData(); }
 		void RefreshTabStyles();
 
 		// 将 iFrom 处标签移动到最终下标 iTo（插入语义，非互换）
 		void MoveTab(int iFrom, int iTo);
 
 		void BindTabLayoutName(LPCTSTR pstrName);
-		LPCTSTR GetBindTabLayoutName() const { return m_sBindTabLayoutName; }
+		LPCTSTR GetBindTabLayoutName() const { return m_sBindTabLayoutName.GetData(); }
 
 		// 在 tabclosing / tabselecting 通知处理里调用，可取消本次操作
 		void CancelNotify();

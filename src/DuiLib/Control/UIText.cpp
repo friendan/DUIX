@@ -119,10 +119,10 @@ namespace DuiLib
 		rcText.right -= padR;
 
 		if( m_bShowHtml ) {
-			RenderMeasureHtmlText(m_pManager, rcText, sText, m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
+			RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
 		}
 		else {
-			RenderMeasureText(m_pManager, rcText, sText, m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
+			RenderMeasureText(m_pManager, rcText, sText.GetData(), m_dwColor, m_iFont, DT_CALCRECT | m_uTextStyle);
 		}
 		SIZE cXY = {rcText.right - rcText.left + padL + padR,
 			rcText.bottom - rcText.top + padT + padB};
@@ -157,8 +157,8 @@ namespace DuiLib
 
 		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText, clrColor, m_rcLinks, m_sLinks, m_nLinks, m_iFont, m_uTextStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, m_rcLinks, m_sLinks, m_nLinks, m_iFont, m_uTextStyle);
 		else
-			ctx.DrawText(rc, sText, clrColor, m_iFont, m_uTextStyle);
+			ctx.DrawText(rc, sText.GetData(), clrColor, m_iFont, m_uTextStyle);
 	}
 }

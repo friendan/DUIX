@@ -19,7 +19,7 @@
 | `margin` 四值顺序 | **CSS** `top,right,bottom,left`（同上） |
 | C++ 存储 | `CDuiBox`（`SetMargin` / `SetPadding` / `m_rcMargin` / `m_rcPadding`）；构造与聚合初始化均为 TRBL |
 | 文字缩进 | 用 `padding`；List/Combo/Menu 项用 `item-padding`（同 CSS 顺序） |
-| 尺寸 | 控件：`width`/`height`/`min-*`/`max-*`（支持 `%`、`auto`/`fit-content`）；窗口：`size`/`min-size`/`max-size`，亦可 `width`/`height`、`min-width`/`min-height`、`max-width`/`max-height`；树项 `item-min-width`；TabBar `tab-min-width`/`tab-max-width` |
+| 尺寸 | 控件：`width`/`height`/`min-*`/`max-*`（像素、`%`；另见下表 `auto`/`fit-content`）；窗口：`size`/`min-size`/`max-size`，亦可 `width`/`height`、`min-width`/`min-height`、`max-width`/`max-height`；树项 `item-min-width`；TabBar `tab-min-width`/`tab-max-width` |
 | 子控件间距 | `gap` |
 | 溢出 / 滚动 | `overflow` / `overflow-x` / `overflow-y`（映射 `EnableScrollBar`；旧名 `v-scrollbar`/`h-scrollbar` 仍可用） |
 | 绝对定位 | `position="absolute"`；偏移用 `margin`；`position-align`；亦可写百分比重叠矩形（扩展语法） |
@@ -36,6 +36,23 @@
 | 窗口拖拽 | `html { action: title; }` 落到 root；控件仍可用 `action="title"`。子控件若 `PreferClientHit()`（已配 `*-hover`/`*-active`、SETCURSOR、cursor 等）保持客户区，悬停态才会生效 |
 
 注意：`padding` 是内边距；外边距用 `margin`。
+
+### `width` / `height`：`auto` 与撑满
+
+基类 [`CControlUI`](../../src/DuiLib/Core/UIControl.h) 解析：
+
+| 写法 | 语义 |
+|------|------|
+| 不写 / `width` 未设（固定宽为 0） | HBox/VBox 主轴上 `EstimateSize` 为 0 → **撑满剩余**（可伸缩） |
+| `width="120"` / `height="40"` | 固定像素 |
+| `width="50%"` | 相对父级**可用**宽的百分比 |
+| `width="auto"` / `width="fit-content"` | 固有尺寸：置 `AutoCalcWidth`，清固定宽与 `%`；由控件 `EstimateSize` 给出非 0 宽 |
+
+说明：
+
+- **Label / Text / Button 等**在 `auto` 下会按文字测量，得到固有宽（见 [Label.md](Label.md)）。
+- **普通 Control / 多数容器**若 `EstimateSize` 仍返回 0，写 `auto` 后布局表现仍接近「撑满」，**不会**自动按子项汇总测宽。
+- 与「不写 width」相比：`auto` 明确表示意图为 fit-content；真正生效依赖该控件是否实现内容测量。
 
 ### CSS 伪类（解析期）
 
@@ -140,6 +157,7 @@
 | [Empty.md](Empty.md) | Empty |
 | [Skeleton.md](Skeleton.md) | Skeleton |
 | [Image.md](Image.md) | Img / Avatar |
+| [FontIcon.md](FontIcon.md) | FontIcon |
 | [Steps.md](Steps.md) | Steps |
 | [Timeline.md](Timeline.md) | Timeline |
 

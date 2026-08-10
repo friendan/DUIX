@@ -99,9 +99,9 @@ void CTabBarTestWnd::AddNewTab()
 	// 先加页再加标签：AddTab 会立刻 SyncBoundTabLayout→SelectItem
 	CDuiString sPage;
 	sPage.Format(_T("这是「%s」的页面内容"), sTitle.GetData());
-	m_pPages->Add(CreatePageLabel(sPage));
+	m_pPages->Add(CreatePageLabel(sPage.GetData()));
 
-	CTabButtonUI* pTab = m_pTabBar->AddTab(sTitle);
+	CTabButtonUI* pTab = m_pTabBar->AddTab(sTitle.GetData());
 	if( pTab == NULL ) return;
 	pTab->SetAttribute(_T("tabler-outline"), _T("file-text"));
 
@@ -110,7 +110,7 @@ void CTabBarTestWnd::AddNewTab()
 
 	CDuiString sStatus;
 	sStatus.Format(_T("已添加标签 [%d] %s，当前共 %d 个"), iNew, sTitle.GetData(), m_pTabBar->GetTabCount());
-	SetStatus(sStatus);
+	SetStatus(sStatus.GetData());
 }
 
 void CTabBarTestWnd::RemoveActiveTab()
@@ -142,7 +142,7 @@ void CTabBarTestWnd::ToggleLockActive()
 	CDuiString sStatus;
 	sStatus.Format(_T("标签 [%d]「%s」%s"), m_pTabBar->GetActiveTab(),
 		pTab->GetTabTitle().GetData(), bLock ? _T("已锁定") : _T("已解锁"));
-	SetStatus(sStatus);
+	SetStatus(sStatus.GetData());
 }
 
 void CTabBarTestWnd::Notify(TNotifyUI& msg)
@@ -158,7 +158,7 @@ void CTabBarTestWnd::Notify(TNotifyUI& msg)
 				m_pTabBar->CancelNotify();
 				CDuiString s;
 				s.Format(_T("已拦截关闭索引 %d"), (int)msg.wParam);
-				SetStatus(s);
+				SetStatus(s.GetData());
 			}
 		}
 		else if( msg.sType == DUI_MSGTYPE_TABSELECTING ) {
@@ -166,7 +166,7 @@ void CTabBarTestWnd::Notify(TNotifyUI& msg)
 				m_pTabBar->CancelNotify();
 				CDuiString s;
 				s.Format(_T("已拦截切换 %d→%d"), (int)msg.lParam, (int)msg.wParam);
-				SetStatus(s);
+				SetStatus(s.GetData());
 			}
 		}
 		else if( msg.sType == DUI_MSGTYPE_TABSELECT ) {
@@ -174,13 +174,13 @@ void CTabBarTestWnd::Notify(TNotifyUI& msg)
 			s.Format(_T("tabselect: 新=%d 旧=%d，共 %d 标签"),
 				(int)msg.wParam, (int)msg.lParam,
 				m_pTabBar != NULL ? m_pTabBar->GetTabCount() : 0);
-			SetStatus(s);
+			SetStatus(s.GetData());
 		}
 		else if( msg.sType == DUI_MSGTYPE_TABCLOSE ) {
 			CDuiString s;
 			s.Format(_T("tabclose: 已关闭索引 %d（页已自动同步），剩余 %d 标签"),
 				(int)msg.wParam, m_pTabBar != NULL ? m_pTabBar->GetTabCount() : 0);
-			SetStatus(s);
+			SetStatus(s.GetData());
 		}
 		else if( msg.sType == DUI_MSGTYPE_TABADD ) {
 			AddNewTab();
@@ -191,7 +191,7 @@ void CTabBarTestWnd::Notify(TNotifyUI& msg)
 			s.Format(_T("tabmove: %d→%d（页已同步），当前选中 %d"),
 				(int)msg.wParam, (int)msg.lParam,
 				m_pTabBar != NULL ? m_pTabBar->GetActiveTab() : -1);
-			SetStatus(s);
+			SetStatus(s.GetData());
 		}
 	}
 	WindowImplBase::Notify(msg);

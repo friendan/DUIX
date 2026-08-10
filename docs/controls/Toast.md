@@ -101,7 +101,8 @@ CToast::Show(_T("订单已支付"), _T("点击查看详情"),
 
 - `WS_POPUP | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE`（不绑定 Owner）
 - 显示时 `SW_SHOWNOACTIVATE`，不抢输入焦点
-- 布局：图标 | 标题/正文 | 倒计时 | ×；背景为 kind 色
+- 布局：图标 | 标题/正文 | 倒计时 | ×；背景 / 字色为当前主题的 **kind** 色（`g_kindColors`）
+- `AttachDialog` 时主题窗口底不会盖掉 `toastRoot` 的 kind 底（否则 kind 前景字会对比失败）
 - 宽度按正文自动加宽（Min~Max）；超出 Max 则 `word-break` 增高
 - 根布局 `action="title"` 可拖动；有 `OnClick` 时正文 Label `clickable`（手形），点文字跳详情，空白区仍可拖
 - `SetMaxCount(n)`：每个 Align 组最多 n 条（Window* 另按 Owner）；超出顶掉该组最旧；`0` 不限制

@@ -39,6 +39,19 @@ namespace DuiLib
 		/// 仅绘制缓存位图（供 Button 等父控件内嵌时调用，不走完整 DoPaint）
 		void PaintIcon(IRenderContext& ctx, const RECT& rcPaint);
 
+		/// 导出当前 SVG 为 PNG / JPEG / BMP（由扩展名决定）。`.ico` 请用 ExportToIcoFile。
+		/// width/height <= 0：用控件当前尺寸，仍无效则 256。
+		/// dwTintColor == (DWORD)-1：用当前绘制色 GetPaintColor()；0：不着色。
+		/// jpegQuality：1~100，仅 JPEG 有效。
+		bool ExportToFile(LPCTSTR pstrPath, int width = 0, int height = 0,
+			DWORD dwTintColor = (DWORD)-1, int jpegQuality = 90) const;
+
+		/// ICO 专用（PNG-in-ICO，保留 alpha）。默认尺寸 16/32/48/256/512，适合文件图标。
+		bool ExportToIcoFile(LPCTSTR pstrPath, DWORD dwTintColor = (DWORD)-1) const;
+		/// ICO 专用：自定义正方形边长列表（如 16,32,48,256,512；单边最大 512）；非法边长跳过。
+		bool ExportToIcoFile(LPCTSTR pstrPath, const int* pSizes, int nCount,
+			DWORD dwTintColor = (DWORD)-1) const;
+
 	protected:
 		static DWORD ParseColorValue(LPCTSTR pstrValue);
 		static CDuiString ResolveFilePath(LPCTSTR pstrPath);

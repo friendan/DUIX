@@ -141,7 +141,7 @@ namespace DuiLib
 		if( GetAutoCalcWidth() || sz.cx <= 0 ) {
 			CDuiString s = GetText();
 			RECT rcText = { 0, 0, 9999, sz.cy };
-			RenderMeasureText(m_pManager, rcText, s, 0, GetFont(),
+			RenderMeasureText(m_pManager, rcText, s.GetData(), 0, GetFont(),
 				DT_CALCRECT | DT_SINGLELINE | DT_VCENTER);
 			CDuiBox pad = GetPadding();
 			sz.cx = (rcText.right - rcText.left) + pad.left + pad.right;
@@ -216,7 +216,7 @@ namespace DuiLib
 		if( !sText.IsEmpty() ) {
 			DWORD clr = IsEnabled() ? GetColor() : GetDisabledColor();
 			if( clr == 0 && m_pManager ) clr = m_pManager->GetDefaultFontColor();
-			ctx.DrawText(rc, sText, GetAdjustColor(clr), GetFont(),
+			ctx.DrawText(rc, sText.GetData(), GetAdjustColor(clr), GetFont(),
 				DT_SINGLELINE | DT_VCENTER | DT_LEFT | DT_END_ELLIPSIS);
 		}
 
@@ -373,7 +373,7 @@ namespace DuiLib
 		CDuiString s = FormatCount();
 		int h = ScaleValue(m_nHeight);
 		RECT rcText = { 0, 0, 9999, h };
-		RenderMeasureText(m_pManager, rcText, s, 0, -1,
+		RenderMeasureText(m_pManager, rcText, s.GetData(), 0, -1,
 			DT_CALCRECT | DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		int tw = rcText.right - rcText.left;
 		int pad = ScaleValue(6);
@@ -452,7 +452,7 @@ namespace DuiLib
 		ctx.FillRoundRect(rc, r, r, GetAdjustColor(m_dwBadgeColor));
 		if( !m_bDot ) {
 			CDuiString s = FormatCount();
-			ctx.DrawText(rc, s, GetAdjustColor(m_dwBadgeTextColor), -1,
+			ctx.DrawText(rc, s.GetData(), GetAdjustColor(m_dwBadgeTextColor), -1,
 				DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		}
 	}

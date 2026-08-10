@@ -166,7 +166,7 @@ namespace DuiLib {
 			m_pLayout->SetBorderWidth(1);
 			m_pLayout->SetAutoDestroy(false);
 			m_pLayout->EnableScrollBar();
-			m_pLayout->ApplyAttributeList(m_pOwner->GetDropBoxAttributeList());
+			m_pLayout->ApplyAttributeList(m_pOwner->GetDropBoxAttributeList().GetData());
 			for( int i = 0; i < m_pOwner->GetCount(); i++ ) {
 				m_pLayout->Add(static_cast<CControlUI*>(m_pOwner->GetItemAt(i)));
 			}
@@ -760,7 +760,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetImage() const
 	{
-		return m_sImage;
+		return m_sImage.GetData();
 	}
 
 	void CComboUI::SetImage(LPCTSTR pStrImage)
@@ -771,7 +771,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetHoverImage() const
 	{
-		return m_sHoverImage;
+		return m_sHoverImage.GetData();
 	}
 
 	void CComboUI::SetHoverImage(LPCTSTR pStrImage)
@@ -782,7 +782,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetActiveImage() const
 	{
-		return m_sActiveImage;
+		return m_sActiveImage.GetData();
 	}
 
 	void CComboUI::SetActiveImage(LPCTSTR pStrImage)
@@ -793,7 +793,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetFocusImage() const
 	{
-		return m_sFocusImage;
+		return m_sFocusImage.GetData();
 	}
 
 	void CComboUI::SetFocusImage(LPCTSTR pStrImage)
@@ -804,7 +804,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetDisabledImage() const
 	{
-		return m_sDisabledImage;
+		return m_sDisabledImage.GetData();
 	}
 
 	void CComboUI::SetDisabledImage(LPCTSTR pStrImage)
@@ -874,7 +874,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetItemBkImage() const
 	{
-		return m_ListInfo.sBkImage;
+		return m_ListInfo.sBkImage.GetData();
 	}
 
 	bool CComboUI::IsAlternateBk() const
@@ -924,7 +924,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetSelectedItemImage() const
 	{
-		return m_ListInfo.sSelectedImage;
+		return m_ListInfo.sSelectedImage.GetData();
 	}
 
 	void CComboUI::SetHoverItemColor(DWORD dwColor)
@@ -953,7 +953,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetHoverItemImage() const
 	{
-		return m_ListInfo.sHoverImage;
+		return m_ListInfo.sHoverImage.GetData();
 	}
 
 	void CComboUI::SetDisabledItemColor(DWORD dwColor)
@@ -983,7 +983,7 @@ namespace DuiLib {
 
 	LPCTSTR CComboUI::GetDisabledItemImage() const
 	{
-		return m_ListInfo.sDisabledImage;
+		return m_ListInfo.sDisabledImage.GetData();
 	}
 
 	DWORD CComboUI::GetItemLineColor() const
@@ -1089,7 +1089,7 @@ namespace DuiLib {
 				}
 				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
 				if( nSize <= 0 ) nSize = 12;
-				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, false, false, false, false);
 				if( id >= 0 ) SetFont(id);
 			}
 		}
@@ -1149,7 +1149,7 @@ namespace DuiLib {
 				}
 				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
 				if( nSize <= 0 ) nSize = 12;
-				int id = m_pManager->EnsureFont(sFamily, nSize, bBold, false, false, false);
+				int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, bBold, false, false, false);
 				if( id >= 0 ) SetItemFont(id);
 			}
 		}
@@ -1264,31 +1264,31 @@ namespace DuiLib {
 
 		if( (m_uButtonState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sDisabledImage) ) {}
+				if( !DrawImage(ctx, m_sDisabledImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sActiveImage) ) {}
+				if( !DrawImage(ctx, m_sActiveImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
 			if( !m_sHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
+				if( !DrawImage(ctx, m_sHoverImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
 			if( !m_sFocusImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
+				if( !DrawImage(ctx, m_sFocusImage.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
+			if( !DrawImage(ctx, m_sImage.GetData()) ) {}
 			else return;
 		}
 	}
@@ -1328,9 +1328,9 @@ namespace DuiLib {
 
 		int nLinks = 0;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
 		else
-			ctx.DrawText(rc, sText, clrColor, m_iFont, m_uTextStyle);
+			ctx.DrawText(rc, sText.GetData(), clrColor, m_iFont, m_uTextStyle);
 	}
 
 	BOOL CComboUI::SortItems(PULVCompareFunc pfnCompare, UINT_PTR dwData)
@@ -1374,7 +1374,7 @@ namespace DuiLib {
 		{
 			return 0;
 		}
-		return pControl1->GetText().Compare(pControl2->GetText());
+		return pControl1->GetText().Compare(pControl2->GetText().GetData());
 	}
 
 	void CComboUI::SortItems()

@@ -1,4 +1,4 @@
-﻿#ifndef __UICONTAINER_H__
+#ifndef __UICONTAINER_H__
 #define __UICONTAINER_H__
 
 #pragma once

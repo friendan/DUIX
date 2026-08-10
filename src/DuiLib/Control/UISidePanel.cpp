@@ -20,6 +20,9 @@ namespace DuiLib
 		, m_bOpen(false)
 		, m_bAnimating(false)
 		, m_bChromeReady(false)
+		, m_bFillHost(false)
+		, m_bHostResize(false)
+		, m_eHeaderAction(UIACTION_TITLE)
 		, m_pRestoreFocus(NULL)
 		, m_pMask(NULL)
 		, m_pPanel(NULL)
@@ -214,13 +217,120 @@ namespace DuiLib
 		return m_sTitle.GetData();
 	}
 
+	UIAction CSidePanelUI::ParseHeaderAction(LPCTSTR pstrValue)
+	{
+		if( pstrValue == NULL || *pstrValue == _T('\0') ) return UIACTION_NONE;
+		if( _tcsicmp(pstrValue, _T("title")) == 0 ) return UIACTION_TITLE;
+		if( _tcsicmp(pstrValue, _T("move")) == 0
+			|| _tcsicmp(pstrValue, _T("movewindow")) == 0 ) return UIACTION_MOVEWINDOW;
+		if( _tcsicmp(pstrValue, _T("none")) == 0
+			|| _tcsicmp(pstrValue, _T("false")) == 0
+			|| _tcscmp(pstrValue, _T("0")) == 0 ) return UIACTION_NONE;
+		return UIACTION_NONE;
+	}
+
+	void CSidePanelUI::SetHeaderAction(UIAction action)
+	{
+		if( m_eHeaderAction == action ) return;
+		m_eHeaderAction = action;
+		ApplyHeaderAction();
+	}
+
+	void CSidePanelUI::SetFillHost(bool bFill)
+	{
+		if( m_bFillHost == bFill ) return;
+		m_bFillHost = bFill;
+		if( bFill ) {
+			m_bHostResize = true;
+			m_fPanelWidthPercent = 1.f;
+			m_fPanelHeightPercent = 1.f;
+			SetMaskEnabled(false);
+			if( m_eHeaderAction == UIACTION_NONE )
+				SetHeaderAction(UIACTION_TITLE);
+		}
+		SyncFillHostChrome();
+		if( IsVisible() ) LayoutChrome();
+		else Invalidate();
+	}
+
+	void CSidePanelUI::SyncFillHostChrome()
+	{
+		EnsureChrome();
+		if( m_pPanel == NULL ) return;
+		// 铺满时去掉面板描边，避免左/顶 1px 边看起来像露主窗
+		if( m_bFillHost ) {
+			m_pPanel->SetBorderWidth(0);
+		}
+		else {
+			m_pPanel->SetBorderWidth(1);
+			if( m_pPanel->GetBorderColor() == 0 )
+				m_pPanel->SetBorderColor(0xDEE2E6FF);
+		}
+	}
+
+	void CSidePanelUI::SetHostResize(bool bResize)
+	{
+		if( m_bHostResize == bResize ) return;
+		m_bHostResize = bResize;
+	}
+
+	LRESULT CSidePanelUI::HitHostResize(POINT ptClient) const
+	{
+		if( !m_bFillHost || !m_bHostResize || !m_bOpen || m_bAnimating )
+			return HTCLIENT;
+		if( m_pManager == NULL ) return HTCLIENT;
+		HWND hWnd = m_pManager->GetPaintWindow();
+		if( hWnd != NULL && ::IsZoomed(hWnd) ) return HTCLIENT;
+
+		RECT rc = m_rcItem;
+		if( rc.right <= rc.left || rc.bottom <= rc.top ) return HTCLIENT;
+		if( !::PtInRect(&rc, ptClient) ) return HTCLIENT;
+
+		RECT sb = m_pManager->GetSizeBox();
+		if( sb.left < 1 && sb.top < 1 && sb.right < 1 && sb.bottom < 1 ) {
+			sb.left = 4; sb.top = 4; sb.right = 6; sb.bottom = 6;
+		}
+
+		const bool bTop = (ptClient.y < rc.top + sb.top);
+		const bool bBottom = (ptClient.y >= rc.bottom - sb.bottom);
+		const bool bLeft = (ptClient.x < rc.left + sb.left);
+		const bool bRight = (ptClient.x >= rc.right - sb.right);
+
+		if( bTop && bLeft ) return HTTOPLEFT;
+		if( bTop && bRight ) return HTTOPRIGHT;
+		if( bBottom && bLeft ) return HTBOTTOMLEFT;
+		if( bBottom && bRight ) return HTBOTTOMRIGHT;
+		if( bTop ) return HTTOP;
+		if( bBottom ) return HTBOTTOM;
+		if( bLeft ) return HTLEFT;
+		if( bRight ) return HTRIGHT;
+		return HTCLIENT;
+	}
+
+	void CSidePanelUI::ApplyHeaderAction()
+	{
+		if( m_pHeader != NULL ) {
+			m_pHeader->SetAction(m_eHeaderAction);
+			// none 时给 header PreferClientHit，避免 html{action:title} 仍把标题栏当成拖窗
+			m_pHeader->SetCursor(
+				(m_eHeaderAction == UIACTION_TITLE || m_eHeaderAction == UIACTION_MOVEWINDOW)
+				? 0 : DUI_ARROW);
+		}
+		if( m_pTitleLabel != NULL ) {
+			m_pTitleLabel->SetAction(m_eHeaderAction);
+			// title/move：禁用 Label 鼠标，命中落到 header 便于拖窗
+			m_pTitleLabel->SetMouseEnabled(
+				!(m_eHeaderAction == UIACTION_TITLE || m_eHeaderAction == UIACTION_MOVEWINDOW));
+		}
+	}
+
 	void CSidePanelUI::ApplyThemeChrome(DWORD dwPanelBg, DWORD dwBorder, DWORD dwTitleColor)
 	{
 		EnsureChrome();
 		if( m_pPanel != NULL ) {
 			m_pPanel->SetBackgroundColor(dwPanelBg);
 			m_pPanel->SetBorderColor(dwBorder);
-			m_pPanel->SetBorderWidth(1);
+			m_pPanel->SetBorderWidth(m_bFillHost ? 0 : 1);
 		}
 		if( m_pTitleLabel != NULL && dwTitleColor != 0 )
 			m_pTitleLabel->SetColor(dwTitleColor);
@@ -341,6 +451,7 @@ namespace DuiLib
 			m_pHeader->Add(m_pCloseBtn);
 
 			m_pPanel->AddAt(m_pHeader, 0);
+			ApplyHeaderAction();
 		}
 
 		if( m_pTitleLabel != NULL )
@@ -393,6 +504,11 @@ namespace DuiLib
 	int CSidePanelUI::ResolvePanelThickness(const RECT& rcHost) const
 	{
 		const bool bVert = (m_ePlacement == PlacementTop || m_ePlacement == PlacementBottom);
+		if( m_bFillHost ) {
+			int nThick = bVert ? (rcHost.bottom - rcHost.top) : (rcHost.right - rcHost.left);
+			if( nThick < 1 ) nThick = 1;
+			return nThick;
+		}
 		int nThick = 0;
 		if( bVert ) {
 			if( m_fPanelHeightPercent > 0.f )
@@ -422,44 +538,97 @@ namespace DuiLib
 		if( fProgress < 0.f ) fProgress = 0.f;
 		if( fProgress > 1.f ) fProgress = 1.f;
 
-		int nThick = ResolvePanelThickness(rc);
+		const int nThick = ResolvePanelThickness(rc);
+
+		// 打开/关闭端点用整数矩形，避开浮点；铺满打开 = 整个宿主区
+		if( fProgress >= 1.f ) {
+			if( m_bFillHost ) return rc;
+			RECT rcOpen = rc;
+			if( m_ePlacement == PlacementLeft ) {
+				rcOpen.right = rc.left + nThick;
+			}
+			else if( m_ePlacement == PlacementRight ) {
+				rcOpen.left = rc.right - nThick;
+			}
+			else if( m_ePlacement == PlacementTop ) {
+				rcOpen.bottom = rc.top + nThick;
+			}
+			else {
+				rcOpen.top = rc.bottom - nThick;
+			}
+			return rcOpen;
+		}
+		if( fProgress <= 0.f ) {
+			RECT rcClosed = rc;
+			if( m_ePlacement == PlacementLeft ) {
+				rcClosed.left = rc.left - nThick;
+				rcClosed.right = rc.left;
+			}
+			else if( m_ePlacement == PlacementRight ) {
+				rcClosed.left = rc.right;
+				rcClosed.right = rc.right + nThick;
+			}
+			else if( m_ePlacement == PlacementTop ) {
+				rcClosed.top = rc.top - nThick;
+				rcClosed.bottom = rc.top;
+			}
+			else {
+				rcClosed.top = rc.bottom;
+				rcClosed.bottom = rc.bottom + nThick;
+			}
+			return rcClosed;
+		}
+
+		// 负方向插值：不能 (LONG)(x+0.5)（向零截断会少 1px）；Left/Top 为正、Right/Bottom 为负
+		auto lerp = [](LONG a, LONG b, float t) -> LONG {
+			const double v = (double)a + (double)(b - a) * (double)t;
+			return (v >= 0.0) ? (LONG)(v + 0.5) : (LONG)(v - 0.5);
+		};
 
 		RECT rcPanel = { 0 };
 		if( m_ePlacement == PlacementLeft ) {
-			LONG openL = rc.left;
-			LONG closedL = rc.left - nThick;
-			LONG left = closedL + (LONG)((openL - closedL) * fProgress + 0.5f);
+			const LONG openL = rc.left;
+			const LONG closedL = rc.left - nThick;
+			const LONG left = lerp(closedL, openL, fProgress);
 			rcPanel.left = left;
 			rcPanel.right = left + nThick;
 			rcPanel.top = rc.top;
 			rcPanel.bottom = rc.bottom;
 		}
 		else if( m_ePlacement == PlacementRight ) {
-			LONG openL = rc.right - nThick;
-			LONG closedL = rc.right;
-			LONG left = closedL + (LONG)((openL - closedL) * fProgress + 0.5f);
+			const LONG openL = rc.right - nThick;
+			const LONG closedL = rc.right;
+			const LONG left = lerp(closedL, openL, fProgress);
 			rcPanel.left = left;
 			rcPanel.right = left + nThick;
 			rcPanel.top = rc.top;
 			rcPanel.bottom = rc.bottom;
 		}
 		else if( m_ePlacement == PlacementTop ) {
-			LONG openT = rc.top;
-			LONG closedT = rc.top - nThick;
-			LONG top = closedT + (LONG)((openT - closedT) * fProgress + 0.5f);
+			const LONG openT = rc.top;
+			const LONG closedT = rc.top - nThick;
+			const LONG top = lerp(closedT, openT, fProgress);
 			rcPanel.top = top;
 			rcPanel.bottom = top + nThick;
 			rcPanel.left = rc.left;
 			rcPanel.right = rc.right;
 		}
 		else { // PlacementBottom
-			LONG openT = rc.bottom - nThick;
-			LONG closedT = rc.bottom;
-			LONG top = closedT + (LONG)((openT - closedT) * fProgress + 0.5f);
+			const LONG openT = rc.bottom - nThick;
+			const LONG closedT = rc.bottom;
+			const LONG top = lerp(closedT, openT, fProgress);
 			rcPanel.top = top;
 			rcPanel.bottom = top + nThick;
 			rcPanel.left = rc.left;
 			rcPanel.right = rc.right;
+		}
+
+		// 铺满过程中钳到宿主区，避免 right/bottom 越界露底
+		if( m_bFillHost ) {
+			if( rcPanel.left < rc.left ) rcPanel.left = rc.left;
+			if( rcPanel.top < rc.top ) rcPanel.top = rc.top;
+			if( rcPanel.right > rc.right ) rcPanel.right = rc.right;
+			if( rcPanel.bottom > rc.bottom ) rcPanel.bottom = rc.bottom;
 		}
 		return rcPanel;
 	}
@@ -769,6 +938,23 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("title")) == 0 ) {
 			SetTitle(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("header-action")) == 0 ) {
+			SetHeaderAction(ParseHeaderAction(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("header-drag")) == 0 ) {
+			const bool bDrag = (_tcsicmp(pstrValue, _T("true")) == 0
+				|| _tcscmp(pstrValue, _T("1")) == 0
+				|| _tcsicmp(pstrValue, _T("yes")) == 0);
+			SetHeaderAction(bDrag ? UIACTION_TITLE : UIACTION_NONE);
+		}
+		else if( _tcsicmp(pstrName, _T("fill-host")) == 0
+			|| _tcsicmp(pstrName, _T("fillhost")) == 0 ) {
+			SetFillHost(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("host-resize")) == 0
+			|| _tcsicmp(pstrName, _T("hostresize")) == 0 ) {
+			SetHostResize(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
 		}
 		else {
 			CContainerUI::SetAttribute(pstrName, pstrValue);

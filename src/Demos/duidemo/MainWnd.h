@@ -34,7 +34,7 @@ public:
 	virtual LPCTSTR GetItemText(CControlUI* /*pList*/, int iIndex)
 	{
 		m_sText.Format(_T("虚拟行 #%d  —  仅绘制可见项，滚动不会创建 10 万个子控件"), iIndex + 1);
-		return m_sText;
+		return m_sText.GetData();
 	}
 private:
 	CDuiString m_sText;

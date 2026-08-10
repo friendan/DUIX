@@ -424,17 +424,18 @@ namespace DuiLib {
 		return m_sCurrentId.GetData();
 	}
 
-	bool CThemeManager::ApplyTheme(LPCTSTR id)
+	bool CThemeManager::ApplyTheme(LPCTSTR id, bool bPreview)
 	{
 		if (!m_bEnabled) return false;
 		CTheme* p = FindTheme(id);
 		if (p == NULL) return false;
-		return ApplyTheme(p);
+		return ApplyTheme(p, bPreview);
 	}
 
-	bool CThemeManager::ApplyTheme(CTheme* pTheme)
+	bool CThemeManager::ApplyTheme(CTheme* pTheme, bool bPreview)
 	{
 		if (!m_bEnabled || pTheme == NULL) return false;
+		CDuiString sOld = m_sCurrentId;
 		// 重入保护：SetKind → InitKindColors → ApplyTheme → Refresh → SetKind
 		static bool s_bApplying = false;
 		if (s_bApplying) {
@@ -446,8 +447,47 @@ namespace DuiLib {
 		m_sCurrentId = pTheme->GetId();
 		ApplyCurrentToGlobals();
 		RefreshAllManagers();
+		SyncThemeSwitchers();
 		s_bApplying = false;
+		NotifyThemeChanged(sOld.GetData(), m_sCurrentId.GetData(), bPreview);
 		return true;
+	}
+
+	void CThemeManager::RefreshCurrentTheme(bool bPreview)
+	{
+		if (!m_bEnabled) return;
+		CDuiString sId = m_sCurrentId;
+		ApplyCurrentToGlobals();
+		RefreshAllManagers();
+		SyncThemeSwitchers();
+		NotifyThemeChanged(sId.GetData(), sId.GetData(), bPreview);
+	}
+
+	void CThemeManager::AddThemeNotify(IThemeNotifyUI* pNotify)
+	{
+		if (pNotify == NULL) return;
+		for (size_t i = 0; i < m_notifies.size(); ++i) {
+			if (m_notifies[i] == pNotify) return;
+		}
+		m_notifies.push_back(pNotify);
+	}
+
+	void CThemeManager::RemoveThemeNotify(IThemeNotifyUI* pNotify)
+	{
+		for (size_t i = 0; i < m_notifies.size(); ++i) {
+			if (m_notifies[i] == pNotify) {
+				m_notifies.erase(m_notifies.begin() + (std::ptrdiff_t)i);
+				return;
+			}
+		}
+	}
+
+	void CThemeManager::NotifyThemeChanged(LPCTSTR oldId, LPCTSTR newId, bool bPreview)
+	{
+		for (size_t i = 0; i < m_notifies.size(); ++i) {
+			if (m_notifies[i] != NULL)
+				m_notifies[i]->OnThemeChanged(oldId, newId, bPreview);
+		}
 	}
 
 	void CThemeManager::ApplyCurrentToGlobals()
@@ -722,10 +762,11 @@ namespace DuiLib {
 			const bool bCarouselItem = (pControl->GetInterface(DUI_CTR_CAROUSELITEM) != NULL);
 			const bool bSidePanel = (pControl->GetInterface(DUI_CTR_SIDEPANEL) != NULL);
 			const bool bAvatar = (pControl->GetInterface(DUI_CTR_AVATAR) != NULL);
+			const bool bFontIcon = (pControl->GetInterface(DUI_CTR_FONTICON) != NULL);
 			const bool bButton = (pControl->GetInterface(DUI_CTR_BUTTON) != NULL);
 			const bool bPlainTextLabel = (pControl->GetInterface(DUI_CTR_LABEL) != NULL
 				&& !bForm && !bOption && !bSwitch && !bCheckBox && !bProgress && !bSlider
-				&& !bTag && !bButton && !bBadge && !bRate && !bAvatar
+				&& !bTag && !bButton && !bBadge && !bRate && !bAvatar && !bFontIcon
 				&& pControl->GetKind() == CONTROLKIND_NONE
 				&& (pControl->GetInterface(DUI_CTR_TEXT) != NULL
 					|| _tcscmp(pControl->GetClass(), _T("LabelUI")) == 0));
@@ -1109,6 +1150,15 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 
 	void CThemeManager::ApplyToExistingManager(CPaintManagerUI* pManager)
 	{
+		if( pManager == NULL ) return;
+		CControlUI* pRoot = pManager->GetRoot();
+		// 与 RefreshAllManagers 一致：Toast / Modal 在 BuildUI 快照配色，勿再套 chrome
+		if( pRoot != NULL ) {
+			CDuiString rootName = pRoot->GetName();
+			if( !rootName.IsEmpty() && (_tcscmp(rootName.GetData(), _T("toastRoot")) == 0
+				|| _tcscmp(rootName.GetData(), _T("modalRoot")) == 0) )
+				return;
+		}
 		ApplyManagerDefaults(pManager);
 		ApplyChromeToManager(pManager);
 	}
@@ -1128,9 +1178,9 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 				CControlUI* pRoot = pManager->GetRoot();
 				// Toast / Modal 内容在 BuildUI 时按主题快照；半套 Refresh 会花屏，跳过
 				if (pRoot != NULL) {
-					LPCTSTR rootName = pRoot->GetName();
-					if (rootName != NULL && (_tcscmp(rootName, _T("toastRoot")) == 0
-						|| _tcscmp(rootName, _T("modalRoot")) == 0))
+					CDuiString rootName = pRoot->GetName();
+					if (!rootName.IsEmpty() && (_tcscmp(rootName.GetData(), _T("toastRoot")) == 0
+						|| _tcscmp(rootName.GetData(), _T("modalRoot")) == 0))
 						continue;
 				}
 				if (pChrome != NULL)
@@ -1218,7 +1268,56 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 			return false;
 		}
 		RegisterTheme(p, true);
-		return ApplyTheme(p);
+		return ApplyTheme(p, false);
+	}
+
+	bool CThemeManager::SaveThemeFile(const CTheme* pTheme, LPCTSTR path) const
+	{
+		if (pTheme == NULL || path == NULL || *path == _T('\0')) return false;
+		FILE* fp = NULL;
+#if defined(_MSC_VER)
+		if (_tfopen_s(&fp, path, _T("w")) != 0 || fp == NULL) return false;
+#else
+		fp = _tfopen(path, _T("w"));
+		if (fp == NULL) return false;
+#endif
+		_ftprintf(fp, _T(":root {\n"));
+		const int n = pTheme->GetTokenCount();
+		for (int i = 0; i < n; ++i) {
+			LPCTSTR name = pTheme->GetTokenNameAt(i);
+			DWORD c = pTheme->GetTokenValueAt(i);
+			if (name == NULL || *name == _T('\0')) continue;
+			_ftprintf(fp, _T("  --%s: #%08X;\n"), name, (unsigned)c);
+		}
+		_ftprintf(fp, _T("}\n"));
+		fclose(fp);
+		return true;
+	}
+
+	void CThemeManager::SyncThemeSwitchersRecursive(CControlUI* pControl)
+	{
+		if (pControl == NULL) return;
+		CControlUI* pSw = static_cast<CControlUI*>(pControl->GetInterface(_T("ThemeSwitcher")));
+		if (pSw != NULL) {
+			// 通过自定义消息属性触发；具体 Sync 在控件内实现
+			pSw->SetAttribute(_T("sync-from-manager"), _T("true"));
+		}
+		IContainerUI* pCont = static_cast<IContainerUI*>(pControl->GetInterface(_T("IContainer")));
+		if (pCont != NULL) {
+			for (int i = 0; i < pCont->GetCount(); ++i)
+				SyncThemeSwitchersRecursive(pCont->GetItemAt(i));
+		}
+	}
+
+	void CThemeManager::SyncThemeSwitchers()
+	{
+		CStdPtrArray* pManagers = CPaintManagerUI::GetPaintManagers();
+		if (pManagers == NULL) return;
+		for (int i = 0; i < pManagers->GetSize(); ++i) {
+			CPaintManagerUI* pManager = static_cast<CPaintManagerUI*>((*pManagers)[i]);
+			if (pManager == NULL) continue;
+			SyncThemeSwitchersRecursive(pManager->GetRoot());
+		}
 	}
 
 } // namespace DuiLib

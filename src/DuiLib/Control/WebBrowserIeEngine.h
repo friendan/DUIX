@@ -1,4 +1,4 @@
-﻿#ifndef __WEBBROWSERIEENGINE_H__
+#ifndef __WEBBROWSERIEENGINE_H__
 #define __WEBBROWSERIEENGINE_H__
 
 #pragma once

@@ -42,7 +42,7 @@ namespace DuiLib
 	void CEmptyUI::SetDescription(LPCTSTR pstr)
 	{
 		m_sDescription = pstr ? pstr : _T("");
-		if( m_pDesc ) m_pDesc->SetText(m_sDescription);
+		if( m_pDesc ) m_pDesc->SetText(m_sDescription.GetData());
 		Invalidate();
 	}
 
@@ -107,7 +107,7 @@ namespace DuiLib
 				CLabelUI* pImg = new CLabelUI();
 				pImg->SetFixedWidth(ScaleValue(m_szImage.cx));
 				pImg->SetFixedHeight(ScaleValue(m_szImage.cy));
-				pImg->SetBackgroundImage(m_sImage);
+				pImg->SetBackgroundImage(m_sImage.GetData());
 				pImg->SetMouseEnabled(false);
 				m_pImageHost = pImg;
 			}
@@ -123,7 +123,7 @@ namespace DuiLib
 		}
 
 		m_pDesc = new CLabelUI();
-		m_pDesc->SetText(m_sDescription);
+		m_pDesc->SetText(m_sDescription.GetData());
 		m_pDesc->SetColor(m_dwDescColor);
 		m_pDesc->SetTextStyle(DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 		m_pDesc->SetFixedHeight(ScaleValue(22));

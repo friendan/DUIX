@@ -347,13 +347,13 @@ namespace DuiLib{
 	void CHotKeyUI::SetText(LPCTSTR pstrText)
 	{
 		m_sText = pstrText;
-		if( m_pWindow != NULL ) Edit_SetText(*m_pWindow, m_sText);
+		if( m_pWindow != NULL ) Edit_SetText(*m_pWindow, m_sText.GetData());
 		Invalidate();
 	}
 
 	LPCTSTR CHotKeyUI::GetImage()
 	{
-		return m_sImage;
+		return m_sImage.GetData();
 	}
 
 	void CHotKeyUI::SetImage(LPCTSTR pStrImage)
@@ -364,7 +364,7 @@ namespace DuiLib{
 
 	LPCTSTR CHotKeyUI::GetHoverImage()
 	{
-		return m_sHoverImage;
+		return m_sHoverImage.GetData();
 	}
 
 	void CHotKeyUI::SetHoverImage(LPCTSTR pStrImage)
@@ -375,7 +375,7 @@ namespace DuiLib{
 
 	LPCTSTR CHotKeyUI::GetFocusImage()
 	{
-		return m_sFocusImage;
+		return m_sFocusImage.GetData();
 	}
 
 	void CHotKeyUI::SetFocusImage(LPCTSTR pStrImage)
@@ -386,7 +386,7 @@ namespace DuiLib{
 
 	LPCTSTR CHotKeyUI::GetDisabledImage()
 	{
-		return m_sDisabledImage;
+		return m_sDisabledImage.GetData();
 	}
 
 	void CHotKeyUI::SetDisabledImage(LPCTSTR pStrImage)
@@ -455,25 +455,25 @@ namespace DuiLib{
 
 		if( (m_uButtonState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sDisabledImage) ) {}
+				if( !DrawImage(ctx, m_sDisabledImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
 			if( !m_sFocusImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
+				if( !DrawImage(ctx, m_sFocusImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
 			if( !m_sHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
+				if( !DrawImage(ctx, m_sHoverImage.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
+			if( !DrawImage(ctx, m_sImage.GetData()) ) {}
 			else return;
 		}
 	}
@@ -492,7 +492,7 @@ namespace DuiLib{
 		DWORD dwColor = m_dwColor;
 		if(!IsEnabled())dwColor = m_dwDisabledColor;
 
-		ctx.DrawText(rc, sText, dwColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sText.GetData(), dwColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
 	DWORD CHotKeyUI::GetHotKey() const

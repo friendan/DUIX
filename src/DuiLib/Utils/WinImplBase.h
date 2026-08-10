@@ -12,7 +12,7 @@ namespace DuiLib
 		, public IQueryControlText
 	{
 	public:
-		WindowImplBase(){};
+		WindowImplBase();
 		virtual ~WindowImplBase(){};
 		// 只需主窗口重写（初始化资源与多语言接口）
 		virtual void InitResource(){};
@@ -25,6 +25,20 @@ namespace DuiLib
 		virtual void OnClick(TNotifyUI& msg);
 		virtual BOOL IsInStaticControl(CControlUI *pControl);
 
+	public:
+		/// 拖/移本窗时同步移动 Create 时的 Owner（默认 false）。
+		void SetSyncOwnerMove(bool sync);
+		bool IsSyncOwnerMove() const { return m_bSyncOwnerMove; }
+
+		/// 缩放本窗时同步缩放 Owner（默认 false；保留打开时的宽高差，铺满场景差为 0）。
+		/// 设置窗铺满主窗时与 SetSyncOwnerMove(true) 一起开。
+		void SetSyncOwnerSize(bool sync);
+		bool IsSyncOwnerSize() const { return m_bSyncOwnerSize; }
+
+		/// 进入模态前抓取与 Owner 的屏幕偏移/尺寸差；关闭后自动清除。
+		UINT ShowModal();
+		void ShowModalFake();
+
 	protected:
 		virtual CDuiString GetSkinType() { return _T(""); }
 		virtual CDuiString GetSkinFile() = 0;
@@ -32,6 +46,12 @@ namespace DuiLib
 		virtual LPCTSTR GetManagerName() { return NULL; }
 		virtual LRESULT ResponseDefaultKeyEvent(WPARAM wParam);
 		CPaintManagerUI m_pm;
+
+		HWND ResolveSyncOwner() const;
+		void CaptureOwnerSyncOffset();
+		void SyncOwnerPosition();
+		void SyncOwnerSize();
+		void SyncOwnerGeometry(bool bPos, bool bSize);
 
 	public:
 		virtual UINT GetClassStyle() const;
@@ -61,9 +81,20 @@ namespace DuiLib
 		virtual LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 		virtual LRESULT OnLButtonUp(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 		virtual LRESULT OnMouseMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
+		virtual LRESULT OnWindowPosChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+		virtual LRESULT OnDisplayChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+		virtual LRESULT OnDPIChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 		virtual LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		virtual LONG GetStyle();
+
+	private:
+		bool m_bSyncOwnerMove;
+		bool m_bSyncOwnerSize;
+		bool m_bHaveOwnerOffset;
+		bool m_bSyncingOwner;
+		POINT m_ptOwnerOffset;
+		SIZE m_szOwnerDelta;
 	};
 }
 

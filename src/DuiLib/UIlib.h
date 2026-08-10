@@ -1,4 +1,4 @@
-﻿#ifdef UILIB_STATIC
+#ifdef UILIB_STATIC
 #define UILIB_API 
 #else
 #if defined(UILIB_EXPORTS)
@@ -119,6 +119,7 @@
 #include "Control/UIOption.h"
 #include "Control/UISwitch.h"
 #include "Control/UIImage.h"
+#include "Control/UIFontIcon.h"
 #include "Control/UISidePanel.h"
 
 #include "Control/UIProgress.h"
@@ -141,6 +142,7 @@
 #include "Control/UIGroupBox.h"
 #include "Control/UIRollText.h"
 #include "Control/UIColorPalette.h"
+#include "Control/UIThemeSwitcher.h"
 #include "Control/UIListEx.h"
 #include "Control/UIHotKey.h"
 #include "Control/UIFadeButton.h"

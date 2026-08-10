@@ -8,6 +8,8 @@
 #include "UITwemojiIcons.h"
 #include <lunasvg.h>
 #include <string>
+#include <vector>
+#include <memory>
 
 namespace DuiLib
 {
@@ -25,6 +27,39 @@ namespace DuiLib
 #else
 		return std::string(pstr);
 #endif
+	}
+
+	static CDuiString ResolveSvgFilePathLocal(LPCTSTR pstrPath)
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) return CDuiString();
+		if( (pstrPath[0] == _T('\\') || pstrPath[0] == _T('/')) ||
+			(_tcslen(pstrPath) >= 2 && pstrPath[1] == _T(':')) ) {
+			return CDuiString(pstrPath);
+		}
+		CDuiString sFile = CPaintManagerUI::GetResourcePath();
+		sFile += pstrPath;
+		return sFile;
+	}
+
+	enum SvgTintModeLocal { SvgTintFill = 0, SvgTintStroke = 1, SvgTintBoth = 2, SvgTintSkip = 3 };
+
+	static SvgTintModeLocal DetectTintModeLocal(const std::string& svgUtf8)
+	{
+		if( svgUtf8.empty() ) return SvgTintBoth;
+		auto has = [&](const char* s) -> bool {
+			return svgUtf8.find(s) != std::string::npos;
+		};
+		if( (has("fill=\"#") || has("fill='#")) && !has("currentColor") )
+			return SvgTintSkip;
+		const bool bFillNone = has("fill=\"none\"") || has("fill='none'");
+		const bool bStrokeCurrent = has("stroke=\"currentColor\"") || has("stroke='currentColor'");
+		const bool bFillCurrent = has("fill=\"currentColor\"") || has("fill='currentColor'");
+		const bool bHasStroke = has("stroke=") || has("stroke:");
+		if( bStrokeCurrent || (bFillNone && bHasStroke) )
+			return SvgTintStroke;
+		if( bFillCurrent || !bHasStroke )
+			return SvgTintFill;
+		return SvgTintBoth;
 	}
 
 	static HBITMAP CreatePremultHBitmap(const lunasvg::Bitmap& bitmap)
@@ -397,6 +432,259 @@ namespace DuiLib
 		}
 	}
 
+	static bool LoadSvgDocument(const CDuiString& sPath, const CDuiString& sData, const std::string& sUtf8,
+		std::unique_ptr<lunasvg::Document>& document, std::string& sProbe)
+	{
+		document.reset();
+		sProbe.clear();
+		if( !sPath.IsEmpty() ) {
+			BYTE* pSvg = NULL;
+			DWORD nSvg = 0;
+			if( CPaintManagerUI::LoadResourceData(sPath.GetData(), &pSvg, &nSvg) && pSvg != NULL && nSvg > 0 ) {
+				sProbe.assign(reinterpret_cast<const char*>(pSvg), (size_t)nSvg);
+				delete[] pSvg;
+				document = lunasvg::Document::loadFromData(sProbe);
+			}
+			else {
+				CDuiString sFile = ResolveSvgFilePathLocal(sPath.GetData());
+				document = lunasvg::Document::loadFromFile(DuiStringToUtf8(sFile.GetData()));
+			}
+		}
+		else if( !sUtf8.empty() ) {
+			sProbe = sUtf8;
+			document = lunasvg::Document::loadFromData(sUtf8);
+		}
+		else if( !sData.IsEmpty() ) {
+			sProbe = DuiStringToUtf8(sData.GetData());
+			document = lunasvg::Document::loadFromData(sProbe);
+		}
+		return document.get() != NULL;
+	}
+
+	static void ApplySvgTint(lunasvg::Document& document, const std::string& sProbe, DWORD dwColor)
+	{
+		if( dwColor == 0 ) return;
+		const SvgTintModeLocal mode = sProbe.empty() ? SvgTintBoth : DetectTintModeLocal(sProbe);
+		if( mode == SvgTintSkip ) return;
+		const BYTE r = DuiColorR(dwColor);
+		const BYTE g = DuiColorG(dwColor);
+		const BYTE b = DuiColorB(dwColor);
+		char style[256];
+		if( mode == SvgTintStroke ) {
+			sprintf_s(style, sizeof(style),
+				"* { fill: none; stroke: #%02x%02x%02x; }", r, g, b);
+		}
+		else if( mode == SvgTintFill ) {
+			sprintf_s(style, sizeof(style),
+				"* { fill: #%02x%02x%02x; stroke: none; }", r, g, b);
+		}
+		else {
+			sprintf_s(style, sizeof(style),
+				"* { fill: #%02x%02x%02x; stroke: #%02x%02x%02x; }",
+				r, g, b, r, g, b);
+		}
+		document.applyStyleSheet(style);
+	}
+
+	static bool RenderSvgToLunaBitmap(const CDuiString& sPath, const CDuiString& sData, const std::string& sUtf8,
+		int w, int h, DWORD dwColor, lunasvg::Bitmap& out)
+	{
+		out = lunasvg::Bitmap();
+		if( w <= 0 || h <= 0 ) return false;
+		std::unique_ptr<lunasvg::Document> document;
+		std::string sProbe;
+		if( !LoadSvgDocument(sPath, sData, sUtf8, document, sProbe) ) return false;
+		ApplySvgTint(*document, sProbe, dwColor);
+		out = document->renderToBitmap(w, h);
+		return !out.isNull();
+	}
+
+	static int GetImageEncoderClsid(const WCHAR* format, CLSID* pClsid)
+	{
+		UINT num = 0, size = 0;
+		Gdiplus::GetImageEncodersSize(&num, &size);
+		if( size == 0 ) return -1;
+		Gdiplus::ImageCodecInfo* pInfo = (Gdiplus::ImageCodecInfo*)(malloc(size));
+		if( pInfo == NULL ) return -1;
+		Gdiplus::GetImageEncoders(num, size, pInfo);
+		for( UINT i = 0; i < num; ++i ) {
+			if( wcscmp(pInfo[i].MimeType, format) == 0 ) {
+				*pClsid = pInfo[i].Clsid;
+				free(pInfo);
+				return (int)i;
+			}
+		}
+		free(pInfo);
+		return -1;
+	}
+
+	static Gdiplus::Bitmap* CreateGdipBitmapFromLuna(const lunasvg::Bitmap& src, bool bStraightAlpha)
+	{
+		const int w = src.width();
+		const int h = src.height();
+		if( w <= 0 || h <= 0 || src.isNull() ) return NULL;
+		Gdiplus::Bitmap* pBmp = new Gdiplus::Bitmap(w, h,
+			bStraightAlpha ? PixelFormat32bppARGB : PixelFormat32bppPARGB);
+		if( pBmp == NULL || pBmp->GetLastStatus() != Gdiplus::Ok ) {
+			delete pBmp;
+			return NULL;
+		}
+		Gdiplus::BitmapData bd;
+		Gdiplus::Rect rc(0, 0, w, h);
+		if( pBmp->LockBits(&rc, Gdiplus::ImageLockModeWrite,
+			bStraightAlpha ? PixelFormat32bppARGB : PixelFormat32bppPARGB, &bd) != Gdiplus::Ok ) {
+			delete pBmp;
+			return NULL;
+		}
+		const uint8_t* pSrc = src.data();
+		const int srcStride = src.stride();
+		for( int y = 0; y < h; ++y ) {
+			BYTE* pDst = (BYTE*)bd.Scan0 + y * bd.Stride;
+			const uint8_t* pRow = pSrc + y * srcStride;
+			if( !bStraightAlpha ) {
+				memcpy(pDst, pRow, (size_t)w * 4);
+				continue;
+			}
+			for( int x = 0; x < w; ++x ) {
+				// lunasvg / GDI+ PARGB：预乘 BGRA
+				BYTE b = pRow[x * 4 + 0];
+				BYTE g = pRow[x * 4 + 1];
+				BYTE r = pRow[x * 4 + 2];
+				const BYTE a = pRow[x * 4 + 3];
+				if( a > 0 && a < 255 ) {
+					r = (BYTE)((r * 255) / a);
+					g = (BYTE)((g * 255) / a);
+					b = (BYTE)((b * 255) / a);
+				}
+				else if( a == 0 ) {
+					r = g = b = 0;
+				}
+				pDst[x * 4 + 0] = b;
+				pDst[x * 4 + 1] = g;
+				pDst[x * 4 + 2] = r;
+				pDst[x * 4 + 3] = a;
+			}
+		}
+		pBmp->UnlockBits(&bd);
+		return pBmp;
+	}
+
+	static bool SavePngToMemory(Gdiplus::Bitmap* pBmp, std::vector<BYTE>& out)
+	{
+		out.clear();
+		if( pBmp == NULL ) return false;
+		CLSID clsid;
+		if( GetImageEncoderClsid(L"image/png", &clsid) < 0 ) return false;
+		IStream* pStm = NULL;
+		if( FAILED(::CreateStreamOnHGlobal(NULL, TRUE, &pStm)) || pStm == NULL ) return false;
+		if( pBmp->Save(pStm, &clsid, NULL) != Gdiplus::Ok ) {
+			pStm->Release();
+			return false;
+		}
+		HGLOBAL hMem = NULL;
+		if( FAILED(::GetHGlobalFromStream(pStm, &hMem)) || hMem == NULL ) {
+			pStm->Release();
+			return false;
+		}
+		SIZE_T n = ::GlobalSize(hMem);
+		const void* p = ::GlobalLock(hMem);
+		if( p == NULL || n == 0 ) {
+			if( p ) ::GlobalUnlock(hMem);
+			pStm->Release();
+			return false;
+		}
+		out.resize((size_t)n);
+		memcpy(out.data(), p, (size_t)n);
+		::GlobalUnlock(hMem);
+		pStm->Release();
+		return !out.empty();
+	}
+
+	static bool WriteIcoFromPngImages(LPCTSTR pstrPath,
+		const std::vector<std::vector<BYTE> >& pngs, const std::vector<int>& sizes)
+	{
+		if( pstrPath == NULL || pngs.empty() || pngs.size() != sizes.size() ) return false;
+		const WORD nCount = (WORD)pngs.size();
+		if( nCount == 0 ) return false;
+
+#pragma pack(push, 1)
+		struct ICONDIR { WORD idReserved; WORD idType; WORD idCount; };
+		struct ICONDIRENTRY {
+			BYTE bWidth; BYTE bHeight; BYTE bColorCount; BYTE bReserved;
+			WORD wPlanes; WORD wBitCount; DWORD dwBytesInRes; DWORD dwImageOffset;
+		};
+#pragma pack(pop)
+
+		HANDLE hFile = ::CreateFile(pstrPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if( hFile == INVALID_HANDLE_VALUE ) return false;
+
+		ICONDIR dir = { 0, 1, nCount };
+		DWORD written = 0;
+		if( !::WriteFile(hFile, &dir, sizeof(dir), &written, NULL) ) {
+			::CloseHandle(hFile);
+			::DeleteFile(pstrPath);
+			return false;
+		}
+
+		DWORD offset = (DWORD)(sizeof(ICONDIR) + sizeof(ICONDIRENTRY) * nCount);
+		std::vector<ICONDIRENTRY> ents(nCount);
+		for( WORD i = 0; i < nCount; ++i ) {
+			const int s = sizes[i];
+			ICONDIRENTRY& ent = ents[i];
+			::ZeroMemory(&ent, sizeof(ent));
+			ent.bWidth = (s >= 256) ? 0 : (BYTE)s;
+			ent.bHeight = (s >= 256) ? 0 : (BYTE)s;
+			ent.wPlanes = 1;
+			ent.wBitCount = 32;
+			ent.dwBytesInRes = (DWORD)pngs[i].size();
+			ent.dwImageOffset = offset;
+			offset += ent.dwBytesInRes;
+		}
+		for( WORD i = 0; i < nCount; ++i ) {
+			if( !::WriteFile(hFile, &ents[i], sizeof(ICONDIRENTRY), &written, NULL) ) {
+				::CloseHandle(hFile);
+				::DeleteFile(pstrPath);
+				return false;
+			}
+		}
+		for( WORD i = 0; i < nCount; ++i ) {
+			if( pngs[i].empty()
+				|| !::WriteFile(hFile, pngs[i].data(), (DWORD)pngs[i].size(), &written, NULL) ) {
+				::CloseHandle(hFile);
+				::DeleteFile(pstrPath);
+				return false;
+			}
+		}
+		::CloseHandle(hFile);
+		return true;
+	}
+
+	static bool RenderSizeToPng(const CDuiString& sPath, const CDuiString& sData, const std::string& sUtf8,
+		int size, DWORD dwColor, std::vector<BYTE>& pngOut)
+	{
+		pngOut.clear();
+		if( size < 1 || size > 512 ) return false;
+		lunasvg::Bitmap luna;
+		if( !RenderSvgToLunaBitmap(sPath, sData, sUtf8, size, size, dwColor, luna) )
+			return false;
+		Gdiplus::Bitmap* pBmp = CreateGdipBitmapFromLuna(luna, true);
+		if( pBmp == NULL ) return false;
+		const bool ok = SavePngToMemory(pBmp, pngOut);
+		delete pBmp;
+		return ok && !pngOut.empty();
+	}
+
+	static CDuiString GetPathExtLower(LPCTSTR pstrPath)
+	{
+		CDuiString s;
+		if( pstrPath == NULL ) return s;
+		LPCTSTR pDot = _tcsrchr(pstrPath, _T('.'));
+		if( pDot == NULL ) return s;
+		s = pDot;
+		s.MakeLower();
+		return s;
+	}
+
 	bool CSvgBoxUI::EnsureCache(int w, int h, DWORD dwColor)
 	{
 		if( w <= 0 || h <= 0 ) return false;
@@ -406,72 +694,9 @@ namespace DuiLib
 		ClearCache();
 		if( m_sSvgPath.IsEmpty() && m_sSvgData.IsEmpty() && m_sSvgUtf8.empty() ) return false;
 
-		std::unique_ptr<lunasvg::Document> document;
-		if( !m_sSvgPath.IsEmpty() ) {
-			BYTE* pSvg = NULL;
-			DWORD nSvg = 0;
-			if( CPaintManagerUI::LoadResourceData(m_sSvgPath.GetData(), &pSvg, &nSvg) && pSvg != NULL && nSvg > 0 ) {
-				std::string sUtf8(reinterpret_cast<const char*>(pSvg), reinterpret_cast<const char*>(pSvg) + nSvg);
-				delete[] pSvg;
-				document = lunasvg::Document::loadFromData(sUtf8);
-			}
-			else {
-				CDuiString sPath = ResolveFilePath(m_sSvgPath.GetData());
-				document = lunasvg::Document::loadFromFile(DuiStringToUtf8(sPath.GetData()));
-			}
-		}
-		else if( !m_sSvgUtf8.empty() ) {
-			document = lunasvg::Document::loadFromData(m_sSvgUtf8);
-		}
-		else {
-			document = lunasvg::Document::loadFromData(DuiStringToUtf8(m_sSvgData.GetData()));
-		}
-		if( !document ) return false;
-
-		if( dwColor != 0 ) {
-			std::string sProbe;
-			if( !m_sSvgUtf8.empty() ) {
-				sProbe = m_sSvgUtf8;
-			}
-			else if( !m_sSvgData.IsEmpty() ) {
-				sProbe = DuiStringToUtf8(m_sSvgData.GetData());
-			}
-			else if( !m_sSvgPath.IsEmpty() ) {
-				BYTE* pSvg = NULL;
-				DWORD nSvg = 0;
-				if( CPaintManagerUI::LoadResourceData(m_sSvgPath.GetData(), &pSvg, &nSvg) && pSvg != NULL && nSvg > 0 ) {
-					sProbe.assign(reinterpret_cast<const char*>(pSvg), (size_t)nSvg);
-					delete[] pSvg;
-				}
-			}
-
-			const TintMode mode = sProbe.empty() ? TintBoth : DetectTintMode(sProbe);
-			if( mode != TintSkip ) {
-				const BYTE r = DuiColorR(dwColor);
-				const BYTE g = DuiColorG(dwColor);
-				const BYTE b = DuiColorB(dwColor);
-				char style[256];
-				if( mode == TintStroke ) {
-					// 描边图标：保持 fill:none，只改 stroke，避免 fill 把线标糊成色块
-					sprintf_s(style, sizeof(style),
-						"* { fill: none; stroke: #%02x%02x%02x; }", r, g, b);
-				}
-				else if( mode == TintFill ) {
-					// 填充图标：清掉 stroke，避免描边导致「加粗」
-					sprintf_s(style, sizeof(style),
-						"* { fill: #%02x%02x%02x; stroke: none; }", r, g, b);
-				}
-				else {
-					sprintf_s(style, sizeof(style),
-						"* { fill: #%02x%02x%02x; stroke: #%02x%02x%02x; }",
-						r, g, b, r, g, b);
-				}
-				document->applyStyleSheet(style);
-			}
-		}
-
-		lunasvg::Bitmap bitmap = document->renderToBitmap(w, h);
-		if( bitmap.isNull() ) return false;
+		lunasvg::Bitmap bitmap;
+		if( !RenderSvgToLunaBitmap(m_sSvgPath, m_sSvgData, m_sSvgUtf8, w, h, dwColor, bitmap) )
+			return false;
 
 		m_hCacheBitmap = CreatePremultHBitmap(bitmap);
 		if( m_hCacheBitmap == NULL ) return false;
@@ -479,6 +704,136 @@ namespace DuiLib
 		m_nCacheH = h;
 		m_dwCacheColor = dwColor;
 		return true;
+	}
+
+	bool CSvgBoxUI::ExportToIcoFile(LPCTSTR pstrPath, DWORD dwTintColor) const
+	{
+		static const int kDefaultSizes[] = { 16, 32, 48, 256, 512 };
+		return ExportToIcoFile(pstrPath, kDefaultSizes, 5, dwTintColor);
+	}
+
+	bool CSvgBoxUI::ExportToIcoFile(LPCTSTR pstrPath, const int* pSizes, int nCount, DWORD dwTintColor) const
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') || pSizes == NULL || nCount <= 0 )
+			return false;
+		if( m_sSvgPath.IsEmpty() && m_sSvgData.IsEmpty() && m_sSvgUtf8.empty() ) return false;
+
+		DWORD dwColor = dwTintColor;
+		if( dwTintColor == (DWORD)-1 )
+			dwColor = GetPaintColor();
+
+		std::vector<std::vector<BYTE> > pngs;
+		std::vector<int> sizes;
+		pngs.reserve((size_t)nCount);
+		sizes.reserve((size_t)nCount);
+
+		for( int i = 0; i < nCount; ++i ) {
+			int s = pSizes[i];
+			if( s < 1 ) continue;
+			if( s > 512 ) s = 512;
+			// 去重（同尺寸只留一份）
+			bool bDup = false;
+			for( size_t j = 0; j < sizes.size(); ++j ) {
+				if( sizes[j] == s ) { bDup = true; break; }
+			}
+			if( bDup ) continue;
+
+			std::vector<BYTE> png;
+			if( !RenderSizeToPng(m_sSvgPath, m_sSvgData, m_sSvgUtf8, s, dwColor, png) )
+				continue;
+			sizes.push_back(s);
+			pngs.push_back(png);
+		}
+		if( pngs.empty() ) return false;
+		return WriteIcoFromPngImages(pstrPath, pngs, sizes);
+	}
+
+	bool CSvgBoxUI::ExportToFile(LPCTSTR pstrPath, int width, int height, DWORD dwTintColor, int jpegQuality) const
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) return false;
+		if( m_sSvgPath.IsEmpty() && m_sSvgData.IsEmpty() && m_sSvgUtf8.empty() ) return false;
+
+		CDuiString ext = GetPathExtLower(pstrPath);
+		if( ext == _T(".ico") ) {
+			// .ico 走专用接口：未指定尺寸 → 多尺寸；指定则单尺寸正方形
+			int s = width;
+			if( s <= 0 ) s = height;
+			if( s <= 0 )
+				return ExportToIcoFile(pstrPath, dwTintColor);
+			if( s > 512 ) s = 512;
+			return ExportToIcoFile(pstrPath, &s, 1, dwTintColor);
+		}
+
+		int w = width;
+		int h = height;
+		if( w <= 0 ) w = (int)(m_rcItem.right - m_rcItem.left);
+		if( h <= 0 ) h = (int)(m_rcItem.bottom - m_rcItem.top);
+		if( w <= 0 ) w = GetFixedWidth();
+		if( h <= 0 ) h = GetFixedHeight();
+		if( w <= 0 ) w = 256;
+		if( h <= 0 ) h = 256;
+
+		DWORD dwColor = dwTintColor;
+		if( dwTintColor == (DWORD)-1 )
+			dwColor = GetPaintColor();
+
+		lunasvg::Bitmap luna;
+		if( !RenderSvgToLunaBitmap(m_sSvgPath, m_sSvgData, m_sSvgUtf8, w, h, dwColor, luna) )
+			return false;
+
+		const bool bJpg = (ext == _T(".jpg") || ext == _T(".jpeg"));
+		const bool bBmp = (ext == _T(".bmp"));
+
+		Gdiplus::Bitmap* pBmp = NULL;
+		if( bJpg ) {
+			Gdiplus::Bitmap* pSrc = CreateGdipBitmapFromLuna(luna, true);
+			if( pSrc == NULL ) return false;
+			pBmp = new Gdiplus::Bitmap(w, h, PixelFormat24bppRGB);
+			if( pBmp == NULL || pBmp->GetLastStatus() != Gdiplus::Ok ) {
+				delete pSrc;
+				delete pBmp;
+				return false;
+			}
+			Gdiplus::Graphics g(pBmp);
+			g.Clear(Gdiplus::Color(255, 255, 255));
+			g.DrawImage(pSrc, 0, 0, w, h);
+			delete pSrc;
+		}
+		else {
+			pBmp = CreateGdipBitmapFromLuna(luna, true);
+			if( pBmp == NULL ) return false;
+		}
+
+		bool ok = false;
+		CLSID clsid;
+		const WCHAR* mime = L"image/png";
+		if( bJpg ) mime = L"image/jpeg";
+		else if( bBmp ) mime = L"image/bmp";
+		if( GetImageEncoderClsid(mime, &clsid) >= 0 ) {
+#ifdef _UNICODE
+			const WCHAR* wsz = pstrPath;
+#else
+			WCHAR wsz[MAX_PATH];
+			::MultiByteToWideChar(CP_ACP, 0, pstrPath, -1, wsz, MAX_PATH);
+#endif
+			if( bJpg ) {
+				if( jpegQuality < 1 ) jpegQuality = 1;
+				if( jpegQuality > 100 ) jpegQuality = 100;
+				Gdiplus::EncoderParameters params;
+				params.Count = 1;
+				params.Parameter[0].Guid = Gdiplus::EncoderQuality;
+				params.Parameter[0].Type = Gdiplus::EncoderParameterValueTypeLong;
+				params.Parameter[0].NumberOfValues = 1;
+				ULONG quality = (ULONG)jpegQuality;
+				params.Parameter[0].Value = &quality;
+				ok = (pBmp->Save(wsz, &clsid, &params) == Gdiplus::Ok);
+			}
+			else {
+				ok = (pBmp->Save(wsz, &clsid, NULL) == Gdiplus::Ok);
+			}
+		}
+		delete pBmp;
+		return ok;
 	}
 
 	void CSvgBoxUI::PaintStatusImage(IRenderContext& ctx)

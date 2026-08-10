@@ -31,6 +31,8 @@ namespace DuiLib {
 		CModalOptions& ClickBackdropToClose(bool close);
 		/// 对齐/禁用基准窗；Create 不挂 Owner（避免 D2D 脏区裂开）
 		CModalOptions& Owner(HWND hOwner);
+		/// 拖动 Modal 时同步移动 Owner（默认 true；屏幕坐标相对偏移，支持多显示器；不同步大小）
+		CModalOptions& SyncOwnerMove(bool sync);
 		CModalOptions& OnResult(ModalResultCallback fn, void* pUser = NULL);
 		CModalOptions& UserData(LPCTSTR data);
 
@@ -45,6 +47,7 @@ namespace DuiLib {
 		int m_nHeight;
 		bool m_bClickBackdropToClose;
 		HWND m_hOwner;
+		bool m_bSyncOwnerMove;
 		ModalResultCallback m_fnOnResult;
 		void* m_pResultUser;
 		CDuiString m_sUserData;

@@ -843,7 +843,7 @@ namespace DuiLib {
 		GetManager()->GetDPIObj()->ScaleBack(&rcDest);
 		CDuiString pStrImage;
 		pStrImage.Format(_T("dest='%d,%d,%d,%d'"), rcDest.left, rcDest.top, rcDest.right, rcDest.bottom);
-		DrawImage(ctx, m_strIcon, pStrImage);
+		DrawImage(ctx, m_strIcon.GetData(), pStrImage.GetData());
 	}
 
 	DWORD CMenuElementUI::ResolveMenuIconColor() const
@@ -873,8 +873,8 @@ namespace DuiLib {
 			}
 			SIZE cxyFixed = GetManager()->GetDPIObj()->Scale(m_cxyFixed);
 			int padding = GetManager()->GetDPIObj()->Scale(ITEM_DEFAULT_EXPLAND_ICON_WIDTH) / 3;
-			const TDrawInfo* pDrawInfo = GetManager()->GetDrawInfo((LPCTSTR)strExplandIcon, NULL);
-			const TImageInfo *pImageInfo = GetManager()->GetImageEx(pDrawInfo->sImageName, NULL, 0, false, pDrawInfo->bGdiplus);
+			const TDrawInfo* pDrawInfo = GetManager()->GetDrawInfo(strExplandIcon.GetData(), NULL);
+			const TImageInfo *pImageInfo = GetManager()->GetImageEx(pDrawInfo->sImageName.GetData(), NULL, 0, false, pDrawInfo->bGdiplus);
 			if (!pImageInfo) {
 				return;
 			}
@@ -888,7 +888,7 @@ namespace DuiLib {
 			GetManager()->GetDPIObj()->ScaleBack(&rcDest);
 			CDuiString pStrImage;
 			pStrImage.Format(_T("dest='%d,%d,%d,%d'"), rcDest.left, rcDest.top, rcDest.right, rcDest.bottom);
-			DrawImage(ctx, strExplandIcon, pStrImage);
+			DrawImage(ctx, strExplandIcon.GetData(), pStrImage.GetData());
 		}
 	}
 
@@ -918,10 +918,10 @@ namespace DuiLib {
 		rcText.bottom -= rcTextPadding.bottom;
 
 		if( pInfo->bShowHtml )
-			ctx.DrawHtmlText(rcText, sText, iTextColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), iTextColor, \
 			NULL, NULL, nLinks, pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
 		else
-			ctx.DrawText(rcText, sText, iTextColor, \
+			ctx.DrawText(rcText, sText.GetData(), iTextColor, \
 			pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
 	}
 
@@ -961,10 +961,10 @@ namespace DuiLib {
 				rcText.right -= rcTextPadding.right;
 				UINT uStyle = DT_CALCRECT | DT_SINGLELINE | DT_LEFT | DT_TOP;
 				if( pInfo->bShowHtml ) {
-					RenderMeasureHtmlText(m_pManager, rcText, sText, iTextColor, pInfo->nFont, uStyle);
+					RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), iTextColor, pInfo->nFont, uStyle);
 				}
 				else {
-					RenderMeasureText(m_pManager, rcText, sText, iTextColor, pInfo->nFont, uStyle);
+					RenderMeasureText(m_pManager, rcText, sText.GetData(), iTextColor, pInfo->nFont, uStyle);
 				}
 				cXY.cx = rcText.right - rcText.left + rcTextPadding.left + rcTextPadding.right;
 				cXY.cy = rcText.bottom - rcText.top + rcTextPadding.top + rcTextPadding.bottom;
@@ -1399,7 +1399,7 @@ namespace DuiLib {
 		GetManager()->GetDPIObj()->ScaleBack(&rcDest);
 		CDuiString pStrImage;
 		pStrImage.Format(_T("dest='%d,%d,%d,%d'"), rcDest.left, rcDest.top, rcDest.right, rcDest.bottom);
-		DrawImage(ctx, m_strIcon, pStrImage);
+		DrawImage(ctx, m_strIcon.GetData(), pStrImage.GetData());
 	}
 
 	SIZE CMenuElementUI::GetIconSize()
@@ -1412,12 +1412,13 @@ namespace DuiLib {
 
 	void CMenuElementUI::SetChecked(bool bCheck/* = true*/)
 	{
-		SetItemInfo(GetName(), bCheck);
+		SetItemInfo(GetName().GetData(), bCheck);
 	}
 
 	bool CMenuElementUI::GetChecked() const
 	{
-		LPCTSTR pstrName = GetName();
+		CDuiString sName = GetName();
+		LPCTSTR pstrName = sName.GetData();
 		if(pstrName == NULL || lstrlen(pstrName) <= 0) return false;
 
 		CStdStringPtrMap* mCheckInfos = CMenuWnd::GetGlobalContextMenuObserver().GetMenuCheckInfo();
@@ -1499,7 +1500,7 @@ namespace DuiLib {
 				bool bFind = false;
 				for(int i = 0; i < mCheckInfos->GetSize(); i++) {
 					MenuItemInfo* itemInfo = (MenuItemInfo*)mCheckInfos->GetAt(i);
-					if(lstrcmpi(itemInfo->szName, GetName()) == 0) {
+					if(lstrcmpi(itemInfo->szName, GetName().GetData()) == 0) {
 						bFind = true;
 						break;
 					}

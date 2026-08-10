@@ -216,7 +216,7 @@ namespace DuiLib
 		int cur = m_nCurrentIndex < 0 ? 0 : m_nCurrentIndex;
 		CDuiString s;
 		s.Format(_T("%d/%d"), cur + 1, total);
-		m_pPageLabel->SetText(s);
+		m_pPageLabel->SetText(s.GetData());
 	}
 
 	void CCarouselUI::UpdateIndicators()

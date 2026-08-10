@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "Utils.h"
 
 namespace DuiLib
@@ -424,11 +424,6 @@ namespace DuiLib
 		return (int) _tcslen(m_pstr); 
 	}
 
-	CDuiString::operator LPCTSTR() const 
-	{ 
-		return m_pstr; 
-	}
-
 	void CDuiString::Append(LPCTSTR pstr)
 	{
 		int nNewLength = GetLength() + (int) _tcslen(pstr);
@@ -499,7 +494,7 @@ namespace DuiLib
 
 	const CDuiString& CDuiString::operator=(const CDuiString& src)
 	{      
-		Assign(src);
+		Assign(src.GetData());
 		return *this;
 	}
 
@@ -597,7 +592,7 @@ namespace DuiLib
 	CDuiString CDuiString::operator+(const CDuiString& src) const
 	{
 		CDuiString sTemp = *this;
-		sTemp.Append(src);
+		sTemp.Append(src.GetData());
 		return sTemp;
 	}
 
@@ -616,7 +611,7 @@ namespace DuiLib
 
 	const CDuiString& CDuiString::operator+=(const CDuiString& src)
 	{      
-		Append(src);
+		Append(src.GetData());
 		return *this;
 	}
 
@@ -791,7 +786,7 @@ namespace DuiLib
 			sTemp = Left(iPos);
 			sTemp += pstrTo;
 			sTemp += Mid(iPos + cchFrom);
-			Assign(sTemp);
+			Assign(sTemp.GetData());
 			iPos = Find(pstrFrom, iPos + cchTo);
 			nCount++;
 		}
@@ -817,7 +812,7 @@ namespace DuiLib
 		TCHAR szBuffer[64] = { 0 };
 		va_list argList;
 		va_start(argList, pstrFormat);
-		int iRet = ::_vsntprintf(szBuffer, sizeof(szBuffer), sFormat, argList);
+		int iRet = ::_vsntprintf(szBuffer, sizeof(szBuffer), sFormat.GetData(), argList);
 		va_end(argList);
 		Assign(szBuffer);
 		return iRet;
@@ -881,7 +876,7 @@ namespace DuiLib
 
 	static UINT HashKey(const CDuiString& Key)
 	{
-		return HashKey((LPCTSTR)Key);
+		return HashKey(Key.GetData());
 	};
 
 	CStdStringPtrMap::CStdStringPtrMap(int nSize) : m_nCount(0)

@@ -56,7 +56,7 @@ void CCarouselTestWnd::Notify(TNotifyUI& msg)
 		CDuiString s;
 		s.Format(_T("slidechanged: %s %d→%d"), msg.pSender->GetName().GetData(),
 			(int)msg.lParam, (int)msg.wParam);
-		SetStatus(s);
+		SetStatus(s.GetData());
 	}
 	WindowImplBase::Notify(msg);
 }

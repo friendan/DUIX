@@ -461,7 +461,7 @@ namespace DuiLib {
 		void SetIconGap(int nGap);
 		int GetIconGap() const { return m_nIconGap; }
 		void SetIconPosition(LPCTSTR pstrPos);
-		LPCTSTR GetIconPosition() const { return m_sIconPos; }
+		LPCTSTR GetIconPosition() const { return m_sIconPos.GetData(); }
 		void SetIconTint(DWORD dwColor);
 		void SetIconTintHover(DWORD dwColor);
 		void SetIconTintSelected(DWORD dwColor);

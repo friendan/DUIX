@@ -1,4 +1,4 @@
-﻿#ifndef __UIIPADDRESSEX_H__
+#ifndef __UIIPADDRESSEX_H__
 #define __UIIPADDRESSEX_H__
 
 #pragma once

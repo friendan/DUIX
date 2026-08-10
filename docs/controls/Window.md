@@ -42,3 +42,35 @@
 | `show-dirty` / `gdiplus-text` / `text-rendering-hint` / `tooltip-hover-time` / `no-activate` | 调试 / 文本渲染 / Tooltip / 无激活 |
 
 分层 Present、DComp 等渲染约束见根目录 [AGENTS.md](../../AGENTS.md)，不在本页展开。
+
+---
+
+## WindowImplBase（业务窗基类）
+
+自定义皮肤窗继承 `WindowImplBase`，`Create(owner, …)` + `ShowModal()` / `ShowModalFake()`。
+
+| API | 默认 | 说明 |
+|-----|------|------|
+| `SetSyncOwnerMove(bool)` / `IsSyncOwnerMove()` | `false` | 拖/移本窗时同步移动 **HWND Owner**（屏幕坐标相对偏移） |
+| `SetSyncOwnerSize(bool)` / `IsSyncOwnerSize()` | `false` | 缩放本窗时同步缩放 Owner（保留打开时宽高差；铺满时差为 0） |
+| `ShowModal()` / `ShowModalFake()` | | 进入前抓取偏移/尺寸差；关闭后清除 |
+
+铺满主窗的设置窗示例：
+
+```cpp
+pSettings->Create(m_hWnd, ...);
+// 先把设置窗摆成与主窗同位置同大小，再：
+pSettings->SetSyncOwnerMove(true);
+pSettings->SetSyncOwnerSize(true);
+pSettings->ShowModal();
+```
+
+行为细节：
+
+- 仅 Move：纯移动 → Owner 跟移；仅右/下边缩放 → Owner 不动；左/上边缩放 → 只重算偏移
+- 开了 Size：任意边缩放都同步 Owner 尺寸；同时开了 Move 时左/上边缩放会连位置一起跟
+- **多屏幕**：屏幕物理像素（副屏可为负坐标）；跨屏 DPI 由 `WM_DPICHANGED` 跟系统建议矩形并同步 Owner；`WM_DISPLAYCHANGE` 重抓偏移
+- Owner / 本窗最大化或最小化时跳过同步
+- 无 Owner（主窗）时为空操作；默认皆关
+- Demo：Accordion → Modal →「铺满设置窗（同步主窗）」（`CSettingsSyncWnd` / `settings_sync.html`）
+- 轻量确认框仍用 [Modal.md](Modal.md) 的 `CModal::SyncOwnerMove`；业务模态窗用本基类

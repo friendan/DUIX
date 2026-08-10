@@ -99,7 +99,7 @@ namespace DuiLib
 	{
 		m_bUpdating = true;
 		CDuiString s = FormatValue(m_dbValue);
-		CEditUI::SetText(s);
+		CEditUI::SetText(s.GetData());
 		m_bUpdating = false;
 	}
 
@@ -200,7 +200,7 @@ namespace DuiLib
 	{
 		if( m_bUpdating ) return;
 		double v = 0;
-		if( ParseTextToValue(m_sText, v) ) {
+		if( ParseTextToValue(m_sText.GetData(), v) ) {
 			v = ClampValue(v);
 			bool bChanged = (v != m_dbValue);
 			m_dbValue = v;
@@ -389,7 +389,7 @@ namespace DuiLib
 		rc.bottom -= rcPad.bottom + rcTextPadding.bottom;
 		if( rc.right < rc.left + 4 ) rc.right = rc.left + 4;
 
-		ctx.DrawText(rc, sDraw, clr, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sDraw.GetData(), clr, m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
 	void CSpinUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)

@@ -1165,7 +1165,7 @@ namespace DuiLib {
 
 		HRESULT Hr = -1;
 		if( !m_sModuleName.IsEmpty() ) {
-			HMODULE hModule = ::LoadLibrary((LPCTSTR)m_sModuleName);
+			HMODULE hModule = ::LoadLibrary(m_sModuleName.GetData());
 			if( hModule != NULL ) {
 				IClassFactory* aClassFactory = NULL;
 				DllGetClassObjectFunc aDllGetClassObjectFunc = (DllGetClassObjectFunc)::GetProcAddress(hModule, "DllGetClassObject");

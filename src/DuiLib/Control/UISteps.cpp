@@ -26,7 +26,7 @@ namespace DuiLib
 		m_sDescription = pstr ? pstr : _T("");
 	}
 
-	LPCTSTR CStepItemUI::GetDescription() const { return m_sDescription; }
+	LPCTSTR CStepItemUI::GetDescription() const { return m_sDescription.GetData(); }
 
 	void CStepItemUI::SetStatus(Status e) { m_eStatus = e; }
 	CStepItemUI::Status CStepItemUI::GetStatus() const { return m_eStatus; }
@@ -175,7 +175,7 @@ namespace DuiLib
 			part.TrimRight();
 			if( part.IsEmpty() ) continue;
 			CStepItemUI* p = new CStepItemUI;
-			p->SetText(part);
+			p->SetText(part.GetData());
 			Add(p);
 		}
 	}
@@ -315,9 +315,10 @@ namespace DuiLib
 			if( st == CStepItemUI::StatusFinish ) sMark = _T("✓");
 			else if( st == CStepItemUI::StatusError ) sMark = _T("!");
 			else sMark.SmallFormat(_T("%d"), i + 1);
-			ctx.DrawText(rcDot, sMark, GetAdjustColor(0xFFFFFFFF), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+			ctx.DrawText(rcDot, sMark.GetData(), GetAdjustColor(0xFFFFFFFF), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 
-			LPCTSTR pTitle = pItem ? pItem->GetText() : _T("");
+			CDuiString sTitle = pItem ? pItem->GetText() : CDuiString(_T(""));
+			LPCTSTR pTitle = sTitle.GetData();
 			RECT rcTitle = { rcHit.left + ScaleValue(2), rcDot.bottom + ScaleValue(4), rcHit.right - ScaleValue(2), rcDot.bottom + ScaleValue(22) };
 			ctx.DrawText(rcTitle, pTitle, GetAdjustColor(clrTitle), -1, DT_SINGLELINE | DT_CENTER | DT_END_ELLIPSIS);
 
@@ -365,10 +366,11 @@ namespace DuiLib
 			if( st == CStepItemUI::StatusFinish ) sMark = _T("✓");
 			else if( st == CStepItemUI::StatusError ) sMark = _T("!");
 			else sMark.SmallFormat(_T("%d"), i + 1);
-			ctx.DrawText(rcDot, sMark, GetAdjustColor(0xFFFFFFFF), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+			ctx.DrawText(rcDot, sMark.GetData(), GetAdjustColor(0xFFFFFFFF), -1, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 
 			RECT rcText = { rcDot.right + ScaleValue(10), rcHit.top, rcHit.right, rcHit.bottom };
-			LPCTSTR pTitle = pItem ? pItem->GetText() : _T("");
+			CDuiString sTitle = pItem ? pItem->GetText() : CDuiString(_T(""));
+			LPCTSTR pTitle = sTitle.GetData();
 			RECT rcTitle = rcText;
 			rcTitle.bottom = rcTitle.top + ScaleValue(22);
 			ctx.DrawText(rcTitle, pTitle, GetAdjustColor(clrTitle), -1, DT_SINGLELINE | DT_LEFT | DT_VCENTER | DT_END_ELLIPSIS);

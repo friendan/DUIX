@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIFlash.h"
 #include <atlcomcli.h>
 
@@ -19,9 +19,9 @@ namespace DuiLib
 		CDuiString strFlashCLSID=_T("{D27CDB6E-AE6D-11CF-96B8-444553540000}");
 		OLECHAR szCLSID[100] = { 0 };
 #ifndef _UNICODE
-		::MultiByteToWideChar(::GetACP(), 0, strFlashCLSID, -1, szCLSID, lengthof(szCLSID) - 1);
+		::MultiByteToWideChar(::GetACP(), 0, strFlashCLSID.GetData(), -1, szCLSID, lengthof(szCLSID) - 1);
 #else
-		_tcsncpy(szCLSID, strFlashCLSID, lengthof(szCLSID) - 1);
+		_tcsncpy(szCLSID, strFlashCLSID.GetData(), lengthof(szCLSID) - 1);
 #endif
 		::CLSIDFromString(szCLSID, &m_clsid);
 	}

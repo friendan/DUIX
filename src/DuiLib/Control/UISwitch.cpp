@@ -106,7 +106,7 @@ namespace DuiLib
 
 	LPCTSTR CSwitchUI::GetCheckedText() const
 	{
-		return m_sCheckedText;
+		return m_sCheckedText.GetData();
 	}
 
 	void CSwitchUI::SetUncheckedText(LPCTSTR pstrText)
@@ -117,7 +117,7 @@ namespace DuiLib
 
 	LPCTSTR CSwitchUI::GetUncheckedText() const
 	{
-		return m_sUncheckedText;
+		return m_sUncheckedText.GetData();
 	}
 
 	bool CSwitchUI::IsNativeSwitchStyle() const
@@ -176,7 +176,7 @@ namespace DuiLib
 			ctx.FillRoundRect(rcTrack, nRadius, nRadius, GetAdjustColor(dwTrack));
 
 		// 轨道内开/关文案（画在滑块对侧）
-		LPCTSTR pInner = bOn ? (LPCTSTR)m_sCheckedText : (LPCTSTR)m_sUncheckedText;
+		LPCTSTR pInner = bOn ? m_sCheckedText.GetData() : m_sUncheckedText.GetData();
 		if( pInner != NULL && pInner[0] != _T('\0') ) {
 			RECT rcThumb = GetThumbRect(rcTrack);
 			RECT rcText = rcTrack;
@@ -230,9 +230,9 @@ namespace DuiLib
 				RECT rcText = { 0, 0, 9999, sz.cy };
 				UINT uStyle = DT_CALCRECT | DT_SINGLELINE | DT_LEFT | DT_VCENTER;
 				if( m_bShowHtml )
-					RenderMeasureHtmlText(m_pManager, rcText, sText, 0, GetFont(), uStyle);
+					RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), 0, GetFont(), uStyle);
 				else
-					RenderMeasureText(m_pManager, rcText, sText, 0, GetFont(), uStyle);
+					RenderMeasureText(m_pManager, rcText, sText.GetData(), 0, GetFont(), uStyle);
 				sz.cx += nGap + (rcText.right - rcText.left);
 				RECT rcPad = GetTextPadding();
 				sz.cx += rcPad.left + rcPad.right;
@@ -291,9 +291,9 @@ namespace DuiLib
 		if( (uStyle & (DT_CENTER | DT_RIGHT)) == 0 )
 			uStyle |= DT_LEFT;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText, clrColor, NULL, NULL, nLinks, GetFont(), uStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, GetFont(), uStyle);
 		else
-			ctx.DrawText(rc, sText, clrColor, GetFont(), uStyle);
+			ctx.DrawText(rc, sText.GetData(), clrColor, GetFont(), uStyle);
 	}
 
 	void CSwitchUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)

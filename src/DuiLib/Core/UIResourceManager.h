@@ -1,4 +1,4 @@
-﻿#ifndef __UIRESOURCEMANAGER_H__
+#ifndef __UIRESOURCEMANAGER_H__
 #define __UIRESOURCEMANAGER_H__
 #pragma once
 
@@ -33,7 +33,7 @@ namespace DuiLib {
 
 	public:
 		void SetLanguage(LPCTSTR pstrLanguage) { m_sLauguage = pstrLanguage; }
-		LPCTSTR GetLanguage() { return m_sLauguage; }
+		LPCTSTR GetLanguage() { return m_sLauguage.GetData(); }
 		BOOL LoadLanguage(LPCTSTR pstrXml);
 		
 	public:

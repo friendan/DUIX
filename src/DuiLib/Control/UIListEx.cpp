@@ -107,7 +107,7 @@ namespace DuiLib {
 		CDuiString strName = msg.pSender->GetName();
 
 		//复选框
-		if(_tcsicmp(msg.sType, _T("listheaditemchecked")) == 0)
+		if(_tcsicmp(msg.sType.GetData(), _T("listheaditemchecked")) == 0)
 		{
 			BOOL bCheck = (BOOL)msg.lParam;
 			//判断是否是本LIST发送的notify
@@ -127,7 +127,7 @@ namespace DuiLib {
 				}
 			}
 		}
-		else if (_tcsicmp(msg.sType, DUI_MSGTYPE_LISTITEMCHECKED) == 0)
+		else if (_tcsicmp(msg.sType.GetData(), DUI_MSGTYPE_LISTITEMCHECKED) == 0)
 		{
 			for (int i = 0; i < GetCount(); ++i) {
 				CControlUI* p = GetItemAt(i);
@@ -141,19 +141,19 @@ namespace DuiLib {
 		}
 
 		//编辑框、组合框
-		if (_tcsicmp(strName, _T("ListEx_Edit")) == 0 && m_pEditUI && m_nRow >= 0 && m_nColum >= 0)
+		if (_tcsicmp(strName.GetData(), _T("ListEx_Edit")) == 0 && m_pEditUI && m_nRow >= 0 && m_nColum >= 0)
 		{
-			if(_tcsicmp(msg.sType, DUI_MSGTYPE_SETFOCUS) == 0)
+			if(_tcsicmp(msg.sType.GetData(), DUI_MSGTYPE_SETFOCUS) == 0)
 			{
 
 			}
-			else if(_tcsicmp(msg.sType, DUI_MSGTYPE_KILLFOCUS) == 0)
+			else if(_tcsicmp(msg.sType.GetData(), DUI_MSGTYPE_KILLFOCUS) == 0)
 			{
 				CDuiString sText = m_pEditUI->GetText();
 				CListTextExtElementUI* pRowCtrl = (CListTextExtElementUI*)GetItemAt(m_nRow);
 				if (pRowCtrl)
 				{
-					pRowCtrl->SetText(m_nColum, sText);
+					pRowCtrl->SetText(m_nColum, sText.GetData());
 				}
 
 				//重置当前行列
@@ -165,25 +165,25 @@ namespace DuiLib {
 				m_pEditUI->SetVisible(false);
 			}
 		}
-		else if (_tcsicmp(strName, _T("ListEx_Combo")) == 0 && m_pComboBoxUI && m_nRow >= 0 && m_nColum >= 0)
+		else if (_tcsicmp(strName.GetData(), _T("ListEx_Combo")) == 0 && m_pComboBoxUI && m_nRow >= 0 && m_nColum >= 0)
 		{
 			int  iCurSel, iOldSel;
 			iCurSel = msg.wParam;
 			iOldSel = msg.lParam;
 
-			if(_tcsicmp(msg.sType, DUI_MSGTYPE_SETFOCUS) == 0)
+			if(_tcsicmp(msg.sType.GetData(), DUI_MSGTYPE_SETFOCUS) == 0)
 			{
 
 			}
-			else if(_tcsicmp(msg.sType, DUI_MSGTYPE_KILLFOCUS) == 0)
+			else if(_tcsicmp(msg.sType.GetData(), DUI_MSGTYPE_KILLFOCUS) == 0)
 			{
 			}
-			else if(_tcsicmp(msg.sType, DUI_MSGTYPE_LISTITEMSELECT) == 0 && iOldSel >= 0)
+			else if(_tcsicmp(msg.sType.GetData(), DUI_MSGTYPE_LISTITEMSELECT) == 0 && iOldSel >= 0)
 			{
 				CListTextExtElementUI* pRowCtrl = (CListTextExtElementUI*)GetItemAt(m_nRow);
 				if (pRowCtrl)
 				{
-					pRowCtrl->SetText(m_nColum, m_pComboBoxUI->GetText());
+					pRowCtrl->SetText(m_nColum, m_pComboBoxUI->GetText().GetData());
 				}
 
 				//隐藏组合框
@@ -191,7 +191,7 @@ namespace DuiLib {
 				m_pComboBoxUI->SetPos(rc);
 			}
 		}
-		else if(_tcsicmp(msg.sType, _T("scroll")) == 0 && (m_pComboBoxUI || m_pEditUI) && m_nRow >= 0 && m_nColum >= 0)
+		else if(_tcsicmp(msg.sType.GetData(), _T("scroll")) == 0 && (m_pComboBoxUI || m_pEditUI) && m_nRow >= 0 && m_nColum >= 0)
 		{
 			HideEditAndComboCtrl();
 		}
@@ -477,7 +477,7 @@ namespace DuiLib {
 
 	LPCTSTR CListContainerHeaderItemUI::GetImage() const
 	{
-		return m_sImage;
+		return m_sImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetImage(LPCTSTR pStrImage)
@@ -488,7 +488,7 @@ namespace DuiLib {
 
 	LPCTSTR CListContainerHeaderItemUI::GetHoverImage() const
 	{
-		return m_sHoverImage;
+		return m_sHoverImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetHoverImage(LPCTSTR pStrImage)
@@ -499,7 +499,7 @@ namespace DuiLib {
 
 	LPCTSTR CListContainerHeaderItemUI::GetActiveImage() const
 	{
-		return m_sActiveImage;
+		return m_sActiveImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetActiveImage(LPCTSTR pStrImage)
@@ -510,7 +510,7 @@ namespace DuiLib {
 
 	LPCTSTR CListContainerHeaderItemUI::GetFocusImage() const
 	{
-		return m_sFocusImage;
+		return m_sFocusImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetFocusImage(LPCTSTR pStrImage)
@@ -521,7 +521,7 @@ namespace DuiLib {
 
 	LPCTSTR CListContainerHeaderItemUI::GetSepImage() const
 	{
-		return m_sSepImage;
+		return m_sSepImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetSepImage(LPCTSTR pStrImage)
@@ -572,7 +572,7 @@ namespace DuiLib {
 				}
 				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
 				if( nSize <= 0 ) nSize = 12;
-				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, false, false, false, false);
 				if( id >= 0 ) SetFont(id);
 			}
 		}
@@ -796,20 +796,20 @@ namespace DuiLib {
 		else m_uButtonState &= ~ UISTATE_FOCUSED;
 
 		if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
-			if( m_sActiveImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sImage);
-			if( !DrawImage(ctx, (LPCTSTR)m_sActiveImage) ) {}
+			if( m_sActiveImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, m_sImage.GetData());
+			if( !DrawImage(ctx, m_sActiveImage.GetData()) ) {}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
-			if( m_sHoverImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sImage);
-			if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
+			if( m_sHoverImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, m_sImage.GetData());
+			if( !DrawImage(ctx, m_sHoverImage.GetData()) ) {}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
-			if( m_sFocusImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, (LPCTSTR)m_sImage);
-			if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
+			if( m_sFocusImage.IsEmpty() && !m_sImage.IsEmpty() ) DrawImage(ctx, m_sImage.GetData());
+			if( !DrawImage(ctx, m_sFocusImage.GetData()) ) {}
 		}
 		else {
 			if( !m_sImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
+				if( !DrawImage(ctx, m_sImage.GetData()) ) {}
 			}
 		}
 
@@ -822,7 +822,7 @@ namespace DuiLib {
 
 			m_sSepImageModify.Empty();
 			m_sSepImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
-			if( !DrawImage(ctx, (LPCTSTR)m_sSepImage, (LPCTSTR)m_sSepImageModify) ) {}
+			if( !DrawImage(ctx, m_sSepImage.GetData(), m_sSepImageModify.GetData()) ) {}
 		}
 
 		if(m_bCheckBoxable)
@@ -831,7 +831,7 @@ namespace DuiLib {
 
 			if( (m_uCheckBoxState & UISTATE_SELECTED) != 0 ) {
 				if( !m_sCheckBoxSelectedImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxSelectedImage) ) {}
+					if( !DrawCheckBoxImage(ctx, m_sCheckBoxSelectedImage.GetData()) ) {}
 					else goto Label_ForegroundImage;
 				}
 			}
@@ -843,37 +843,37 @@ namespace DuiLib {
 
 			if( (m_uCheckBoxState & UISTATE_DISABLED) != 0 ) {
 				if( !m_sCheckBoxDisabledImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxDisabledImage) ) {}
+					if( !DrawCheckBoxImage(ctx, m_sCheckBoxDisabledImage.GetData()) ) {}
 					else return;
 				}
 			}
 			else if( (m_uCheckBoxState & UISTATE_PUSHED) != 0 ) {
 				if( !m_sCheckBoxActiveImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxActiveImage) ) {}
+					if( !DrawCheckBoxImage(ctx, m_sCheckBoxActiveImage.GetData()) ) {}
 					else return;
 				}
 			}
 			else if( (m_uCheckBoxState & UISTATE_HOT) != 0 ) {
 				if( !m_sCheckBoxHoverImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxHoverImage) ) {}
+					if( !DrawCheckBoxImage(ctx, m_sCheckBoxHoverImage.GetData()) ) {}
 					else return;
 				}
 			}
 			else if( (m_uCheckBoxState & UISTATE_FOCUSED) != 0 ) {
 				if( !m_sCheckBoxFocusedImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxFocusedImage) ) {}
+					if( !DrawCheckBoxImage(ctx, m_sCheckBoxFocusedImage.GetData()) ) {}
 					else return;
 				}
 			}
 
 			if( !m_sCheckBoxNormalImage.IsEmpty() ) {
-				if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxNormalImage) ) {}
+				if( !DrawCheckBoxImage(ctx, m_sCheckBoxNormalImage.GetData()) ) {}
 				else return;
 			}
 
 Label_ForegroundImage:
 			if( !m_sCheckBoxForegroundImage.IsEmpty() ) {
-				if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxForegroundImage) ) {}
+				if( !DrawCheckBoxImage(ctx, m_sCheckBoxForegroundImage.GetData()) ) {}
 			}
 		}
 	}
@@ -901,10 +901,10 @@ Label_ForegroundImage:
 
 		int nLinks = 0;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rcText, sText, m_dwColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), m_dwColor, \
 			NULL, NULL, nLinks, m_iFont, DT_SINGLELINE | m_uTextStyle);
 		else
-			ctx.DrawText(rcText, sText, m_dwColor, \
+			ctx.DrawText(rcText, sText.GetData(), m_dwColor, \
 			m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
@@ -957,7 +957,7 @@ Label_ForegroundImage:
 	}
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxNormalImage()
 	{
-		return m_sCheckBoxNormalImage;
+		return m_sCheckBoxNormalImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetCheckBoxNormalImage(LPCTSTR pStrImage)
@@ -967,7 +967,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxHoverImage()
 	{
-		return m_sCheckBoxHoverImage;
+		return m_sCheckBoxHoverImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetCheckBoxHoverImage(LPCTSTR pStrImage)
@@ -977,7 +977,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxActiveImage()
 	{
-		return m_sCheckBoxActiveImage;
+		return m_sCheckBoxActiveImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetCheckBoxActiveImage(LPCTSTR pStrImage)
@@ -987,7 +987,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxFocusedImage()
 	{
-		return m_sCheckBoxFocusedImage;
+		return m_sCheckBoxFocusedImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetCheckBoxFocusedImage(LPCTSTR pStrImage)
@@ -997,7 +997,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxDisabledImage()
 	{
-		return m_sCheckBoxDisabledImage;
+		return m_sCheckBoxDisabledImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetCheckBoxDisabledImage(LPCTSTR pStrImage)
@@ -1006,7 +1006,7 @@ Label_ForegroundImage:
 	}
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxSelectedImage()
 	{
-		return m_sCheckBoxSelectedImage;
+		return m_sCheckBoxSelectedImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetCheckBoxSelectedImage(LPCTSTR pStrImage)
@@ -1015,7 +1015,7 @@ Label_ForegroundImage:
 	}
 	LPCTSTR CListContainerHeaderItemUI::GetCheckBoxForegroundImage()
 	{
-		return m_sCheckBoxForegroundImage;
+		return m_sCheckBoxForegroundImage.GetData();
 	}
 
 	void CListContainerHeaderItemUI::SetCheckBoxForegroundImage(LPCTSTR pStrImage)
@@ -1355,7 +1355,7 @@ Label_ForegroundImage:
 
 				if( (m_uCheckBoxState & UISTATE_SELECTED) != 0 ) {
 					if( !m_sCheckBoxSelectedImage.IsEmpty() ) {
-						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxSelectedImage, NULL, rcCheckBox) ) {}
+						if( !DrawCheckBoxImage(ctx, m_sCheckBoxSelectedImage.GetData(), NULL, rcCheckBox) ) {}
 						else goto Label_ForegroundImage;
 					}
 				}
@@ -1367,37 +1367,37 @@ Label_ForegroundImage:
 
 				if( (m_uCheckBoxState & UISTATE_DISABLED) != 0 ) {
 					if( !m_sCheckBoxDisabledImage.IsEmpty() ) {
-						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxDisabledImage, NULL, rcCheckBox) ) {}
+						if( !DrawCheckBoxImage(ctx, m_sCheckBoxDisabledImage.GetData(), NULL, rcCheckBox) ) {}
 						else return;
 					}
 				}
 				else if( (m_uCheckBoxState & UISTATE_PUSHED) != 0 ) {
 					if( !m_sCheckBoxActiveImage.IsEmpty() ) {
-						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxActiveImage, NULL, rcCheckBox) ) {}
+						if( !DrawCheckBoxImage(ctx, m_sCheckBoxActiveImage.GetData(), NULL, rcCheckBox) ) {}
 						else return;
 					}
 				}
 				else if( (m_uCheckBoxState & UISTATE_HOT) != 0 ) {
 					if( !m_sCheckBoxHoverImage.IsEmpty() ) {
-						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxHoverImage, NULL, rcCheckBox) ) {}
+						if( !DrawCheckBoxImage(ctx, m_sCheckBoxHoverImage.GetData(), NULL, rcCheckBox) ) {}
 						else return;
 					}
 				}
 				else if( (m_uCheckBoxState & UISTATE_FOCUSED) != 0 ) {
 					if( !m_sCheckBoxFocusedImage.IsEmpty() ) {
-						if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxFocusedImage, NULL, rcCheckBox) ) {}
+						if( !DrawCheckBoxImage(ctx, m_sCheckBoxFocusedImage.GetData(), NULL, rcCheckBox) ) {}
 						else return;
 					}
 				}
 
 				if( !m_sCheckBoxNormalImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxNormalImage, NULL, rcCheckBox) ) {}
+					if( !DrawCheckBoxImage(ctx, m_sCheckBoxNormalImage.GetData(), NULL, rcCheckBox) ) {}
 					else return;
 				}
 
 Label_ForegroundImage:
 				if( !m_sCheckBoxForegroundImage.IsEmpty() ) {
-					if( !DrawCheckBoxImage(ctx, (LPCTSTR)m_sCheckBoxForegroundImage, NULL, rcCheckBox) ) {}
+					if( !DrawCheckBoxImage(ctx, m_sCheckBoxForegroundImage.GetData(), NULL, rcCheckBox) ) {}
 				}
 			}
 		}
@@ -1421,7 +1421,7 @@ Label_ForegroundImage:
 	}
 	LPCTSTR CListTextExtElementUI::GetCheckBoxNormalImage()
 	{
-		return m_sCheckBoxNormalImage;
+		return m_sCheckBoxNormalImage.GetData();
 	}
 
 	void CListTextExtElementUI::SetCheckBoxNormalImage(LPCTSTR pStrImage)
@@ -1431,7 +1431,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListTextExtElementUI::GetCheckBoxHoverImage()
 	{
-		return m_sCheckBoxHoverImage;
+		return m_sCheckBoxHoverImage.GetData();
 	}
 
 	void CListTextExtElementUI::SetCheckBoxHoverImage(LPCTSTR pStrImage)
@@ -1441,7 +1441,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListTextExtElementUI::GetCheckBoxActiveImage()
 	{
-		return m_sCheckBoxActiveImage;
+		return m_sCheckBoxActiveImage.GetData();
 	}
 
 	void CListTextExtElementUI::SetCheckBoxActiveImage(LPCTSTR pStrImage)
@@ -1451,7 +1451,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListTextExtElementUI::GetCheckBoxFocusedImage()
 	{
-		return m_sCheckBoxFocusedImage;
+		return m_sCheckBoxFocusedImage.GetData();
 	}
 
 	void CListTextExtElementUI::SetCheckBoxFocusedImage(LPCTSTR pStrImage)
@@ -1461,7 +1461,7 @@ Label_ForegroundImage:
 
 	LPCTSTR CListTextExtElementUI::GetCheckBoxDisabledImage()
 	{
-		return m_sCheckBoxDisabledImage;
+		return m_sCheckBoxDisabledImage.GetData();
 	}
 
 	void CListTextExtElementUI::SetCheckBoxDisabledImage(LPCTSTR pStrImage)
@@ -1470,7 +1470,7 @@ Label_ForegroundImage:
 	}
 	LPCTSTR CListTextExtElementUI::GetCheckBoxSelectedImage()
 	{
-		return m_sCheckBoxSelectedImage;
+		return m_sCheckBoxSelectedImage.GetData();
 	}
 
 	void CListTextExtElementUI::SetCheckBoxSelectedImage(LPCTSTR pStrImage)
@@ -1479,7 +1479,7 @@ Label_ForegroundImage:
 	}
 	LPCTSTR CListTextExtElementUI::GetCheckBoxForegroundImage()
 	{
-		return m_sCheckBoxForegroundImage;
+		return m_sCheckBoxForegroundImage.GetData();
 	}
 
 	void CListTextExtElementUI::SetCheckBoxForegroundImage(LPCTSTR pStrImage)

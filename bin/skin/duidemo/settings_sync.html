@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 铺满主窗的设置窗：测 WindowImplBase SyncOwnerMove + SyncOwnerSize -->
+<Window size-box="4,4,6,6" min-size="480,320" caption="0,0,0,44" showshadow="false">
+  <Font id="0" font-family="Microsoft YaHei UI" font-size="13" default="true"/>
+  <Font id="1" font-family="Microsoft YaHei UI" font-size="14" font-weight="bold"/>
+
+  <VBox name="root" background-color="#F5F5F5FF">
+    <HBox name="titlebar" height="44" background-color="#0D6EFDFF" align-items="vcenter" padding="0,12,0,8" action="title">
+      <Label text="设置（铺满主窗 · 拖/缩会带着主窗）" color="#FFFFFFFF" font="1" mouse="false" />
+      <Control />
+      <Button name="closebtn" text="✕" width="40" height="32" kind="none"
+        background-color="#0D6EFDFF" color="#FFFFFFCC" color-hover="#FFFFFFFF"
+        background-color-hover="#E81123FF" action="close" />
+    </HBox>
+
+    <VBox padding="20,24,20,24" gap="12">
+      <Label text="本窗覆盖主窗。拖标题栏或缩放边框时，主窗口同步移动/改变大小（含副屏负坐标、跨屏 DPI）。"
+        color="#333333FF" height="48" word-break="break-word" />
+      <Label text="API：SetSyncOwnerMove(true) + SetSyncOwnerSize(true)，再 ShowModal()。可把主窗拖到副屏再开本窗验证。"
+        color="#666666FF" height="40" word-break="break-word" />
+      <HBox height="40" gap="8" align-items="vcenter">
+        <Button name="closebtn2" text="关闭" kind="primary" width="96" height="32" action="close" />
+        <Label text="Esc / ✕ 亦可关闭" color="#888888FF" />
+      </HBox>
+    </VBox>
+  </VBox>
+</Window>

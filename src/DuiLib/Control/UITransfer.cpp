@@ -183,8 +183,8 @@ namespace DuiLib
 	{
 		m_sItemsAttr = pstrItems ? pstrItems : _T("");
 		m_items.clear();
-		ParseItemsAttr(m_sItemsAttr);
-		if( !m_sTargetAttr.IsEmpty() ) ApplyTargetKeysAttr(m_sTargetAttr);
+		ParseItemsAttr(m_sItemsAttr.GetData());
+		if( !m_sTargetAttr.IsEmpty() ) ApplyTargetKeysAttr(m_sTargetAttr.GetData());
 		if( m_bBuilt ) RefreshLists();
 	}
 
@@ -193,7 +193,7 @@ namespace DuiLib
 		m_sTargetAttr = pstrKeys ? pstrKeys : _T("");
 		for( size_t i = 0; i < m_items.size(); ++i )
 			m_items[i].bTarget = false;
-		ApplyTargetKeysAttr(m_sTargetAttr);
+		ApplyTargetKeysAttr(m_sTargetAttr.GetData());
 		if( m_bBuilt ) RefreshLists();
 	}
 
@@ -303,9 +303,9 @@ namespace DuiLib
 			m_items.push_back(it);
 		}
 		if( m_items.empty() && !m_sItemsAttr.IsEmpty() )
-			ParseItemsAttr(m_sItemsAttr);
+			ParseItemsAttr(m_sItemsAttr.GetData());
 		if( !m_sTargetAttr.IsEmpty() )
-			ApplyTargetKeysAttr(m_sTargetAttr);
+			ApplyTargetKeysAttr(m_sTargetAttr.GetData());
 	}
 
 	void CTransferUI::BuildShell()
@@ -336,7 +336,7 @@ namespace DuiLib
 			header->Add(all);
 
 			CLabelUI* title = new CLabelUI();
-			title->SetText(bLeft ? m_sSourceTitle : m_sTargetTitle);
+			title->SetText(bLeft ? m_sSourceTitle.GetData() : m_sTargetTitle.GetData());
 			title->SetTextStyle(DT_SINGLELINE | DT_VCENTER | DT_LEFT);
 			title->SetColor(0x000000E0);
 			title->SetMouseEnabled(false);
@@ -483,11 +483,11 @@ namespace DuiLib
 			row->SetGap(ScaleValue(8));
 
 			CCheckBoxUI* cb = new CCheckBoxUI();
-			cb->SetText(m_items[i].sText);
+			cb->SetText(m_items[i].sText.GetData());
 			cb->Selected(m_items[i].bChecked, false);
 			CDuiString ud;
 			ud.Format(_T("%d"), (int)i);
-			cb->SetUserData(ud);
+			cb->SetUserData(ud.GetData());
 			cb->OnNotify += MakeDelegate(this, &CTransferUI::OnCheckNotify);
 			row->Add(cb);
 			pList->Add(row);
@@ -508,8 +508,8 @@ namespace DuiLib
 
 	void CTransferUI::UpdateHeaders()
 	{
-		if( m_pLeftTitle ) m_pLeftTitle->SetText(m_sSourceTitle);
-		if( m_pRightTitle ) m_pRightTitle->SetText(m_sTargetTitle);
+		if( m_pLeftTitle ) m_pLeftTitle->SetText(m_sSourceTitle.GetData());
+		if( m_pRightTitle ) m_pRightTitle->SetText(m_sTargetTitle.GetData());
 
 		int nSrc = CountSide(false);
 		int nSrcChk = CountChecked(false);
@@ -519,12 +519,12 @@ namespace DuiLib
 		if( m_pLeftCount ) {
 			CDuiString s;
 			s.Format(_T("%d/%d"), nSrcChk, nSrc);
-			m_pLeftCount->SetText(s);
+			m_pLeftCount->SetText(s.GetData());
 		}
 		if( m_pRightCount ) {
 			CDuiString s;
 			s.Format(_T("%d/%d"), nTgtChk, nTgt);
-			m_pRightCount->SetText(s);
+			m_pRightCount->SetText(s.GetData());
 		}
 
 		m_bRefreshing = true;
@@ -593,7 +593,7 @@ namespace DuiLib
 		if( pMsg == NULL || pMsg->sType != DUI_MSGTYPE_SELECTCHANGED ) return true;
 		CCheckBoxUI* cb = static_cast<CCheckBoxUI*>(pMsg->pSender->GetInterface(DUI_CTR_CHECKBOX));
 		if( cb == NULL ) return true;
-		int idx = _ttoi(cb->GetUserData());
+		int idx = _ttoi(cb->GetUserData().GetData());
 		if( idx < 0 || idx >= (int)m_items.size() ) return true;
 		m_items[idx].bChecked = cb->IsSelected();
 		UpdateHeaders();
@@ -635,12 +635,12 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("items")) == 0 || _tcsicmp(pstrName, _T("options")) == 0 || _tcsicmp(pstrName, _T("data")) == 0 ) {
 			m_sItemsAttr = pstrValue ? pstrValue : _T("");
-			if( m_bBuilt ) SetItems(m_sItemsAttr);
+			if( m_bBuilt ) SetItems(m_sItemsAttr.GetData());
 		}
 		else if( _tcsicmp(pstrName, _T("target")) == 0 || _tcsicmp(pstrName, _T("selected")) == 0
 			|| _tcsicmp(pstrName, _T("target-keys")) == 0 ) {
 			m_sTargetAttr = pstrValue ? pstrValue : _T("");
-			if( m_bBuilt ) SetTargetKeys(m_sTargetAttr);
+			if( m_bBuilt ) SetTargetKeys(m_sTargetAttr.GetData());
 		}
 		else if( _tcsicmp(pstrName, _T("item-height")) == 0 ) {
 			SetItemHeight(_ttoi(pstrValue));

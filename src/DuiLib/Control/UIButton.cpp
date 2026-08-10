@@ -259,7 +259,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetImage()
 	{
-		return m_sImage;
+		return m_sImage.GetData();
 	}
 
 	void CButtonUI::SetImage(LPCTSTR pStrImage)
@@ -270,7 +270,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetHoverImage()
 	{
-		return m_sHoverImage;
+		return m_sHoverImage.GetData();
 	}
 
 	void CButtonUI::SetHoverImage(LPCTSTR pStrImage)
@@ -281,7 +281,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetActiveImage()
 	{
-		return m_sActiveImage;
+		return m_sActiveImage.GetData();
 	}
 
 	void CButtonUI::SetActiveImage(LPCTSTR pStrImage)
@@ -292,7 +292,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetFocusImage()
 	{
-		return m_sFocusImage;
+		return m_sFocusImage.GetData();
 	}
 
 	void CButtonUI::SetFocusImage(LPCTSTR pStrImage)
@@ -303,7 +303,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetDisabledImage()
 	{
-		return m_sDisabledImage;
+		return m_sDisabledImage.GetData();
 	}
 
 	void CButtonUI::SetDisabledImage(LPCTSTR pStrImage)
@@ -314,7 +314,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetHoverForegroundImage()
 	{
-		return m_sHoverForegroundImage;
+		return m_sHoverForegroundImage.GetData();
 	}
 
 	void CButtonUI::SetHoverForegroundImage( LPCTSTR pStrImage )
@@ -325,7 +325,7 @@ namespace DuiLib
 
     LPCTSTR CButtonUI::GetActiveForegroundImage()
     {
-        return m_sActiveForegroundImage;
+        return m_sActiveForegroundImage.GetData();
     }
 
     void CButtonUI::SetActiveForegroundImage(LPCTSTR pStrImage)
@@ -347,7 +347,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetStateImage()
 	{
-		return m_sStateImage;
+		return m_sStateImage.GetData();
 	}
 
 	void CButtonUI::SetStateImage( LPCTSTR pStrImage )
@@ -393,7 +393,7 @@ namespace DuiLib
 
 	LPCTSTR CButtonUI::GetBindTabLayoutName()
 	{
-		return m_sBindTabLayoutName;
+		return m_sBindTabLayoutName.GetData();
 	}
 
 	void CButtonUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -562,9 +562,9 @@ namespace DuiLib
 		}
 
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rcText, sText, clrColor, NULL, NULL, nLinks, iFont, uStyle);
+			ctx.DrawHtmlText(rcText, sText.GetData(), clrColor, NULL, NULL, nLinks, iFont, uStyle);
 		else
-			ctx.DrawText(rcText, sText, clrColor, iFont, uStyle);
+			ctx.DrawText(rcText, sText.GetData(), clrColor, iFont, uStyle);
 	}
 
 	void CButtonUI::PaintBackgroundColor(IRenderContext& ctx)
@@ -584,8 +584,8 @@ namespace DuiLib
 		if(!m_sStateImage.IsEmpty() && m_nStateCount > 0)
 		{
 			TDrawInfo info;
-			info.Parse(m_sStateImage, _T(""), m_pManager);
-			const TImageInfo* pImage = m_pManager->GetImageEx(info.sImageName, info.sResType, info.dwMask, info.bHSL, info.bGdiplus);
+			info.Parse(m_sStateImage.GetData(), _T(""), m_pManager);
+			const TImageInfo* pImage = m_pManager->GetImageEx(info.sImageName.GetData(), info.sResType.GetData(), info.dwMask, info.bHSL, info.bGdiplus);
 			if(m_sImage.IsEmpty() && pImage != NULL)
 			{
 				SIZE szImage = {pImage->nX, pImage->nY};
@@ -636,31 +636,31 @@ namespace DuiLib
 		SyncControlStateFromButton();
 		if( (m_uButtonState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sDisabledImage) ) {}
+				if( !DrawImage(ctx, m_sDisabledImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sActiveImage) ) {}
+				if( !DrawImage(ctx, m_sActiveImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
 			if( !m_sHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
+				if( !DrawImage(ctx, m_sHoverImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
 			if( !m_sFocusImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
+				if( !DrawImage(ctx, m_sFocusImage.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
+			if( !DrawImage(ctx, m_sImage.GetData()) ) {}
 		}
 	}
 
@@ -674,18 +674,18 @@ namespace DuiLib
 	{
 		if( (m_uButtonState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sActiveForegroundImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sActiveForegroundImage) ) {}
+				if( !DrawImage(ctx, m_sActiveForegroundImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
 			if( !m_sHoverForegroundImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHoverForegroundImage) ) {}
+				if( !DrawImage(ctx, m_sHoverForegroundImage.GetData()) ) {}
 				else return;
 			}
 		}
 		if(!m_sForegroundImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sForegroundImage) ) {}
+			if( !DrawImage(ctx, m_sForegroundImage.GetData()) ) {}
 		}
 	}
 

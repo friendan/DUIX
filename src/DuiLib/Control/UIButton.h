@@ -72,7 +72,7 @@ namespace DuiLib
 		void SetIconGap(int nGap);
 		int GetIconGap() const { return m_nIconGap; }
 		void SetIconPosition(LPCTSTR pstrPos);
-		LPCTSTR GetIconPosition() const { return m_sIconPos; }
+		LPCTSTR GetIconPosition() const { return m_sIconPos.GetData(); }
 		void SetIconTint(DWORD dwColor);
 		void SetIconTintHover(DWORD dwColor);
 		void SetIconTintActive(DWORD dwColor);
@@ -86,7 +86,7 @@ namespace DuiLib
 		void SetLoading(bool bLoading);
 		bool IsLoading() const;
 		void SetLoadingType(LPCTSTR pstrType);
-		LPCTSTR GetLoadingType() const { return m_sLoadingType; }
+		LPCTSTR GetLoadingType() const { return m_sLoadingType.GetData(); }
 		void SetLoadingDisable(bool bDisable);
 		bool IsLoadingDisable() const { return m_bLoadingDisable; }
 

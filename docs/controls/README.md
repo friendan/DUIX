@@ -33,6 +33,7 @@
 | Empty | [Empty.md](Empty.md) | `src/DuiLib/Control/UIEmpty.*` |
 | Skeleton | [Skeleton.md](Skeleton.md) | `src/DuiLib/Control/UISkeleton.*` |
 | Image / Avatar | [Image.md](Image.md) | `src/DuiLib/Control/UIImage.*` |
+| FontIcon | [FontIcon.md](FontIcon.md) | `src/DuiLib/Control/UIFontIcon.*` |
 | Steps | [Steps.md](Steps.md) | `src/DuiLib/Control/UISteps.*` |
 | Timeline | [Timeline.md](Timeline.md) | `src/DuiLib/Control/UITimeline.*` |
 | Edit | [Edit.md](Edit.md) | `src/DuiLib/Control/UIEdit.*` |
@@ -61,6 +62,7 @@
 | GifAnim / GifAnimEx | [GifAnim.md](GifAnim.md) | `UIGifAnim.*`、`UIGifAnimEx.*` |
 | Loading | [Loading.md](Loading.md) | `src/DuiLib/Control/UILoading.*` |
 | ColorPalette | [ColorPalette.md](ColorPalette.md) | `src/DuiLib/Control/UIColorPalette.*` |
+| ThemeSwitcher | [ThemeSwitcher.md](ThemeSwitcher.md) | `src/DuiLib/Control/UIThemeSwitcher.*` |
 | Theme（全局） | [Theme.md](Theme.md) | `src/DuiLib/Core/UITheme.*` |
 | PageControl | [PageControl.md](PageControl.md) | `src/DuiLib/Control/UIPageControl.*` |
 | Toast | [Toast.md](Toast.md) | `src/DuiLib/Control/UIToast.*` |

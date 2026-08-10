@@ -75,10 +75,10 @@ namespace DuiLib
 				rcBmpPart.left, rcBmpPart.top, rcBmpPart.right, rcBmpPart.bottom,
 				rcDest.left, rcDest.top, rcDest.right, rcDest.bottom);
 
-			sModify.Replace(sSource, sReplace);
+			sModify.Replace(sSource.GetData(), sReplace.GetData());
 
 			// draw image
-			if (!DrawImage(ctx, m_sArrowImage, sModify))
+			if (!DrawImage(ctx, m_sArrowImage.GetData(), sModify.GetData()))
 				{}
 		}
 	}

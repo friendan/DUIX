@@ -36,7 +36,7 @@
 | `show-close` | 显示关闭 | true |
 | `btn-width` | 系统按钮宽度 | 46 |
 
-系统按钮 name 固定为 `minbtn` / `maxbtn` / `restorebtn` / `closebtn`，与 `WindowImplBase` 最大化/还原显隐切换兼容。按钮无 `action=`，由 TitleBar 自行发系统命令，便于宿主拦截。
+系统按钮 name 固定为 `minbtn` / `maxbtn` / `restorebtn` / `closebtn`，与 `WindowImplBase` 最大化/还原显隐切换兼容（`show-max="false"` 时 WinImplBase 不会再强制显示）。按钮无 `action=`，由 TitleBar 自行发系统命令，便于宿主拦截。
 
 图标：启动时用 `EnumFontFamiliesEx` 检测本机是否有 **Segoe Fluent Icons**（优先）或 **Segoe MDL2 Assets**；有则用系统 Chrome 码点（`E921/E922/E923/E8BB`），否则回退到 `─ □ ❐ ✕`。
 

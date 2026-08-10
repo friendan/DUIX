@@ -52,6 +52,10 @@ p->Show(true);
 | `esc-close` | `false` | 按 Esc 关闭（默认关） |
 | `closable` / `show-close` | `true` | 标题栏关闭钮 |
 | `title` | 空 | 有标题或 closable 时建 header |
+| `header-action` | `title` | 标题栏行为：`title` / `movewindow` 拖主窗；`none` / `false` 取消 |
+| `header-drag` | `true` | 快捷开关；`false` 等价 `header-action="none"` |
+| `fill-host` | `false` | 铺满宿主区（厚=100%）；默认关遮罩；适合「设置」盖满主窗 |
+| `host-resize` | 随 fill-host | 铺满时面板边缘缩放**宿主 HWND**（需窗口 `size-box`；最大化跳过） |
 | `duration` | `200` | 动画毫秒 |
 | `position` | 建议 `0,0,1,1` | absolute 铺满父容器 |
 | `visible` | `false` | 初始关闭；开启动画请用 `Show()` |
@@ -69,6 +73,10 @@ p->Show(true);
 | `SetPanelHeight` / `SetPanelHeightPercent` | 上下高（像素 / 0~1） |
 | `SetEscClose` | 是否响应 Esc |
 | `SetDuration` | 动画时长 |
+| `SetHeaderAction` | 标题栏拖窗：`UIACTION_TITLE` / `NONE` 等 |
+| `SetFillHost` / `IsFillHost` | 铺满宿主；开时默认 `host-resize`、关遮罩、宽高 100% |
+| `SetHostResize` / `IsHostResize` | 铺满时边缘是否缩放宿主 |
+| `HitHostResize` | 供 `WindowImplBase::OnNcHitTest` 命中宿主边 |
 | `ApplyThemeChrome` | 主题套面板底/边/标题色 |
 
 通知：`sidepanelopen`（`Show` 开始）、`sidepanelclose`（关闭完成）。
@@ -88,4 +96,7 @@ p->Show(true);
 - 关闭且非动画中 `visible=false`，不挡下层点击。
 - 子节点经 `Add` 进内容区（header/遮罩为内建 chrome）。
 - 宿主在 `html{action:title}` 下，遮罩与关闭钮已做 `PreferClientHit`，避免误成拖窗。
+- 标题栏默认可拖主窗口；`header-drag="false"` 或 `header-action="none"` 可取消；关闭钮仍可点。
+- `fill-host`：面板铺满宿主（与 `WindowImplBase::SyncOwner*` 不同——无独立 HWND，直接拖/缩**本窗**）。打开端点用整数宿主矩形，避免右/下负向插值露 1px。Demo：Accordion → SidePanel →「铺满·右/左/上/下」。
 - `esc-close` 仅在焦点位于抽屉子树内时生效（打开后会自动聚焦抽屉内）。
+- **独立 HWND 内容盖不住**：SidePanel 画在主窗客户区，[WebBrowser](WebBrowser.md)（`host=window` / `composition`）等子 HWND 会压在遮罩之上。库不自动挂起；业务在 `sidepanelopen` / `Show` 时对当前页 `WebBrowser::SetVisible(false)`，在 `sidepanelclose` / `Hide` 完成后再恢复（与 TabLayout 切页显隐同路径）。Modal/Toast 因另开 popup HWND，一般无此问题。

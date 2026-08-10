@@ -56,3 +56,5 @@
 | `background-color` / `color` | 覆盖 fallback 色 | — |
 
 失败且未配 `error-image` 时走缩写占位（不画破图）。
+
+固定原文色块（不缩写、无图）见 [FontIcon](FontIcon.md)。

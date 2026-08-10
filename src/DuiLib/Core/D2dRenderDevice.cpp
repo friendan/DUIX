@@ -1236,10 +1236,10 @@ namespace DuiLib {
 					bool bUnderline = sAttr.Find(_T("underline")) >= 0;
 					bool bItalic = sAttr.Find(_T("italic")) >= 0;
 					bool bStrike = sAttr.Find(_T("strikeout")) >= 0;
-					HFONT hFont = pManager->GetFont(sFontName, iFontSize, bBold, bUnderline, bItalic, bStrike);
+					HFONT hFont = pManager->GetFont(sFontName.GetData(), iFontSize, bBold, bUnderline, bItalic, bStrike);
 					if( hFont == NULL ) {
 						static int s_htmlFontId = MAX_FONT_ID;
-						hFont = pManager->AddFont(s_htmlFontId--, sFontName, iFontSize, bBold, bUnderline, bItalic, bStrike);
+						hFont = pManager->AddFont(s_htmlFontId--, sFontName.GetData(), iFontSize, bBold, bUnderline, bItalic, bStrike);
 					}
 					TFontInfo* pFi = pManager->GetFontInfo(hFont);
 					if( pFi == NULL ) {

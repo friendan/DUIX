@@ -249,8 +249,8 @@ namespace DuiLib
 			}
 
 			CSegmentItemUI* p = new CSegmentItemUI;
-			p->SetText(sText);
-			if( !sValue.IsEmpty() ) p->SetValue(sValue);
+			p->SetText(sText.GetData());
+			if( !sValue.IsEmpty() ) p->SetValue(sValue.GetData());
 			Add(p);
 		}
 	}
@@ -259,7 +259,7 @@ namespace DuiLib
 	{
 		CDuiString s = ItemText(i);
 		RECT rcText = { 0, 0, 9999, 40 };
-		RenderMeasureText(m_pManager, rcText, s, 0, -1,
+		RenderMeasureText(m_pManager, rcText, s.GetData(), 0, -1,
 			DT_CALCRECT | DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 		int w = (rcText.right - rcText.left) + ScaleValue(m_nItemPad) * 2;
 		if( w < ScaleValue(40) ) w = ScaleValue(40);
@@ -403,7 +403,7 @@ namespace DuiLib
 		if( !IsEnabled() ) clr = m_dwDisabledColor;
 		else if( bSel ) clr = m_dwSelectedColor;
 		else if( bHover ) clr = m_dwHoverColor;
-		ctx.DrawText(rc, s, GetAdjustColor(clr), -1,
+		ctx.DrawText(rc, s.GetData(), GetAdjustColor(clr), -1,
 			DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS);
 	}
 

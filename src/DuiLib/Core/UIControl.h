@@ -1,4 +1,4 @@
-﻿#ifndef __UICONTROL_H__
+#ifndef __UICONTROL_H__
 #define __UICONTROL_H__
 
 #pragma once
@@ -189,6 +189,11 @@ namespace DuiLib {
 		virtual void SetHeightPercent(float fPercent);
 		virtual bool IsWidthPercent() const;
 		virtual bool IsHeightPercent() const;
+		/// width/height="auto"|"fit-content"：按 EstimateSize 固有尺寸（Label 等可测内容）；EstimateSize 仍为 0 时布局仍作撑满
+		virtual bool GetAutoCalcWidth() const;
+		virtual void SetAutoCalcWidth(bool bAutoCalcWidth);
+		virtual bool GetAutoCalcHeight() const;
+		virtual void SetAutoCalcHeight(bool bAutoCalcHeight);
 		virtual int GetMinWidth() const;
 		virtual void SetMinWidth(int cx);
 		virtual int GetMaxWidth() const;
@@ -323,6 +328,8 @@ namespace DuiLib {
 		SIZE m_cxyFixed;
 		float m_fWidthPercent;   // >0 时 EstimateSize 按父级可用宽 * 百分比
 		float m_fHeightPercent;  // >0 时 EstimateSize 按父级可用高 * 百分比
+		bool m_bAutoCalcWidth;   // width=auto|fit-content
+		bool m_bAutoCalcHeight;  // height=auto|fit-content
 		SIZE m_cxyMin;
 		SIZE m_cxyMax;
 		bool m_bVisible;

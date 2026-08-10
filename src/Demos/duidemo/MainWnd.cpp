@@ -7,6 +7,7 @@
 #include "BrowserWnd.h"
 #include "CarouselTestWnd.h"
 #include "LayoutTestWnd.h"
+#include "SettingsSyncWnd.h"
 #include "Icons/BootstrapIconsData.h"
 #include "Icons/LucideIconsIconsData.h"
 #include "Icons/IconParkIconsData.h"
@@ -156,7 +157,7 @@ BOOL CMainWnd::Receive(SkinChangedParam param)
 		}
 		else {
 			pRoot->SetBackgroundColor(0);
-			pRoot->SetBackgroundImage(param.bgimage);
+			pRoot->SetBackgroundImage(param.bgimage.GetData());
 			//m_pm.SetLayeredImage(param.bgimage);
 		}
 	}
@@ -265,7 +266,7 @@ void CMainWnd::Notify(TNotifyUI& msg)
 			if( pStatus != NULL ) {
 				CDuiString s;
 				s.Format(_T("选中: %d"), (int)msg.wParam + 1);
-				pStatus->SetText(s);
+				pStatus->SetText(s.GetData());
 			}
 		}
 		else if( msg.pSender && msg.pSender->GetName() == _T("listview") ) {
@@ -273,7 +274,7 @@ void CMainWnd::Notify(TNotifyUI& msg)
 			if( pStatus != NULL ) {
 				CDuiString s;
 				s.Format(_T("选中: %d"), (int)msg.wParam + 1);
-				pStatus->SetText(s);
+				pStatus->SetText(s.GetData());
 			}
 		}
 	}
@@ -295,7 +296,7 @@ void CMainWnd::Notify(TNotifyUI& msg)
 		if( pHex != NULL ) {
 			CDuiString s;
 			s.Format(_T("#%08X"), dwColor);
-			pHex->SetText(s);
+			pHex->SetText(s.GetData());
 		}
 	}
 	else if(msg.sType == DUI_MSGTYPE_ITEMACTIVATE) {
@@ -343,15 +344,28 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	
 	else if(msg.sType==_T("selectchanged"))
 	{
-		// 左侧大类导航 → 右侧 TabLayout
-		CTabLayoutUI* pTabDemo = static_cast<CTabLayoutUI*>(m_pm.FindControl(_T("tab_demo")));
-		if( pTabDemo != NULL ) {
-			if(name.CompareNoCase(_T("nav_basic")) == 0) pTabDemo->SelectItem(0);
-			else if(name.CompareNoCase(_T("nav_form")) == 0) pTabDemo->SelectItem(1);
-			else if(name.CompareNoCase(_T("nav_layout")) == 0) pTabDemo->SelectItem(2);
-			else if(name.CompareNoCase(_T("nav_feedback")) == 0) pTabDemo->SelectItem(3);
-			else if(name.CompareNoCase(_T("nav_list")) == 0) pTabDemo->SelectItem(4);
-			else if(name.CompareNoCase(_T("nav_misc")) == 0) pTabDemo->SelectItem(5);
+		if( name.CompareNoCase(_T("themeSwitch")) == 0 ) {
+			CThemeManager* tm = CThemeManager::GetInstance();
+			CLabelUI* pCur = static_cast<CLabelUI*>(m_pm.FindControl(_T("theme_current")));
+			if( tm != NULL && pCur != NULL ) {
+				CTheme* pTheme = tm->GetCurrentTheme();
+				CDuiString s;
+				s.Format(_T("当前: %s"), pTheme != NULL ? pTheme->GetDisplayName() : _T("default"));
+				pCur->SetText(s.GetData());
+				pCur->SetColor(tm->GetColor(_T("color-primary"), 0x1677FFFF));
+			}
+		}
+		else {
+			// 左侧大类导航 → 右侧 TabLayout
+			CTabLayoutUI* pTabDemo = static_cast<CTabLayoutUI*>(m_pm.FindControl(_T("tab_demo")));
+			if( pTabDemo != NULL ) {
+				if(name.CompareNoCase(_T("nav_basic")) == 0) pTabDemo->SelectItem(0);
+				else if(name.CompareNoCase(_T("nav_form")) == 0) pTabDemo->SelectItem(1);
+				else if(name.CompareNoCase(_T("nav_layout")) == 0) pTabDemo->SelectItem(2);
+				else if(name.CompareNoCase(_T("nav_feedback")) == 0) pTabDemo->SelectItem(3);
+				else if(name.CompareNoCase(_T("nav_list")) == 0) pTabDemo->SelectItem(4);
+				else if(name.CompareNoCase(_T("nav_misc")) == 0) pTabDemo->SelectItem(5);
+			}
 		}
 	}
 	else if(msg.sType == _T("valuechanged"))
@@ -401,6 +415,12 @@ void CMainWnd::Notify(TNotifyUI& msg)
 void CMainWnd::OnLClick(CControlUI *pControl)
 {
 	CDuiString sName = pControl->GetName();
+	if(sName.CompareNoCase(_T("fonticon_click")) == 0
+		|| sName.CompareNoCase(_T("fonticon_click2")) == 0)
+	{
+		CToast::ShowInfo(_T("FontIcon click"), 2000);
+		return;
+	}
 	if(sName.CompareNoCase(_T("homepage_btn")) == 0)
 	{
 		//
@@ -489,30 +509,12 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	{
 		CBrowserWnd::Open(m_hWnd);
 	}
-	else if(sName.CompareNoCase(_T("btn_theme_default")) == 0 ||
-		sName.CompareNoCase(_T("btn_theme_azure")) == 0 ||
-		sName.CompareNoCase(_T("btn_theme_emerald")) == 0 ||
-		sName.CompareNoCase(_T("btn_theme_graphite")) == 0 ||
-		sName.CompareNoCase(_T("btn_theme_dark")) == 0 ||
-		sName.CompareNoCase(_T("btn_theme_toggle")) == 0)
+	else if(sName.CompareNoCase(_T("btn_theme_toggle")) == 0)
 	{
 		CThemeManager* tm = CThemeManager::GetInstance();
 		CLabelUI* pCur = static_cast<CLabelUI*>(m_pm.FindControl(_T("theme_current")));
 		CButtonUI* pToggle = static_cast<CButtonUI*>(m_pm.FindControl(_T("btn_theme_toggle")));
-
-		if( sName.CompareNoCase(_T("btn_theme_toggle")) == 0 ) {
-			tm->SetEnabled(!tm->IsEnabled());
-		}
-		else {
-			if( !tm->IsEnabled() ) tm->SetEnabled(true);
-			LPCTSTR themeId = _T("default");
-			if( sName.CompareNoCase(_T("btn_theme_azure")) == 0 ) themeId = _T("azure");
-			else if( sName.CompareNoCase(_T("btn_theme_emerald")) == 0 ) themeId = _T("emerald");
-			else if( sName.CompareNoCase(_T("btn_theme_graphite")) == 0 ) themeId = _T("graphite");
-			else if( sName.CompareNoCase(_T("btn_theme_dark")) == 0 ) themeId = _T("dark");
-			tm->ApplyTheme(themeId);
-		}
-
+		tm->SetEnabled(!tm->IsEnabled());
 		if( pToggle != NULL )
 			pToggle->SetText(tm->IsEnabled() ? _T("禁用主题") : _T("启用主题"));
 		if( pCur != NULL ) {
@@ -524,10 +526,12 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 				CTheme* pTheme = tm->GetCurrentTheme();
 				CDuiString s;
 				s.Format(_T("当前: %s"), pTheme != NULL ? pTheme->GetDisplayName() : _T("default"));
-				pCur->SetText(s);
+				pCur->SetText(s.GetData());
 				pCur->SetColor(tm->GetColor(_T("color-primary"), 0x1677FFFF));
 			}
 		}
+		CThemeSwitcherUI* pSw = static_cast<CThemeSwitcherUI*>(m_pm.FindControl(_T("themeSwitch")));
+		if( pSw != NULL ) pSw->SyncFromManager();
 	}
 	else if(sName.CompareNoCase(_T("btn_carousel_test")) == 0)
 	{
@@ -563,7 +567,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 			CListLabelElementUI* pItem = new CListLabelElementUI;
 			CDuiString s;
 			s.Format(_T("新项 %d"), pList->GetCount() + 1);
-			pItem->SetText(s);
+			pItem->SetText(s.GetData());
 			pItem->SetFixedHeight(28);
 			pList->Add(pItem);
 		}
@@ -771,6 +775,19 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 				.Owner(m_hWnd)
 				.OnResult(OnModalResult));
 	}
+	else if(sName.CompareNoCase(_T("btn_modal_nosync")) == 0)
+	{
+		CModal::Show(_T("不同步主窗"), _T("SyncOwnerMove(false)：拖动本对话框时主窗口留在原地。"),
+			CModalOptions()
+				.Kind(CONTROLKIND_SECONDARY)
+				.Owner(m_hWnd)
+				.SyncOwnerMove(false)
+				.OnResult(OnModalResult));
+	}
+	else if(sName.CompareNoCase(_T("btn_settings_sync")) == 0)
+	{
+		CSettingsSyncWnd::Open(m_hWnd);
+	}
 	else if(sName.CompareNoCase(_T("btn_sidepanel_right")) == 0
 		|| sName.CompareNoCase(_T("btn_sidepanel_left")) == 0
 		|| sName.CompareNoCase(_T("btn_sidepanel_top")) == 0
@@ -778,6 +795,11 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	{
 		CSidePanelUI* pSp = static_cast<CSidePanelUI*>(m_pm.FindControl(_T("demo_sidepanel")));
 		if( pSp != NULL ) {
+			pSp->SetFillHost(false);
+			pSp->SetMaskEnabled(true);
+			pSp->SetPanelWidthPercent(0.40f);
+			pSp->SetPanelHeightPercent(0.45f);
+			pSp->SetTitle(_T("侧滑面板"));
 			CSidePanelUI::Placement e = CSidePanelUI::PlacementRight;
 			if( sName.CompareNoCase(_T("btn_sidepanel_left")) == 0 )
 				e = CSidePanelUI::PlacementLeft;
@@ -786,6 +808,34 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 			else if( sName.CompareNoCase(_T("btn_sidepanel_bottom")) == 0 )
 				e = CSidePanelUI::PlacementBottom;
 			pSp->SetPlacement(e);
+			pSp->Show(true);
+		}
+	}
+	else if(sName.CompareNoCase(_T("btn_sidepanel_fill")) == 0
+		|| sName.CompareNoCase(_T("btn_sidepanel_fill_left")) == 0
+		|| sName.CompareNoCase(_T("btn_sidepanel_fill_top")) == 0
+		|| sName.CompareNoCase(_T("btn_sidepanel_fill_bottom")) == 0)
+	{
+		CSidePanelUI* pSp = static_cast<CSidePanelUI*>(m_pm.FindControl(_T("demo_sidepanel")));
+		if( pSp != NULL ) {
+			CSidePanelUI::Placement e = CSidePanelUI::PlacementRight;
+			LPCTSTR pszTitle = _T("设置（铺满·右）");
+			if( sName.CompareNoCase(_T("btn_sidepanel_fill_left")) == 0 ) {
+				e = CSidePanelUI::PlacementLeft;
+				pszTitle = _T("设置（铺满·左）");
+			}
+			else if( sName.CompareNoCase(_T("btn_sidepanel_fill_top")) == 0 ) {
+				e = CSidePanelUI::PlacementTop;
+				pszTitle = _T("设置（铺满·上）");
+			}
+			else if( sName.CompareNoCase(_T("btn_sidepanel_fill_bottom")) == 0 ) {
+				e = CSidePanelUI::PlacementBottom;
+				pszTitle = _T("设置（铺满·下）");
+			}
+			pSp->SetFillHost(true);
+			pSp->SetHostResize(true);
+			pSp->SetPlacement(e);
+			pSp->SetTitle(pszTitle);
 			pSp->Show(true);
 		}
 	}
@@ -809,7 +859,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		SHGetFolderPath(NULL, CSIDL_PROGRAM_FILES | CSIDL_FLAG_CREATE, NULL, 0, szPath);
 		CDuiString sIEPath;
 		sIEPath.Format(_T("%s\\Internet Explorer\\iexplore.exe"), szPath);
-		ShellExecute(NULL, _T("open"), sIEPath, _T("http://jq.qq.com/?_wv=1027&k=cDTUzr"), NULL, SW_SHOW);
+		ShellExecute(NULL, _T("open"), sIEPath.GetData(), _T("http://jq.qq.com/?_wv=1027&k=cDTUzr"), NULL, SW_SHOW);
 	}
 	else if(sName.CompareNoCase(_T("qq_btn")) == 0)
 	{
@@ -817,7 +867,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		SHGetFolderPath(NULL, CSIDL_PROGRAM_FILES | CSIDL_FLAG_CREATE, NULL, 0, szPath);
 		CDuiString sIEPath;
 		sIEPath.Format(_T("%s\\Internet Explorer\\iexplore.exe"), szPath);
-		ShellExecute(NULL, _T("open"), sIEPath, _T("tencent://Message/?Uin=656067418&Menu=yes"), NULL, SW_SHOW);
+		ShellExecute(NULL, _T("open"), sIEPath.GetData(), _T("tencent://Message/?Uin=656067418&Menu=yes"), NULL, SW_SHOW);
 	}
 	else if(sName.CompareNoCase(_T("menubtn")) == 0)
 	{
@@ -865,7 +915,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	}
 	else if(sName.CompareNoCase(_T("dpi_btn")) == 0)
 	{
-		int nDPI = _ttoi(pControl->GetUserData());
+		int nDPI = _ttoi(pControl->GetUserData().GetData());
 		m_pm.SetDPI(nDPI);
 	}
 	else if(sName.CompareNoCase(_T("combo_closebtn")) == 0 ) 
@@ -877,7 +927,7 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("move_btn")) == 0 ) 
 	{
 		CDuiString sUserData = pControl->GetUserData();
-		CControlUI* pControl = m_pm.FindControl(sUserData);
+		CControlUI* pControl = m_pm.FindControl(sUserData.GetData());
 		if(pControl != nullptr) {
 			SIZE pt = pControl->GetFixedXY();
 			pt.cx += 20;
@@ -954,7 +1004,7 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 			}
 			else
 			{
-				CMsgWnd::MessageBox(m_hWnd, NULL, sText);
+				CMsgWnd::MessageBox(m_hWnd, NULL, sText.GetData());
 			}
 		}
 		bHandled = TRUE;
@@ -981,15 +1031,7 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 			m_pMenu->ResizeMenu();
 		}
 	}
-	else if (uMsg == WM_DPICHANGED) {
-		// 系统建议矩形为准，避免 SetDPI 再按比例缩放一次
-		m_pm.SetDPI(LOWORD(wParam), false);
-		RECT* const prcNewWindow = (RECT*)lParam;
-		if( prcNewWindow != NULL ) {
-			SetWindowPos(m_hWnd, NULL, prcNewWindow->left, prcNewWindow->top, prcNewWindow->right - prcNewWindow->left, prcNewWindow->bottom - prcNewWindow->top, SWP_NOZORDER | SWP_NOACTIVATE);
-		}
-		if (m_pm.GetRoot() != NULL) m_pm.GetRoot()->NeedUpdate();
-	}
+	// WM_DPICHANGED 已由 WindowImplBase::OnDPIChanged 统一处理（含 SyncOwner）
 	bHandled = FALSE;
 	return 0;
 }

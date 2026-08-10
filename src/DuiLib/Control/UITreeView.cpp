@@ -1060,7 +1060,7 @@ namespace DuiLib
 	bool CTreeViewUI::OnDBClickItem( void* param )
 	{
 		TNotifyUI* pMsg = (TNotifyUI*)param;
-		if(_tcsicmp(pMsg->sType, DUI_MSGTYPE_TREEITEMDBCLICK) == 0) {
+		if(_tcsicmp(pMsg->sType.GetData(), DUI_MSGTYPE_TREEITEMDBCLICK) == 0) {
 			CTreeNodeUI* pItem		= static_cast<CTreeNodeUI*>(pMsg->pSender);
 			CCheckBoxUI* pFolder	= pItem->GetFolderButton();
 			pFolder->Selected(!pFolder->IsSelected());

@@ -51,3 +51,25 @@
 | 其它 | fill+stroke 同色 | 通用回退 |
 
 `PreferClientHit`：配置了 `color-hover` / `color-active`（或基类热态）时，不继承 `html { action: title }` 的标题拖拽，悬停才能生效。新控件优先用基类 `background-color-hover` 等，不必再改命中测试。
+
+### 导出
+
+```cpp
+CSvgBoxUI* p = ...;
+p->ExportToFile(_T("C:\\out\\icon.png"));
+p->ExportToFile(_T("C:\\out\\icon.jpg"), 128, 128, (DWORD)-1, 90);
+p->ExportToFile(_T("C:\\out\\raw.bmp"), 48, 48, 0); // 0=不着色
+
+// ICO 专用（推荐）：默认 16/32/48/256/512，PNG-in-ICO，保留透明
+p->ExportToIcoFile(_T("C:\\out\\app.ico"));
+const int sizes[] = { 16, 24, 32, 48, 64, 256, 512 };
+p->ExportToIcoFile(_T("C:\\out\\app.ico"), sizes, 7);
+```
+
+| API | 说明 |
+|-----|------|
+| `ExportToFile` | PNG / JPG / BMP；若路径为 `.ico`：未指定尺寸 → 等同 `ExportToIcoFile` 默认多尺寸；指定宽或高 → 单尺寸正方形 |
+| `ExportToIcoFile(path)` | **文件图标推荐**；默认 16/32/48/256/512 |
+| `ExportToIcoFile(path, sizes, count)` | 自定义边长列表（≤512，去重；≥256 在目录项里宽高写 0，真实尺寸在 PNG） |
+
+`dwTintColor`：`(DWORD)-1` 用 `GetPaintColor()`；`0` 不着色。JPEG 叠白底无透明；ICO/PNG 保留 alpha。

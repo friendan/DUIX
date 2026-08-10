@@ -197,7 +197,7 @@ namespace DuiLib
 	CTabLayoutUI* CTabBarUI::GetBoundTabLayout() const
 	{
 		if( m_sBindTabLayoutName.IsEmpty() || m_pManager == NULL ) return NULL;
-		CControlUI* p = m_pManager->FindControl(m_sBindTabLayoutName);
+		CControlUI* p = m_pManager->FindControl(m_sBindTabLayoutName.GetData());
 		if( p == NULL ) return NULL;
 		return static_cast<CTabLayoutUI*>(p->GetInterface(DUI_CTR_TABLAYOUT));
 	}
@@ -1004,7 +1004,7 @@ namespace DuiLib
 		auto prepItem = [&](LPCTSTR pstrName, bool bEnable) {
 			CControlUI* pItem = FindMenuItemByName(pMenu, pstrName);
 			if( pItem == NULL ) return;
-			pItem->SetUserData(sIdx);
+			pItem->SetUserData(sIdx.GetData());
 			pItem->SetVisible(true);
 			pItem->SetEnabled(bEnable);
 		};
@@ -1016,7 +1016,7 @@ namespace DuiLib
 
 		CControlUI* pLock = FindMenuItemByName(pMenu, _T("tabbar_lock"));
 		if( pLock != NULL ) {
-			pLock->SetUserData(sIdx);
+			pLock->SetUserData(sIdx.GetData());
 			pLock->SetText(bLocked ? _T("解锁") : _T("锁定"));
 			pLock->SetVisible(true);
 			pLock->SetEnabled(true);

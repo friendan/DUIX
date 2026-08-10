@@ -23,7 +23,11 @@
 也可用 CSS：`html { theme: chrome; }`（与 `action` 一样，窗口级属性落到控件树 root）。  
 root（`body`/`VBox`）上仍可写 `theme`，会覆盖 html 级默认。
 
-进程切换：`CThemeManager::GetInstance()->ApplyTheme(_T("azure"));`
+进程切换：`CThemeManager::GetInstance()->ApplyTheme(_T("azure"));`  
+皮肤内切换：[`ThemeSwitcher`](ThemeSwitcher.md)（弹出预览窗；支持新建/编辑色值与另存主题文件）。
+
+写出主题文件：`SaveThemeFile(pTheme, path)`（与 `ApplyThemeFile` 对称的 `:root` 格式）。  
+变更监听：`AddThemeNotify(IThemeNotifyUI*)`，`OnThemeChanged(old, new, bPreview)`——落盘当前 id 时忽略 `bPreview==true`。
 
 ### 继承规则
 
@@ -38,11 +42,11 @@ root（`body`/`VBox`）上仍可写 `theme`，会覆盖 html 级默认。
 
 ### chrome 覆盖
 
-TitleBar、ScrollBar（含无图箭头色跟 thumb）、Edit/HotKey/**IPAddress（含聚焦原生 HWND；打开中热切重刷）**/**RichEdit（placeholder-color 跟 Edit）**/Spin/Number、Combo（含下拉；**打开中热切会重刷壳**）、DateTime（字段 + 日历；**打开中热切重刷壳**）、**Switch**（轨道 / 滑块 / 禁用）、**CheckBox**（方框 / 选中悬停 / 禁用 / 勾号）、**Option**（含 `group` 作 Radio）、Accordion、TabBar（含内置右键菜单；**嵌在 TitleBar 内时底/字/图标按标题栏亮度适配**）、List/TreeView/**VirtualList 斑马纹**、**纯色弹出 Menu**（`ApplyMenuChrome`；禁用项透明底；`theme=none` / `background-image` 壳跳过）、**Transfer（含左右面板壳）**、GroupBox、PageControl、**Carousel / CarouselItem caption**、**SidePanel（面板底/边/标题；遮罩色保留皮肤）**、**Avatar 默认 fallback 跟 primary**、Tag/Badge/Rate/Steps/Timeline、Empty/Skeleton/Loading/ColorPalette、**Segmented（悬停/选中边按亮度自适应）** 等。
+TitleBar、ScrollBar（含无图箭头色跟 thumb）、Edit/HotKey/**IPAddress（含聚焦原生 HWND；打开中热切重刷）**/**RichEdit（placeholder-color 跟 Edit）**/Spin/Number、Combo（含下拉；**打开中热切会重刷壳**）、DateTime（字段 + 日历；**打开中热切重刷壳**）、**Switch**（轨道 / 滑块 / 禁用）、**CheckBox**（方框 / 选中悬停 / 禁用 / 勾号）、**Option**（含 `group` 作 Radio）、Accordion、TabBar（含内置右键菜单；**嵌在 TitleBar 内时底/字/图标按标题栏亮度适配**）、List/TreeView/**VirtualList 斑马纹**、**纯色弹出 Menu**（`ApplyMenuChrome`；禁用项透明底；`theme=none` / `background-image` 壳跳过）、**Transfer（含左右面板壳）**、GroupBox、PageControl、**Carousel / CarouselItem caption**、**SidePanel（面板底/边/标题；遮罩色保留皮肤）**、**Avatar / FontIcon 默认色跟 primary**、Tag/Badge/Rate/Steps/Timeline、Empty/Skeleton/Loading/ColorPalette、**Segmented（悬停/选中边按亮度自适应）** 等。
 
 装饰色请用 `theme="none"`（如紫色 Switch、自定义 DateTime 日历色）。
 
-Toast / Modal：新建时按当前 **kind / token** 建 UI；已打开实例在 `RefreshAllManagers` 中跳过。
+Toast / Modal：新建时按当前 **kind / token** 建 UI；`ApplyToExistingManager` / `RefreshAllManagers` 均跳过 `toastRoot` / `modalRoot`。`SetWindowBackgroundColor` 不覆盖已 `SetKind` 的根底色（避免 Toast 白字打在主题白底上）。
 
 未覆盖（刻意）：Slider 滑块图、Ring 位图、Svg 自动 tint（需皮肤写 `color`/`icon-tint`）。
 

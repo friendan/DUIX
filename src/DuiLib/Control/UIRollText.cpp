@@ -140,10 +140,10 @@ namespace DuiLib
 
 		if( m_bShowHtml ) {
 			int nLinks = 0;
-			ctx.DrawHtmlText(rc, sText, dwColor, NULL, NULL, nLinks, m_iFont, uTextStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), dwColor, NULL, NULL, nLinks, m_iFont, uTextStyle);
 		}
 		else {
-			ctx.DrawText(rc, sText, dwColor, m_iFont, uTextStyle);
+			ctx.DrawText(rc, sText.GetData(), dwColor, m_iFont, uTextStyle);
 		}
 
 		if(m_nText_W_H == 0) {

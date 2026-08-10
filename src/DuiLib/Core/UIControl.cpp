@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 namespace DuiLib {
 
@@ -130,6 +130,8 @@ namespace DuiLib {
 		m_cxyFixed.cx = m_cxyFixed.cy = 0;
 		m_fWidthPercent = 0.0f;
 		m_fHeightPercent = 0.0f;
+		m_bAutoCalcWidth = false;
+		m_bAutoCalcHeight = false;
 		m_cxyMin.cx = m_cxyMin.cy = 0;
 		m_cxyMax.cx = m_cxyMax.cy = 9999;
 		m_cxyBorderRadius.cx = m_cxyBorderRadius.cy = 0;
@@ -232,7 +234,7 @@ namespace DuiLib {
 	CDuiString CControlUI::GetText() const
 	{
 		if (!IsResourceText()) return m_sText;
-		return CResourceManager::GetInstance()->GetText(m_sText);
+		return CResourceManager::GetInstance()->GetText(m_sText.GetData());
 	}
 
 	void CControlUI::SetText(LPCTSTR pstrText)
@@ -429,7 +431,7 @@ namespace DuiLib {
 
 	LPCTSTR CControlUI::GetBackground() const
 	{
-		return m_sBackground;
+		return m_sBackground.GetData();
 	}
 
 	DWORD CControlUI::GetBackgroundColor() const
@@ -463,7 +465,7 @@ namespace DuiLib {
 
 	LPCTSTR CControlUI::GetBackgroundImage()
 	{
-		return m_sBackgroundImage;
+		return m_sBackgroundImage.GetData();
 	}
 
 	void CControlUI::SetBackgroundImage(LPCTSTR pStrImage)
@@ -478,7 +480,7 @@ namespace DuiLib {
 
 	LPCTSTR CControlUI::GetHoverBackgroundImage() const
 	{
-		return m_sBackgroundImageHover;
+		return m_sBackgroundImageHover.GetData();
 	}
 
 	void CControlUI::SetHoverBackgroundImage(LPCTSTR pStrImage)
@@ -492,7 +494,7 @@ namespace DuiLib {
 
 	LPCTSTR CControlUI::GetActiveBackgroundImage() const
 	{
-		return m_sBackgroundImageActive;
+		return m_sBackgroundImageActive.GetData();
 	}
 
 	void CControlUI::SetActiveBackgroundImage(LPCTSTR pStrImage)
@@ -506,7 +508,7 @@ namespace DuiLib {
 
 	LPCTSTR CControlUI::GetDisabledBackgroundImage() const
 	{
-		return m_sBackgroundImageDisabled;
+		return m_sBackgroundImageDisabled.GetData();
 	}
 
 	void CControlUI::SetDisabledBackgroundImage(LPCTSTR pStrImage)
@@ -520,7 +522,7 @@ namespace DuiLib {
 
 	LPCTSTR CControlUI::GetFocusBackgroundImage() const
 	{
-		return m_sBackgroundImageFocus;
+		return m_sBackgroundImageFocus.GetData();
 	}
 
 	void CControlUI::SetFocusBackgroundImage(LPCTSTR pStrImage)
@@ -534,7 +536,7 @@ namespace DuiLib {
 
 	LPCTSTR CControlUI::GetSelectedBackgroundImage() const
 	{
-		return m_sBackgroundImageSelected;
+		return m_sBackgroundImageSelected.GetData();
 	}
 
 	void CControlUI::SetSelectedBackgroundImage(LPCTSTR pStrImage)
@@ -548,7 +550,7 @@ namespace DuiLib {
 	
 	LPCTSTR CControlUI::GetForegroundImage() const
 	{
-		return m_sForegroundImage;
+		return m_sForegroundImage.GetData();
 	}
 
 	void CControlUI::SetForegroundImage(LPCTSTR pStrImage)
@@ -919,6 +921,7 @@ namespace DuiLib {
 	{
 		if( cx < 0 ) return;
 		m_fWidthPercent = 0.0f;
+		m_bAutoCalcWidth = false;
 		m_cxyFixed.cx = cx;
 		NeedParentUpdate();
 	}
@@ -935,6 +938,7 @@ namespace DuiLib {
 	{
 		if( cy < 0 ) return;
 		m_fHeightPercent = 0.0f;
+		m_bAutoCalcHeight = false;
 		m_cxyFixed.cy = cy;
 		NeedParentUpdate();
 	}
@@ -948,7 +952,10 @@ namespace DuiLib {
 	{
 		if( fPercent < 0.0f ) fPercent = 0.0f;
 		m_fWidthPercent = fPercent;
-		if( fPercent > 0.0f ) m_cxyFixed.cx = 0;
+		if( fPercent > 0.0f ) {
+			m_cxyFixed.cx = 0;
+			m_bAutoCalcWidth = false;
+		}
 		NeedParentUpdate();
 	}
 
@@ -961,7 +968,10 @@ namespace DuiLib {
 	{
 		if( fPercent < 0.0f ) fPercent = 0.0f;
 		m_fHeightPercent = fPercent;
-		if( fPercent > 0.0f ) m_cxyFixed.cy = 0;
+		if( fPercent > 0.0f ) {
+			m_cxyFixed.cy = 0;
+			m_bAutoCalcHeight = false;
+		}
 		NeedParentUpdate();
 	}
 
@@ -973,6 +983,38 @@ namespace DuiLib {
 	bool CControlUI::IsHeightPercent() const
 	{
 		return m_fHeightPercent > 0.0f;
+	}
+
+	bool CControlUI::GetAutoCalcWidth() const
+	{
+		return m_bAutoCalcWidth;
+	}
+
+	void CControlUI::SetAutoCalcWidth(bool bAutoCalcWidth)
+	{
+		if( m_bAutoCalcWidth == bAutoCalcWidth ) return;
+		m_bAutoCalcWidth = bAutoCalcWidth;
+		if( bAutoCalcWidth ) {
+			m_fWidthPercent = 0.0f;
+			m_cxyFixed.cx = 0;
+		}
+		NeedParentUpdate();
+	}
+
+	bool CControlUI::GetAutoCalcHeight() const
+	{
+		return m_bAutoCalcHeight;
+	}
+
+	void CControlUI::SetAutoCalcHeight(bool bAutoCalcHeight)
+	{
+		if( m_bAutoCalcHeight == bAutoCalcHeight ) return;
+		m_bAutoCalcHeight = bAutoCalcHeight;
+		if( bAutoCalcHeight ) {
+			m_fHeightPercent = 0.0f;
+			m_cxyFixed.cy = 0;
+		}
+		NeedParentUpdate();
 	}
 
 	int CControlUI::GetMinWidth() const
@@ -1089,7 +1131,7 @@ namespace DuiLib {
 	CDuiString CControlUI::GetToolTip() const
 	{
 		if (!IsResourceText()) return m_sToolTip;
-		return CResourceManager::GetInstance()->GetText(m_sToolTip);
+		return CResourceManager::GetInstance()->GetText(m_sToolTip.GetData());
 	}
 
 	void CControlUI::SetToolTip(LPCTSTR pstrText)
@@ -1915,26 +1957,38 @@ namespace DuiLib {
 		}
 		else if( _tcsicmp(pstrName, _T("foreground-image")) == 0 ) SetForegroundImage(pstrValue);
 		else if( _tcsicmp(pstrName, _T("width")) == 0 ) {
-			// "120" 像素；"50%" / "100%" 相对父级可用宽
+			// "auto"/"fit-content"：固有宽；"120" 像素；"50%" / "100%" 相对父级可用宽
 			LPCTSTR p = pstrValue;
 			while( p && (*p == _T(' ') || *p == _T('\t')) ) ++p;
-			LPTSTR pEnd = NULL;
-			double v = _tcstod(p, &pEnd);
-			if( pEnd != p ) {
-				while( *pEnd == _T(' ') || *pEnd == _T('\t') ) ++pEnd;
-				if( *pEnd == _T('%') ) SetWidthPercent((float)(v / 100.0));
-				else SetFixedWidth((int)v);
+			if( p && (_tcsicmp(p, _T("auto")) == 0 || _tcsicmp(p, _T("fit-content")) == 0) ) {
+				SetAutoCalcWidth(true);
+			}
+			else {
+				SetAutoCalcWidth(false);
+				LPTSTR pEnd = NULL;
+				double v = _tcstod(p, &pEnd);
+				if( pEnd != p ) {
+					while( *pEnd == _T(' ') || *pEnd == _T('\t') ) ++pEnd;
+					if( *pEnd == _T('%') ) SetWidthPercent((float)(v / 100.0));
+					else SetFixedWidth((int)v);
+				}
 			}
 		}
 		else if( _tcsicmp(pstrName, _T("height")) == 0 ) {
 			LPCTSTR p = pstrValue;
 			while( p && (*p == _T(' ') || *p == _T('\t')) ) ++p;
-			LPTSTR pEnd = NULL;
-			double v = _tcstod(p, &pEnd);
-			if( pEnd != p ) {
-				while( *pEnd == _T(' ') || *pEnd == _T('\t') ) ++pEnd;
-				if( *pEnd == _T('%') ) SetHeightPercent((float)(v / 100.0));
-				else SetFixedHeight((int)v);
+			if( p && (_tcsicmp(p, _T("auto")) == 0 || _tcsicmp(p, _T("fit-content")) == 0) ) {
+				SetAutoCalcHeight(true);
+			}
+			else {
+				SetAutoCalcHeight(false);
+				LPTSTR pEnd = NULL;
+				double v = _tcstod(p, &pEnd);
+				if( pEnd != p ) {
+					while( *pEnd == _T(' ') || *pEnd == _T('\t') ) ++pEnd;
+					if( *pEnd == _T('%') ) SetHeightPercent((float)(v / 100.0));
+					else SetFixedHeight((int)v);
+				}
 			}
 		}
 		else if( _tcsicmp(pstrName, _T("min-width")) == 0 ) SetMinWidth(_ttoi(pstrValue));
@@ -2097,7 +2151,7 @@ namespace DuiLib {
 			}
 			ASSERT( *pstrList == _T('\"') );
 			if( *pstrList++ != _T('\"') ) return this;
-			SetAttribute(sItem, sValue);
+			SetAttribute(sItem.GetData(), sValue.GetData());
 			if( *pstrList != _T(' ') && *pstrList != _T(',') )
 			{
 				return this;
@@ -2210,17 +2264,17 @@ namespace DuiLib {
 
 	void CControlUI::PaintBackgroundImage(IRenderContext& ctx)
 	{
-		LPCTSTR pImage = m_sBackgroundImage;
+		LPCTSTR pImage = m_sBackgroundImage.GetData();
 		if( !IsEnabled() && !m_sBackgroundImageDisabled.IsEmpty() )
-			pImage = m_sBackgroundImageDisabled;
+			pImage = m_sBackgroundImageDisabled.GetData();
 		else if( (m_uControlState & UISTATE_SELECTED) != 0 && !m_sBackgroundImageSelected.IsEmpty() )
-			pImage = m_sBackgroundImageSelected;
+			pImage = m_sBackgroundImageSelected.GetData();
 		else if( (m_uControlState & UISTATE_PUSHED) != 0 && !m_sBackgroundImageActive.IsEmpty() )
-			pImage = m_sBackgroundImageActive;
+			pImage = m_sBackgroundImageActive.GetData();
 		else if( (m_uControlState & UISTATE_HOT) != 0 && !m_sBackgroundImageHover.IsEmpty() )
-			pImage = m_sBackgroundImageHover;
+			pImage = m_sBackgroundImageHover.GetData();
 		else if( IsFocused() && !m_sBackgroundImageFocus.IsEmpty() )
-			pImage = m_sBackgroundImageFocus;
+			pImage = m_sBackgroundImageFocus.GetData();
 		if( pImage == NULL || *pImage == _T('\0') ) return;
 		DrawImage(ctx, pImage);
 	}
@@ -2239,7 +2293,7 @@ namespace DuiLib {
 	void CControlUI::PaintForegroundImage(IRenderContext& ctx)
 	{
 		if( m_sForegroundImage.IsEmpty() ) return;
-		DrawImage(ctx, (LPCTSTR)m_sForegroundImage);
+		DrawImage(ctx, m_sForegroundImage.GetData());
 	}
 
 	void CControlUI::PaintText(IRenderContext& ctx)

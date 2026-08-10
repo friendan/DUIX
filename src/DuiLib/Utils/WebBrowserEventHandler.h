@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <ExDisp.h>
 #include <ExDispid.h>
 #include <mshtmhst.h>

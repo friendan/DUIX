@@ -533,7 +533,7 @@ namespace DuiLib
 				}
 				if( sFamily.IsEmpty() ) sFamily = _T("Microsoft YaHei UI");
 				if( nSize <= 0 ) nSize = 12;
-				int id = m_pManager->EnsureFont(sFamily, nSize, false, false, false, false);
+				int id = m_pManager->EnsureFont(sFamily.GetData(), nSize, false, false, false, false);
 				if( id >= 0 ) m_iItemFont = id;
 				Invalidate();
 			}

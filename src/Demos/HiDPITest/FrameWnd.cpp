@@ -32,23 +32,8 @@ void CFrameWnd::InitWindow()
 
 LRESULT CFrameWnd::OnDPIChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	// 系统已给出建议矩形：只更新 DPI/资源，不要再按 scale 比例二次缩放窗口
-	m_pm.SetDPI(LOWORD(wParam), false);
-
-	RECT* const prcNewWindow = (RECT*)lParam;
-	if( prcNewWindow != NULL ) {
-		SetWindowPos(m_hWnd,
-			NULL,
-			prcNewWindow->left,
-			prcNewWindow->top,
-			prcNewWindow->right - prcNewWindow->left,
-			prcNewWindow->bottom - prcNewWindow->top,
-			SWP_NOZORDER | SWP_NOACTIVATE);
-	}
-
-	if (m_pm.GetRoot() != NULL) m_pm.GetRoot()->NeedUpdate();
-
-	bHandled = false;
+	// 基类：SetDPI + 系统建议矩形 + SyncOwner；此处只刷新 DPI 选项 UI
+	LRESULT lRes = WindowImplBase::OnDPIChanged(uMsg, wParam, lParam, bHandled);
 
 	wstring optionName;
 	wstringstream wss;
@@ -59,7 +44,8 @@ LRESULT CFrameWnd::OnDPIChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 	if( option != NULL )
 		option->Selected(true);
 
-	return 0;
+	bHandled = TRUE;
+	return lRes;
 }
 
 void CFrameWnd::Notify( TNotifyUI& msg )
@@ -183,10 +169,6 @@ LRESULT CFrameWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 		{
 			MessageBox(m_hWnd, L"你单击了动态添加菜单", L"", 0);		 
 		}
-	}
-
-	if (uMsg == WM_DPICHANGED) {
-		OnDPIChanged(uMsg, wParam, lParam, bHandled);
 	}
 
 	if (uMsg == UIMSG_SET_DPI) {

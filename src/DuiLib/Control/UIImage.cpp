@@ -41,7 +41,7 @@ namespace DuiLib
 
 	LPCTSTR CImageUI::GetSrc() const
 	{
-		return m_sSrc;
+		return m_sSrc.GetData();
 	}
 
 	void CImageUI::SetObjectFit(ObjectFit fit)
@@ -69,7 +69,7 @@ namespace DuiLib
 
 	LPCTSTR CImageUI::GetPlaceholder() const
 	{
-		return m_sPlaceholder;
+		return m_sPlaceholder.GetData();
 	}
 
 	void CImageUI::SetErrorImage(LPCTSTR pstrImage)
@@ -85,7 +85,7 @@ namespace DuiLib
 
 	LPCTSTR CImageUI::GetErrorImage() const
 	{
-		return m_sErrorImage;
+		return m_sErrorImage.GetData();
 	}
 
 	void CImageUI::SetPlaceholderText(LPCTSTR pstrText)
@@ -96,7 +96,7 @@ namespace DuiLib
 
 	LPCTSTR CImageUI::GetPlaceholderText() const
 	{
-		return m_sPlaceholderText;
+		return m_sPlaceholderText.GetData();
 	}
 
 	bool CImageUI::IsImageLoaded() const
@@ -233,7 +233,7 @@ namespace DuiLib
 		rc.top += rcPad.top;
 		rc.right -= rcPad.right;
 		rc.bottom -= rcPad.bottom;
-		ctx.DrawText(rc, m_sPlaceholderText, GetAdjustColor(clr), GetFont(),
+		ctx.DrawText(rc, m_sPlaceholderText.GetData(), GetAdjustColor(clr), GetFont(),
 			DT_SINGLELINE | DT_CENTER | DT_VCENTER | DT_END_ELLIPSIS);
 	}
 
@@ -313,7 +313,7 @@ namespace DuiLib
 
 	LPCTSTR CAvatarUI::GetAlt() const
 	{
-		return m_sAlt;
+		return m_sAlt.GetData();
 	}
 
 	void CAvatarUI::SetSizePreset(int nSize)
@@ -395,7 +395,8 @@ namespace DuiLib
 			return out.IsEmpty() ? CDuiString(_T("?")) : out;
 		}
 
-		LPCTSTR p = CLabelUI::GetText();
+		CDuiString sLabelText = CLabelUI::GetText();
+		LPCTSTR p = sLabelText.GetData();
 		if( p == NULL || *p == _T('\0') ) return _T("?");
 
 		CDuiString sFirst;
@@ -425,7 +426,7 @@ namespace DuiLib
 
 		if( nWords >= 2 ) return sFirst + sSecond;
 		if( !sFirst.IsEmpty() ) {
-			LPCTSTR q = CLabelUI::GetText();
+			LPCTSTR q = sLabelText.GetData();
 			CDuiString out;
 			AppendNextCodepoint(out, q);
 			if( q && *q && !_istspace(*q) ) AppendNextCodepoint(out, q);
@@ -484,7 +485,7 @@ namespace DuiLib
 		DWORD clr = ResolveFallbackColor();
 		if( GetColor() != 0 ) clr = GetColor();
 		RECT rc = m_rcItem;
-		ctx.DrawText(rc, s, GetAdjustColor(clr), GetFont(),
+		ctx.DrawText(rc, s.GetData(), GetAdjustColor(clr), GetFont(),
 			DT_SINGLELINE | DT_CENTER | DT_VCENTER);
 	}
 

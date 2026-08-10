@@ -1,4 +1,4 @@
-﻿#ifndef __UISHADOW_H__
+#ifndef __UISHADOW_H__
 #define __UISHADOW_H__
 
 #pragma once

@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "IconBrowserWnd.h"
+#include "IconExportWnd.h"
 #include "Icons/UIIconEntry.h"
 #include "Core/UITheme.h"
 #include <algorithm>
@@ -26,6 +27,7 @@ namespace {
 			, m_dwHotBk(IconBrowserThemeToken(_T("color-bg-hover"), 0xDCDCE1FF))
 		{
 			SetCursor(DUI_HAND);
+			SetContextMenuUsed(true);
 		}
 
 		LPCTSTR GetClass() const { return _T("IconCellUI"); }
@@ -48,6 +50,11 @@ namespace {
 			}
 			if( event.Type == UIEVENT_SETCURSOR ) {
 				::SetCursor(::LoadCursor(NULL, IDC_HAND));
+				return;
+			}
+			if( event.Type == UIEVENT_CONTEXTMENU ) {
+				// 交给基类发 DUI_MSGTYPE_MENU（需 ContextMenuUsed）
+				CControlUI::DoEvent(event);
 				return;
 			}
 			if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK ) {
@@ -100,14 +107,22 @@ CIconBrowserWnd::CIconBrowserWnd(const IconEntry* pEntries, int nCount, LPCTSTR 
 	, m_pSearchEdit(NULL)
 	, m_nTotalHeight(0)
 	, m_nMatched(0)
+	, m_nIconsPerRow(8)
 	, m_nVisFirst(-1)
 	, m_nVisLast(-1)
 	, m_bRefreshing(false)
+	, m_nTitlePage(-1)
+	, m_pMenu(NULL)
+	, m_pCtxCell(NULL)
 {
 }
 
 CIconBrowserWnd::~CIconBrowserWnd()
 {
+	if( m_pMenu != NULL ) {
+		delete m_pMenu;
+		m_pMenu = NULL;
+	}
 }
 
 void CIconBrowserWnd::Open(HWND hParent, const IconEntry* pEntries, int nCount, LPCTSTR pstrAttr, LPCTSTR pstrTitle)
@@ -154,21 +169,65 @@ bool CIconBrowserWnd::MatchFilter(LPCTSTR pstrName, LPCTSTR pstrFilter)
 	return sName.Find(sFilter) >= 0;
 }
 
+void CIconBrowserWnd::GetPageInfo(int& nCurPage, int& nTotalPages) const
+{
+	nCurPage = 1;
+	nTotalPages = 1;
+	if( m_pIconList == NULL || m_nTotalHeight <= 0 ) return;
+
+	int viewH = GetViewportHeight();
+	if( viewH <= 0 ) viewH = 600;
+	const int nStep = GetPageScrollStep();
+	if( nStep <= 0 ) return;
+
+	const int nMax = m_pIconList->GetScrollRange().cy;
+	if( nMax <= 0 ) {
+		nCurPage = 1;
+		nTotalPages = 1;
+		return;
+	}
+	nTotalPages = (nMax + nStep - 1) / nStep + 1;
+	if( nTotalPages < 1 ) nTotalPages = 1;
+
+	const int scrollY = m_pIconList->GetScrollPos().cy;
+	nCurPage = scrollY / nStep + 1;
+	if( scrollY >= nMax ) nCurPage = nTotalPages;
+	if( nCurPage < 1 ) nCurPage = 1;
+	if( nCurPage > nTotalPages ) nCurPage = nTotalPages;
+}
+
+int CIconBrowserWnd::GetPageScrollStep() const
+{
+	int viewH = GetViewportHeight();
+	if( viewH <= 0 ) viewH = 600;
+	const int nPage = viewH > ROW_ICON_H ? (viewH - ROW_ICON_H) : viewH;
+	return nPage > 0 ? nPage : 1;
+}
+
 void CIconBrowserWnd::UpdateTitle(LPCTSTR pstrExtra)
 {
+	// pstrExtra != NULL：写入附加文案（可为空）；NULL：保留原附加文案（仅刷新页码）
+	if( pstrExtra != NULL )
+		m_sTitleExtra = pstrExtra;
+
+	int nCur = 1, nTotal = 1;
+	GetPageInfo(nCur, nTotal);
+	m_nTitlePage = nCur;
+
+	CDuiString sPage;
+	sPage.Format(_T("第 %d/%d 页"), nCur, nTotal);
+
 	CDuiString s;
-	if( pstrExtra != NULL && *pstrExtra != _T('\0') )
-		s.Format(_T("%s (%d) — %s"), m_sTitle.GetData(), m_nCount, pstrExtra);
+	if( !m_sTitleExtra.IsEmpty() )
+		s.Format(_T("%s (%d) — %s · %s"), m_sTitle.GetData(), m_nCount, m_sTitleExtra.GetData(), sPage.GetData());
 	else
-		s.Format(_T("%s (%d)"), m_sTitle.GetData(), m_nCount);
+		s.Format(_T("%s (%d) — %s"), m_sTitle.GetData(), m_nCount, sPage.GetData());
 
 	if( m_pTitleLabel != NULL )
-		m_pTitleLabel->SetText(s);
+		m_pTitleLabel->SetText(s.GetData());
 	CTitleBarUI* pTitleBar = static_cast<CTitleBarUI*>(m_pm.FindControl(_T("titlebar")));
 	if( pTitleBar != NULL )
-		pTitleBar->SetTitle(s);
-	// 只脏标题文字时，与列表脏区并集的外包盒会盖住关闭按钮，但更新区不含该按钮；
-	// D2D Flush 丢窗口裁剪后列表可能画进关闭按钮，出现横条/上下半截。整条 titlebar 一起脏掉。
+		pTitleBar->SetTitle(s.GetData());
 	CControlUI* pBar = m_pm.FindControl(_T("titlebar"));
 	if( pBar != NULL )
 		pBar->Invalidate();
@@ -213,6 +272,71 @@ int CIconBrowserWnd::GetViewportHeight() const
 	return h > 0 ? h : 0;
 }
 
+int CIconBrowserWnd::GetViewportWidth() const
+{
+	if( m_pIconList == NULL ) return 0;
+	RECT rc = m_pIconList->GetPos();
+	int w = rc.right - rc.left;
+	if( w <= 0 ) return 0;
+	CScrollBarUI* pBar = m_pIconList->GetVerticalScrollBar();
+	if( pBar != NULL && pBar->IsVisible() )
+		w -= pBar->GetFixedWidth();
+	return w > 0 ? w : 0;
+}
+
+int CIconBrowserWnd::CalcIconsPerRow() const
+{
+	int w = GetViewportWidth();
+	if( w <= 0 && m_hWnd != NULL ) {
+		RECT rc = { 0 };
+		::GetClientRect(m_hWnd, &rc);
+		w = rc.right - rc.left - 24;
+	}
+	if( w <= 0 ) w = CELL_W * 8;
+	int n = w / CELL_W;
+	if( n < 1 ) n = 1;
+	if( n > 24 ) n = 24;
+	return n;
+}
+
+bool CIconBrowserWnd::SyncIconsPerRow()
+{
+	const int n = CalcIconsPerRow();
+	if( n == m_nIconsPerRow ) return false;
+	m_nIconsPerRow = n;
+	return true;
+}
+
+void CIconBrowserWnd::EnsureRootLaidOut()
+{
+	if( m_hWnd == NULL || ::IsIconic(m_hWnd) ) return;
+	CControlUI* pRoot = m_pm.GetRoot();
+	if( pRoot == NULL ) return;
+
+	RECT rcClient = { 0 };
+	::GetClientRect(m_hWnd, &rcClient);
+	if( ::IsRectEmpty(&rcClient) ) return;
+
+	RECT rcRoot = rcClient;
+	if( m_pm.IsLayered() ) {
+		RECT& rcLayer = m_pm.GetLayeredPadding();
+		rcRoot.left += rcLayer.left;
+		rcRoot.top += rcLayer.top;
+		rcRoot.right -= rcLayer.right;
+		rcRoot.bottom -= rcLayer.bottom;
+	}
+	{
+		RECT rcPad = pRoot->GetMargin();
+		rcRoot.left += rcPad.left;
+		rcRoot.top += rcPad.top;
+		rcRoot.right -= rcPad.right;
+		rcRoot.bottom -= rcPad.bottom;
+		if( rcRoot.right < rcRoot.left ) rcRoot.right = rcRoot.left;
+		if( rcRoot.bottom < rcRoot.top ) rcRoot.bottom = rcRoot.top;
+	}
+	pRoot->SetPos(rcRoot, true);
+}
+
 CControlUI* CIconBrowserWnd::CreateSpacer(int nHeight)
 {
 	if( nHeight <= 0 ) return NULL;
@@ -248,15 +372,18 @@ CControlUI* CIconBrowserWnd::CreateIconCell(const IconEntry* pEntry)
 	if( pEntry == NULL || pEntry->name == NULL ) return NULL;
 
 	CIconCellUI* pCell = new CIconCellUI;
-	pCell->SetFixedWidth(120);
+	pCell->SetFixedWidth(CELL_W);
 	pCell->SetFixedHeight(ROW_ICON_H);
 	pCell->SetAlignItems(DT_CENTER);
 	pCell->SetJustifyContent(DT_VCENTER);
 	pCell->SetAttribute(_T("action"), _T("copy"));
+	pCell->SetTag((UINT_PTR)pEntry);
 
 	CDuiString sCopy;
 	sCopy.Format(_T("%s=\"%s\""), m_sAttr.GetData(), pEntry->name);
 	pCell->AddCustomAttribute(_T("copy-text"), sCopy.GetData());
+	pCell->AddCustomAttribute(_T("icon-name"), pEntry->name);
+	pCell->AddCustomAttribute(_T("icon-lib"), m_sAttr.GetData());
 
 	DWORD dwIcon = IconBrowserThemeToken(_T("color-text"), 0x333333FF);
 	CDuiString sIconColor;
@@ -287,14 +414,15 @@ CControlUI* CIconBrowserWnd::CreateIconRow(const std::vector<const IconEntry*>& 
 	pRow->SetFixedHeight(ROW_ICON_H);
 
 	int nInRow = 0;
+	const int nCols = m_nIconsPerRow > 0 ? m_nIconsPerRow : 1;
 	for( size_t i = 0; i < cells.size(); ++i ) {
 		CControlUI* pCell = CreateIconCell(cells[i]);
 		if( pCell != NULL ) pRow->Add(pCell);
 		++nInRow;
 	}
-	while( nInRow < ICONS_PER_ROW ) {
+	while( nInRow < nCols ) {
 		CControlUI* pPad = new CControlUI;
-		pPad->SetFixedWidth(120);
+		pPad->SetFixedWidth(CELL_W);
 		pRow->Add(pPad);
 		++nInRow;
 	}
@@ -309,6 +437,9 @@ void CIconBrowserWnd::RebuildData()
 	m_nMatched = 0;
 	m_nVisFirst = -1;
 	m_nVisLast = -1;
+
+	if( m_nIconsPerRow <= 0 )
+		m_nIconsPerRow = CalcIconsPerRow();
 
 	if( m_pEntries == NULL || m_nCount <= 0 ) return;
 
@@ -353,8 +484,8 @@ void CIconBrowserWnd::RebuildData()
 			VirtRow row;
 			row.bHeader = false;
 			row.nHeight = ROW_ICON_H;
-			row.cells.reserve(ICONS_PER_ROW);
-			for( int n = 0; n < ICONS_PER_ROW && i < icons.size(); ++n, ++i )
+			row.cells.reserve(m_nIconsPerRow);
+			for( int n = 0; n < m_nIconsPerRow && i < icons.size(); ++n, ++i )
 				row.cells.push_back(icons[i]);
 			m_rows.push_back(row);
 		}
@@ -387,7 +518,7 @@ void CIconBrowserWnd::RefreshViewport(bool bForce)
 		CDuiString sExtra;
 		if( !m_sFilter.IsEmpty() )
 			sExtra.Format(_T("匹配 %d"), m_nMatched);
-		UpdateTitle(sExtra.IsEmpty() ? NULL : sExtra.GetData());
+		UpdateTitle(sExtra.GetData());
 		m_bRefreshing = false;
 		return;
 	}
@@ -414,6 +545,10 @@ void CIconBrowserWnd::RefreshViewport(bool bForce)
 	if( last < first ) last = first;
 
 	if( !bForce && first == m_nVisFirst && last == m_nVisLast ) {
+		int nCur = 1, nTotal = 1;
+		GetPageInfo(nCur, nTotal);
+		if( nCur != m_nTitlePage )
+			UpdateTitle(NULL);
 		m_bRefreshing = false;
 		return;
 	}
@@ -452,7 +587,12 @@ void CIconBrowserWnd::RefreshViewport(bool bForce)
 	sz.cy = scrollY;
 	m_pIconList->SetScrollPos(sz, false);
 
-	// 滚动刷新不要改标题：避免标题局部 Invalidate 与列表脏区叠加导致关闭按钮花屏
+	{
+		int nCur = 1, nTotal = 1;
+		GetPageInfo(nCur, nTotal);
+		if( bForce || nCur != m_nTitlePage )
+			UpdateTitle(NULL);
+	}
 	m_bRefreshing = false;
 }
 
@@ -464,18 +604,169 @@ void CIconBrowserWnd::InitWindow()
 	if( m_pIconList != NULL )
 		m_pIconList->SetDelayedDestroy(false);
 
-	UpdateTitle();
+	SyncIconsPerRow();
+	UpdateTitle(_T(""));
 	RebuildData();
 	RefreshViewport(true);
+}
+
+bool CIconBrowserWnd::ScrollIconListByKey(WPARAM vk)
+{
+	if( m_pIconList == NULL || m_rows.empty() ) return false;
+
+	const int nPage = GetPageScrollStep();
+	const int nLine = ROW_ICON_H;
+
+	SIZE sz = m_pIconList->GetScrollPos();
+	const int nMax = m_pIconList->GetScrollRange().cy;
+	int nNew = sz.cy;
+	switch( vk ) {
+	case VK_PRIOR: nNew = sz.cy - nPage; break;
+	case VK_NEXT:  nNew = sz.cy + nPage; break;
+	case VK_UP:    nNew = sz.cy - nLine; break;
+	case VK_DOWN:  nNew = sz.cy + nLine; break;
+	case VK_HOME:  nNew = 0; break;
+	case VK_END:   nNew = nMax; break;
+	default: return false;
+	}
+	if( nNew < 0 ) nNew = 0;
+	if( nNew > nMax ) nNew = nMax;
+	if( nNew == sz.cy ) return true;
+
+	sz.cy = nNew;
+	m_pIconList->SetScrollPos(sz, true);
+	RefreshViewport(false);
+	return true;
+}
+
+LRESULT CIconBrowserWnd::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled)
+{
+	if( uMsg == WM_KEYDOWN ) {
+		switch( wParam ) {
+		case VK_PRIOR:
+		case VK_NEXT:
+		case VK_UP:
+		case VK_DOWN:
+		case VK_HOME:
+		case VK_END:
+			if( ScrollIconListByKey(wParam) ) {
+				bHandled = true;
+				return TRUE;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	return WindowImplBase::MessageHandler(uMsg, wParam, lParam, bHandled);
 }
 
 LRESULT CIconBrowserWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
 	if( uMsg == WM_SIZE ) {
-		RefreshViewport(true);
+		// SIZE_MINIMIZED：客户区无效，勿按旧宽重算列数
+		if( wParam == SIZE_MINIMIZED ) {
+			bHandled = FALSE;
+			return 0;
+		}
+		// HandleCustomMessage 先于 PaintManager 的 NeedUpdate/WM_PAINT 布局；
+		// 最大化/还原时 iconList->GetPos() 仍是旧宽，必须先按新客户区铺根节点。
+		EnsureRootLaidOut();
+		const int scrollY = (m_pIconList != NULL) ? m_pIconList->GetScrollPos().cy : 0;
+		if( SyncIconsPerRow() ) {
+			RebuildData();
+			if( m_pIconList != NULL ) {
+				SIZE sz = m_pIconList->GetScrollPos();
+				const int nMax = m_pIconList->GetScrollRange().cy;
+				sz.cy = scrollY;
+				if( sz.cy > nMax ) sz.cy = nMax;
+				if( sz.cy < 0 ) sz.cy = 0;
+				m_pIconList->SetScrollPos(sz, false);
+			}
+			RefreshViewport(true);
+			UpdateTitle(NULL);
+		}
+		else {
+			RefreshViewport(true);
+		}
+	}
+	else if( uMsg == WM_MENUCLICK ) {
+		MenuCmd* pMenuCmd = (MenuCmd*)wParam;
+		if( pMenuCmd != NULL ) {
+			CDuiString sName = pMenuCmd->szName;
+			m_pm.DeletePtr(pMenuCmd);
+			if( sName.CompareNoCase(_T("export")) == 0 )
+				OpenExportForCell(m_pCtxCell);
+		}
+		bHandled = TRUE;
+		return 0;
 	}
 	bHandled = FALSE;
 	return 0;
+}
+
+CControlUI* CIconBrowserWnd::FindIconCell(CControlUI* pFrom)
+{
+	CControlUI* p = pFrom;
+	while( p != NULL ) {
+		if( p->GetCustomAttribute(_T("icon-name")) != NULL )
+			return p;
+		p = p->GetParent();
+	}
+	return NULL;
+}
+
+void CIconBrowserWnd::ShowIconContextMenu(CControlUI* pCell)
+{
+	m_pCtxCell = FindIconCell(pCell);
+	if( m_pCtxCell == NULL ) return;
+
+	CMenuWnd::GetGlobalContextMenuObserver().SetMenuCheckInfo(NULL);
+	if( m_pMenu != NULL ) {
+		delete m_pMenu;
+		m_pMenu = NULL;
+	}
+	m_pMenu = new CMenuWnd();
+	CDuiPoint point;
+	::GetCursorPos(&point);
+	m_pMenu->Init(NULL, _T("iconbrowser_ctx.html"), point, &m_pm);
+	CThemeManager* tm = CThemeManager::GetInstance();
+	if( tm != NULL && m_pMenu->GetMenuUI() != NULL )
+		tm->ApplyMenuChrome(m_pMenu->GetMenuUI());
+	m_pMenu->ResizeMenu();
+}
+
+void CIconBrowserWnd::OpenExportForCell(CControlUI* pCell)
+{
+	pCell = FindIconCell(pCell);
+	if( pCell == NULL ) return;
+	const IconEntry* pEntry = (const IconEntry*)pCell->GetTag();
+	LPCTSTR pName = pCell->GetCustomAttribute(_T("icon-name"));
+	LPCTSTR pLib = pCell->GetCustomAttribute(_T("icon-lib"));
+	if( pName == NULL || *pName == _T('\0') ) return;
+	const char* utf8 = (pEntry != NULL) ? pEntry->data : NULL;
+	if( utf8 == NULL || *utf8 == '\0' ) {
+		CToast::ShowWarning(_T("该图标无 SVG 数据"), 2500);
+		return;
+	}
+	int nW = 0, nH = 0;
+	CContainerUI* pBox = static_cast<CContainerUI*>(pCell->GetInterface(DUI_CTR_CONTAINER));
+	if( pBox != NULL ) {
+		for( int i = 0; i < pBox->GetCount(); ++i ) {
+			CControlUI* pChild = pBox->GetItemAt(i);
+			CSvgBoxUI* pSvg = pChild ? static_cast<CSvgBoxUI*>(pChild->GetInterface(DUI_CTR_SVGBOX)) : NULL;
+			if( pSvg == NULL ) continue;
+			nW = pSvg->GetFixedWidth();
+			nH = pSvg->GetFixedHeight();
+			if( nW <= 0 || nH <= 0 ) {
+				RECT rc = pSvg->GetPos();
+				if( nW <= 0 ) nW = rc.right - rc.left;
+				if( nH <= 0 ) nH = rc.bottom - rc.top;
+			}
+			break;
+		}
+	}
+	CIconExportWnd::Open(m_hWnd, pLib ? pLib : m_sAttr.GetData(), pName, utf8, nW, nH);
 }
 
 void CIconBrowserWnd::Notify(TNotifyUI& msg)
@@ -487,7 +778,11 @@ void CIconBrowserWnd::Notify(TNotifyUI& msg)
 	}
 	if( msg.sType == DUI_MSGTYPE_TEXTCHANGED ) {
 		if( msg.pSender == m_pSearchEdit && m_pSearchEdit != NULL ) {
-			m_sFilter = m_pSearchEdit->GetText();
+			CDuiString sNew = m_pSearchEdit->GetText();
+			// 搜索框失焦常会再发一次 TEXTCHANGED；若内容未变却 Rebuild/RemoveAll，
+			// 会删掉鼠标正在点的图标格 → 点击/右键崩溃。
+			if( sNew == m_sFilter ) return;
+			m_sFilter = sNew;
 			RebuildData();
 			if( m_pIconList != NULL ) {
 				SIZE sz = { 0, 0 };
@@ -497,15 +792,33 @@ void CIconBrowserWnd::Notify(TNotifyUI& msg)
 			CDuiString sExtra;
 			if( !m_sFilter.IsEmpty() )
 				sExtra.Format(_T("匹配 %d"), m_nMatched);
-			UpdateTitle(sExtra.IsEmpty() ? NULL : sExtra.GetData());
+			UpdateTitle(sExtra.GetData());
 			return;
 		}
+	}
+	if( msg.sType == DUI_MSGTYPE_MENU ) {
+		ShowIconContextMenu(msg.pSender);
+		return;
 	}
 	WindowImplBase::Notify(msg);
 }
 
 void CIconBrowserWnd::OnClick(TNotifyUI& msg)
 {
+	CDuiString sName = msg.pSender ? msg.pSender->GetName() : CDuiString();
+	if( sName.CompareNoCase(_T("btn_clipboard_svg")) == 0 ) {
+		CIconExportWnd::OpenFromClipboard(m_hWnd);
+		return;
+	}
+	if( sName.CompareNoCase(_T("btn_export_svg")) == 0 ) {
+		CIconExportWnd::OpenBlank(m_hWnd, true);
+		return;
+	}
+	if( sName.CompareNoCase(_T("export")) == 0 ) {
+		OpenExportForCell(m_pCtxCell);
+		return;
+	}
+
 	CControlUI* p = msg.pSender;
 	while( p != NULL ) {
 		LPCTSTR pCopy = p->GetCustomAttribute(_T("copy-text"));

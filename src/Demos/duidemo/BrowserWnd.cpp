@@ -209,7 +209,7 @@ LRESULT CBrowserWnd::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if( pMenuCmd != NULL ) {
 			CDuiString sName = pMenuCmd->szName;
 			m_pm.DeletePtr(pMenuCmd);
-			HandleMenuCommand(sName);
+			HandleMenuCommand(sName.GetData());
 		}
 		return 0;
 	}
@@ -241,7 +241,7 @@ void CBrowserWnd::AddNewTab(LPCTSTR pstrTitle, LPCTSTR pstrUrl)
 
 	m_pPages->Add(pBrowser);
 
-	CTabButtonUI* pTab = m_pTabBar->AddTab(sTitle);
+	CTabButtonUI* pTab = m_pTabBar->AddTab(sTitle.GetData());
 	if( pTab == NULL ) return;
 	ApplyLoadingTabIcon(pTab);
 
@@ -265,12 +265,13 @@ void CBrowserWnd::NavigateAddressBar()
 	if( m_pPages != NULL )
 		m_pPages->SelectItem(pBrowser);
 
-	CDuiString url = ResolveNavigateInput(ReadAddressBarText());
+	CDuiString input = ReadAddressBarText();
+	CDuiString url = ResolveNavigateInput(input.GetData());
 	if( url.IsEmpty() ) return;
 
-	pBrowser->NavigateUrl(url);
+	pBrowser->NavigateUrl(url.GetData());
 	if( m_pUrlBox->GetText() != url )
-		m_pUrlBox->SetText(url);
+		m_pUrlBox->SetText(url.GetData());
 }
 
 CDuiString CBrowserWnd::ReadAddressBarText() const
@@ -353,7 +354,7 @@ CDuiString CBrowserWnd::BuildSearchUrl(LPCTSTR pstrQuery)
 {
 	CDuiString q = UrlEncodeUtf8(pstrQuery);
 	CDuiString url;
-	url.Format(_T("https://www.bing.com/search?q=%s"), (LPCTSTR)q);
+	url.Format(_T("https://www.bing.com/search?q=%s"), q.GetData());
 	return url;
 }
 
@@ -362,41 +363,24 @@ CDuiString CBrowserWnd::ResolveNavigateInput(LPCTSTR pstrInput) const
 	CDuiString url = pstrInput ? pstrInput : _T("");
 	url.Trim();
 	if( url.IsEmpty() ) return url;
-	if( !LooksLikeUrl(url) )
-		return BuildSearchUrl(url);
+	if( !LooksLikeUrl(url.GetData()) )
+		return BuildSearchUrl(url.GetData());
 	if( url.Find(_T("://")) < 0
 		&& url.Find(_T("about:")) != 0
 		&& url.Find(_T("data:")) != 0
 		&& url.Find(_T("file:")) != 0 )
 	{
 		CDuiString full;
-		full.Format(_T("https://%s"), (LPCTSTR)url);
+		full.Format(_T("https://%s"), url.GetData());
 		return full;
 	}
 	return url;
 }
 
-bool CBrowserWnd::HandleThemeCommand(LPCTSTR pstrName)
+bool CBrowserWnd::HandleThemeCommand(LPCTSTR /*pstrName*/)
 {
-	if( pstrName == NULL || *pstrName == _T('\0') ) return false;
-	if( _tcscmp(pstrName, _T("btn_theme_default")) != 0
-		&& _tcscmp(pstrName, _T("btn_theme_azure")) != 0
-		&& _tcscmp(pstrName, _T("btn_theme_emerald")) != 0
-		&& _tcscmp(pstrName, _T("btn_theme_graphite")) != 0
-		&& _tcscmp(pstrName, _T("btn_theme_dark")) != 0 )
-		return false;
-
-	CThemeManager* tm = CThemeManager::GetInstance();
-	if( tm == NULL ) return true;
-	if( !tm->IsEnabled() ) tm->SetEnabled(true);
-
-	LPCTSTR themeId = _T("default");
-	if( _tcscmp(pstrName, _T("btn_theme_azure")) == 0 ) themeId = _T("azure");
-	else if( _tcscmp(pstrName, _T("btn_theme_emerald")) == 0 ) themeId = _T("emerald");
-	else if( _tcscmp(pstrName, _T("btn_theme_graphite")) == 0 ) themeId = _T("graphite");
-	else if( _tcscmp(pstrName, _T("btn_theme_dark")) == 0 ) themeId = _T("dark");
-	tm->ApplyTheme(themeId);
-	return true;
+	// 主题改由 ThemeSwitcher 弹出预览窗处理
+	return false;
 }
 
 void CBrowserWnd::HandleNavCommand(LPCTSTR pstrName)
@@ -409,11 +393,12 @@ void CBrowserWnd::HandleNavCommand(LPCTSTR pstrName)
 	CWebBrowserUI* pBrowser = GetActiveBrowser();
 	if( _tcscmp(pstrName, _T("goBtn")) == 0 ) {
 		if( pBrowser == NULL ) {
-			CDuiString url = ResolveNavigateInput(ReadAddressBarText());
+			CDuiString input = ReadAddressBarText();
+			CDuiString url = ResolveNavigateInput(input.GetData());
 			if( url.IsEmpty() )
 				AddNewTab(_T("新标签页"), _T("https://project.feishu.cn"));
 			else
-				AddNewTab(NULL, url);
+				AddNewTab(NULL, url.GetData());
 			return;
 		}
 		NavigateAddressBar();
@@ -730,9 +715,9 @@ void CBrowserWnd::Notify(TNotifyUI& msg)
 			NavigateAddressBar();
 	}
 	else if( msg.sType == DUI_MSGTYPE_CLICK && msg.pSender != NULL ) {
-		LPCTSTR name = msg.pSender->GetName();
-		if( !HandleThemeCommand(name) )
-			HandleNavCommand(name);
+		CDuiString name = msg.pSender->GetName();
+		if( !HandleThemeCommand(name.GetData()) )
+			HandleNavCommand(name.GetData());
 	}
 
 	WindowImplBase::Notify(msg);
@@ -753,10 +738,7 @@ void CBrowserWnd::OnClick(TNotifyUI& msg)
 	CDuiString name = msg.pSender->GetName();
 	if( name == _T("goBtn") || name == _T("backBtn") || name == _T("forwardBtn")
 		|| name == _T("refreshBtn") || name == _T("homeBtn") || name == _T("sideToolHome")
-		|| name == _T("menuBtn")
-		|| name == _T("btn_theme_default") || name == _T("btn_theme_azure")
-		|| name == _T("btn_theme_emerald") || name == _T("btn_theme_graphite")
-		|| name == _T("btn_theme_dark") )
+		|| name == _T("menuBtn") || name == _T("themeSwitch") )
 		return;
 	WindowImplBase::OnClick(msg);
 }

@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 
 #ifdef _DEBUG
 #include <shlwapi.h>

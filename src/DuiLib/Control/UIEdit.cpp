@@ -1,4 +1,4 @@
-﻿#include "StdAfx.h"
+#include "StdAfx.h"
 #include "UIEdit.h"
 
 namespace DuiLib
@@ -68,7 +68,7 @@ namespace DuiLib
 		SetWindowFont(m_hWnd, hFont, TRUE);
 		Edit_LimitText(m_hWnd, m_pOwner->GetMaxChar());
 		if( m_pOwner->IsPasswordMode() ) Edit_SetPasswordChar(m_hWnd, m_pOwner->GetPasswordChar());
-		Edit_SetText(m_hWnd, m_pOwner->GetText());
+		Edit_SetText(m_hWnd, m_pOwner->GetText().GetData());
 		Edit_SetModify(m_hWnd, FALSE);
 		SendMessage(EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(0, 0));
 		Edit_Enable(m_hWnd, m_pOwner->IsEnabled() == true);
@@ -233,14 +233,18 @@ namespace DuiLib
 
 	LRESULT CEditWnd::OnKillFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
-		// 销毁前先回写文本；随后忽略 EN_CHANGE
+		// 销毁前先回写文本；随后忽略 EN_CHANGE。
+		// 文本相对上次 EN_CHANGE 未变时不要再发 TEXTCHANGED：否则点列表项时
+		// KillFocus 会同步重建列表并删掉正在点击的控件 → 崩溃。
 		if( m_bInit && m_pOwner != NULL ) {
 			int cchLen = ::GetWindowTextLength(m_hWnd) + 1;
 			LPTSTR pstr = static_cast<LPTSTR>(_alloca(cchLen * sizeof(TCHAR)));
 			if( pstr != NULL ) {
 				::GetWindowText(m_hWnd, pstr, cchLen);
-				m_pOwner->m_sText = pstr;
-				m_pOwner->OnNativeEditChanged();
+				if( m_pOwner->m_sText != pstr ) {
+					m_pOwner->m_sText = pstr;
+					m_pOwner->OnNativeEditChanged();
+				}
 			}
 		}
 		m_bInit = false;
@@ -429,7 +433,7 @@ namespace DuiLib
 		}
 		m_sText = pstrText;
 		if( m_pWindow != NULL ) {
-			Edit_SetText(*m_pWindow, m_sText);
+			Edit_SetText(*m_pWindow, m_sText.GetData());
 			int nLen = ::GetWindowTextLength(*m_pWindow);
 			Edit_SetSel(*m_pWindow, nLen, nLen);
 		}
@@ -525,7 +529,7 @@ namespace DuiLib
 
 	LPCTSTR CEditUI::GetImage()
 	{
-		return m_sImage;
+		return m_sImage.GetData();
 	}
 
 	void CEditUI::SetImage(LPCTSTR pStrImage)
@@ -536,7 +540,7 @@ namespace DuiLib
 
 	LPCTSTR CEditUI::GetHoverImage()
 	{
-		return m_sHoverImage;
+		return m_sHoverImage.GetData();
 	}
 
 	void CEditUI::SetHoverImage(LPCTSTR pStrImage)
@@ -547,7 +551,7 @@ namespace DuiLib
 
 	LPCTSTR CEditUI::GetFocusImage()
 	{
-		return m_sFocusImage;
+		return m_sFocusImage.GetData();
 	}
 
 	void CEditUI::SetFocusImage(LPCTSTR pStrImage)
@@ -558,7 +562,7 @@ namespace DuiLib
 
 	LPCTSTR CEditUI::GetDisabledImage()
 	{
-		return m_sDisabledImage;
+		return m_sDisabledImage.GetData();
 	}
 
 	void CEditUI::SetDisabledImage(LPCTSTR pStrImage)
@@ -621,8 +625,8 @@ namespace DuiLib
 
 	LPCTSTR CEditUI::GetPlaceholder()
 	{
-		if (!IsResourceText()) return m_sPlaceholder;
-		return CResourceManager::GetInstance()->GetText(m_sPlaceholder);
+		if (!IsResourceText()) return m_sPlaceholder.GetData();
+		return CResourceManager::GetInstance()->GetText(m_sPlaceholder.GetData()).GetData();
 	}
 
 	void CEditUI::SetPlaceholderColor( LPCTSTR pStrColor )
@@ -721,25 +725,25 @@ namespace DuiLib
 
 		if( (m_uButtonState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sDisabledImage) ) {}
+				if( !DrawImage(ctx, m_sDisabledImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_FOCUSED) != 0 ) {
 			if( !m_sFocusImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sFocusImage) ) {}
+				if( !DrawImage(ctx, m_sFocusImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonState & UISTATE_HOT) != 0 ) {
 			if( !m_sHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sHoverImage) ) {}
+				if( !DrawImage(ctx, m_sHoverImage.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sImage) ) {}
+			if( !DrawImage(ctx, m_sImage.GetData()) ) {}
 			else return;
 		}
 	}
@@ -786,6 +790,6 @@ namespace DuiLib
 		if( rc.right < rc.left + 4 ) rc.right = rc.left + 4;
 
 		DWORD clrColor = IsEnabled() ? mCurTextColor : m_dwDisabledColor;
-		ctx.DrawText(rc, sDrawText, clrColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sDrawText.GetData(), clrColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 }

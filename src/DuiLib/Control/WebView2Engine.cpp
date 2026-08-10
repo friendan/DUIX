@@ -152,12 +152,12 @@ namespace DuiLib
 
 	LPCTSTR CWebView2Engine::GetHostMode() const
 	{
-		return m_sEffectiveHost.IsEmpty() ? (LPCTSTR)m_sHostMode : (LPCTSTR)m_sEffectiveHost;
+		return m_sEffectiveHost.IsEmpty() ? m_sHostMode.GetData() : m_sEffectiveHost.GetData();
 	}
 
 	bool CWebView2Engine::WantComposition() const
 	{
-		return _tcsicmp(m_sHostMode, _T("composition")) == 0;
+		return _tcsicmp(m_sHostMode.GetData(), _T("composition")) == 0;
 	}
 
 	bool CWebView2Engine::EnsureCompHostWindow()
@@ -635,7 +635,7 @@ namespace DuiLib
 		if( !m_bReady || m_pWebView == NULL || m_sPendingUrl.IsEmpty() ) return;
 		CDuiString url = m_sPendingUrl;
 		m_sPendingUrl.Empty();
-		Navigate(url);
+		Navigate(url.GetData());
 	}
 
 	void CWebView2Engine::Navigate(LPCTSTR url)

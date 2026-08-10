@@ -1,7 +1,11 @@
 <html theme="chrome">
     <VBox name="root">
         <TitleBar name="titlebar" title="title" height="40"
-            show-min="true" show-max="true" show-close="true" action="title" />
+            show-min="true" show-max="true" show-close="true" action="title">
+            <Spacer />
+            <ThemeSwitcher name="themeSwitch" width="36" height="40"
+                tooltip="选择主题" margin="0,8,0,0" />
+        </TitleBar>
         <HBox>
             <!-- 左侧：大类导航（theme=panel；子 Option 继承 root chrome） -->
             <VBox name="nav_panel" width="168" theme="panel" border="0,0,1,0"
@@ -81,6 +85,37 @@
                           <Switch checked-text="开" unchecked-text="关" track-size="52,24" />
                           <Switch checked="true" text="紫色" theme="none" track-color-checked="#722ED1FF" track-color-checked-hover="#531DABFF" />
                           <Switch checked="true" text="小号" track-size="28,16" />
+                        </HBox>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="FontIcon" active="false" header-align="left">
+                      <VBox height="260" gap="8" padding="4,8,4,8">
+                        <Label text="悬停跟主题/kind；也可 background-color-hover / color-hover。无 text 只画背景。" theme="secondary" />
+                        <HBox height="48" gap="12" align-items="vcenter">
+                          <FontIcon text="设" size="40" />
+                          <FontIcon text="A" shape="rounded" size="40" />
+                          <FontIcon text="OK" size="32" kind="success" />
+                          <FontIcon text="!" size="32" kind="warning" />
+                          <FontIcon text="×" size="32" kind="danger" />
+                          <FontIcon text="i" size="32" kind="info" />
+                          <FontIcon text="字" size="40" shape="rounded" background-color="#722ED1FF" color="#FFFFFFFF"
+                            background-color-hover="#B37FEBFF" color-hover="#FFFFFFFF" />
+                          <FontIcon size="32" />
+                          <FontIcon size="32" shape="rounded" kind="secondary" />
+                          <FontIcon size="24" background-color="#13C2C2FF" background-color-hover="#36CFC9FF" />
+                          <Label text="← 悬停看变色" theme="secondary" />
+                        </HBox>
+                        <HBox height="48" gap="12" align-items="vcenter">
+                          <FontIcon text="小" size="small" />
+                          <FontIcon text="中" size="default" />
+                          <FontIcon text="大" size="large" />
+                          <FontIcon text="特" size="xlarge" shape="rounded" border-radius="10" />
+                          <Label text="size 预设；末项自定义 border-radius" theme="secondary" />
+                        </HBox>
+                        <HBox height="48" gap="12" align-items="vcenter">
+                          <FontIcon name="fonticon_click" text="点" size="40" clickable="true" kind="primary" tooltip="clickable：手型光标 + click 通知" />
+                          <FontIcon name="fonticon_click2" text="GO" size="40" shape="rounded" clickable="true" kind="success" />
+                          <Label text="← clickable 手型光标，点击出 Toast" theme="secondary" />
                         </HBox>
                       </VBox>
                     </AccordionItem>
@@ -184,14 +219,10 @@
                     </AccordionItem>
                     <AccordionItem title="Theme" active="false" header-align="left">
                       <VBox height="280" gap="10" padding="8,12,8,12">
-                        <Label theme="secondary" text="root theme=chrome 子树继承；局部可用 theme=panel/secondary/none 或主题 id" height="22" />
+                        <Label theme="secondary" text="标题栏右侧 ThemeSwitcher 可换主题；此处可禁用主题并查看当前 id" height="22" />
                         <HBox height="36" gap="8" align-items="vcenter">
-                          <Button name="btn_theme_default" text="Default" kind="default" width="80" height="32" />
-                          <Button name="btn_theme_azure" text="晴空蓝" kind="primary" width="80" height="32" />
-                          <Button name="btn_theme_emerald" text="翠绿" kind="success" width="80" height="32" />
-                          <Button name="btn_theme_graphite" text="石墨" kind="dark" width="80" height="32" />
-                          <Button name="btn_theme_dark" text="深色" kind="secondary" width="80" height="32" />
                           <Button name="btn_theme_toggle" text="禁用主题" kind="warning" width="100" height="32" />
+                          <Label name="theme_current" text="当前: default" kind="link" />
                         </HBox>
                         <HBox height="36" gap="8" align-items="vcenter">
                           <Button text="Primary" kind="primary" width="80" height="32" />
@@ -199,7 +230,6 @@
                           <Button text="Warning" kind="warning" width="80" height="32" />
                           <Button text="Danger" kind="danger" width="80" height="32" />
                           <Button text="Info" kind="info" width="80" height="32" />
-                          <Label name="theme_current" text="当前: default" kind="link" />
                         </HBox>
                         <HBox height="36" gap="8" align-items="vcenter">
                           <Label theme="secondary" text="继承 chrome" width="90" />
@@ -400,7 +430,7 @@
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Modal" active="false" header-align="left">
-                      <VBox height="160" gap="4" padding="4,8,4,8">
+                      <VBox height="200" gap="4" padding="4,8,4,8">
                         <HBox height="40" gap="8" align-items="vcenter">
                           <Label text="快捷" width="70" theme="secondary" />
                           <Button name="btn_modal_info" text="Info" kind="info" width="90" height="32" tooltip="仅确定" />
@@ -417,11 +447,18 @@
                         <HBox height="40" gap="8" align-items="vcenter">
                           <Label text="遮罩" width="70" theme="secondary" />
                           <Button name="btn_modal_nobackdrop" text="点遮罩不关" kind="warning" width="120" height="32" tooltip="ClickBackdropToClose(false)" />
+                          <Button name="btn_modal_nosync" text="拖动不同步主窗" kind="secondary" width="140" height="32" tooltip="CModal SyncOwnerMove(false)" />
+                        </HBox>
+                        <HBox height="40" gap="8" align-items="vcenter">
+                          <Label text="业务窗" width="70" theme="secondary" />
+                          <Button name="btn_settings_sync" text="铺满设置窗（同步主窗）" kind="primary" width="200" height="32"
+                            tooltip="WindowImplBase SetSyncOwnerMove+Size：拖/缩带着主窗" />
+                          <Label text="← 测 SyncOwnerMove / Size" theme="secondary" />
                         </HBox>
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="SidePanel" active="false" header-align="left">
-                      <VBox height="160" gap="8" padding="4,8,4,8">
+                      <VBox height="200" gap="8" padding="4,8,4,8">
                         <Label text="四向抽屉；demo 用 panel-width/height 百分比 + esc-close" theme="secondary" />
                         <HBox height="40" gap="8" align-items="vcenter">
                           <Button name="btn_sidepanel_right" text="右" kind="primary" width="56" height="32" />
@@ -429,6 +466,13 @@
                           <Button name="btn_sidepanel_top" text="上" kind="secondary" width="56" height="32" />
                           <Button name="btn_sidepanel_bottom" text="下" kind="secondary" width="56" height="32" />
                           <Button name="btn_sidepanel_close" text="关闭" kind="default" width="72" height="32" />
+                        </HBox>
+                        <HBox height="40" gap="8" align-items="vcenter">
+                          <Button name="btn_sidepanel_fill" text="铺满·右" kind="info" width="88" height="32" tooltip="fill-host 从右滑入" />
+                          <Button name="btn_sidepanel_fill_left" text="铺满·左" kind="info" width="88" height="32" />
+                          <Button name="btn_sidepanel_fill_top" text="铺满·上" kind="info" width="88" height="32" />
+                          <Button name="btn_sidepanel_fill_bottom" text="铺满·下" kind="info" width="88" height="32" />
+                          <Label text="← 四向铺满看是否露缝" theme="secondary" />
                         </HBox>
                       </VBox>
                     </AccordionItem>
@@ -709,6 +753,7 @@
     size: 1000,640;
     caption: 0,0,0,64;
     min-size: 800,520;
+    size-box: 4,4,6,6;
     shadowimage: main/shadow.png;
     action: title;
   }

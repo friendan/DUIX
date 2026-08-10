@@ -151,7 +151,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonPrevNormalImage()
 	{
-		return m_sButtonPrevNormalImage;
+		return m_sButtonPrevNormalImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonPrevNormalImage(LPCTSTR pStrImage)
@@ -162,7 +162,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonPrevHoverImage()
 	{
-		return m_sButtonPrevHoverImage;
+		return m_sButtonPrevHoverImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonPrevHoverImage(LPCTSTR pStrImage)
@@ -173,7 +173,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonPrevActiveImage()
 	{
-		return m_sButtonPrevActiveImage;
+		return m_sButtonPrevActiveImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonPrevActiveImage(LPCTSTR pStrImage)
@@ -184,7 +184,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonPrevDisabledImage()
 	{
-		return m_sButtonPrevDisabledImage;
+		return m_sButtonPrevDisabledImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonPrevDisabledImage(LPCTSTR pStrImage)
@@ -206,7 +206,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonNextNormalImage()
 	{
-		return m_sButtonNextNormalImage;
+		return m_sButtonNextNormalImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonNextNormalImage(LPCTSTR pStrImage)
@@ -217,7 +217,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonNextHoverImage()
 	{
-		return m_sButtonNextHoverImage;
+		return m_sButtonNextHoverImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonNextHoverImage(LPCTSTR pStrImage)
@@ -228,7 +228,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonNextActiveImage()
 	{
-		return m_sButtonNextActiveImage;
+		return m_sButtonNextActiveImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonNextActiveImage(LPCTSTR pStrImage)
@@ -239,7 +239,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetButtonNextDisabledImage()
 	{
-		return m_sButtonNextDisabledImage;
+		return m_sButtonNextDisabledImage.GetData();
 	}
 
 	void CScrollBarUI::SetButtonNextDisabledImage(LPCTSTR pStrImage)
@@ -250,7 +250,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetThumbNormalImage()
 	{
-		return m_sThumbNormalImage;
+		return m_sThumbNormalImage.GetData();
 	}
 
 	void CScrollBarUI::SetThumbNormalImage(LPCTSTR pStrImage)
@@ -261,7 +261,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetThumbHoverImage()
 	{
-		return m_sThumbHoverImage;
+		return m_sThumbHoverImage.GetData();
 	}
 
 	void CScrollBarUI::SetThumbHoverImage(LPCTSTR pStrImage)
@@ -272,7 +272,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetThumbActiveImage()
 	{
-		return m_sThumbActiveImage;
+		return m_sThumbActiveImage.GetData();
 	}
 
 	void CScrollBarUI::SetThumbActiveImage(LPCTSTR pStrImage)
@@ -283,7 +283,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetThumbDisabledImage()
 	{
-		return m_sThumbDisabledImage;
+		return m_sThumbDisabledImage.GetData();
 	}
 
 	void CScrollBarUI::SetThumbDisabledImage(LPCTSTR pStrImage)
@@ -294,7 +294,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetRailNormalImage()
 	{
-		return m_sRailNormalImage;
+		return m_sRailNormalImage.GetData();
 	}
 
 	void CScrollBarUI::SetRailNormalImage(LPCTSTR pStrImage)
@@ -305,7 +305,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetRailHoverImage()
 	{
-		return m_sRailHoverImage;
+		return m_sRailHoverImage.GetData();
 	}
 
 	void CScrollBarUI::SetRailHoverImage(LPCTSTR pStrImage)
@@ -316,7 +316,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetRailActiveImage()
 	{
-		return m_sRailActiveImage;
+		return m_sRailActiveImage.GetData();
 	}
 
 	void CScrollBarUI::SetRailActiveImage(LPCTSTR pStrImage)
@@ -327,7 +327,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetRailDisabledImage()
 	{
-		return m_sRailDisabledImage;
+		return m_sRailDisabledImage.GetData();
 	}
 
 	void CScrollBarUI::SetRailDisabledImage(LPCTSTR pStrImage)
@@ -338,7 +338,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetBkNormalImage()
 	{
-		return m_sBkNormalImage;
+		return m_sBkNormalImage.GetData();
 	}
 
 	void CScrollBarUI::SetBkNormalImage(LPCTSTR pStrImage)
@@ -349,7 +349,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetBkHoverImage()
 	{
-		return m_sBkHoverImage;
+		return m_sBkHoverImage.GetData();
 	}
 
 	void CScrollBarUI::SetBkHoverImage(LPCTSTR pStrImage)
@@ -360,7 +360,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetBkActiveImage()
 	{
-		return m_sBkActiveImage;
+		return m_sBkActiveImage.GetData();
 	}
 
 	void CScrollBarUI::SetBkActiveImage(LPCTSTR pStrImage)
@@ -371,7 +371,7 @@ namespace DuiLib
 
 	LPCTSTR CScrollBarUI::GetBkDisabledImage()
 	{
-		return m_sBkDisabledImage;
+		return m_sBkDisabledImage.GetData();
 	}
 
 	void CScrollBarUI::SetBkDisabledImage(LPCTSTR pStrImage)
@@ -913,25 +913,25 @@ namespace DuiLib
 
 		if( (m_uThumbState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sBkDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sBkDisabledImage) ) {}
+				if( !DrawImage(ctx, m_sBkDisabledImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sBkActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sBkActiveImage) ) {}
+				if( !DrawImage(ctx, m_sBkActiveImage.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_HOT) != 0 ) {
 			if( !m_sBkHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sBkHoverImage) ) {}
+				if( !DrawImage(ctx, m_sBkHoverImage.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sBkNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sBkNormalImage) ) {}
+			if( !DrawImage(ctx, m_sBkNormalImage.GetData()) ) {}
 			else return;
 		}
 	}
@@ -952,25 +952,25 @@ namespace DuiLib
 
 		if( (m_uButtonPrevState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sButtonPrevDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevDisabledImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sButtonPrevDisabledImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sButtonPrevActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevActiveImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sButtonPrevActiveImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonPrevState & UISTATE_HOT) != 0 ) {
 			if( !m_sButtonPrevHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevHoverImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sButtonPrevHoverImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sButtonPrevNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sButtonPrevNormalImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !DrawImage(ctx, m_sButtonPrevNormalImage.GetData(), m_sImageModify.GetData()) ) {}
 			else return;
 		}
 
@@ -1004,25 +1004,25 @@ namespace DuiLib
 
 		if( (m_uButtonNextState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sButtonNextDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextDisabledImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sButtonNextDisabledImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sButtonNextActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextActiveImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sButtonNextActiveImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uButtonNextState & UISTATE_HOT) != 0 ) {
 			if( !m_sButtonNextHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextHoverImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sButtonNextHoverImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sButtonNextNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sButtonNextNormalImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !DrawImage(ctx, m_sButtonNextNormalImage.GetData(), m_sImageModify.GetData()) ) {}
 			else return;
 		}
 
@@ -1054,25 +1054,25 @@ namespace DuiLib
 
 		if( (m_uThumbState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sThumbDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbDisabledImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sThumbDisabledImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sThumbActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbActiveImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sThumbActiveImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_HOT) != 0 ) {
 			if( !m_sThumbHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sThumbHoverImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sThumbHoverImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sThumbNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sThumbNormalImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !DrawImage(ctx, m_sThumbNormalImage.GetData(), m_sImageModify.GetData()) ) {}
 			else return;
 		}
 
@@ -1119,25 +1119,25 @@ namespace DuiLib
 
 		if( (m_uThumbState & UISTATE_DISABLED) != 0 ) {
 			if( !m_sRailDisabledImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sRailDisabledImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sRailDisabledImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_PUSHED) != 0 ) {
 			if( !m_sRailActiveImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sRailActiveImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sRailActiveImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 		else if( (m_uThumbState & UISTATE_HOT) != 0 ) {
 			if( !m_sRailHoverImage.IsEmpty() ) {
-				if( !DrawImage(ctx, (LPCTSTR)m_sRailHoverImage, (LPCTSTR)m_sImageModify) ) {}
+				if( !DrawImage(ctx, m_sRailHoverImage.GetData(), m_sImageModify.GetData()) ) {}
 				else return;
 			}
 		}
 
 		if( !m_sRailNormalImage.IsEmpty() ) {
-			if( !DrawImage(ctx, (LPCTSTR)m_sRailNormalImage, (LPCTSTR)m_sImageModify) ) {}
+			if( !DrawImage(ctx, m_sRailNormalImage.GetData(), m_sImageModify.GetData()) ) {}
 			else return;
 		}
 	}
