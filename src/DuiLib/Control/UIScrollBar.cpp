@@ -986,7 +986,7 @@ namespace DuiLib
 		int pad = 3;
 		rc.left += pad; rc.top += pad; rc.right -= pad; rc.bottom -= pad;
 		if( rc.right > rc.left && rc.bottom > rc.top )
-			ctx.FillRoundRect(rc, 2, 2, dwColor);
+			ctx.FillRoundRect(rc, 2, 2, GetAdjustColor(dwColor));
 	}
 
 	void CScrollBarUI::PaintButtonNext(IRenderContext& ctx)
@@ -1037,7 +1037,7 @@ namespace DuiLib
 		int pad = 3;
 		rc.left += pad; rc.top += pad; rc.right -= pad; rc.bottom -= pad;
 		if( rc.right > rc.left && rc.bottom > rc.top )
-			ctx.FillRoundRect(rc, 2, 2, dwColor);
+			ctx.FillRoundRect(rc, 2, 2, GetAdjustColor(dwColor));
 	}
 
 	void CScrollBarUI::PaintThumb(IRenderContext& ctx)
@@ -1092,7 +1092,7 @@ namespace DuiLib
 		if( round < 2 ) round = 2;
 		round /= 2; // CSS 半径：胶囊形 ≈ 短边一半
 		if( round < 1 ) round = 1;
-		ctx.FillRoundRect(rc, round, round, dwColor);
+		ctx.FillRoundRect(rc, round, round, GetAdjustColor(dwColor));
 	}
 
 	void CScrollBarUI::PaintRail(IRenderContext& ctx)

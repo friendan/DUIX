@@ -8,6 +8,10 @@
 
 #pragma once
 
+#if !defined(UNICODE) || !defined(_UNICODE)
+#  error DuiLib Ultimate requires UNICODE / _UNICODE builds
+#endif
+
 #ifdef __GNUC__
 // 怎么都没找到min，max的头文件-_-
 #ifndef min
@@ -21,13 +25,8 @@
 #ifndef __FILET__
 #define __DUILIB_STR2WSTR(str)	L##str
 #define _DUILIB_STR2WSTR(str)	__DUILIB_STR2WSTR(str)
-#ifdef _UNICODE
 #define __FILET__	_DUILIB_STR2WSTR(__FILE__)
 #define __FUNCTIONT__	_DUILIB_STR2WSTR(__FUNCTION__)
-#else
-#define __FILET__	__FILE__
-#define __FUNCTIONT__	__FUNCTION__
-#endif
 #endif
 
 #define _CRT_SECURE_NO_DEPRECATE

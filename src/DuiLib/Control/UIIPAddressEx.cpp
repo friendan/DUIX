@@ -292,18 +292,18 @@ namespace DuiLib
                     int nSelR = nSelL + sz.cx;
                     if( nSelR > rcCell.right ) nSelR = rcCell.right;
                     RECT rcSel = { nSelL, rcCell.top, nSelR, rcCell.bottom };
-                    ctx.DrawColor(rcSel, dwSelBkColor);
-                    ctx.DrawText(rcCell, sSec[i].GetData(), dwSelTextColor, m_iFont, uDraw);
+                    ctx.DrawColor(rcSel, GetAdjustColor(dwSelBkColor));
+                    ctx.DrawText(rcCell, sSec[i].GetData(), GetAdjustColor(dwSelTextColor), m_iFont, uDraw);
                 }
                 else {
-                    ctx.DrawText(rcCell, sSec[i].GetData(), dwColor, m_iFont, uDraw);
+                    ctx.DrawText(rcCell, sSec[i].GetData(), GetAdjustColor(dwColor), m_iFont, uDraw);
                 }
             }
 
             x += cellW;
             if( i < 3 ) {
                 RECT rcDot = { x, rc.top, x + nDotSlot, rc.bottom };
-                ctx.DrawText(rcDot, _T("."), dwColor, m_iFont, uDraw);
+                ctx.DrawText(rcDot, _T("."), GetAdjustColor(dwColor), m_iFont, uDraw);
                 x += nDotSlot;
             }
         }

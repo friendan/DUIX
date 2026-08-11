@@ -87,6 +87,8 @@ namespace DuiLib {
 		bool ApplyTheme(CTheme* pTheme, bool bPreview = false);
 		/// 当前主题 token 已改：重刷 UI（不改 id）
 		void RefreshCurrentTheme(bool bPreview = false);
+		/// 加载 :root 主题文件并注册，不切换当前主题；失败返回 NULL
+		CTheme* LoadThemeFile(LPCTSTR path, LPCTSTR idOverride = NULL, LPCTSTR displayName = NULL);
 		/// 简易 :root { --token: #RRGGBBAA; } 文件；成功则注册为 id（文件名）并 Apply
 		bool ApplyThemeFile(LPCTSTR path, LPCTSTR idOverride = NULL);
 		/// 写出与 ApplyThemeFile 对称的 :root 文件

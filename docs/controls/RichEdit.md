@@ -31,3 +31,5 @@
 
 文字缩进用 `padding`。
 
+**`opacity`：** 内容贴图乘 `ScaleImageFade()`（默认含祖先；`opacity-isolate` 仅自身）。
+

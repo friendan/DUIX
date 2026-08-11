@@ -39,6 +39,8 @@
 
 继承 Label（含 `color-hover` / `color-active`）与 Control（含 `background-color-*` / `border-color-*`）；Button 不再单独存一份状态背景/边框色。
 
+默认悬停光标为手型（`cursor=hand`）；需要箭头时写 `cursor="arrow"`。Option / CheckBox 等继承 Button 的同样默认。
+
 ### 图标示例
 
 ```xml

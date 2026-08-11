@@ -901,10 +901,10 @@ Label_ForegroundImage:
 
 		int nLinks = 0;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rcText, sText.GetData(), m_dwColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(m_dwColor), \
 			NULL, NULL, nLinks, m_iFont, DT_SINGLELINE | m_uTextStyle);
 		else
-			ctx.DrawText(rcText, sText.GetData(), m_dwColor, \
+			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(m_dwColor), \
 			m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
@@ -1326,10 +1326,10 @@ Label_ForegroundImage:
 			if( pCallback ) strText = pCallback->GetItemText(this, m_iIndex, i);
 			else strText.Assign(GetText(i));
 			if( pInfo->bShowHtml )
-				ctx.DrawHtmlText(rcItem, strText.GetData(), iTextColor, \
+				ctx.DrawHtmlText(rcItem, strText.GetData(), GetAdjustColor(iTextColor), \
 				&m_rcLinks[m_nLinks], &m_sLinks[m_nLinks], nLinks, pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
 			else
-				ctx.DrawText(rcItem, strText.GetData(), iTextColor, \
+				ctx.DrawText(rcItem, strText.GetData(), GetAdjustColor(iTextColor), \
 				pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
 
 			m_nLinks += nLinks;

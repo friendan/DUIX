@@ -1043,7 +1043,7 @@ namespace DuiLib
 			RECT rcIcon = m_pRasterIcon->GetPos();
 			RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
 			RECT rcCorners = { 0, 0, 0, 0 };
-			ctx.DrawImage(m_hRasterTint, rcIcon, rcPaint, rcBmp, rcCorners, true);
+			ctx.DrawImage(m_hRasterTint, rcIcon, rcPaint, rcBmp, rcCorners, true, ScaleImageFade());
 		}
 		return bRet;
 	}

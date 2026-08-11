@@ -26,6 +26,12 @@ namespace DuiLib
 		virtual void SetInternVisible(bool bVisible = true);
 		virtual void Init();
 		virtual void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
+		virtual UINT GetControlFlags() const;
+		virtual void DoEvent(TEventUI& event);
+		virtual bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
+
+		/// host=osr / 引擎 IsOffScreen()
+		bool IsOffScreenHost() const;
 
 		void SetEngine(LPCTSTR name);
 		LPCTSTR GetEngineName() const;
@@ -41,7 +47,7 @@ namespace DuiLib
 		bool IsAutoNavigation() const;
 		void SetUserDataFolder(LPCTSTR path);
 
-		/// WebView2 宿主：window（默认子 HWND）/ composition（DComp Visual）
+		/// WebView2：window / composition；外接 CEF 离屏：osr / offscreen
 		void SetHostMode(LPCTSTR mode);
 		LPCTSTR GetHostMode() const;
 
@@ -77,6 +83,7 @@ namespace DuiLib
 	protected:
 		void EnsureEngine();
 		void DestroyEngine();
+		void SyncHostInteraction();
 		CDuiString ResolveDefaultEngine() const;
 
 		IWebBrowserEngine* m_pEngine;

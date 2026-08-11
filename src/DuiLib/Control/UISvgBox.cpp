@@ -706,10 +706,50 @@ namespace DuiLib
 		return true;
 	}
 
+	HBITMAP CSvgBoxUI::RasterizeToHBitmap(const char* utf8Svg, size_t nBytes,
+		int width, int height, DWORD dwTintColor, int* pOutW, int* pOutH)
+	{
+		if( utf8Svg == NULL || nBytes == 0 ) return NULL;
+		std::string sUtf8(utf8Svg, nBytes);
+		std::unique_ptr<lunasvg::Document> document = lunasvg::Document::loadFromData(sUtf8);
+		if( !document ) return NULL;
+
+		int w = width;
+		int h = height;
+		if( w <= 0 ) w = (int)(document->width() + 0.5);
+		if( h <= 0 ) h = (int)(document->height() + 0.5);
+		if( w <= 0 ) w = 256;
+		if( h <= 0 ) h = 256;
+		if( w > 4096 ) w = 4096;
+		if( h > 4096 ) h = 4096;
+
+		DWORD dwTint = dwTintColor;
+		if( dwTint == (DWORD)-1 ) dwTint = 0;
+
+		CDuiString sEmpty;
+		lunasvg::Bitmap bitmap;
+		if( !RenderSvgToLunaBitmap(sEmpty, sEmpty, sUtf8, w, h, dwTint, bitmap) )
+			return NULL;
+		HBITMAP hBmp = CreatePremultHBitmap(bitmap);
+		if( hBmp == NULL ) return NULL;
+		if( pOutW ) *pOutW = bitmap.width();
+		if( pOutH ) *pOutH = bitmap.height();
+		return hBmp;
+	}
+
+	HBITMAP CSvgBoxUI::RasterizeToHBitmap(LPCTSTR pstrSvg,
+		int width, int height, DWORD dwTintColor, int* pOutW, int* pOutH)
+	{
+		if( pstrSvg == NULL || *pstrSvg == _T('\0') ) return NULL;
+		std::string sUtf8 = DuiStringToUtf8(pstrSvg);
+		return RasterizeToHBitmap(sUtf8.c_str(), sUtf8.size(), width, height, dwTintColor, pOutW, pOutH);
+	}
+
 	bool CSvgBoxUI::ExportToIcoFile(LPCTSTR pstrPath, DWORD dwTintColor) const
 	{
-		static const int kDefaultSizes[] = { 16, 32, 48, 256, 512 };
-		return ExportToIcoFile(pstrPath, kDefaultSizes, 5, dwTintColor);
+		// Windows 壳图标常规上限 256；多帧覆盖托盘/列表/桌面/资源管理器等场景
+		static const int kDefaultSizes[] = { 16, 24, 32, 48, 64, 128, 256 };
+		return ExportToIcoFile(pstrPath, kDefaultSizes, 7, dwTintColor);
 	}
 
 	bool CSvgBoxUI::ExportToIcoFile(LPCTSTR pstrPath, const int* pSizes, int nCount, DWORD dwTintColor) const
@@ -848,6 +888,6 @@ namespace DuiLib
 
 		RECT rcBmpPart = { 0, 0, m_nCacheW, m_nCacheH };
 		RECT rcCorners = { 0, 0, 0, 0 };
-		ctx.DrawImage(m_hCacheBitmap, m_rcItem, m_rcPaint, rcBmpPart, rcCorners, true);
+		ctx.DrawImage(m_hCacheBitmap, m_rcItem, m_rcPaint, rcBmpPart, rcCorners, true, ScaleImageFade());
 	}
 }

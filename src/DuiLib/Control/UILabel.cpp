@@ -503,9 +503,9 @@ namespace DuiLib
 				clrColor = m_dwFocusedColor;
 		}
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, m_iFont, m_uTextStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, m_iFont, m_uTextStyle);
 		else
-			ctx.DrawText(rc, sText.GetData(), clrColor, m_iFont, m_uTextStyle);
+			ctx.DrawText(rc, sText.GetData(), GetAdjustColor(clrColor), m_iFont, m_uTextStyle);
 	}
 
 	void CLabelUI::SetText( LPCTSTR pstrText )

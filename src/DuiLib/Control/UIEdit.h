@@ -13,6 +13,7 @@ namespace DuiLib
 		friend class CEditWnd;
 	public:
 		CEditUI();
+		~CEditUI();
 
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
@@ -70,11 +71,16 @@ namespace DuiLib
 		SIZE EstimateSize(SIZE szAvailable);
 		void DoEvent(TEventUI& event);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		void SetOpacity(BYTE nOpacity) override;
 
 		void PaintStatusImage(IRenderContext& ctx);
 		void PaintText(IRenderContext& ctx);
 
 	protected:
+		/// 有效透明度 < 255 时不用原生 WC_EDIT，走自绘以支持 opacity
+		bool CanHostNativeEdit() const;
+		void DismissNativeEdit();
+
 		CEditWnd* m_pWindow;
 
 		UINT m_uMaxChar;

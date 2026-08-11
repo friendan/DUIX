@@ -69,6 +69,25 @@ namespace DuiLib
 		m_bHaveOwnerOffset = true;
 	}
 
+	static void QueryHwndTrackSize(HWND hWnd, SIZE& szMin, SIZE& szMax)
+	{
+		szMin.cx = ::GetSystemMetrics(SM_CXMINTRACK);
+		szMin.cy = ::GetSystemMetrics(SM_CYMINTRACK);
+		szMax.cx = ::GetSystemMetrics(SM_CXMAXTRACK);
+		szMax.cy = ::GetSystemMetrics(SM_CYMAXTRACK);
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		MINMAXINFO mmi = { 0 };
+		mmi.ptMinTrackSize.x = szMin.cx;
+		mmi.ptMinTrackSize.y = szMin.cy;
+		mmi.ptMaxTrackSize.x = szMax.cx;
+		mmi.ptMaxTrackSize.y = szMax.cy;
+		::SendMessage(hWnd, WM_GETMINMAXINFO, 0, (LPARAM)&mmi);
+		szMin.cx = mmi.ptMinTrackSize.x;
+		szMin.cy = mmi.ptMinTrackSize.y;
+		szMax.cx = mmi.ptMaxTrackSize.x;
+		szMax.cy = mmi.ptMaxTrackSize.y;
+	}
+
 	void WindowImplBase::SyncOwnerGeometry(bool bPos, bool bSize)
 	{
 		if( !m_bHaveOwnerOffset || m_bSyncingOwner ) return;
@@ -89,6 +108,16 @@ namespace DuiLib
 		int h = selfH + m_szOwnerDelta.cy;
 		if( w < 1 ) w = 1;
 		if( h < 1 ) h = 1;
+
+		// SetWindowPos 不走跟踪缩放钳制，必须主动遵守 Owner 的 min/max-size
+		if( bSize ) {
+			SIZE szMin = { 0 }, szMax = { 0 };
+			QueryHwndTrackSize(hOwner, szMin, szMax);
+			if( szMin.cx > 0 && w < szMin.cx ) w = szMin.cx;
+			if( szMin.cy > 0 && h < szMin.cy ) h = szMin.cy;
+			if( szMax.cx > 0 && w > szMax.cx ) w = szMax.cx;
+			if( szMax.cy > 0 && h > szMax.cy ) h = szMax.cy;
+		}
 
 		RECT rcOwner = { 0 };
 		if( !::GetWindowRect(hOwner, &rcOwner) ) return;
@@ -329,6 +358,15 @@ namespace DuiLib
 			if (pt.x > rcClient.right - rcSizeBox.right) return HTRIGHT;
 		}
 
+		// 控件边缘缩放宿主（TabLayout 等可只开 N 条边；与窗口 size-box 互补）
+		{
+			CControlUI* pHitCtrl = m_pm.FindControl(pt);
+			for (CControlUI* pWalk = pHitCtrl; pWalk != NULL; pWalk = pWalk->GetParent()) {
+				LRESULT ht = pWalk->HitWindowResize(pt);
+				if (ht != HTCLIENT) return ht;
+			}
+		}
+
 		// SidePanel fill-host：面板边缘缩放宿主（size-box 为 0 或未盖满客户区时补一刀）
 		{
 			CControlUI* pHitCtrl = m_pm.FindControl(pt);
@@ -415,6 +453,31 @@ namespace DuiLib
 		lpMMI->ptMaxTrackSize.y = m_pm.GetMaxSize().cy == 0 ? cyWork : m_pm.GetMaxSize().cy;
 		lpMMI->ptMinTrackSize.x = m_pm.GetMinSize().cx;
 		lpMMI->ptMinTrackSize.y = m_pm.GetMinSize().cy;
+
+		// SyncOwnerSize：本窗可缩范围不得小于 Owner 的 min-size（铺满时差为 0 → 与主窗同限）
+		if( m_bSyncOwnerSize && m_bHaveOwnerOffset ) {
+			HWND hOwner = ResolveSyncOwner();
+			if( hOwner != NULL ) {
+				SIZE oMin = { 0 }, oMax = { 0 };
+				QueryHwndTrackSize(hOwner, oMin, oMax);
+				const int selfMinW = oMin.cx - m_szOwnerDelta.cx;
+				const int selfMinH = oMin.cy - m_szOwnerDelta.cy;
+				if( selfMinW > lpMMI->ptMinTrackSize.x )
+					lpMMI->ptMinTrackSize.x = selfMinW > 1 ? selfMinW : 1;
+				if( selfMinH > lpMMI->ptMinTrackSize.y )
+					lpMMI->ptMinTrackSize.y = selfMinH > 1 ? selfMinH : 1;
+				if( oMax.cx > 0 ) {
+					const int selfMaxW = oMax.cx - m_szOwnerDelta.cx;
+					if( selfMaxW > 0 && lpMMI->ptMaxTrackSize.x > selfMaxW )
+						lpMMI->ptMaxTrackSize.x = selfMaxW;
+				}
+				if( oMax.cy > 0 ) {
+					const int selfMaxH = oMax.cy - m_szOwnerDelta.cy;
+					if( selfMaxH > 0 && lpMMI->ptMaxTrackSize.y > selfMaxH )
+						lpMMI->ptMaxTrackSize.y = selfMaxH;
+				}
+			}
+		}
 
 		bHandled = TRUE;
 		return 0;

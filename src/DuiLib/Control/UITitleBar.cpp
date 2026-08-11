@@ -233,6 +233,23 @@ namespace DuiLib
 			m_pLeft->SetBackgroundColor(0);
 			m_pLeft->SetBorderColor(0);
 			m_pLeft->SetBorderWidth(0);
+			// 左侧自定义图标钮（如 wallpaper）：跟系统钮同色，避免深色栏上发黑看不见
+			for( int i = 0; i < m_pLeft->GetCount(); ++i ) {
+				CControlUI* pChild = m_pLeft->GetItemAt(i);
+				if( pChild == NULL ) continue;
+				if( pChild->GetInterface(DUI_CTR_THEMESWITCHER) != NULL ) continue;
+				CButtonUI* pBtn = static_cast<CButtonUI*>(pChild->GetInterface(DUI_CTR_BUTTON));
+				if( pBtn == NULL ) continue;
+				if( pBtn->GetKind() != CONTROLKIND_NONE ) continue;
+				if( !pBtn->HasIcon() ) continue;
+				pBtn->SetIconTint(dwIcon);
+				pBtn->SetIconTintHover(dwIconHover);
+				pBtn->SetBackgroundColor(0);
+				pBtn->SetHoverBackgroundColor(dwHoverBk);
+				pBtn->SetActiveBackgroundColor(dwHoverBk);
+				pBtn->SetBorderColor(0);
+				pBtn->SetBorderWidth(0);
+			}
 		}
 	}
 

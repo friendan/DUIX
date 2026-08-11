@@ -291,9 +291,9 @@ namespace DuiLib
 		if( (uStyle & (DT_CENTER | DT_RIGHT)) == 0 )
 			uStyle |= DT_LEFT;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, GetFont(), uStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, GetFont(), uStyle);
 		else
-			ctx.DrawText(rc, sText.GetData(), clrColor, GetFont(), uStyle);
+			ctx.DrawText(rc, sText.GetData(), GetAdjustColor(clrColor), GetFont(), uStyle);
 	}
 
 	void CSwitchUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)

@@ -2228,10 +2228,10 @@ namespace DuiLib {
 
 		int nLinks = 0;
 		if (m_bShowHtml)
-			ctx.DrawHtmlText(rcText, sText.GetData(), m_dwColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(m_dwColor), \
 			NULL, NULL, nLinks, m_iFont, m_uTextStyle);
 		else
-			ctx.DrawText(rcText, sText.GetData(), m_dwColor, \
+			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(m_dwColor), \
 			m_iFont, m_uTextStyle);
 	}
 
@@ -2739,9 +2739,9 @@ namespace DuiLib {
 
 			int nLinks = 0;
 			if( bShowHtml )
-				ctx.DrawHtmlText(rcText, sText.GetData(), dwTextColor, NULL, NULL, nLinks, iFont, uStyle);
+				ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(dwTextColor), NULL, NULL, nLinks, iFont, uStyle);
 			else
-				ctx.DrawText(rcText, sText.GetData(), dwTextColor, iFont, uStyle);
+				ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(dwTextColor), iFont, uStyle);
 		}
 
 		m_rcPaint = rcOldPaint;
@@ -3014,7 +3014,7 @@ namespace DuiLib {
 			if( EnsureRasterTintCache(paint) && m_hRasterTint != NULL ) {
 				RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
 				RECT rcCorners = { 0, 0, 0, 0 };
-				ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true);
+				ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true, ScaleImageFade());
 				return;
 			}
 		}
@@ -3554,10 +3554,10 @@ namespace DuiLib {
 
 			}
 			if( pInfo->bShowHtml )
-				ctx.DrawHtmlText(rcItem, strText.GetData(), iTextColor, \
+				ctx.DrawHtmlText(rcItem, strText.GetData(), GetAdjustColor(iTextColor), \
 				&m_rcLinks[m_nLinks], &m_sLinks[m_nLinks], nLinks, pInfo->nFont, pInfo->uTextStyle);
 			else
-				ctx.DrawText(rcItem, strText.GetData(), iTextColor, \
+				ctx.DrawText(rcItem, strText.GetData(), GetAdjustColor(iTextColor), \
 				pInfo->nFont, pInfo->uTextStyle);
 
 			m_nLinks += nLinks;
@@ -3883,10 +3883,10 @@ namespace DuiLib {
 
 
 		if (pInfo->bShowHtml)
-			ctx.DrawHtmlText(rcText, sText.GetData(), iTextColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(iTextColor), \
 			NULL, NULL, nLinks, pInfo->nFont, pInfo->uTextStyle);
 		else
-			ctx.DrawText(rcText, sText.GetData(), iTextColor, \
+			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(iTextColor), \
 			pInfo->nFont, pInfo->uTextStyle);
 	}
 

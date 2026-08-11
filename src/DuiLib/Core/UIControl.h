@@ -69,6 +69,27 @@ namespace DuiLib {
 		/// 子类自有热态字段（如 color-hover）应重写并先判断自身再调基类。
 		virtual bool PreferClientHit() const;
 
+		/// 控件边缘缩放宿主 HWND（与窗口 html{size-box} 互补）。位：L=1 T=2 R=4 B=8。
+		enum {
+			WINDOW_RESIZE_LEFT   = 0x01,
+			WINDOW_RESIZE_TOP    = 0x02,
+			WINDOW_RESIZE_RIGHT  = 0x04,
+			WINDOW_RESIZE_BOTTOM = 0x08,
+			WINDOW_RESIZE_ALL    = 0x0F
+		};
+		void SetWindowResizeEdges(UINT uEdges);
+		UINT GetWindowResizeEdges() const;
+		/// 逻辑像素边厚（LTRB，同窗口 size-box）；0 表示该边不参与；命中时经 DPI Scale。
+		/// 已启用边若厚度为 0，回退窗口 GetSizeBox()。
+		void SetWindowSizeBox(RECT rc);
+		RECT GetWindowSizeBox() const;
+		/// 已启用边的有效热区厚度（DPI 后；未启用边为 0；启用但未写厚度时回退窗口 size-box / 默认 4,4,6,6）
+		RECT GetWindowResizeThickness() const;
+		/// 原生子 HWND 布局：按自身及祖先 `window-resize` 内缩，避免盖住父窗缩放热区（与窗口 size-box 互补）
+		void ApplyAncestorWindowResizeHostInset(RECT& rcHost) const;
+		/// 点在本控件矩形启用边上则返回 HTLEFT/…，否则 HTCLIENT。最大化跳过。
+		LRESULT HitWindowResize(POINT ptClient) const;
+
 		virtual bool Activate();
 		virtual CPaintManagerUI* GetManager() const;
 		virtual void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
@@ -104,6 +125,12 @@ namespace DuiLib {
 		void SetForeColor(DWORD dwForeColor);
 		LPCTSTR GetBackgroundImage();
 		void SetBackgroundImage(LPCTSTR pStrImage);
+		/// 从内存设背景图：PNG/JPEG/BMP/GIF；需已挂 Manager
+		bool SetBackgroundImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask = 0);
+		bool SetBackgroundImageFromSvg(const char* utf8Svg, size_t nBytes,
+			int width = 0, int height = 0, DWORD dwTintColor = 0);
+		bool SetBackgroundImageFromSvg(LPCTSTR pstrSvg,
+			int width = 0, int height = 0, DWORD dwTintColor = 0);
 		LPCTSTR GetHoverBackgroundImage() const;
 		void SetHoverBackgroundImage(LPCTSTR pStrImage);
 		LPCTSTR GetActiveBackgroundImage() const;
@@ -138,7 +165,30 @@ namespace DuiLib {
 		bool IsColorHSL() const;
 		void SetColorHSL(bool bColorHSL);
 		BYTE GetOpacity() const;
-		void SetOpacity(BYTE nOpacity);
+		virtual void SetOpacity(BYTE nOpacity);
+		/// 0~1 浮点；内部仍存 0~255
+		void SetOpacityF(float fOpacity01);
+		float GetOpacityF() const;
+		/// 设透明度；bIsolateFromParent=true 时同时断开祖先乘算（≡ opacity-isolate）
+		void SetOpacity(BYTE nOpacity, bool bIsolateFromParent);
+		void SetOpacityF(float fOpacity01, bool bIsolateFromParent);
+		/// 绘制时是否 × 祖先 opacity（默认 true）。false / opacity-isolate 则只看自身
+		bool IsOpacityInherit() const;
+		void SetOpacityInherit(bool bInherit);
+		/// 本控件 opacity 是否传给子孙（默认 true）。容器设 false 时子控件乘算会跳过本节点
+		bool IsOpacityPropagate() const;
+		void SetOpacityPropagate(bool bPropagate);
+		/// 绘制用透明度（已含继承规则）
+		BYTE GetEffectiveOpacity() const;
+		float GetEffectiveOpacityF() const;
+		/// 图片 fade 再乘有效透明度
+		UINT ScaleImageFade(UINT uFade = 255) const;
+
+		enum { WALLPAPER_BLEED_INHERIT = -1, WALLPAPER_BLEED_SOLID = -2 };
+		/// 壁纸透出：面板底色 alpha 系数（继承窗口值）。INHERIT / SOLID / 0~255
+		void SetWallpaperBleed(int nBleedOrSentinel);
+		int GetWallpaperBleed() const;
+		BYTE ResolveWallpaperBleedFactor() const;
 		SIZE GetBorderRadius() const; // CSS 圆角半径（非 GDI 椭圆直径）
 		void SetBorderRadius(SIZE cxyRound);
 		bool DrawImage(IRenderContext& ctx, LPCTSTR pStrImage, LPCTSTR pStrModify = NULL);
@@ -383,7 +433,11 @@ namespace DuiLib {
 		DWORD m_dwDisabledBorderColor;
 		UINT m_uControlState;
 		bool m_bColorHSL;
-		BYTE m_nOpacity; // CSS opacity，255=不透明；经 GetAdjustColor 调制 alpha
+		BYTE m_nOpacity; // 本控件 opacity，255=不透明
+		bool m_bOpacityInherit; // 默认 true：GetEffectiveOpacity × 祖先
+		bool m_bOpacityPropagate; // 默认 true：子孙乘算时计入本节点；false 则跳过
+		int m_iWallpaperBleed; // -1 继承窗口；-2 solid；0~255 本控件系数
+		int m_nPaintBackgroundDepth; // PaintBackgroundColor 期间对 GetAdjustColor 套 bleed
 		int m_nBorderWidth;
 		int m_nBorderStyle;
 		int m_nTooltipWidth;
@@ -391,6 +445,8 @@ namespace DuiLib {
 		SIZE m_cxyBorderRadius;
 		RECT m_rcPaint;
 		RECT m_rcBorderWidth;
+		UINT m_uWindowResizeEdges; // 0=关；WINDOW_RESIZE_*
+		RECT m_rcWindowSizeBox;    // 逻辑边厚 LTRB；0=该边用窗口 size-box 或禁用
 	    HINSTANCE m_instance;
 
 		CStdStringPtrMap m_mCustomAttrHash;

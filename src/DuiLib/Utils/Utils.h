@@ -438,6 +438,8 @@ namespace DuiLib
 	UILIB_API bool ParseColorStringToken(LPCTSTR& pstrInOut, DWORD& dwColor);
 	/// CSS opacity：`0.5` / `50%` / `128`（0–255 字节）→ 0–255
 	UILIB_API bool ParseCssOpacity(LPCTSTR pstrValue, BYTE& nOpacity);
+	/// 属性布尔：true/false、1/0、yes/no、on/off（大小写不敏感）
+	UILIB_API bool ParseAttrBool(LPCTSTR pstrValue, bool& bValue);
 	/// CSS font-weight → 是否粗体（bold/700+ / normal/400…）
 	UILIB_API bool ParseCssFontWeightBold(LPCTSTR pstrValue, bool& bBold);
 	/// CSS font-style → 是否斜体（italic/oblique / normal）

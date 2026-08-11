@@ -10,6 +10,8 @@ namespace DuiLib
 
 		void Init(CEditUI* pOwner);
 		RECT CalPos();
+		/// 控件析构前同步拆掉原生窗，避免异步 WM_CLOSE 访问已释放的 owner
+		void CloseAndDetach();
 
 		LPCTSTR GetWindowClassName() const;
 		LPCTSTR GetSuperClassName() const;
@@ -141,17 +143,32 @@ namespace DuiLib
 		return WC_EDIT;
 	}
 
+	void CEditWnd::CloseAndDetach()
+	{
+		m_bInit = false;
+		if( m_pOwner != NULL && m_pOwner->m_pWindow == this )
+			m_pOwner->m_pWindow = NULL;
+		m_pOwner = NULL;
+		if( ::IsWindow(m_hWnd) )
+			::DestroyWindow(m_hWnd); // 同步 OnFinalMessage → delete this
+		else
+			delete this;
+	}
+
 	void CEditWnd::OnFinalMessage(HWND hWnd)
 	{
-		m_pOwner->Invalidate();
-		// Clear reference and die
-		if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
-		if (m_pOwner->GetManager()->IsLayered()) {
-			m_pOwner->GetManager()->RemoveNativeWindow(hWnd);
+		if( m_hBkBrush != NULL ) {
+			::DeleteObject(m_hBkBrush);
+			m_hBkBrush = NULL;
 		}
-		// 可能已在 OnKillFocus 里提前摘掉，避免误清后来新建的 EditWnd
-		if( m_pOwner->m_pWindow == this )
-			m_pOwner->m_pWindow = NULL;
+		if( m_pOwner != NULL ) {
+			m_pOwner->Invalidate();
+			if( m_pOwner->GetManager() != NULL && m_pOwner->GetManager()->IsLayered() )
+				m_pOwner->GetManager()->RemoveNativeWindow(hWnd);
+			// 可能已在 OnKillFocus / CloseAndDetach 里提前摘掉
+			if( m_pOwner->m_pWindow == this )
+				m_pOwner->m_pWindow = NULL;
+		}
 		delete this;
 	}
 
@@ -255,6 +272,8 @@ namespace DuiLib
 			if( m_pOwner->m_pWindow == this )
 				m_pOwner->m_pWindow = NULL;
 			m_pOwner->Invalidate();
+			// 异步 WM_CLOSE 前断开 owner：列表可能已删掉 CEditUI
+			m_pOwner = NULL;
 		}
 
 		LRESULT lRes = ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
@@ -292,6 +311,15 @@ namespace DuiLib
 		SetBackgroundColor(0xFFFFFFFF);
 	}
 
+	CEditUI::~CEditUI()
+	{
+		if( m_pWindow != NULL ) {
+			CEditWnd* pWnd = m_pWindow;
+			m_pWindow = NULL;
+			pWnd->CloseAndDetach();
+		}
+	}
+
 	LPCTSTR CEditUI::GetClass() const
 	{
 		return _T("EditUI");
@@ -301,6 +329,40 @@ namespace DuiLib
 	{
 		if( _tcsicmp(pstrName, DUI_CTR_EDIT) == 0 ) return static_cast<CEditUI*>(this);
 		return CLabelUI::GetInterface(pstrName);
+	}
+
+	bool CEditUI::CanHostNativeEdit() const
+	{
+		return GetEffectiveOpacity() >= 255;
+	}
+
+	void CEditUI::DismissNativeEdit()
+	{
+		if( m_pWindow == NULL ) return;
+		CEditWnd* pWnd = m_pWindow;
+		// 回写文本（与 KillFocus 一致）
+		HWND hWnd = pWnd->GetHWND();
+		if( hWnd != NULL && ::IsWindow(hWnd) ) {
+			int cchLen = ::GetWindowTextLength(hWnd) + 1;
+			LPTSTR pstr = static_cast<LPTSTR>(_alloca(cchLen * sizeof(TCHAR)));
+			if( pstr != NULL ) {
+				::GetWindowText(hWnd, pstr, cchLen);
+				if( m_sText != pstr ) {
+					m_sText = pstr;
+					OnNativeEditChanged();
+				}
+			}
+		}
+		m_pWindow = NULL;
+		pWnd->CloseAndDetach();
+		Invalidate();
+	}
+
+	void CEditUI::SetOpacity(BYTE nOpacity)
+	{
+		CControlUI::SetOpacity(nOpacity);
+		if( !CanHostNativeEdit() )
+			DismissNativeEdit();
 	}
 
 	UINT CEditUI::GetControlFlags() const
@@ -333,6 +395,10 @@ namespace DuiLib
 		if( event.Type == UIEVENT_SETFOCUS && IsEnabled() ) 
 		{
 			if( m_pWindow ) return;
+			if( !CanHostNativeEdit() ) {
+				Invalidate();
+				return;
+			}
 			m_pWindow = new CEditWnd();
 			ASSERT(m_pWindow);
 			m_pWindow->Init(this);
@@ -348,15 +414,20 @@ namespace DuiLib
 				GetManager()->ReleaseCapture();
 				if( IsFocused() && m_pWindow == NULL )
 				{
-					m_pWindow = new CEditWnd();
-					ASSERT(m_pWindow);
-					m_pWindow->Init(this);
+					if( CanHostNativeEdit() ) {
+						m_pWindow = new CEditWnd();
+						ASSERT(m_pWindow);
+						m_pWindow->Init(this);
 
-					if( PtInRect(&m_rcItem, event.ptMouse) )
-					{
-						int nSize = GetWindowTextLength(*m_pWindow);
-						if( nSize == 0 ) nSize = 1;
-						Edit_SetSel(*m_pWindow, 0, nSize);
+						if( PtInRect(&m_rcItem, event.ptMouse) )
+						{
+							int nSize = GetWindowTextLength(*m_pWindow);
+							if( nSize == 0 ) nSize = 1;
+							Edit_SetSel(*m_pWindow, 0, nSize);
+						}
+					}
+					else {
+						Invalidate();
 					}
 				}
 				else if( m_pWindow != NULL )
@@ -750,6 +821,10 @@ namespace DuiLib
 
 	void CEditUI::PaintText(IRenderContext& ctx)
 	{
+		// 祖先/自身 opacity 变半透明时拆掉原生窗，改自绘
+		if( m_pWindow != NULL && !CanHostNativeEdit() )
+			DismissNativeEdit();
+
 		// 聚焦且原生 Edit 仍在时由 WC_EDIT 绘制；否则自绘。
 		// 走 ctx.DrawText（与 Label 一致），避免 GetDC+圆角裁剪栈导致文字画不上。
 		if( m_pWindow != NULL ) return;
@@ -790,6 +865,6 @@ namespace DuiLib
 		if( rc.right < rc.left + 4 ) rc.right = rc.left + 4;
 
 		DWORD clrColor = IsEnabled() ? mCurTextColor : m_dwDisabledColor;
-		ctx.DrawText(rc, sDrawText.GetData(), clrColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sDrawText.GetData(), GetAdjustColor(clrColor), m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 }

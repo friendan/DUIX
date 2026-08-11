@@ -360,9 +360,9 @@ namespace DuiLib
 			DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 			
 			if( m_bShowHtml )
-				ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, iFont, m_uTextStyle);
+				ctx.DrawHtmlText(rc, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, iFont, m_uTextStyle);
 			else
-				ctx.DrawText(rc, sText.GetData(), clrColor, iFont, m_uTextStyle);
+				ctx.DrawText(rc, sText.GetData(), GetAdjustColor(clrColor), iFont, m_uTextStyle);
 
 			m_dwColor = oldTextColor;
 		}
@@ -638,9 +638,9 @@ namespace DuiLib
 		if( (uStyle & (DT_CENTER | DT_RIGHT)) == 0 )
 			uStyle |= DT_LEFT;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, NULL, NULL, nLinks, GetFont(), uStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, GetFont(), uStyle);
 		else
-			ctx.DrawText(rc, sText.GetData(), clrColor, GetFont(), uStyle);
+			ctx.DrawText(rc, sText.GetData(), GetAdjustColor(clrColor), GetFont(), uStyle);
 	}
 
 	static bool ParseCheckColorAttr(LPCTSTR pstrValue, DWORD& dwColor)

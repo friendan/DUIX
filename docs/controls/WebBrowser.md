@@ -42,7 +42,7 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 |------|------|
 | `engine` | `webview2` / `ie` / `cef`；省略则优先 webview2（若编译启用）否则 ie |
 | `engine-fallback` | `true`（默认）时创建失败回退 `ie` |
-| `host` / `host-mode` | WebView2 宿主：`window`（默认，内核子 HWND）/ `composition`（DComp Visual + 合成宿主窗）；别名 `hwnd` / `compose` / `visual`。composition 失败自动回退 window |
+| `host` / `host-mode` | WebView2：`window`（默认）/ `composition`；外接 CEF 离屏：`osr` / `offscreen`（别名）。composition 失败自动回退 window |
 | `home-page` | 主页 URL；同时作为尚未导航时的 `GetLocationUrl` 回落 |
 | `auto-navi` | `true` 时创建后自动导航到 `home-page` |
 | `user-data-folder` | WebView2 用户数据目录（可选） |
@@ -53,8 +53,9 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 |--------|------|------|
 | `window` | `CreateCoreWebView2Controller`，内核自带子 HWND | **默认**，实现简单、与 TabLayout 显隐配合稳 |
 | `composition` | `CompositionController` + 独立 DComp 宿主窗 + `SendMouseInput` | 更好贴近合成路径；**不是**每帧拷像素进 DuiLib D2D 位图 |
+| `osr` / `offscreen` | 无子 HWND；门面 `DoPaint`/`DoEvent` 转引擎 | **给外接 CEF 等用**；内置 WebView2/IE 忽略。**半透明 `opacity` 只能走此路径**（`BlitWebBrowserOsrBuffer(..., pOwner->ScaleImageFade())`） |
 
-分层窗注意：composition 使用**独立子 HWND** 做 DComp Target，避免与 DuiLib 分层主窗的 DComp 根冲突；仍非「画进 `DoPaint`」。
+分层窗注意：composition 使用**独立子 HWND** 做 DComp Target，避免与 DuiLib 分层主窗的 DComp 根冲突；仍非「画进 `DoPaint`」。真·像素进控件树请用 `osr` + 外接引擎。`host=window` / `composition` 的网页内容在独立 HWND 内，**不受控件 `opacity` 影响**。
 
 ### C++ API（常用）
 
@@ -65,7 +66,7 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 | `SetHomePage` / `GetHomePage` | 主页 |
 | `SetLocationUrl` / `GetLocationUrl` | 当前地址缓存：`NavigateUrl` 写入；导航完成建议再用 `SetLocationUrl`；空则回落 `HomePage` |
 | `Navigate2` / `NavigateUrl` / `NavigateHomePage` | 导航（会更新 `LocationUrl`） |
-| `SetPos` | 布局；引擎 HWND 会避开窗口 `size-box`（默认约 4–6px，皮肤可设 `size-box: 5,5,5,5`），以免盖住拖拽缩放热区 |
+| `SetPos` | 布局；原生宿主 HWND 会避开窗口 `size-box`（LTRB）以及自身/祖先的 `window-resize` 热区，以免盖住缩放。Demo `browser.html`：窗口 `size-box: 0` + `TabLayout`/`root` 的 `window-resize`（仅热区数像素内缩，非整圈大留白） |
 | `GoBack` / `GoForward` / `Refresh` / `Refresh2` | 历史与刷新（`Refresh2` 仅 IE） |
 | `CanGoBack` / `CanGoForward` | 历史栈是否可退/可进 |
 | `Stop` | 停止加载 |
@@ -118,7 +119,7 @@ CMake 选项 `DUILIB_USE_WEBVIEW2`（默认 ON）。SDK 路径：
 
 ### 扩展 CEF / 其它引擎
 
-内置 `engine="cef"` 仅为 **stub**（`Create` 失败）。正式 CEF 由应用实现 `IWebBrowserEngine` 并注册：
+内置 `engine="cef"` 仅为 **stub**（`Create` 失败）。正式 CEF 由应用实现 `IWebBrowserEngine` 并注册（**库不链 CEF**）：
 
 ```cpp
 // 1) 进程级：CefInitialize / 多进程入口由应用负责（不在 DuiLib 内）
@@ -128,7 +129,10 @@ CWebBrowserEngineFactory::Instance().Register(_T("cef"), MyCreateCefEngine);
 // 或启动极早时先 Register("cef", ...)，再任意 Create —— builtin 不会覆盖
 
 // 3) 皮肤 / 代码
-// <WebBrowser engine="cef" engine-fallback="false" ... />
+// 窗口化：
+// <WebBrowser engine="cef" engine-fallback="false" host="window" ... />
+// OSR：
+// <WebBrowser engine="cef" engine-fallback="false" host="osr" ... />
 ```
 
 外接引擎建议实现（接口均有默认空实现，可按需覆盖）：
@@ -139,10 +143,43 @@ CWebBrowserEngineFactory::Instance().Register(_T("cef"), MyCreateCefEngine);
 | `DoMessageLoopWork` | UI 空闲调用 `CefDoMessageLoopWork`（或等价泵） |
 | `OnLoadError` / `OnDownloadStarting` / `OnFaviconChanged` | 与壳 Demo 对齐 |
 | `GetNative` | 返回 `CefBrowser*` 等逃生舱 |
+| `IsOffScreen` / `PaintOffScreen` / `HandleEvent` | **OSR**：见下节 |
+| `BlitWebBrowserOsrBuffer` | 自由函数：BGRA → `IRenderContext`（CEF `OnPaint` 缓冲可直接贴） |
 
-窗口化子 HWND：`Create(pOwner, hParent, rc)` + `SetPos`/`SetVisible` 即可；OSR 合成进 DuiLib 需自建绘制，当前接口未提供 `OnPaint` 钩子。
+窗口化子 HWND：`Create(pOwner, hParent, rc)` + `SetPos`/`SetVisible` 即可。
 
 `Register` = 覆盖；`RegisterIfAbsent` = 仅空位写入（内置引擎用）。
+
+### CEF OSR（离屏）接入要点
+
+库只提供桥，不实现 CEF：
+
+1. `IsOffScreen()` 返回 `true`；`GetHostWindow()` 可 `NULL`
+2. CEF `OnPaint` 拷贝 BGRA 后：`pOwner->Invalidate()`（`pOwner` 即 `Create` 传入的控件）
+3. `PaintOffScreen` 里调用 `BlitWebBrowserOsrBuffer(..., stride, true, m_pOwner->ScaleImageFade())`（跟随控件 `opacity`）
+4. `HandleEvent` 把 `TEventUI`（鼠标/滚轮/键盘/焦点）转成 `CefBrowserHost::Send*Event`；相对坐标 = `ptMouse - rcItem.left/top`
+5. 皮肤 `host="osr"`：门面打开鼠标/键盘与 Tab 焦点；`SetPos` **不**再为 size-box 收缩矩形
+6. 消息循环空闲：`pWeb->DoMessageLoopWork()` → 你的 `CefDoMessageLoopWork`
+
+```cpp
+class MyCefOsrEngine : public IWebBrowserEngine {
+public:
+	bool IsOffScreen() const override { return true; }
+	HWND GetHostWindow() const override { return NULL; }
+	bool PaintOffScreen(IRenderContext& ctx, const RECT& rcPaint) override {
+		if( !m_pBuf || !m_pOwner ) return false;
+		return BlitWebBrowserOsrBuffer(ctx, m_rc, rcPaint, m_pBuf, m_w, m_h, m_stride,
+			true, m_pOwner->ScaleImageFade());
+	}
+	bool HandleEvent(TEventUI& e) override {
+		// SendMouseClickEvent / SendMouseMoveEvent / SendKeyEvent …
+		return true;
+	}
+	// CefRenderHandler::OnPaint → 写 m_pBuf 后 m_pOwner->Invalidate();
+};
+```
+
+高频场景可自建缓存纹理，不必每帧走 `BlitWebBrowserOsrBuffer`（该辅助每次建临时 DIB，简单但非最优）。
 
 ### Demo
 

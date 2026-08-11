@@ -40,6 +40,8 @@ namespace DuiLib
 	{
 		m_uTextStyle = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
 		SetKind(CONTROLKIND_DEFAULT);
+		// 可点按钮默认手型光标；皮肤可用 cursor="arrow" 覆盖
+		SetCursor(DUI_HAND);
 	}
 
 	CButtonUI::~CButtonUI()
@@ -562,9 +564,9 @@ namespace DuiLib
 		}
 
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rcText, sText.GetData(), clrColor, NULL, NULL, nLinks, iFont, uStyle);
+			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, iFont, uStyle);
 		else
-			ctx.DrawText(rcText, sText.GetData(), clrColor, iFont, uStyle);
+			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(clrColor), iFont, uStyle);
 	}
 
 	void CButtonUI::PaintBackgroundColor(IRenderContext& ctx)
@@ -718,10 +720,6 @@ namespace DuiLib
 		SetActiveBackgroundColor(active.dwBackgroundColor);
 		SetActiveColor(active.dwColor);
 		SetActiveBorderColor(active.dwBorderColor);
-
-		if (kind == CONTROLKIND_LINK) {
-			SetCursor(DUI_HAND);
-		}
 	}
 
 	void CButtonUI::SetOutline(bool bOutline)
@@ -979,7 +977,7 @@ namespace DuiLib
 			if( EnsureRasterTintCache(paint) && m_hRasterTint != NULL ) {
 				RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
 				RECT rcCorners = { 0, 0, 0, 0 };
-				ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true);
+				ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true, ScaleImageFade());
 				return;
 			}
 		}

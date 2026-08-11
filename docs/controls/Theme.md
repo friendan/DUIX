@@ -27,6 +27,8 @@ root（`body`/`VBox`）上仍可写 `theme`，会覆盖 html 级默认。
 皮肤内切换：[`ThemeSwitcher`](ThemeSwitcher.md)（弹出预览窗；支持新建/编辑色值与另存主题文件）。
 
 写出主题文件：`SaveThemeFile(pTheme, path)`（与 `ApplyThemeFile` 对称的 `:root` 格式）。  
+`LoadThemeFile(path)`：只注册不切换（启动批量加载用户主题用）；`ApplyThemeFile` = Load + 正式 Apply。  
+选择窗侧见 [`ThemeSwitcher`](ThemeSwitcher.md) 的 `AddThemeFile` / `themefilesaved`。
 变更监听：`AddThemeNotify(IThemeNotifyUI*)`，`OnThemeChanged(old, new, bPreview)`——落盘当前 id 时忽略 `bPreview==true`。
 
 ### 继承规则

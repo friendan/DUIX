@@ -28,11 +28,38 @@
 | `cursor` | Win32 名 + CSS：`pointer`/`text`/`default`/`not-allowed`/`*-resize`/`move`/`crosshair`… |
 | `class` / `style` | 引用 `<Default name=…>` 命名样式（`class` 为别名） |
 | `pointer-events` | `none`/`auto`（旧名 `mouse` 仍可用） |
-| `opacity` | `0–1` / `%` / `0–255`；经 `GetAdjustColor` 调制绘制色 alpha |
+| `opacity` / `alpha` | `0–1` / `%` / `0–255`。默认 **子乘祖先**（父设一次即可）。见下方用法 |
+| `opacity-inherit` | 默认 `true`；`false`/`no`/`off`/`0` 不乘祖先 |
+| `opacity-isolate` | `true` ≡ 不继承父（只看自身） |
+| `opacity-propagate` / `child-opacity-inherit` | 默认 `true`；父设 `false`：自己可淡、子孙乘算时跳过本节点 |
+| `wallpaper-bleed` / `bg-bleed` | 壁纸透出系数；`inherit`/`auto` 跟窗口；`solid`/`opaque`/`none`/`false` 本控件不透；数值同 `opacity`。仅影响**背景色**绘制 |
+| API | `SetBackgroundImageFromMemory`（PNG/JPEG/BMP/GIF，可识别 SVG 文本）、`SetBackgroundImageFromSvg` |
 | `title` / `tooltip` | 提示（`title` 为别名；Accordion/Tab 等自有 `title` 仍为标题） |
 | `draggable` / `drag` | 可拖拽 |
 | `accesskey` / `shortcut` | 快捷键字符 |
 | `contextmenu` / `menu` | 是否使用右键菜单 |
+
+**opacity 用法速查**
+
+```xml
+<!-- 整树一起淡 -->
+<VBox opacity="0.5"> … </VBox>
+
+<!-- 子控件不跟父 -->
+<Button opacity-isolate="true" opacity="1" />
+
+<!-- 只淡容器底，子保持不透明 -->
+<VBox opacity="0.4" opacity-propagate="false"> … </VBox>
+```
+
+```cpp
+p->SetOpacityF(0.5f);           // 跟父乘算（默认 inherit）
+p->SetOpacityF(1.f, true);      // 同时 isolate，不受父影响
+p->SetOpacityPropagate(false);  // 容器：不向下传
+float a = p->GetEffectiveOpacityF();
+```
+
+**Edit**：有效透明度 <255 时禁用原生 `WC_EDIT`。**RichEdit** / **WebBrowser OSR**：贴图乘 fade。
 
 ### 部分接近（命名或伪类形式）
 
@@ -50,6 +77,8 @@
 
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
+| `window-resize` | 控件边缩放宿主 HWND：`true`/`all`；`false`/`none`；或边名列表 `left,top,right,bottom`（可 `l,t,r,b`，无顺序要求）。子控件命中沿父链（适合 TabLayout）。含原生子 HWND 的控件（如 WebBrowser）会按祖先热区内缩，避免盖住右/下边 | 无 |
+| `window-size-box` | 四边热区厚度，顺序为 **左,上,右,下（LTRB）**，与窗口 `size-box` 相同；**不是** CSS `margin`/`padding` 的上右下左。例：`0,0,6,6` = 仅右、下各 6px。某边 `>0` 自动启用该边（若未写 `window-resize`）；已启用边厚度为 `0` 时回退窗口 `size-box`。最大化跳过 | 无 |
 | `inner-style` | 内联属性列表字符串 | HTML `style`（命名相反） |
 | `position-align` | 绝对子控件相对父级对齐 | 无；接近绝对定位 + inset/transform 组合 |
 | `fore-color` | — | 无（额外着色层） |

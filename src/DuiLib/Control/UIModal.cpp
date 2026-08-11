@@ -344,10 +344,26 @@ namespace DuiLib {
 		RECT rcWork = mi.rcWork;
 		if( pOutWork ) *pOutWork = rcWork;
 
-		int aw = rcWork.right - rcWork.left;
-		int ah = rcWork.bottom - rcWork.top;
-		int x = rcWork.left + (aw - w) / 2;
-		int y = rcWork.top + (ah - h) / 3;
+		int x = 0, y = 0;
+		RECT rcOwner = { 0 };
+		if( hOwner && ::IsWindow(hOwner) && ::GetWindowRect(hOwner, &rcOwner) ) {
+			// 相对主窗（Owner）居中
+			x = rcOwner.left + ((rcOwner.right - rcOwner.left) - w) / 2;
+			y = rcOwner.top + ((rcOwner.bottom - rcOwner.top) - h) / 2;
+		}
+		else {
+			int aw = rcWork.right - rcWork.left;
+			int ah = rcWork.bottom - rcWork.top;
+			x = rcWork.left + (aw - w) / 2;
+			y = rcWork.top + (ah - h) / 2;
+		}
+
+		// 夹在工作区内，避免主窗靠边时对话框出屏
+		if( x + w > rcWork.right ) x = rcWork.right - w;
+		if( y + h > rcWork.bottom ) y = rcWork.bottom - h;
+		if( x < rcWork.left ) x = rcWork.left;
+		if( y < rcWork.top ) y = rcWork.top;
+
 		::SetWindowPos(m_hWnd, HWND_TOPMOST, x, y, w, h, SWP_NOACTIVATE);
 	}
 

@@ -1,8 +1,11 @@
-<html theme="chrome">
+<html theme="chrome" wallpaper-bleed="0.72">
     <VBox name="root">
         <TitleBar name="titlebar" title="title" height="40"
             show-min="true" show-max="true" show-close="true" action="title">
             <Spacer />
+            <Button name="btn_wallpaper" lucide="image" width="36" height="40"
+                tooltip="选择窗口背景图（wallpaper-bleed 透出）"
+                margin="0,4,0,0" wallpaper-bleed="solid" kind="none" />
             <ThemeSwitcher name="themeSwitch" width="36" height="40"
                 tooltip="选择主题" margin="0,8,0,0" />
         </TitleBar>
@@ -33,7 +36,7 @@
             </VBox>
 
             <!-- 右侧：透明底，露出窗口 color-bg -->
-            <TabLayout name="tab_demo" selected-id="0" padding="0,4,0,0">
+            <TabLayout name="tab_demo" selected-id="0">
                 <!-- 0 基础 -->
                 <Accordion mode="single" header-height="40">
                     <AccordionItem title="Button" active="false" header-align="left">
@@ -218,11 +221,18 @@
                       </HBox>
                     </AccordionItem>
                     <AccordionItem title="Theme" active="false" header-align="left">
-                      <VBox height="280" gap="10" padding="8,12,8,12">
+                      <VBox height="320" gap="10" padding="8,12,8,12">
                         <Label theme="secondary" text="标题栏右侧 ThemeSwitcher 可换主题；此处可禁用主题并查看当前 id" height="22" />
                         <HBox height="36" gap="8" align-items="vcenter">
                           <Button name="btn_theme_toggle" text="禁用主题" kind="warning" width="100" height="32" />
                           <Label name="theme_current" text="当前: default" kind="link" />
+                        </HBox>
+                        <Label theme="secondary" text="窗口背景图：html 已开 wallpaper-bleed=0.72，选图后面板半透出壁纸" height="22" />
+                        <HBox height="36" gap="8" align-items="vcenter">
+                          <Button name="btn_wallpaper_pick" text="选择背景图" kind="primary" width="110" height="32"
+                              lucide="image" icon-position="left" icon-size="16" />
+                          <Button name="btn_wallpaper_clear" text="清除背景" kind="default" width="100" height="32" />
+                          <Label name="wallpaper_path" theme="secondary" text="未设置" />
                         </HBox>
                         <HBox height="36" gap="8" align-items="vcenter">
                           <Button text="Primary" kind="primary" width="80" height="32" />

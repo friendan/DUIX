@@ -123,6 +123,7 @@ namespace DuiLib
 #define DUI_MSGTYPE_TEXTROLLEND 			(_T("textrollend"))
 #define DUI_MSGTYPE_COLORCHANGING		    (_T("colorchanging"))
 #define DUI_MSGTYPE_COLORCHANGED		    (_T("colorchanged"))
+#define DUI_MSGTYPE_THEMEFILESAVED		    (_T("themefilesaved"))
 
 #define DUI_MSGTYPE_LISTITEMSELECT 		   	(_T("listitemselect"))
 #define DUI_MSGTYPE_LISTITEMCHECKED 		(_T("listitemchecked"))

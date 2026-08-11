@@ -8,15 +8,17 @@
 namespace DuiLib
 {
 	/// CEF 占位引擎：Create 失败。应用应 Register("cef", MyCreate) 覆盖（builtin 不会盖掉已注册实现）。
-	/// 外接实现建议覆盖：Stop / GetUrl / ExecuteScript / DoMessageLoopWork（CefDoMessageLoopWork），
-	/// 并通过 SetHostEvents 上报 OnLoadError / OnDownloadStarting / OnFaviconChanged 等。
+	/// 窗口化：Create 挂子 HWND 即可。
+	/// OSR：IsOffScreen=true，PaintOffScreen 用 BlitWebBrowserOsrBuffer，HandleEvent 转发输入；
+	/// 帧就绪后 pOwner->Invalidate()；空闲泵 DoMessageLoopWork（CefDoMessageLoopWork）。
+	/// 宿主事件：SetHostEvents → OnLoadError / OnDownloadStarting / OnFaviconChanged 等。
 	class CWebBrowserCefEngine : public IWebBrowserEngine
 	{
 	public:
 		virtual LPCTSTR GetName() const { return _T("cef"); }
 		virtual bool Create(CControlUI* /*pOwner*/, HWND /*hParent*/, const RECT& /*rc*/)
 		{
-			OutputDebugString(_T("DuiLib: CEF engine stub — Register your IWebBrowserEngine via CWebBrowserEngineFactory::Register(\"cef\", ...).\n"));
+			OutputDebugString(_T("DuiLib: CEF engine stub — Register your IWebBrowserEngine via CWebBrowserEngineFactory::Register(\"cef\", ...). OSR: IsOffScreen/PaintOffScreen/HandleEvent.\n"));
 			return false;
 		}
 		virtual void Destroy() {}

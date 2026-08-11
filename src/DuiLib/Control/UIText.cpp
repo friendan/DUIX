@@ -157,8 +157,8 @@ namespace DuiLib
 
 		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rc, sText.GetData(), clrColor, m_rcLinks, m_sLinks, m_nLinks, m_iFont, m_uTextStyle);
+			ctx.DrawHtmlText(rc, sText.GetData(), GetAdjustColor(clrColor), m_rcLinks, m_sLinks, m_nLinks, m_iFont, m_uTextStyle);
 		else
-			ctx.DrawText(rc, sText.GetData(), clrColor, m_iFont, m_uTextStyle);
+			ctx.DrawText(rc, sText.GetData(), GetAdjustColor(clrColor), m_iFont, m_uTextStyle);
 	}
 }

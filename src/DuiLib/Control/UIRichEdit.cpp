@@ -2289,9 +2289,14 @@ err:
 						0);
 
 					::SetWindowOrgEx(hMem, ptOrg.x, ptOrg.y, NULL);
-					ctx.StretchBlit(hMem, rc.left, rc.top, nW, nH, 0, 0, nW, nH, COLORONCOLOR);
 					::SelectObject(hMem, hOld);
 					::DeleteDC(hMem);
+					// 乘控件 opacity（含祖先）；勿用 StretchBlit（不带 fade）
+					{
+						RECT rcBmpPart = { 0, 0, nW, nH };
+						RECT rcCorners = { 0, 0, 0, 0 };
+						ctx.DrawImage(hBmp, rc, m_rcPaint, rcBmpPart, rcCorners, true, ScaleImageFade());
+					}
 					pDev->DestroyPixelBuffer(pNative);
 				}
 			}
@@ -2401,7 +2406,7 @@ err:
 			UINT uTextAlign = GetPlaceholderAlign();
 			if(IsMultiLine()) uTextAlign |= DT_TOP;
 			else uTextAlign |= DT_VCENTER;
-			ctx.DrawText(rc, sPlaceholder.GetData(), dwColor, m_iFont, uTextAlign);
+			ctx.DrawText(rc, sPlaceholder.GetData(), GetAdjustColor(dwColor), m_iFont, uTextAlign);
 		}
 		return true;
 	}

@@ -60,16 +60,16 @@ p->ExportToFile(_T("C:\\out\\icon.png"));
 p->ExportToFile(_T("C:\\out\\icon.jpg"), 128, 128, (DWORD)-1, 90);
 p->ExportToFile(_T("C:\\out\\raw.bmp"), 48, 48, 0); // 0=不着色
 
-// ICO 专用（推荐）：默认 16/32/48/256/512，PNG-in-ICO，保留透明
+// ICO 专用（推荐）：默认 16/24/32/48/64/128/256，PNG-in-ICO，保留透明
 p->ExportToIcoFile(_T("C:\\out\\app.ico"));
-const int sizes[] = { 16, 24, 32, 48, 64, 256, 512 };
-p->ExportToIcoFile(_T("C:\\out\\app.ico"), sizes, 7);
+const int sizes[] = { 16, 32, 48, 256 }; // 也可自定义（单边≤512）
+p->ExportToIcoFile(_T("C:\\out\\app.ico"), sizes, 4);
 ```
 
 | API | 说明 |
 |-----|------|
 | `ExportToFile` | PNG / JPG / BMP；若路径为 `.ico`：未指定尺寸 → 等同 `ExportToIcoFile` 默认多尺寸；指定宽或高 → 单尺寸正方形 |
-| `ExportToIcoFile(path)` | **文件图标推荐**；默认 16/32/48/256/512 |
+| `ExportToIcoFile(path)` | **Windows 壳图标推荐**；标准七档 16/24/32/48/64/128/256，系统按场景选用 |
 | `ExportToIcoFile(path, sizes, count)` | 自定义边长列表（≤512，去重；≥256 在目录项里宽高写 0，真实尺寸在 PNG） |
 
 `dwTintColor`：`(DWORD)-1` 用 `GetPaintColor()`；`0` 不着色。JPEG 叠白底无透明；ICO/PNG 保留 alpha。

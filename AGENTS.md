@@ -27,6 +27,7 @@ docs/controls/ 控件用法知识库（按控件一篇，勿堆本文件）
 - 窗口级属性：[Window.md](docs/controls/Window.md)
 - 各控件：同目录下对应 `*.md`（如 [TabBar](docs/controls/TabBar.md)）
 - 颜色主题：[Theme.md](docs/controls/Theme.md)（`CTheme` / 内置 azure 等）
+- 自定义控件：[CustomControl.md](docs/controls/CustomControl.md)
 
 **本文件只保留构建、环境与渲染硬约束**，勿再往此处堆属性清单。
 
@@ -84,6 +85,7 @@ build_clang_ninja_release.bat
 - C++ 标准：C++11
 - CRT：Debug `/MTd`，Release `/MT`
 - 预定义宏：`CMAKE`, `UNICODE`, `_UNICODE`
+- **字符集：仅 Unicode**。CMake 已强制 `-DUNICODE -D_UNICODE`；[`src/DuiLib/StdAfx.h`](src/DuiLib/StdAfx.h) 对非 Unicode 直接 `#error`。禁止再维护 ANSI / MultiByte 皮肤或字符串副本（内嵌皮肤用 `LR"..."`）
 - 输出目录：`bin/`（exe、dll、lib 统一输出；后缀 `_mtd` / `_mt`）
 
 ## 渲染后端

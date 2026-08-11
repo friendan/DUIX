@@ -31,6 +31,7 @@ private:
 	void ApplyTint(DWORD dwColor, bool bNoTint);
 	void SyncPreview();
 	void SyncFormatHint();
+	void SyncSizeUiForFormat();
 	void SyncDirLabel();
 	void SyncSourceLabels();
 	void SetSizeEdits(int w, int h);

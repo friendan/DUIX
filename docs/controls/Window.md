@@ -14,7 +14,28 @@
 |------|------|
 | `border-radius` | 窗口圆角（CSS 半径：`12`/`12px` 或 `rx,ry`）。控件上同名属性是控件自身圆角 |
 | `opacity` / `alpha` | 窗口透明度（`0–1` / `%` / `0–255`） |
-| `background-color` | 客户区背景色 |
+| `wallpaper-bleed` / `bg-bleed` | 壁纸透出：根有 `background-image` 时，控件**底色** alpha × 此系数（`0–1` / `%` / `0–255`）。`false`/`none`/`solid`=关。默认关（255） |
+| `wallpaper-bleed-need-image` / `bg-bleed-need-image` | 默认 `true`：仅当根有背景图才透出；`false` 时只要设了 bleed 就对底色生效 |
+| `background-color` | 客户区背景色（落到 root；root 已有底色则不覆盖） |
+| `background-image` | 客户区背景图（落到 root；`url(...)` / 裸路径；root 已有背景图则不覆盖）。与 `wallpaper-bleed` 配合可透出壁纸 |
+
+C++（窗口级，`CPaintManagerUI`）：
+
+```cpp
+m_pm.SetWindowBackgroundImage(_T("skin/bg.png"));
+m_pm.SetWindowBackgroundImageFromMemory(pPng, cb);           // PNG/JPEG/BMP/GIF；亦识别 SVG 文本
+m_pm.SetWindowBackgroundImageFromSvg(utf8Svg, nBytes, 1280, 800); // 显式 SVG 栅格
+m_pm.SetWindowBackgroundImageFromSvg(_T("<svg .../>"), 0, 0);     // 固有尺寸
+```
+
+控件级（任意 `CControlUI`，需已挂 Manager）：
+
+```cpp
+pCtrl->SetBackgroundImageFromMemory(pData, cb);
+pCtrl->SetBackgroundImageFromSvg(utf8, n, 256, 256);
+```
+
+SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。 |
 | `default-font-color` / `disabled-font-color` / `link-font-color` / `link-hover-font-color` | 默认文字色（`ParseColorString`）；`color` 为 `default-font-color` 别名 |
 | `font-family` / `font-size` / `font-weight` / `font-style` / `text-decoration` | 改写默认字体（同 `<Font default>`）。未指定时框架默认为 **微软雅黑 12** |
 | `selected-color` | 默认选中**背景**色 |
@@ -31,7 +52,7 @@
 
 | 属性 | 说明 |
 |------|------|
-| `size-box` | 可拖拽缩放边距 RECT |
+| `size-box` | 窗口客户区缩放热区厚度，四值顺序 **左,上,右,下（LTRB）**（例 `4,4,6,6`）；**不是** CSS 上右下左。某边 `0` 则该边不缩；可与控件 `window-resize` / `window-size-box` 分工 |
 | `caption` | 标题拖拽区 RECT |
 | `layered` | 分层窗口 |
 | `layered-opacity` | 分层整体透明度 `0`–`255` |
@@ -40,6 +61,25 @@
 | `default-font-color` / `disabled-font-color` / `link-font-color` / `link-hover-font-color` | 默认/链接字体色 |
 | `selected-color` | 默认选中背景色（与 Option 的 `color-selected` / `background-color-selected` 不同） |
 | `show-dirty` / `gdiplus-text` / `text-rendering-hint` / `tooltip-hover-time` / `no-activate` | 调试 / 文本渲染 / Tooltip / 无激活 |
+
+### 壁纸透出（`wallpaper-bleed`）
+
+根控件设 `background-image`（或 **html/Window 上写 `background-image`**，Attach 后落到 root）后，中间面板不透明会挡住壁纸。窗口级：
+
+```xml
+<html theme="chrome" background-image="skin/bg.png" wallpaper-bleed="0.72">
+  <VBox name="root">
+    <TitleBar ... /> <!-- chrome 默认 solid，标题栏不透 -->
+    <VBox>...</VBox> <!-- 底色按 0.72 乘 alpha，透出壁纸 -->
+    <Button wallpaper-bleed="solid" ... /> <!-- 单控件强制不透 -->
+  </VBox>
+</html>
+```
+
+- `background-image` / `background-color` 均可写在 `<html>` / `<Window>` / `html { ... }` CSS 块
+- 只改**背景色**绘制（`PaintBackgroundColor` → `GetAdjustColor`），文字/边框/背景图不受影响  
+- 默认需根有背景图才生效；`wallpaper-bleed-need-image="false"` 可对纯色底也套 bleed  
+- Demo：标题栏图片按钮 / Theme「选择背景图」；`main.html` 已开 bleed `0.72`
 
 分层 Present、DComp 等渲染约束见根目录 [AGENTS.md](../../AGENTS.md)，不在本页展开。
 
@@ -71,6 +111,7 @@ pSettings->ShowModal();
 - 开了 Size：任意边缩放都同步 Owner 尺寸；同时开了 Move 时左/上边缩放会连位置一起跟
 - **多屏幕**：屏幕物理像素（副屏可为负坐标）；跨屏 DPI 由 `WM_DPICHANGED` 跟系统建议矩形并同步 Owner；`WM_DISPLAYCHANGE` 重抓偏移
 - Owner / 本窗最大化或最小化时跳过同步
+- **SyncOwnerSize 遵守 Owner 的 `min-size` / `max-size`**（本窗拖缩下限不低于 Owner 最小跟踪尺寸；`SetWindowPos` 同步时也会钳制）。铺满场景宽高差为 0 时，本窗与主窗同限
 - 无 Owner（主窗）时为空操作；默认皆关
 - Demo：Accordion → Modal →「铺满设置窗（同步主窗）」（`CSettingsSyncWnd` / `settings_sync.html`）
 - 轻量确认框仍用 [Modal.md](Modal.md) 的 `CModal::SyncOwnerMove`；业务模态窗用本基类

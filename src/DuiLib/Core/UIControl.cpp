@@ -120,10 +120,15 @@ namespace DuiLib {
 		m_uControlState(0),
 		m_bColorHSL(false),
 		m_nOpacity(255),
+		m_bOpacityInherit(true),
+		m_bOpacityPropagate(true),
+		m_iWallpaperBleed(-1),
+		m_nPaintBackgroundDepth(0),
 		m_nBorderWidth(0),
 		m_nBorderStyle(PS_SOLID),
 		m_nTooltipWidth(300),
 		m_wCursor(0),
+		m_uWindowResizeEdges(0),
 		m_instance(NULL)
 	{
 		m_cXY.cx = m_cXY.cy = 0;
@@ -141,6 +146,7 @@ namespace DuiLib {
 		::ZeroMemory(&m_rcItem, sizeof(RECT));
 		::ZeroMemory(&m_rcPaint, sizeof(RECT));
 		::ZeroMemory(&m_rcBorderWidth,sizeof(RECT));
+		::ZeroMemory(&m_rcWindowSizeBox, sizeof(RECT));
 		m_piAbsolutePercent.left = m_piAbsolutePercent.top = m_piAbsolutePercent.right = m_piAbsolutePercent.bottom = 0.0f;
 	}
 
@@ -191,6 +197,118 @@ namespace DuiLib {
 		if( m_wCursor != 0 ) return true;
 		// 已配状态视觉时 DoEvent 会跟踪 HOT；若被当成 HTCAPTION 则悬停永不生效
 		return HasStateVisual();
+	}
+
+	void CControlUI::SetWindowResizeEdges(UINT uEdges)
+	{
+		m_uWindowResizeEdges = (uEdges & WINDOW_RESIZE_ALL);
+	}
+
+	UINT CControlUI::GetWindowResizeEdges() const
+	{
+		return m_uWindowResizeEdges;
+	}
+
+	void CControlUI::SetWindowSizeBox(RECT rc)
+	{
+		m_rcWindowSizeBox = rc;
+		if( m_uWindowResizeEdges == 0 ) {
+			UINT u = 0;
+			if( rc.left > 0 ) u |= WINDOW_RESIZE_LEFT;
+			if( rc.top > 0 ) u |= WINDOW_RESIZE_TOP;
+			if( rc.right > 0 ) u |= WINDOW_RESIZE_RIGHT;
+			if( rc.bottom > 0 ) u |= WINDOW_RESIZE_BOTTOM;
+			m_uWindowResizeEdges = u;
+		}
+	}
+
+	RECT CControlUI::GetWindowSizeBox() const
+	{
+		if( m_pManager != NULL && m_pManager->GetDPIObj() != NULL )
+			return m_pManager->GetDPIObj()->Scale(m_rcWindowSizeBox);
+		return m_rcWindowSizeBox;
+	}
+
+	RECT CControlUI::GetWindowResizeThickness() const
+	{
+		RECT sb = { 0, 0, 0, 0 };
+		if( m_uWindowResizeEdges == 0 ) return sb;
+		sb = GetWindowSizeBox();
+		RECT mgr = { 4, 4, 6, 6 };
+		if( m_pManager != NULL ) {
+			mgr = m_pManager->GetSizeBox();
+			if( mgr.left < 1 && mgr.top < 1 && mgr.right < 1 && mgr.bottom < 1 ) {
+				mgr.left = 4; mgr.top = 4; mgr.right = 6; mgr.bottom = 6;
+			}
+		}
+		if( (m_uWindowResizeEdges & WINDOW_RESIZE_LEFT) == 0 ) sb.left = 0;
+		else if( sb.left < 1 ) sb.left = mgr.left;
+		if( (m_uWindowResizeEdges & WINDOW_RESIZE_TOP) == 0 ) sb.top = 0;
+		else if( sb.top < 1 ) sb.top = mgr.top;
+		if( (m_uWindowResizeEdges & WINDOW_RESIZE_RIGHT) == 0 ) sb.right = 0;
+		else if( sb.right < 1 ) sb.right = mgr.right;
+		if( (m_uWindowResizeEdges & WINDOW_RESIZE_BOTTOM) == 0 ) sb.bottom = 0;
+		else if( sb.bottom < 1 ) sb.bottom = mgr.bottom;
+		return sb;
+	}
+
+	void CControlUI::ApplyAncestorWindowResizeHostInset(RECT& rcHost) const
+	{
+		// 原生子窗盖在 Dui 控件上时，父窗收不到边缘 WM_NCHITTEST；按祖先 window-resize 留出热区
+		for( const CControlUI* p = this; p != NULL; p = p->GetParent() ) {
+			if( p->GetWindowResizeEdges() == 0 ) continue;
+			RECT sb = p->GetWindowResizeThickness();
+			const RECT& a = p->GetPos();
+			const int tol = 1;
+			if( sb.right > 0 && rcHost.right >= a.right - tol ) {
+				const int edge = a.right - sb.right;
+				if( rcHost.right > edge ) rcHost.right = edge;
+			}
+			if( sb.bottom > 0 && rcHost.bottom >= a.bottom - tol ) {
+				const int edge = a.bottom - sb.bottom;
+				if( rcHost.bottom > edge ) rcHost.bottom = edge;
+			}
+			if( sb.left > 0 && rcHost.left <= a.left + tol ) {
+				const int edge = a.left + sb.left;
+				if( rcHost.left < edge ) rcHost.left = edge;
+			}
+			if( sb.top > 0 && rcHost.top <= a.top + tol ) {
+				const int edge = a.top + sb.top;
+				if( rcHost.top < edge ) rcHost.top = edge;
+			}
+		}
+		if( rcHost.right < rcHost.left ) rcHost.right = rcHost.left;
+		if( rcHost.bottom < rcHost.top ) rcHost.bottom = rcHost.top;
+	}
+
+	LRESULT CControlUI::HitWindowResize(POINT ptClient) const
+	{
+		if( m_uWindowResizeEdges == 0 ) return HTCLIENT;
+		if( !IsVisible() || !IsEnabled() ) return HTCLIENT;
+		if( m_pManager == NULL ) return HTCLIENT;
+		HWND hWnd = m_pManager->GetPaintWindow();
+		if( hWnd != NULL && ::IsZoomed(hWnd) ) return HTCLIENT;
+
+		RECT rc = m_rcItem;
+		if( rc.right <= rc.left || rc.bottom <= rc.top ) return HTCLIENT;
+		if( !::PtInRect(&rc, ptClient) ) return HTCLIENT;
+
+		RECT sb = GetWindowResizeThickness();
+
+		const bool bTop = (sb.top > 0 && ptClient.y < rc.top + sb.top);
+		const bool bBottom = (sb.bottom > 0 && ptClient.y >= rc.bottom - sb.bottom);
+		const bool bLeft = (sb.left > 0 && ptClient.x < rc.left + sb.left);
+		const bool bRight = (sb.right > 0 && ptClient.x >= rc.right - sb.right);
+
+		if( bTop && bLeft ) return HTTOPLEFT;
+		if( bTop && bRight ) return HTTOPRIGHT;
+		if( bBottom && bLeft ) return HTBOTTOMLEFT;
+		if( bBottom && bRight ) return HTBOTTOMRIGHT;
+		if( bTop ) return HTTOP;
+		if( bBottom ) return HTBOTTOM;
+		if( bLeft ) return HTLEFT;
+		if( bRight ) return HTRIGHT;
+		return HTCLIENT;
 	}
 
 	bool CControlUI::Activate()
@@ -476,6 +594,95 @@ namespace DuiLib {
 
 		m_sBackgroundImage = pStrImage;
 		Invalidate();
+		// 根背景图切换会影响 wallpaper-bleed 是否生效，整树重绘。
+		// 勿用 GetRoot()：皮肤解析设 background-image 时往往尚未 AttachDialog，会 ASSERT。
+		if( m_pManager != NULL && m_pManager->GetRootPtr() == this
+			&& m_pManager->GetWallpaperBleed() < 255
+			&& m_pManager->IsWallpaperBleedNeedImage() ) {
+			m_pManager->NeedUpdate();
+		}
+	}
+
+	bool CControlUI::SetBackgroundImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask)
+	{
+		if( m_pManager == NULL || pData == NULL || dwSize == 0 ) return false;
+
+		CDuiString sKey;
+		sKey.Format(_T("_dui_ctrl_bg_%p"), this);
+
+		// SVG 内存：走栅格
+		if( dwSize >= 4 ) {
+			DWORD i = 0;
+			if( dwSize >= 3 && pData[0] == 0xEF && pData[1] == 0xBB && pData[2] == 0xBF ) i = 3;
+			while( i < dwSize && (pData[i] == ' ' || pData[i] == '\t' || pData[i] == '\r' || pData[i] == '\n') )
+				++i;
+			if( i < dwSize && pData[i] == '<' &&
+				( (i + 4 <= dwSize && _strnicmp((const char*)pData + i, "<svg", 4) == 0)
+				|| (i + 5 <= dwSize && _strnicmp((const char*)pData + i, "<?xml", 5) == 0) ) ) {
+				return SetBackgroundImageFromSvg((const char*)pData, (size_t)dwSize, 0, 0, 0);
+			}
+		}
+
+		TImageInfo* pInfo = CRenderEngine::LoadImageFromMemory(pData, dwSize, mask);
+		if( pInfo == NULL || pInfo->hBitmap == NULL ) {
+			if( pInfo ) CRenderEngine::FreeImage(pInfo);
+			return false;
+		}
+		HBITMAP hBmp = pInfo->hBitmap;
+		int w = pInfo->nX;
+		int h = pInfo->nY;
+		bool bA = pInfo->bAlpha;
+		pInfo->hBitmap = NULL;
+		CRenderEngine::FreeImage(pInfo);
+
+		m_pManager->RemoveImage(sKey.GetData(), false);
+		if( m_pManager->AddImage(sKey.GetData(), hBmp, w, h, bA, false) == NULL ) {
+			::DeleteObject(hBmp);
+			return false;
+		}
+		SetBackgroundImage(sKey.GetData());
+		return true;
+	}
+
+	bool CControlUI::SetBackgroundImageFromSvg(const char* utf8Svg, size_t nBytes,
+		int width, int height, DWORD dwTintColor)
+	{
+		if( m_pManager == NULL || utf8Svg == NULL || nBytes == 0 ) return false;
+		int w = 0, h = 0;
+		HBITMAP hBmp = CSvgBoxUI::RasterizeToHBitmap(utf8Svg, nBytes, width, height, dwTintColor, &w, &h);
+		if( hBmp == NULL ) return false;
+
+		CDuiString sKey;
+		sKey.Format(_T("_dui_ctrl_bg_%p"), this);
+		m_pManager->RemoveImage(sKey.GetData(), false);
+		if( m_pManager->AddImage(sKey.GetData(), hBmp, w, h, true, false) == NULL ) {
+			::DeleteObject(hBmp);
+			return false;
+		}
+		SetBackgroundImage(sKey.GetData());
+		return true;
+	}
+
+	bool CControlUI::SetBackgroundImageFromSvg(LPCTSTR pstrSvg,
+		int width, int height, DWORD dwTintColor)
+	{
+		if( pstrSvg == NULL || *pstrSvg == _T('\0') ) return false;
+		// 宽字符 SVG → UTF-8 由 Rasterize 处理；这里复用 utf8 路径需转换
+		int w = 0, h = 0;
+		HBITMAP hBmp = CSvgBoxUI::RasterizeToHBitmap(pstrSvg, width, height, dwTintColor, &w, &h);
+		if( hBmp == NULL || m_pManager == NULL ) {
+			if( hBmp ) ::DeleteObject(hBmp);
+			return false;
+		}
+		CDuiString sKey;
+		sKey.Format(_T("_dui_ctrl_bg_%p"), this);
+		m_pManager->RemoveImage(sKey.GetData(), false);
+		if( m_pManager->AddImage(sKey.GetData(), hBmp, w, h, true, false) == NULL ) {
+			::DeleteObject(hBmp);
+			return false;
+		}
+		SetBackgroundImage(sKey.GetData());
+		return true;
 	}
 
 	LPCTSTR CControlUI::GetHoverBackgroundImage() const
@@ -768,7 +975,14 @@ namespace DuiLib {
 
 	bool CControlUI::DrawImage(IRenderContext& ctx, LPCTSTR pStrImage, LPCTSTR pStrModify)
 	{
-		return ctx.DrawImageString(m_rcItem, m_rcPaint, pStrImage, pStrModify, m_instance);
+		BYTE op = GetEffectiveOpacity();
+		if( op >= 255 || m_pManager == NULL )
+			return ctx.DrawImageString(m_rcItem, m_rcPaint, pStrImage, pStrModify, m_instance);
+		const TDrawInfo* pDI = m_pManager->GetDrawInfo(pStrImage, pStrModify);
+		if( pDI == NULL ) return false;
+		TDrawInfo info = *pDI;
+		info.uFade = ScaleImageFade(info.uFade);
+		return ctx.DrawImageInfo(m_rcItem, m_rcPaint, &info, m_instance);
 	}
 
 	const RECT& CControlUI::GetPos() const
@@ -1364,9 +1578,18 @@ namespace DuiLib {
 			CPaintManagerUI::GetHSL(&H, &S, &L);
 			c = CRenderEngine::AdjustColor(c, H, S, L);
 		}
-		if( m_nOpacity < 255 ) {
-			BYTE a = (BYTE)((DuiColorA(c) * (UINT)m_nOpacity) / 255u);
+		BYTE op = GetEffectiveOpacity();
+		if( op < 255 ) {
+			BYTE a = (BYTE)((DuiColorA(c) * (UINT)op) / 255u);
 			c = DuiColorSetA(c, a);
+		}
+		// 仅在画背景色时套壁纸透出，避免文字/边框被冲淡
+		if( m_nPaintBackgroundDepth > 0 ) {
+			BYTE bleed = ResolveWallpaperBleedFactor();
+			if( bleed < 255 ) {
+				BYTE a = (BYTE)((DuiColorA(c) * (UINT)bleed) / 255u);
+				c = DuiColorSetA(c, a);
+			}
 		}
 		return c;
 	}
@@ -1381,6 +1604,109 @@ namespace DuiLib {
 		if( m_nOpacity == nOpacity ) return;
 		m_nOpacity = nOpacity;
 		Invalidate();
+	}
+
+	void CControlUI::SetOpacity(BYTE nOpacity, bool bIsolateFromParent)
+	{
+		if( bIsolateFromParent )
+			SetOpacityInherit(false);
+		SetOpacity(nOpacity);
+	}
+
+	void CControlUI::SetOpacityF(float fOpacity01)
+	{
+		if( fOpacity01 < 0.f ) fOpacity01 = 0.f;
+		if( fOpacity01 > 1.f ) fOpacity01 = 1.f;
+		SetOpacity((BYTE)(fOpacity01 * 255.f + 0.5f));
+	}
+
+	void CControlUI::SetOpacityF(float fOpacity01, bool bIsolateFromParent)
+	{
+		if( bIsolateFromParent )
+			SetOpacityInherit(false);
+		SetOpacityF(fOpacity01);
+	}
+
+	float CControlUI::GetOpacityF() const
+	{
+		return (float)m_nOpacity / 255.f;
+	}
+
+	bool CControlUI::IsOpacityInherit() const
+	{
+		return m_bOpacityInherit;
+	}
+
+	void CControlUI::SetOpacityInherit(bool bInherit)
+	{
+		if( m_bOpacityInherit == bInherit ) return;
+		m_bOpacityInherit = bInherit;
+		Invalidate();
+	}
+
+	bool CControlUI::IsOpacityPropagate() const
+	{
+		return m_bOpacityPropagate;
+	}
+
+	void CControlUI::SetOpacityPropagate(bool bPropagate)
+	{
+		if( m_bOpacityPropagate == bPropagate ) return;
+		m_bOpacityPropagate = bPropagate;
+		Invalidate();
+	}
+
+	BYTE CControlUI::GetEffectiveOpacity() const
+	{
+		UINT op = m_nOpacity;
+		if( !m_bOpacityInherit || op == 0 ) return (BYTE)op;
+		for( const CControlUI* p = m_pParent; p != NULL; p = p->GetParent() ) {
+			if( !p->IsOpacityPropagate() ) continue;
+			BYTE po = p->GetOpacity();
+			if( po >= 255 ) continue;
+			if( po == 0 ) return 0;
+			op = (op * (UINT)po) / 255u;
+			if( op == 0 ) return 0;
+		}
+		return (BYTE)op;
+	}
+
+	float CControlUI::GetEffectiveOpacityF() const
+	{
+		return (float)GetEffectiveOpacity() / 255.f;
+	}
+
+	UINT CControlUI::ScaleImageFade(UINT uFade) const
+	{
+		BYTE op = GetEffectiveOpacity();
+		if( op >= 255 ) return uFade;
+		if( op == 0 || uFade == 0 ) return 0;
+		return (UINT)((uFade * (UINT)op) / 255u);
+	}
+
+	void CControlUI::SetWallpaperBleed(int nBleedOrSentinel)
+	{
+		if( m_iWallpaperBleed == nBleedOrSentinel ) return;
+		m_iWallpaperBleed = nBleedOrSentinel;
+		Invalidate();
+	}
+
+	int CControlUI::GetWallpaperBleed() const
+	{
+		return m_iWallpaperBleed;
+	}
+
+	BYTE CControlUI::ResolveWallpaperBleedFactor() const
+	{
+		if( m_iWallpaperBleed == WALLPAPER_BLEED_SOLID ) return 255;
+		if( m_iWallpaperBleed >= 0 ) {
+			int v = m_iWallpaperBleed;
+			if( v > 255 ) v = 255;
+			return (BYTE)v;
+		}
+		if( m_pManager == NULL || !m_pManager->IsWallpaperBleedActive() )
+			return 255;
+		return m_pManager->GetWallpaperBleed();
 	}
 
 	void CControlUI::Init()
@@ -2013,10 +2339,40 @@ namespace DuiLib {
 			if( ParseCssPointerEventsEnabled(pstrValue, bEnabled) )
 				SetMouseEnabled(bEnabled);
 		}
-		else if( _tcsicmp(pstrName, _T("opacity")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("opacity")) == 0 || _tcsicmp(pstrName, _T("alpha")) == 0 ) {
 			BYTE nOpacity = 255;
 			if( ParseCssOpacity(pstrValue, nOpacity) )
 				SetOpacity(nOpacity);
+		}
+		else if( _tcsicmp(pstrName, _T("opacity-inherit")) == 0 ) {
+			bool b = true;
+			if( ParseAttrBool(pstrValue, b) )
+				SetOpacityInherit(b);
+		}
+		else if( _tcsicmp(pstrName, _T("opacity-isolate")) == 0 ) {
+			bool bIso = false;
+			if( ParseAttrBool(pstrValue, bIso) )
+				SetOpacityInherit(!bIso);
+		}
+		else if( _tcsicmp(pstrName, _T("opacity-propagate")) == 0
+			|| _tcsicmp(pstrName, _T("child-opacity-inherit")) == 0 ) {
+			bool b = true;
+			if( ParseAttrBool(pstrValue, b) )
+				SetOpacityPropagate(b);
+		}
+		else if( _tcsicmp(pstrName, _T("wallpaper-bleed")) == 0 || _tcsicmp(pstrName, _T("bg-bleed")) == 0 ) {
+			if( _tcsicmp(pstrValue, _T("solid")) == 0 || _tcsicmp(pstrValue, _T("opaque")) == 0
+				|| _tcsicmp(pstrValue, _T("none")) == 0 || _tcsicmp(pstrValue, _T("false")) == 0 ) {
+				SetWallpaperBleed(WALLPAPER_BLEED_SOLID);
+			}
+			else if( _tcsicmp(pstrValue, _T("inherit")) == 0 || _tcsicmp(pstrValue, _T("auto")) == 0 ) {
+				SetWallpaperBleed(WALLPAPER_BLEED_INHERIT);
+			}
+			else {
+				BYTE nBleed = 255;
+				if( ParseCssOpacity(pstrValue, nBleed) )
+					SetWallpaperBleed((int)nBleed);
+			}
 		}
 		else if( _tcsicmp(pstrName, _T("keyboard")) == 0 ) SetKeyboardEnabled(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("visible")) == 0 ) SetVisible(_tcsicmp(pstrValue, _T("true")) == 0);
@@ -2083,6 +2439,55 @@ namespace DuiLib {
 			      || _tcsicmp(pstrValue, _T("movewindow")) == 0) SetAction(UIACTION_MOVEWINDOW);
 			else if( _tcsicmp(pstrValue, _T("copy")) == 0 )     SetAction(UIACTION_COPY);
 			else                                                SetAction(UIACTION_NONE);
+		}
+		else if( _tcsicmp(pstrName, _T("window-resize")) == 0
+			|| _tcsicmp(pstrName, _T("windowresize")) == 0 ) {
+			// false / none / off / 0 → 关；true / all / 1 → 四边；
+			// 或 left,top,right,bottom 逗号列表（可只写 N 条边）
+			UINT u = 0;
+			bool bParsed = false;
+			if( pstrValue == NULL || *pstrValue == _T('\0')
+				|| _tcsicmp(pstrValue, _T("false")) == 0 || _tcsicmp(pstrValue, _T("none")) == 0
+				|| _tcsicmp(pstrValue, _T("off")) == 0 || _tcscmp(pstrValue, _T("0")) == 0
+				|| _tcsicmp(pstrValue, _T("no")) == 0 ) {
+				u = 0;
+				bParsed = true;
+			}
+			else if( _tcsicmp(pstrValue, _T("true")) == 0 || _tcsicmp(pstrValue, _T("all")) == 0
+				|| _tcscmp(pstrValue, _T("1")) == 0 || _tcsicmp(pstrValue, _T("yes")) == 0
+				|| _tcsicmp(pstrValue, _T("on")) == 0 ) {
+				u = WINDOW_RESIZE_ALL;
+				bParsed = true;
+			}
+			else {
+				CDuiString s(pstrValue);
+				s.MakeLower();
+				LPCTSTR p = s.GetData();
+				while( p != NULL && *p != _T('\0') ) {
+					while( *p == _T(' ') || *p == _T('\t') || *p == _T(',') ) ++p;
+					if( *p == _T('\0') ) break;
+					LPCTSTR pStart = p;
+					while( *p != _T('\0') && *p != _T(',') && *p != _T(' ') && *p != _T('\t') ) ++p;
+					CDuiString tok(pStart, (int)(p - pStart));
+					if( tok.Compare(_T("left")) == 0 || tok.Compare(_T("l")) == 0 ) u |= WINDOW_RESIZE_LEFT;
+					else if( tok.Compare(_T("top")) == 0 || tok.Compare(_T("t")) == 0 ) u |= WINDOW_RESIZE_TOP;
+					else if( tok.Compare(_T("right")) == 0 || tok.Compare(_T("r")) == 0 ) u |= WINDOW_RESIZE_RIGHT;
+					else if( tok.Compare(_T("bottom")) == 0 || tok.Compare(_T("b")) == 0 ) u |= WINDOW_RESIZE_BOTTOM;
+					bParsed = true;
+				}
+			}
+			if( bParsed ) SetWindowResizeEdges(u);
+		}
+		else if( _tcsicmp(pstrName, _T("window-size-box")) == 0
+			|| _tcsicmp(pstrName, _T("windowsizebox")) == 0 ) {
+			// LTRB 边厚（同窗口 size-box）；某边为 0 则该边不缩（若未另设 window-resize）
+			RECT rc = { 0 };
+			LPTSTR pstr = NULL;
+			rc.left = _tcstol(pstrValue, &pstr, 10);  ASSERT(pstr);
+			rc.top = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr);
+			rc.right = _tcstol(pstr + 1, &pstr, 10);  ASSERT(pstr);
+			rc.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
+			SetWindowSizeBox(rc);
 		}
 		else if( _tcsicmp(pstrName, _T("kind")) == 0 ) {
 			if( _tcsicmp(pstrValue, _T("none")) == 0 )         SetKind(CONTROLKIND_NONE);
@@ -2186,6 +2591,7 @@ namespace DuiLib {
 	bool CControlUI::Paint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
 	{
 		if (pStopControl == this) return false;
+		// 勿因本控件 opacity=0 跳过整枝：子控件可有独立 opacity（默认不继承父）
 		if( !::IntersectRect(&m_rcPaint, &rcPaint, &m_rcItem) ) return true;
 		if (!DoPaint(ctx, m_rcPaint, pStopControl)) return false;
 		return true;
@@ -2227,6 +2633,8 @@ namespace DuiLib {
 		const DWORD dwPaintBk = GetPaintBackgroundColor();
 		if( dwPaintBk == 0 ) return;
 
+		++m_nPaintBackgroundDepth;
+
 		// 状态色（非常态）时忽略渐变，直接铺纯色
 		const bool bStateFill = (dwPaintBk != m_dwBackColor);
 		bool bVer = m_bGradientVertical;
@@ -2257,9 +2665,11 @@ namespace DuiLib {
 			// 有 BorderRadius 时 DoPaint 已 PushRoundClip：这里用直角填充，
 			// 避免 FillRoundRect 与 clip 几何不一致在角上漏出灰/透明底。
 			// 按钮等自行 override PaintBackgroundColor 仍可用 FillRoundRect。
-			if( DuiColorIsOpaque(dwPaintBk) ) ctx.DrawColor(m_rcPaint, color);
+			if( DuiColorIsOpaque(color) ) ctx.DrawColor(m_rcPaint, color);
 			else ctx.DrawColor(m_rcItem, color);
 		}
+
+		--m_nPaintBackgroundDepth;
 	}
 
 	void CControlUI::PaintBackgroundImage(IRenderContext& ctx)

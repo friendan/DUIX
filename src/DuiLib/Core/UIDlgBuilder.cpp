@@ -96,6 +96,24 @@ namespace DuiLib {
 			else
 				pManager->SetOpacity((BYTE)_ttoi(pstrValue));
 		}
+		else if( _tcsicmp(pstrName, _T("wallpaper-bleed")) == 0 || _tcsicmp(pstrName, _T("bg-bleed")) == 0 ) {
+			if( _tcsicmp(pstrValue, _T("false")) == 0 || _tcsicmp(pstrValue, _T("none")) == 0
+				|| _tcsicmp(pstrValue, _T("off")) == 0 || _tcsicmp(pstrValue, _T("solid")) == 0
+				|| _tcsicmp(pstrValue, _T("opaque")) == 0 ) {
+				pManager->SetWallpaperBleed(255);
+			}
+			else {
+				BYTE nBleed = 255;
+				if( ParseCssOpacity(pstrValue, nBleed) )
+					pManager->SetWallpaperBleed(nBleed);
+				else
+					pManager->SetWallpaperBleed((BYTE)_ttoi(pstrValue));
+			}
+		}
+		else if( _tcsicmp(pstrName, _T("wallpaper-bleed-need-image")) == 0
+			|| _tcsicmp(pstrName, _T("bg-bleed-need-image")) == 0 ) {
+			pManager->SetWallpaperBleedNeedImage(_tcsicmp(pstrValue, _T("false")) != 0);
+		}
 		else if( _tcscmp(pstrName, _T("layered-opacity")) == 0 ) {
 			pManager->SetLayeredOpacity(_ttoi(pstrValue));
 		}
@@ -138,6 +156,9 @@ namespace DuiLib {
 			DWORD clrColor = 0;
 			if( ParseColorString(pstrValue, clrColor) )
 				pManager->SetWindowBackgroundColor(clrColor);
+		}
+		else if( _tcsicmp(pstrName, _T("background-image")) == 0 ) {
+			pManager->SetWindowBackgroundImage(pstrValue);
 		}
 		else if( _tcsicmp(pstrName, _T("font-family")) == 0
 			|| _tcsicmp(pstrName, _T("font-size")) == 0

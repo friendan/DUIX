@@ -23,14 +23,14 @@
       <Segmented name="seg_format" options="PNG:png|JPG:jpg|BMP:bmp|ICO:ico" selected="png"
         height="32" />
       <Label name="lbl_fmt_hint" text="PNG：保留透明" height="20" theme="secondary" />
-      <Label text="尺寸" height="22" />
-      <HBox height="28" gap="6" align-items="vcenter">
+      <Label name="lbl_size_title" text="尺寸" height="22" />
+      <HBox name="size_row_edit" height="28" gap="6" align-items="vcenter">
         <Edit name="edt_w" width="56" height="28" text="28" type="number" maxlength="4" />
         <Label text="×" width="14" height="28" text-align="center" />
         <Edit name="edt_h" width="56" height="28" text="28" type="number" maxlength="4" />
         <Label name="lbl_size_hint" text="px（默认控件大小）" theme="secondary" />
       </HBox>
-      <HBox height="28" gap="6" align-items="vcenter">
+      <HBox name="size_row_btns" height="28" gap="6" align-items="vcenter">
         <Button name="btn_size_ctrl" text="控件" kind="default" width="48" height="28" />
         <Button name="btn_size_32" text="32" kind="default" width="40" height="28" />
         <Button name="btn_size_64" text="64" kind="default" width="40" height="28" />

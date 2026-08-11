@@ -16,7 +16,7 @@
 | `min` | — |
 | `max` | — |
 | `value` | — |
-| `step` | — |
+| `step` / `change-step` | Slider 微调步长（箭头 / 滚轮）；**默认 `1`**；`<=0` 回落为 1 |
 
 ### 部分接近（命名或伪类形式）
 
@@ -37,3 +37,14 @@
 | `send-move` | — | 无 |
 
 `min`/`max`/`value`/`step` 接近 HTML `<input type=range>` / `<progress>`；`horizontal`、`thumb*`、`stretch-foreground`、`send-move`、`show-text` 为非标准。
+
+### Slider 交互
+
+- 点击获得焦点（可 Tab 切入）；滚轮按 `step` 增减
+- **左右箭头**（水平）/ **上下箭头**（竖直）按 `step` 微调；水平也可用上下，竖直也可用左右
+- **Home** / **End** 跳到 `min` / `max`
+- 变更发出 `valuechanged`（拖动中若 `send-move=true` 另有 `movevaluechanged`）
+
+```xml
+<Slider name="vol" min="0" max="100" value="50" step="5" send-move="true" />
+```

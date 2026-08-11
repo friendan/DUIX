@@ -56,6 +56,7 @@ private:
 
 	void ShowIconContextMenu(CControlUI* pCell);
 	void OpenExportForCell(CControlUI* pCell);
+	void ApplyWallpaperForCell(CControlUI* pCell);
 	bool ScrollIconListByKey(WPARAM vk);
 	static CControlUI* FindIconCell(CControlUI* pFrom);
 

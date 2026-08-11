@@ -1352,6 +1352,25 @@ namespace DuiLib
 		return true;
 	}
 
+	bool ParseAttrBool(LPCTSTR pstrValue, bool& bValue)
+	{
+		bValue = false;
+		if( pstrValue == NULL ) return false;
+		while( *pstrValue == _T(' ') || *pstrValue == _T('\t') ) ++pstrValue;
+		if( *pstrValue == _T('\0') ) return false;
+		if( _tcsicmp(pstrValue, _T("true")) == 0 || _tcsicmp(pstrValue, _T("yes")) == 0
+			|| _tcsicmp(pstrValue, _T("on")) == 0 || _tcscmp(pstrValue, _T("1")) == 0 ) {
+			bValue = true;
+			return true;
+		}
+		if( _tcsicmp(pstrValue, _T("false")) == 0 || _tcsicmp(pstrValue, _T("no")) == 0
+			|| _tcsicmp(pstrValue, _T("off")) == 0 || _tcscmp(pstrValue, _T("0")) == 0 ) {
+			bValue = false;
+			return true;
+		}
+		return false;
+	}
+
 	bool ParseCssFontWeightBold(LPCTSTR pstrValue, bool& bBold)
 	{
 		bBold = false;

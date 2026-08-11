@@ -46,11 +46,19 @@ namespace DuiLib
 		bool ExportToFile(LPCTSTR pstrPath, int width = 0, int height = 0,
 			DWORD dwTintColor = (DWORD)-1, int jpegQuality = 90) const;
 
-		/// ICO 专用（PNG-in-ICO，保留 alpha）。默认尺寸 16/32/48/256/512，适合文件图标。
+		/// ICO 专用（PNG-in-ICO，保留 alpha）。默认 16/24/32/48/64/128/256，适合 Windows 壳图标。
 		bool ExportToIcoFile(LPCTSTR pstrPath, DWORD dwTintColor = (DWORD)-1) const;
-		/// ICO 专用：自定义正方形边长列表（如 16,32,48,256,512；单边最大 512）；非法边长跳过。
+		/// ICO 专用：自定义正方形边长列表（如 16,32,48,256；单边最大 512）；非法边长跳过。
 		bool ExportToIcoFile(LPCTSTR pstrPath, const int* pSizes, int nCount,
 			DWORD dwTintColor = (DWORD)-1) const;
+
+		/// 栅格化 SVG → 预乘 alpha HBITMAP（调用方 DeleteObject）。width/height<=0 用文档尺寸，仍无效则 256。
+		static HBITMAP RasterizeToHBitmap(const char* utf8Svg, size_t nBytes,
+			int width = 0, int height = 0, DWORD dwTintColor = 0,
+			int* pOutW = NULL, int* pOutH = NULL);
+		static HBITMAP RasterizeToHBitmap(LPCTSTR pstrSvg,
+			int width = 0, int height = 0, DWORD dwTintColor = 0,
+			int* pOutW = NULL, int* pOutH = NULL);
 
 	protected:
 		static DWORD ParseColorValue(LPCTSTR pstrValue);

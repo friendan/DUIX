@@ -170,7 +170,10 @@ namespace DuiLib
 	{
 		m_rcContentPadding = CDuiBox(8);
 		SetBackgroundColor(0xFFFFFFFF);
-		SetMargin(CDuiBox(0, 0, 1, 0));
+		// 项间分割线用底边框（不套 wallpaper-bleed），避免 1px margin 露底透出壁纸导致断色
+		SetMargin(CDuiBox(0));
+		SetBottomBorderWidth(1);
+		SetBorderColor(0xDEE2E6FF);
 		EnsureHeader();
 		UpdateFixedHeight();
 	}

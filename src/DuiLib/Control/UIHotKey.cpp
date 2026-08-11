@@ -492,7 +492,7 @@ namespace DuiLib{
 		DWORD dwColor = m_dwColor;
 		if(!IsEnabled())dwColor = m_dwDisabledColor;
 
-		ctx.DrawText(rc, sText.GetData(), dwColor, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sText.GetData(), GetAdjustColor(dwColor), m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
 	DWORD CHotKeyUI::GetHotKey() const

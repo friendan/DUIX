@@ -1,5 +1,5 @@
 <html theme="chrome">
-    <body name="root">
+    <body name="root" window-resize="all">
         <!-- 第一行：TitleBar 左侧放 TabBar，右侧系统按钮 -->
         <TitleBar name="titlebar" height="36" show-min="true" show-max="true" show-close="true" btn-width="45" padding="0" action="title">
             <TabBar name="tabbar" height="36" flexible="true" />
@@ -21,7 +21,7 @@
             <Svg name="menuBtn" tabler-outline="dots-vertical" width="24" height="24"
                 color="var(--color-text-secondary)" color-hover="var(--color-primary)" tooltip="菜单" />
         </HBox>
-        <!-- 第三行：侧边栏 + 页面 -->
+        <!-- 第三行：侧边栏 + 页面（TabLayout 右/下边缩窗；勿再靠窗口 size-box 给 WebBrowser 让缝） -->
         <HBox name="contentArea">
             <VBox name="sideToolBar" theme="panel">
                 <Svg name="sideToolHome" tabler-outline="home" width="24" height="24"
@@ -29,19 +29,28 @@
                 <Spacer height="16" />
                 <ThemeSwitcher name="themeSwitch" width="36" height="28" tooltip="选择主题" />
             </VBox>
-            <TabLayout name="pages" />
+            <TabLayout name="pages" window-resize="right,bottom" />
         </HBox>
     </body>
 </html>
 <style>
     html {
         size: 1280, 800;
-        size-box: 5, 5, 5, 5;
+        /* 置 0：WebBrowser 原生 HWND 不再为 size-box 内缩留缝；缩放靠 root/TabLayout 的 window-resize */
+        size-box: 0, 0, 0, 0;
         caption: 0, 0, 0, 36;
         min-size: 800, 600;
         max-size: 0, 0;
         showshadow: false;
         action: title;
+    }
+
+    #root {
+        window-resize: all;
+    }
+
+    #pages {
+        window-resize: right,bottom;
     }
 
     #titlebar {

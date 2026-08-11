@@ -16,6 +16,7 @@
 #include "Icons/RemixIconIconsData.h"
 #include "Icons/TwemojiIconsData.h"
 #include "Core/UITheme.h"
+#include <commdlg.h>
 
 namespace {
 	HWND g_hLastToast = NULL;
@@ -154,14 +155,97 @@ BOOL CMainWnd::Receive(SkinChangedParam param)
 		if( param.bColor ) {
 			pRoot->SetBackgroundColor(param.backgroundColor);
 			pRoot->SetBackgroundImage(_T(""));
+			CLabelUI* pPath = static_cast<CLabelUI*>(m_pm.FindControl(_T("wallpaper_path")));
+			if( pPath != NULL ) pPath->SetText(_T("未设置（纯色）"));
 		}
 		else {
-			pRoot->SetBackgroundColor(0);
-			pRoot->SetBackgroundImage(param.bgimage.GetData());
-			//m_pm.SetLayeredImage(param.bgimage);
+			ApplyWallpaperImage(param.bgimage.GetData());
 		}
 	}
 	return TRUE;
+}
+
+void CMainWnd::ApplyWallpaperImage(LPCTSTR path)
+{
+	if( path == NULL || *path == _T('\0') ) {
+		ClearWallpaperImage();
+		return;
+	}
+	m_pm.SetWindowBackgroundColor(0);
+	m_pm.SetWindowBackgroundImage(path);
+	CControlUI* pRoot = m_pm.FindControl(_T("root"));
+	if( pRoot != NULL )
+		pRoot->SetBackgroundColor(0);
+	CLabelUI* pPath = static_cast<CLabelUI*>(m_pm.FindControl(_T("wallpaper_path")));
+	if( pPath != NULL ) {
+		LPCTSTR pShow = path;
+		LPCTSTR pSlash = _tcsrchr(path, _T('\\'));
+		if( pSlash == NULL ) pSlash = _tcsrchr(path, _T('/'));
+		if( pSlash != NULL && *(pSlash + 1) != _T('\0') ) pShow = pSlash + 1;
+		pPath->SetText(pShow);
+		pPath->SetToolTip(path);
+	}
+}
+
+bool CMainWnd::ApplyWallpaperFromSvg(const char* utf8Svg, size_t nBytes, LPCTSTR pstrLabel)
+{
+	if( utf8Svg == NULL || nBytes == 0 ) return false;
+	RECT rc = { 0 };
+	::GetClientRect(m_hWnd, &rc);
+	int w = rc.right - rc.left;
+	int h = rc.bottom - rc.top;
+	if( w < 256 ) w = 256;
+	if( h < 256 ) h = 256;
+	if( w > 1280 ) w = 1280;
+	if( h > 1280 ) h = 1280;
+
+	m_pm.SetWindowBackgroundColor(0);
+	if( !m_pm.SetWindowBackgroundImageFromSvg(utf8Svg, nBytes, w, h, 0) )
+		return false;
+
+	CControlUI* pRoot = m_pm.FindControl(_T("root"));
+	if( pRoot != NULL )
+		pRoot->SetBackgroundColor(0);
+	CLabelUI* pPath = static_cast<CLabelUI*>(m_pm.FindControl(_T("wallpaper_path")));
+	if( pPath != NULL ) {
+		CDuiString sShow = (pstrLabel != NULL && *pstrLabel != _T('\0')) ? pstrLabel : _T("(SVG)");
+		pPath->SetText(sShow.GetData());
+		pPath->SetToolTip(sShow.GetData());
+	}
+	return true;
+}
+
+void CMainWnd::ClearWallpaperImage()
+{
+	m_pm.SetWindowBackgroundImage(_T(""));
+	CControlUI* pRoot = m_pm.FindControl(_T("root"));
+	if( pRoot != NULL )
+		pRoot->SetBackgroundColor(0);
+	CLabelUI* pPath = static_cast<CLabelUI*>(m_pm.FindControl(_T("wallpaper_path")));
+	if( pPath != NULL ) {
+		pPath->SetText(_T("未设置"));
+		pPath->SetToolTip(_T(""));
+	}
+}
+
+void CMainWnd::PickWallpaperImage()
+{
+	TCHAR szFile[MAX_PATH] = { 0 };
+	static TCHAR sFilter[] =
+		_T("Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.gif)\0*.png;*.jpg;*.jpeg;*.bmp;*.gif\0")
+		_T("All Files (*.*)\0*.*\0");
+	OPENFILENAME ofn;
+	::ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = m_hWnd;
+	ofn.lpstrFile = szFile;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.lpstrFilter = sFilter;
+	ofn.nFilterIndex = 1;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.lpstrTitle = _T("选择窗口背景图");
+	if( !::GetOpenFileName(&ofn) ) return;
+	ApplyWallpaperImage(szFile);
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -532,6 +616,15 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		}
 		CThemeSwitcherUI* pSw = static_cast<CThemeSwitcherUI*>(m_pm.FindControl(_T("themeSwitch")));
 		if( pSw != NULL ) pSw->SyncFromManager();
+	}
+	else if(sName.CompareNoCase(_T("btn_wallpaper")) == 0
+		|| sName.CompareNoCase(_T("btn_wallpaper_pick")) == 0)
+	{
+		PickWallpaperImage();
+	}
+	else if(sName.CompareNoCase(_T("btn_wallpaper_clear")) == 0)
+	{
+		ClearWallpaperImage();
 	}
 	else if(sName.CompareNoCase(_T("btn_carousel_test")) == 0)
 	{

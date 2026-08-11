@@ -389,7 +389,7 @@ namespace DuiLib
 		rc.bottom -= rcPad.bottom + rcTextPadding.bottom;
 		if( rc.right < rc.left + 4 ) rc.right = rc.left + 4;
 
-		ctx.DrawText(rc, sDraw.GetData(), clr, m_iFont, DT_SINGLELINE | m_uTextStyle);
+		ctx.DrawText(rc, sDraw.GetData(), GetAdjustColor(clr), m_iFont, DT_SINGLELINE | m_uTextStyle);
 	}
 
 	void CSpinUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)

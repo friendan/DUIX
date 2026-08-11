@@ -61,6 +61,11 @@ public:// 接口回调
 public:// UI通知消息
 	void Notify(TNotifyUI& msg);
 	void OnLClick(CControlUI *pControl);
+	void PickWallpaperImage();
+	void ClearWallpaperImage();
+	void ApplyWallpaperImage(LPCTSTR path);
+	/// 用 SVG 栅格后设为主窗背景（图标浏览器右键「作为背景图」）
+	bool ApplyWallpaperFromSvg(const char* utf8Svg, size_t nBytes, LPCTSTR pstrLabel);
 
 	DUI_DECLARE_MESSAGE_MAP()
 

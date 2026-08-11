@@ -11,6 +11,53 @@ namespace DuiLib
 	IMPLEMENT_DUICONTROL(CWebBrowserUI)
 	IMPLEMENT_DUICONTROL(CWebView2UI)
 
+	bool BlitWebBrowserOsrBuffer(IRenderContext& ctx, const RECT& rcDest, const RECT& rcPaint,
+		const BYTE* pBgra, int width, int height, int stride, bool topDown, UINT uFade)
+	{
+		if( pBgra == NULL || width <= 0 || height <= 0 ) return false;
+		if( ::IsRectEmpty(&rcDest) ) return false;
+		if( stride <= 0 ) stride = width * 4;
+
+		BITMAPINFO bmi = { 0 };
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = width;
+		bmi.bmiHeader.biHeight = topDown ? -height : height; // 负高度 = 自上而下，匹配 CEF PET_VIEW
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+
+		void* pBits = NULL;
+		HBITMAP hBmp = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0);
+		if( hBmp == NULL || pBits == NULL ) {
+			if( hBmp ) ::DeleteObject(hBmp);
+			return false;
+		}
+
+		const int dstStride = width * 4;
+		BYTE* pDst = static_cast<BYTE*>(pBits);
+		for( int y = 0; y < height; ++y ) {
+			const BYTE* pSrc = pBgra + y * stride;
+			::CopyMemory(pDst + y * dstStride, pSrc, (size_t)dstStride);
+		}
+
+		TImageInfo img;
+		img.hBitmap = hBmp;
+		img.pBits = static_cast<LPBYTE>(pBits);
+		img.nX = width;
+		img.nY = height;
+		img.bAlpha = true;
+
+		RECT rcBmp = { 0, 0, width, height };
+		RECT rcCorners = { 0, 0, 0, 0 };
+		ctx.DrawImage(&img, rcDest, rcPaint, rcBmp, rcCorners, uFade, false, false, false);
+
+		// D2D 按 HBITMAP 键控 GPU 缓存：删 GDI 位图前必须失效，避免句柄复用脏缓存
+		IRenderDevice* pDev = GetRenderDevice();
+		if( pDev != NULL ) pDev->InvalidateImageGpu(&img);
+		::DeleteObject(hBmp);
+		return true;
+	}
+
 	CWebBrowserUI::CWebBrowserUI()
 		: m_pEngine(NULL)
 		, m_sHostMode(_T("window"))
@@ -117,18 +164,71 @@ namespace DuiLib
 			if( _tcsicmp(mode, _T("composition")) == 0 || _tcsicmp(mode, _T("compose")) == 0
 				|| _tcsicmp(mode, _T("visual")) == 0 )
 				s = _T("composition");
+			else if( _tcsicmp(mode, _T("osr")) == 0 || _tcsicmp(mode, _T("offscreen")) == 0 )
+				s = _T("osr");
 			else if( _tcsicmp(mode, _T("window")) == 0 || _tcsicmp(mode, _T("hwnd")) == 0 )
 				s = _T("window");
 		}
 		if( m_sHostMode == s ) return;
 		m_sHostMode = s;
 		DestroyEngine();
+		SyncHostInteraction();
 		if( m_pManager ) EnsureEngine();
 	}
 
 	LPCTSTR CWebBrowserUI::GetHostMode() const
 	{
 		return m_sHostMode.IsEmpty() ? _T("window") : m_sHostMode.GetData();
+	}
+
+	bool CWebBrowserUI::IsOffScreenHost() const
+	{
+		if( m_pEngine != NULL && m_pEngine->IsOffScreen() ) return true;
+		if( _tcsicmp(GetHostMode(), _T("osr")) == 0 ) return true;
+		if( _tcsicmp(GetHostMode(), _T("offscreen")) == 0 ) return true;
+		return false;
+	}
+
+	void CWebBrowserUI::SyncHostInteraction()
+	{
+		const bool osr = IsOffScreenHost();
+		SetMouseEnabled(osr);
+		SetKeyboardEnabled(osr);
+	}
+
+	UINT CWebBrowserUI::GetControlFlags() const
+	{
+		if( !IsEnabled() ) return CControlUI::GetControlFlags();
+		if( IsOffScreenHost() )
+			return UIFLAG_SETCURSOR | UIFLAG_TABSTOP;
+		return CControlUI::GetControlFlags();
+	}
+
+	void CWebBrowserUI::DoEvent(TEventUI& event)
+	{
+		if( m_pEngine != NULL && m_pEngine->IsOffScreen() ) {
+			if( event.Type == UIEVENT_SETFOCUS || event.Type == UIEVENT_KILLFOCUS ) {
+				CControlUI::DoEvent(event);
+				m_pEngine->HandleEvent(event);
+				return;
+			}
+			if( (event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK
+				|| event.Type == UIEVENT_RBUTTONDOWN) && IsEnabled() && m_pManager != NULL ) {
+				m_pManager->SetFocus(this);
+			}
+			if( m_pEngine->HandleEvent(event) )
+				return;
+		}
+		CControlUI::DoEvent(event);
+	}
+
+	bool CWebBrowserUI::DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
+	{
+		if( !CControlUI::DoPaint(ctx, rcPaint, pStopControl) )
+			return false;
+		if( m_pEngine != NULL && m_pEngine->IsOffScreen() )
+			m_pEngine->PaintOffScreen(ctx, rcPaint);
+		return true;
 	}
 
 	void CWebBrowserUI::SetHostEvents(CWebBrowserHostEvents* pEvents)
@@ -200,6 +300,7 @@ namespace DuiLib
 			static_cast<CWebBrowserIeEngine*>(m_pEngine)->SetIeEventHandler(m_pWebBrowserEventHandler);
 		}
 
+		SyncHostInteraction();
 		m_pEngine->SetVisible(IsVisible());
 		m_pEngine->SetPos(m_rcItem);
 
@@ -230,9 +331,9 @@ namespace DuiLib
 		EnsureEngine();
 		if( m_pEngine == NULL ) return;
 
-		// 原生宿主 HWND 勿盖住窗口 size-box，否则右边/底边无法拖拽缩放
+		// 原生宿主 HWND 勿盖住窗口 size-box / 祖先 window-resize 热区；OSR 无子窗，用完整控件矩形
 		RECT rcHost = m_rcItem;
-		if( m_pManager != NULL ) {
+		if( !IsOffScreenHost() && m_pManager != NULL ) {
 			HWND hWnd = m_pManager->GetPaintWindow();
 			if( hWnd != NULL && !::IsZoomed(hWnd) ) {
 				RECT rcClient = { 0 };
@@ -248,6 +349,8 @@ namespace DuiLib
 					rcHost.top = rcClient.top + sb.top;
 				if( rcHost.right < rcHost.left ) rcHost.right = rcHost.left;
 				if( rcHost.bottom < rcHost.top ) rcHost.bottom = rcHost.top;
+				// size-box 为 0 时仍须避开 TabLayout 等 window-resize 边，否则子 HWND 吃掉右/下缩放
+				ApplyAncestorWindowResizeHostInset(rcHost);
 			}
 		}
 		m_pEngine->SetPos(rcHost);

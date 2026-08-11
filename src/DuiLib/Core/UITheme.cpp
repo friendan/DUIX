@@ -279,8 +279,8 @@ namespace DuiLib {
 		CDuiString sAccItem;
 		sAccItem.Format(
 			_T("header-background-color=\"#%08X\" header-color=\"#%08X\" ")
-			_T("header-background-color-hover=\"#%08X\""),
-			bgElev, text, borderStrong);
+			_T("header-background-color-hover=\"#%08X\" border-color=\"#%08X\" border-bottom-width=\"1\""),
+			bgElev, text, borderStrong, border);
 		pManager->AddDefaultAttributeList(_T("AccordionItem"), sAccItem.GetData(), true);
 	}
 
@@ -778,6 +778,7 @@ namespace DuiLib {
 
 			if (bApplyTyped) {
 				if (bTitleBar) {
+					pControl->SetWallpaperBleed(CControlUI::WALLPAPER_BLEED_SOLID);
 					ThemeSetColorAttr(pControl, _T("background-color"), titleBg);
 					ThemeSetColorAttr(pControl, _T("color"), titleTx);
 					ThemeSetColorAttr(pControl, _T("border-color"), titleBd);
@@ -887,6 +888,7 @@ namespace DuiLib {
 				}
 				else if (bAccItem) {
 					ThemeSetColorAttr(pControl, _T("background-color"), ctrlBg);
+					ThemeSetColorAttr(pControl, _T("border-color"), border);
 					ThemeSetColorAttr(pControl, _T("header-background-color"), bgElev);
 					ThemeSetColorAttr(pControl, _T("header-color"), text);
 					ThemeSetColorAttr(pControl, _T("header-background-color-hover"), bgHover);
@@ -1247,9 +1249,9 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 		return pTheme->GetTokenCount() > 0;
 	}
 
-	bool CThemeManager::ApplyThemeFile(LPCTSTR path, LPCTSTR idOverride)
+	CTheme* CThemeManager::LoadThemeFile(LPCTSTR path, LPCTSTR idOverride, LPCTSTR displayName)
 	{
-		if (!m_bEnabled || path == NULL) return false;
+		if (path == NULL || *path == _T('\0')) return NULL;
 		CDuiString id = idOverride;
 		if (id.IsEmpty()) {
 			id = path;
@@ -1260,14 +1262,27 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 			int dot = id.ReverseFind(_T('.'));
 			if (dot > 0) id = id.Left(dot);
 		}
-		CTheme* p = new CTheme(id.GetData(), id.GetData());
+		if (id.IsEmpty()) return NULL;
+		CDuiString title = (displayName != NULL && *displayName != _T('\0')) ? displayName : id;
+		CTheme* p = new CTheme(id.GetData(), title.GetData());
 		CTheme* pBase = FindTheme(_T("default"));
 		if (pBase != NULL) p->CopyTokensFrom(*pBase);
 		if (!ParseThemeFileTokens(path, p)) {
 			delete p;
-			return false;
+			return NULL;
 		}
-		RegisterTheme(p, true);
+		if (!RegisterTheme(p, true)) {
+			delete p;
+			return NULL;
+		}
+		return p;
+	}
+
+	bool CThemeManager::ApplyThemeFile(LPCTSTR path, LPCTSTR idOverride)
+	{
+		if (!m_bEnabled || path == NULL) return false;
+		CTheme* p = LoadThemeFile(path, idOverride);
+		if (p == NULL) return false;
 		return ApplyTheme(p, false);
 	}
 

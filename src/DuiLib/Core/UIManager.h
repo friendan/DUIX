@@ -316,10 +316,28 @@ namespace DuiLib {
 		BYTE GetOpacity() const;
 		void SetOpacity(BYTE nOpacity);
 
+		/// 壁纸透出：控件底色 alpha 乘以此系数（0~255）。255=关闭。需根有 background-image（可用 wallpaper-bleed-need-image=false 取消限制）
+		BYTE GetWallpaperBleed() const;
+		void SetWallpaperBleed(BYTE nBleed);
+		bool IsWallpaperBleedNeedImage() const;
+		void SetWallpaperBleedNeedImage(bool bNeed);
+		bool IsWallpaperBleedActive() const;
+
 		// html/Window 默认背景落到 root background-color（默认 #FFF0F0F0）；分层未显式设置则保持透明
 		DWORD GetWindowBackgroundColor() const;
 		void SetWindowBackgroundColor(DWORD dwColor);
 		bool IsWindowBackgroundColorCustom() const;
+		LPCTSTR GetWindowBackgroundImage() const;
+		void SetWindowBackgroundImage(LPCTSTR pStrImage);
+		bool IsWindowBackgroundImageCustom() const;
+		/// 从内存设置窗口背景图：PNG / JPEG / BMP / GIF（stb）。成功返回 true。
+		bool SetWindowBackgroundImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask = 0);
+		/// 从 SVG 内存栅格化后设为窗口背景。width/height<=0 用文档固有尺寸（无效则 256）。
+		/// dwTintColor：0=不着色；(DWORD)-1 同 0。
+		bool SetWindowBackgroundImageFromSvg(const char* utf8Svg, size_t nBytes,
+			int width = 0, int height = 0, DWORD dwTintColor = 0);
+		bool SetWindowBackgroundImageFromSvg(LPCTSTR pstrSvg,
+			int width = 0, int height = 0, DWORD dwTintColor = 0);
 
 		// html/Window 的 action（如 title）；Attach 后落到 root（root 已有 action 则不覆盖）
 		UIAction GetWindowAction() const;
@@ -511,6 +529,8 @@ namespace DuiLib {
 		bool TranslateAccelerator(LPMSG pMsg);
 
 		CControlUI* GetRoot() const;
+		/// 可为 NULL（AttachDialog 之前）；需要空指针安全时用此接口，勿用 GetRoot（Debug 下 ASSERT）
+		CControlUI* GetRootPtr() const { return m_pRoot; }
 		CControlUI* FindControl(POINT pt) const;
 		CControlUI* FindControl(LPCTSTR pstrName) const;
 		CControlUI* FindSubControlByPoint(CControlUI* pParent, POINT pt) const;
@@ -549,6 +569,9 @@ namespace DuiLib {
 		void AdjustImagesHSL();
 		void PostAsyncNotify();
 		void ApplyDefaultWindowBackgroundColor();
+		void ApplyDefaultWindowBackgroundImage();
+		bool InstallWindowBackgroundHBitmap(HBITMAP hBmp, int w, int h, bool bAlpha);
+		void ClearWindowBackgroundMemoryImage();
 		void ApplyDefaultWindowAction();
 		void ApplyDefaultWindowTheme();
 
@@ -590,8 +613,12 @@ namespace DuiLib {
 		bool m_bOffscreenPaint;
 		
 		BYTE m_nOpacity;
+		BYTE m_nWallpaperBleed;
+		bool m_bWallpaperBleedNeedImage;
 		DWORD m_dwWindowBackgroundColor;
 		bool m_bWindowBackgroundColorCustom;
+		CDuiString m_sWindowBackgroundImage;
+		bool m_bWindowBackgroundImageCustom;
 		UIAction m_windowAction;
 		CDuiString m_sWindowTheme;
 		CDuiString m_sWindowThemeId;

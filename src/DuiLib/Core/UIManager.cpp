@@ -279,8 +279,11 @@ namespace DuiLib {
 		m_bUsedVirtualWnd(false),
 		m_bForceUseSharedRes(false),
 		m_nOpacity(0xFF),
+		m_nWallpaperBleed(0xFF),
+		m_bWallpaperBleedNeedImage(true),
 		m_dwWindowBackgroundColor(0xF0F0F0FF),
 		m_bWindowBackgroundColorCustom(false),
+		m_bWindowBackgroundImageCustom(false),
 		m_windowAction(UIACTION_NONE),
 		m_bLayered(false),
 		m_bLayeredCompositionEnabled(true),
@@ -970,6 +973,39 @@ namespace DuiLib {
 		}
 	}
 
+	BYTE CPaintManagerUI::GetWallpaperBleed() const
+	{
+		return m_nWallpaperBleed;
+	}
+
+	void CPaintManagerUI::SetWallpaperBleed(BYTE nBleed)
+	{
+		if( m_nWallpaperBleed == nBleed ) return;
+		m_nWallpaperBleed = nBleed;
+		NeedUpdate();
+	}
+
+	bool CPaintManagerUI::IsWallpaperBleedNeedImage() const
+	{
+		return m_bWallpaperBleedNeedImage;
+	}
+
+	void CPaintManagerUI::SetWallpaperBleedNeedImage(bool bNeed)
+	{
+		if( m_bWallpaperBleedNeedImage == bNeed ) return;
+		m_bWallpaperBleedNeedImage = bNeed;
+		NeedUpdate();
+	}
+
+	bool CPaintManagerUI::IsWallpaperBleedActive() const
+	{
+		if( m_nWallpaperBleed >= 255 ) return false;
+		if( !m_bWallpaperBleedNeedImage ) return true;
+		if( m_pRoot == NULL ) return false;
+		LPCTSTR pImg = m_pRoot->GetBackgroundImage();
+		return pImg != NULL && *pImg != _T('\0');
+	}
+
 	DWORD CPaintManagerUI::GetWindowBackgroundColor() const
 	{
 		return m_dwWindowBackgroundColor;
@@ -998,6 +1034,121 @@ namespace DuiLib {
 		if( m_dwWindowBackgroundColor == 0 ) return;
 		if( m_pRoot->GetBackgroundColor() != 0 ) return;
 		m_pRoot->SetBackgroundColor(m_dwWindowBackgroundColor);
+	}
+
+	LPCTSTR CPaintManagerUI::GetWindowBackgroundImage() const
+	{
+		return m_sWindowBackgroundImage.GetData();
+	}
+
+	bool CPaintManagerUI::IsWindowBackgroundImageCustom() const
+	{
+		return m_bWindowBackgroundImageCustom;
+	}
+
+	void CPaintManagerUI::SetWindowBackgroundImage(LPCTSTR pStrImage)
+	{
+		CDuiString sUrl;
+		if( pStrImage != NULL && ParseCssUrlImage(pStrImage, sUrl) )
+			pStrImage = sUrl.GetData();
+		CDuiString s = (pStrImage != NULL) ? pStrImage : _T("");
+		if( m_bWindowBackgroundImageCustom && m_sWindowBackgroundImage == s ) return;
+		// 换文件路径时丢掉内存图缓存；设内存图 key 时由 Install 先 Clear
+		if( s != _T("_dui_window_background_memory") )
+			RemoveImage(_T("_dui_window_background_memory"), false);
+		m_sWindowBackgroundImage = s;
+		m_bWindowBackgroundImageCustom = true;
+		if( m_pRoot != NULL )
+			m_pRoot->SetBackgroundImage(m_sWindowBackgroundImage.GetData());
+		if( m_hWndPaint != NULL ) Invalidate();
+	}
+
+	void CPaintManagerUI::ApplyDefaultWindowBackgroundImage()
+	{
+		if( m_pRoot == NULL ) return;
+		if( !m_bWindowBackgroundImageCustom ) return;
+		if( m_sWindowBackgroundImage.IsEmpty() ) return;
+		LPCTSTR pExist = m_pRoot->GetBackgroundImage();
+		if( pExist != NULL && *pExist != _T('\0') ) return;
+		m_pRoot->SetBackgroundImage(m_sWindowBackgroundImage.GetData());
+	}
+
+	namespace {
+		static LPCTSTR kWindowBgMemKey = _T("_dui_window_background_memory");
+
+		static bool LooksLikeSvgMemory(const BYTE* pData, DWORD dwSize)
+		{
+			if( pData == NULL || dwSize < 4 ) return false;
+			DWORD i = 0;
+			if( dwSize >= 3 && pData[0] == 0xEF && pData[1] == 0xBB && pData[2] == 0xBF ) i = 3;
+			while( i < dwSize && (pData[i] == ' ' || pData[i] == '\t' || pData[i] == '\r' || pData[i] == '\n') )
+				++i;
+			if( i >= dwSize ) return false;
+			if( pData[i] != '<' ) return false;
+			if( i + 4 <= dwSize && _strnicmp((const char*)pData + i, "<svg", 4) == 0 ) return true;
+			if( i + 5 <= dwSize && _strnicmp((const char*)pData + i, "<?xml", 5) == 0 ) return true;
+			return false;
+		}
+	}
+
+	void CPaintManagerUI::ClearWindowBackgroundMemoryImage()
+	{
+		RemoveImage(kWindowBgMemKey, false);
+	}
+
+	bool CPaintManagerUI::InstallWindowBackgroundHBitmap(HBITMAP hBmp, int w, int h, bool bAlpha)
+	{
+		if( hBmp == NULL || w <= 0 || h <= 0 ) {
+			if( hBmp ) ::DeleteObject(hBmp);
+			return false;
+		}
+		ClearWindowBackgroundMemoryImage();
+		const TImageInfo* pInfo = AddImage(kWindowBgMemKey, hBmp, w, h, bAlpha, false);
+		if( pInfo == NULL ) {
+			::DeleteObject(hBmp);
+			return false;
+		}
+		SetWindowBackgroundImage(kWindowBgMemKey);
+		return true;
+	}
+
+	bool CPaintManagerUI::SetWindowBackgroundImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask)
+	{
+		if( pData == NULL || dwSize == 0 ) return false;
+
+		if( LooksLikeSvgMemory(pData, dwSize) )
+			return SetWindowBackgroundImageFromSvg((const char*)pData, (size_t)dwSize, 0, 0, 0);
+
+		TImageInfo* pInfo = CRenderEngine::LoadImageFromMemory(pData, dwSize, mask);
+		if( pInfo == NULL || pInfo->hBitmap == NULL ) {
+			if( pInfo ) CRenderEngine::FreeImage(pInfo);
+			return false;
+		}
+		HBITMAP hBmp = pInfo->hBitmap;
+		int w = pInfo->nX;
+		int h = pInfo->nY;
+		bool bA = pInfo->bAlpha;
+		pInfo->hBitmap = NULL;
+		CRenderEngine::FreeImage(pInfo);
+		return InstallWindowBackgroundHBitmap(hBmp, w, h, bA);
+	}
+
+	bool CPaintManagerUI::SetWindowBackgroundImageFromSvg(const char* utf8Svg, size_t nBytes,
+		int width, int height, DWORD dwTintColor)
+	{
+		int w = 0, h = 0;
+		HBITMAP hBmp = CSvgBoxUI::RasterizeToHBitmap(utf8Svg, nBytes, width, height, dwTintColor, &w, &h);
+		if( hBmp == NULL ) return false;
+		return InstallWindowBackgroundHBitmap(hBmp, w, h, true);
+	}
+
+	bool CPaintManagerUI::SetWindowBackgroundImageFromSvg(LPCTSTR pstrSvg,
+		int width, int height, DWORD dwTintColor)
+	{
+		int w = 0, h = 0;
+		HBITMAP hBmp = CSvgBoxUI::RasterizeToHBitmap(pstrSvg, width, height, dwTintColor, &w, &h);
+		if( hBmp == NULL ) return false;
+		return InstallWindowBackgroundHBitmap(hBmp, w, h, true);
 	}
 
 	UIAction CPaintManagerUI::GetWindowAction() const
@@ -2323,6 +2474,7 @@ namespace DuiLib {
 		// 先写主题 Default，再 InitControls，使新建控件吃到共享 Default
 		CThemeManager::GetInstance()->ApplyManagerDefaults(this);
 		ApplyDefaultWindowBackgroundColor();
+		ApplyDefaultWindowBackgroundImage();
 		ApplyDefaultWindowAction();
 		ApplyDefaultWindowTheme();
 		// Go ahead...

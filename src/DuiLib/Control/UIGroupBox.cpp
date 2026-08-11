@@ -81,7 +81,7 @@ namespace DuiLib
 
 		DWORD dwColor = m_dwColor;
 		if(!IsEnabled()) dwColor = m_dwDisabledColor;
-		ctx.DrawText(rcText, sText.GetData(), dwColor, m_iFont, m_uTextStyle, GetAdjustColor(m_dwBackColor));
+		ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(dwColor), m_iFont, m_uTextStyle, GetAdjustColor(m_dwBackColor));
 	}
 	void CGroupBoxUI::PaintBorder(IRenderContext& ctx)
 	{

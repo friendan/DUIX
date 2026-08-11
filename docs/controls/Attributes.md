@@ -30,10 +30,11 @@
 | 背景 | `background-color`；`background` / `background-image` 可写 `linear-gradient`、`url(...)` 或位图 DSL |
 | 状态图 | 优先 `background-image` + `:hover`/`:active`；`image-*` 留给 source 切割多态图 |
 | 字体 | `font-family` / `font-size` / `font-weight` / `font-style` / `text-decoration`；列表项 `item-font-*` |
-| 透明度 | 控件 `opacity`（调制绘制色）；窗口 `opacity`/`alpha` |
+| 透明度 | 控件 `opacity`/`alpha`（默认乘祖先；`opacity-isolate`；父 `opacity-propagate=false`）；C++：`SetOpacityF` / `GetEffectiveOpacityF`；Edit/RichEdit/WebBrowser OSR 见各页；窗口 `opacity`/`alpha`；壁纸透出见 `wallpaper-bleed` |
 | 命中测试 | `pointer-events`（`none`/`auto`）；旧名 `mouse` / `mouse-child` |
 | 命名样式 | `class` / `style` → `<Default name>` |
 | 窗口拖拽 | `html { action: title; }` 落到 root；控件仍可用 `action="title"`。子控件若 `PreferClientHit()`（已配 `*-hover`/`*-active`、SETCURSOR、cursor 等）保持客户区，悬停态才会生效 |
+| 控件缩窗 | 任意控件（含 `TabLayout`）`window-resize` / `window-size-box`：按边启用宿主 HWND 缩放热区；与窗口 `size-box` 互补。`size-box` / `window-size-box` 四值均为 **左,上,右,下（LTRB）**，与 `margin`/`padding` 的 CSS 上右下左不同。若只要控件上的边、不要整窗其它边，把窗口 `size-box` 对应边设为 `0` |
 
 注意：`padding` 是内边距；外边距用 `margin`。
 
@@ -91,7 +92,7 @@
 
 ## 已对齐（优先使用）
 
-`margin` / `padding`（及单边）、`width`/`height`/`min-*`/`max-*`、`gap`、`justify-content`/`align-items`、`overflow`/`overflow-x`/`overflow-y`、`border`/`border-width`/`border-color`/`border-style`/`border-radius`、`background`/`background-color`/`background-image`、`color`、`font-family`/`font-size`/`font-weight`/`font-style`/`text-decoration`、`text-align`/`vertical-align`、`opacity`、`pointer-events`、`class`/`style`、`disabled`、`title`/`tooltip`、`draggable`、`accesskey`、`contextmenu`、`cursor`（含 CSS 关键字）、`id`、`enabled`/`visible`、`visibility`/`display`（映射可见性）。
+`margin` / `padding`（及单边）、`width`/`height`/`min-*`/`max-*`、`gap`、`justify-content`/`align-items`、`overflow`/`overflow-x`/`overflow-y`、`border`/`border-width`/`border-color`/`border-style`/`border-radius`、`background`/`background-color`/`background-image`、`color`、`font-family`/`font-size`/`font-weight`/`font-style`/`text-decoration`、`text-align`/`vertical-align`、`opacity`/`alpha`/`opacity-inherit`/`opacity-isolate`/`opacity-propagate`/`child-opacity-inherit`、`pointer-events`、`class`/`style`、`disabled`、`title`/`tooltip`、`draggable`、`accesskey`、`contextmenu`、`cursor`（含 CSS 关键字）、`id`、`enabled`/`visible`、`visibility`/`display`（映射可见性）。
 
 窗口根上的 `selected-color` 是默认选中**背景**色（与 Option 的 `color-selected` 不同）。
 

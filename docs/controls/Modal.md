@@ -116,7 +116,7 @@ CModal::Show(_T("不同步"), _T("只动对话框，主窗留在原地。"),
 
 ## 行为说明
 
-- 水平居中，垂直约在工作区上方 1/3（同 EZUI）
+- 相对 Owner（主窗）居中；无 Owner 时相对显示器工作区居中；位置夹在工作区内防出屏
 - 标题栏 / 正文区 `action="title"` 可拖动；Esc 取消，Enter 确定
 - `SyncOwnerMove` 默认开启：拖动时按打开时屏幕坐标偏移同步移动 Owner（含跨显示器）；不需要时 `.SyncOwnerMove(false)`
 - 半透明遮罩覆盖 **Modal 当前所在显示器** 工作区；跨屏拖动或 `WM_DISPLAYCHANGE` 时会重铺；关闭时恢复 Owner 启用与焦点

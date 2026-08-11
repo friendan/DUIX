@@ -356,16 +356,39 @@ void CIconExportWnd::SyncPreview()
 void CIconExportWnd::SyncFormatHint()
 {
 	CLabelUI* pHint = static_cast<CLabelUI*>(m_pm.FindControl(_T("lbl_fmt_hint")));
-	if( pHint == NULL ) return;
 	CDuiString ext = GetFormatExt();
-	if( ext == _T("ico") )
-		pHint->SetText(_T("ICO：按边长导出正方形（最大 512）"));
-	else if( ext == _T("jpg") )
-		pHint->SetText(_T("JPG：叠白底（无透明）"));
-	else if( ext == _T("bmp") )
-		pHint->SetText(_T("BMP：位图导出"));
-	else
-		pHint->SetText(_T("PNG：保留透明"));
+	if( pHint != NULL ) {
+		if( ext == _T("ico") )
+			pHint->SetText(_T("ICO：标准七档尺寸（16～256），系统按场景选用"));
+		else if( ext == _T("jpg") )
+			pHint->SetText(_T("JPG：叠白底（无透明）"));
+		else if( ext == _T("bmp") )
+			pHint->SetText(_T("BMP：位图导出"));
+		else
+			pHint->SetText(_T("PNG：保留透明"));
+	}
+	SyncSizeUiForFormat();
+}
+void CIconExportWnd::SyncSizeUiForFormat()
+{
+	const bool bIco = (GetFormatExt() == _T("ico"));
+	CControlUI* pTitle = m_pm.FindControl(_T("lbl_size_title"));
+	CControlUI* pRowEdit = m_pm.FindControl(_T("size_row_edit"));
+	CControlUI* pRowBtns = m_pm.FindControl(_T("size_row_btns"));
+	if( pTitle != NULL ) pTitle->SetEnabled(!bIco);
+	if( pRowEdit != NULL ) pRowEdit->SetEnabled(!bIco);
+	if( pRowBtns != NULL ) pRowBtns->SetEnabled(!bIco);
+
+	CLabelUI* pSizeHint = static_cast<CLabelUI*>(m_pm.FindControl(_T("lbl_size_hint")));
+	if( pSizeHint == NULL ) return;
+	if( bIco ) {
+		pSizeHint->SetText(_T("16/24/32/48/64/128/256"));
+	}
+	else {
+		CDuiString s;
+		s.Format(_T("px（控件 %d×%d）"), m_nCtrlW > 0 ? m_nCtrlW : 28, m_nCtrlH > 0 ? m_nCtrlH : 28);
+		pSizeHint->SetText(s.GetData());
+	}
 }
 void CIconExportWnd::SyncDirLabel()
 {
@@ -613,12 +636,6 @@ void CIconExportWnd::InitWindow()
 		if( m_nCtrlH <= 0 ) m_nCtrlH = 28;
 	}
 	ResetSizeToControl();
-	CLabelUI* pSizeHint = static_cast<CLabelUI*>(m_pm.FindControl(_T("lbl_size_hint")));
-	if( pSizeHint != NULL ) {
-		CDuiString s;
-		s.Format(_T("px（控件 %d×%d）"), m_nCtrlW, m_nCtrlH);
-		pSizeHint->SetText(s.GetData());
-	}
 	BuildColorSwatches();
 	ApplyTint(m_dwTint, false);
 	SyncFormatHint();
@@ -667,18 +684,17 @@ bool CIconExportWnd::DoExport()
 	DWORD tint = m_bNoTint ? 0 : m_dwTint;
 	bool ok = false;
 	if( ext == _T("ico") ) {
-		int s = w;
-		if( h > 0 && (s <= 0 || h < s) ) s = h;
-		if( s > 512 ) s = 512;
-		if( s < 1 ) s = 1;
-		ok = m_pPreview->ExportToIcoFile(sPath.GetData(), &s, 1, tint);
+		ok = m_pPreview->ExportToIcoFile(sPath.GetData(), tint);
 	}
 	else {
 		ok = m_pPreview->ExportToFile(sPath.GetData(), w, h, tint, 90);
 	}
 	if( ok ) {
 		CDuiString sTip;
-		sTip.Format(_T("已导出：%s（%d×%d）"), sPath.GetData(), w, h);
+		if( ext == _T("ico") )
+			sTip.Format(_T("已导出：%s（标准七档）"), sPath.GetData());
+		else
+			sTip.Format(_T("已导出：%s（%d×%d）"), sPath.GetData(), w, h);
 		CToast::ShowSuccess(sTip.GetData(), 2800);
 	}
 	else {
@@ -745,9 +761,17 @@ void CIconExportWnd::OnClick(TNotifyUI& msg)
 		return;
 	}
 	if( sName.CompareNoCase(_T("btn_size_ctrl")) == 0 ) {
+		if( GetFormatExt() == _T("ico") ) return;
 		ResetSizeToControl();
 		return;
 	}
+	if( GetFormatExt() == _T("ico")
+		&& (sName.CompareNoCase(_T("btn_size_32")) == 0
+			|| sName.CompareNoCase(_T("btn_size_64")) == 0
+			|| sName.CompareNoCase(_T("btn_size_128")) == 0
+			|| sName.CompareNoCase(_T("btn_size_256")) == 0
+			|| sName.CompareNoCase(_T("btn_size_512")) == 0) )
+		return;
 	if( sName.CompareNoCase(_T("btn_size_32")) == 0 ) { SetSizeEdits(32, 32); return; }
 	if( sName.CompareNoCase(_T("btn_size_64")) == 0 ) { SetSizeEdits(64, 64); return; }
 	if( sName.CompareNoCase(_T("btn_size_128")) == 0 ) { SetSizeEdits(128, 128); return; }

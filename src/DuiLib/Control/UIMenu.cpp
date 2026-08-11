@@ -721,7 +721,7 @@ namespace DuiLib {
 				m_rcItem.top + (m_rcItem.bottom - m_rcItem.top) / 2
 			};
 			if( rcLine.right > rcLine.left )
-				ctx.DrawLine(rcLine, 1, m_dwLineColor);
+				ctx.DrawLine(rcLine, 1, GetAdjustColor(m_dwLineColor));
 		}
 		else
 		{
@@ -918,10 +918,10 @@ namespace DuiLib {
 		rcText.bottom -= rcTextPadding.bottom;
 
 		if( pInfo->bShowHtml )
-			ctx.DrawHtmlText(rcText, sText.GetData(), iTextColor, \
+			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(iTextColor), \
 			NULL, NULL, nLinks, pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
 		else
-			ctx.DrawText(rcText, sText.GetData(), iTextColor, \
+			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(iTextColor), \
 			pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
 	}
 
@@ -1387,7 +1387,7 @@ namespace DuiLib {
 		if( EnsureRasterTintCache(paint) && m_hRasterTint != NULL ) {
 			RECT rcBmp = { 0, 0, m_nRasterTintW, m_nRasterTintH };
 			RECT rcCorners = { 0, 0, 0, 0 };
-			ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true);
+			ctx.DrawImage(m_hRasterTint, rcIcon, m_rcPaint, rcBmp, rcCorners, true, ScaleImageFade());
 			return;
 		}
 		RECT rcDest = {

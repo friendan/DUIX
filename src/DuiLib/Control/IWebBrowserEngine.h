@@ -9,6 +9,9 @@ namespace DuiLib
 {
 	class CControlUI;
 	class CWebBrowserUI;
+	class IRenderContext;
+	struct tagTEventUI;
+	typedef struct tagTEventUI TEventUI;
 
 	/// 引擎无关的宿主事件（WebView2 / CEF 等外接引擎）
 	class UILIB_API CWebBrowserHostEvents
@@ -30,6 +33,12 @@ namespace DuiLib
 		/// ExecuteScript 异步结果（通常为 JSON 文本；失败时可为 NULL）
 		virtual void OnExecuteScriptResult(CWebBrowserUI* pWeb, LPCTSTR resultJson, bool success) {}
 	};
+
+	/// OSR 辅助：将 BGRA 缓冲贴到控件矩形（CEF OnPaint 缓冲可直接用；库不链 CEF）
+	/// stride<=0 时按 width*4；topDown=true 表示首行在上（CEF PET_VIEW 默认）
+	/// uFade：建议传 pOwner->ScaleImageFade()，以跟随控件/祖先 opacity
+	UILIB_API bool BlitWebBrowserOsrBuffer(IRenderContext& ctx, const RECT& rcDest, const RECT& rcPaint,
+		const BYTE* pBgra, int width, int height, int stride = 0, bool topDown = true, UINT uFade = 255);
 
 	/// 可插拔浏览器引擎（内置 webview2/ie；cef 建议应用 Register 覆盖 stub）
 	class UILIB_API IWebBrowserEngine
@@ -62,9 +71,16 @@ namespace DuiLib
 		virtual void* GetNative() = 0;
 		virtual void SetHostEvents(CWebBrowserHostEvents* pEvents) = 0;
 		virtual void SetUserDataFolder(LPCTSTR /*path*/) {}
-		/// WebView2: "window" | "composition"；其它引擎可自定义或忽略
+		/// WebView2: "window" | "composition"；外接 CEF OSR 可用 "osr" / "offscreen"
 		virtual void SetHostMode(LPCTSTR /*mode*/) {}
 		virtual LPCTSTR GetHostMode() const { return _T("window"); }
+
+		/// 离屏：无子 HWND，由 PaintOffScreen 画进 DuiLib；帧就绪后对 pOwner->Invalidate()
+		virtual bool IsOffScreen() const { return false; }
+		/// 返回 true 表示已绘制网页内容（可用 BlitWebBrowserOsrBuffer）
+		virtual bool PaintOffScreen(IRenderContext& /*ctx*/, const RECT& /*rcPaint*/) { return false; }
+		/// 处理鼠标/键盘等；返回 true 表示已消费（不再交给基类默认逻辑）
+		virtual bool HandleEvent(TEventUI& /*event*/) { return false; }
 	};
 
 	typedef IWebBrowserEngine* (*WebBrowserEngineCreator)();

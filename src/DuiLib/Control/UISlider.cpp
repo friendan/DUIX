@@ -17,7 +17,7 @@ namespace DuiLib
 
 	UINT CSliderUI::GetControlFlags() const
 	{
-		if( IsEnabled() ) return UIFLAG_SETCURSOR;
+		if( IsEnabled() ) return UIFLAG_SETCURSOR | UIFLAG_TABSTOP;
 		else return 0;
 	}
 
@@ -42,7 +42,7 @@ namespace DuiLib
 
 	void CSliderUI::SetChangeStep(int step)
 	{
-		m_nStep = step;
+		m_nStep = (step > 0) ? step : 1;
 	}
 
 	void CSliderUI::SetThumbSize(SIZE szXY)
@@ -121,6 +121,7 @@ namespace DuiLib
 
 		if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK ) {
 			if( IsEnabled() ) {
+				SetFocus();
 				m_uButtonState |= UISTATE_CAPTURED;
 
 				int nValue;
@@ -141,6 +142,55 @@ namespace DuiLib
 				UpdateText();
 			}
 			return;
+		}
+
+		if( event.Type == UIEVENT_KEYDOWN && IsEnabled() ) {
+			const int nOld = GetValue();
+			const int nStep = GetChangeStep() > 0 ? GetChangeStep() : 1;
+			int nNew = nOld;
+			bool bHandled = false;
+			if( event.chKey == VK_HOME ) {
+				nNew = m_nMin;
+				bHandled = true;
+			}
+			else if( event.chKey == VK_END ) {
+				nNew = m_nMax;
+				bHandled = true;
+			}
+			else if( m_bHorizontal ) {
+				if( event.chKey == VK_LEFT || event.chKey == VK_DOWN ) {
+					nNew = nOld - nStep;
+					bHandled = true;
+				}
+				else if( event.chKey == VK_RIGHT || event.chKey == VK_UP ) {
+					nNew = nOld + nStep;
+					bHandled = true;
+				}
+			}
+			else {
+				// 竖向：上增下减（与常见音量条一致）
+				if( event.chKey == VK_DOWN || event.chKey == VK_LEFT ) {
+					nNew = nOld - nStep;
+					bHandled = true;
+				}
+				else if( event.chKey == VK_UP || event.chKey == VK_RIGHT ) {
+					nNew = nOld + nStep;
+					bHandled = true;
+				}
+			}
+			if( bHandled ) {
+				if( nNew < m_nMin ) nNew = m_nMin;
+				if( nNew > m_nMax ) nNew = m_nMax;
+				if( nNew != nOld ) {
+					// 勿走 SetValue：捕获态会吞掉；键盘路径直接改值
+					m_nValue = nNew;
+					UpdateText();
+					Invalidate();
+					if( m_pManager != NULL )
+						m_pManager->SendNotify(this, DUI_MSGTYPE_VALUECHANGED);
+				}
+				return;
+			}
 		}
 
 		if( event.Type == UIEVENT_BUTTONUP || event.Type == UIEVENT_RBUTTONUP) {
@@ -258,7 +308,7 @@ namespace DuiLib
 			szXY.cy = _tcstol(pstr + 1, &pstr, 10);    ASSERT(pstr); 
 			SetThumbSize(szXY);
 		}
-		else if( _tcsicmp(pstrName, _T("step")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("step")) == 0 || _tcsicmp(pstrName, _T("change-step")) == 0 ) {
 			SetChangeStep(_ttoi(pstrValue));
 		}
 		else if( _tcsicmp(pstrName, _T("send-move")) == 0 ) {

@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "IconBrowserWnd.h"
 #include "IconExportWnd.h"
+#include "MainWnd.h"
 #include "Icons/UIIconEntry.h"
 #include "Core/UITheme.h"
 #include <algorithm>
@@ -697,6 +698,8 @@ LRESULT CIconBrowserWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lP
 			m_pm.DeletePtr(pMenuCmd);
 			if( sName.CompareNoCase(_T("export")) == 0 )
 				OpenExportForCell(m_pCtxCell);
+			else if( sName.CompareNoCase(_T("as_wallpaper")) == 0 )
+				ApplyWallpaperForCell(m_pCtxCell);
 		}
 		bHandled = TRUE;
 		return 0;
@@ -769,6 +772,48 @@ void CIconBrowserWnd::OpenExportForCell(CControlUI* pCell)
 	CIconExportWnd::Open(m_hWnd, pLib ? pLib : m_sAttr.GetData(), pName, utf8, nW, nH);
 }
 
+void CIconBrowserWnd::ApplyWallpaperForCell(CControlUI* pCell)
+{
+	pCell = FindIconCell(pCell);
+	if( pCell == NULL ) return;
+	const IconEntry* pEntry = (const IconEntry*)pCell->GetTag();
+	LPCTSTR pName = pCell->GetCustomAttribute(_T("icon-name"));
+	LPCTSTR pLib = pCell->GetCustomAttribute(_T("icon-lib"));
+	const char* utf8 = (pEntry != NULL) ? pEntry->data : NULL;
+	if( utf8 == NULL || *utf8 == '\0' ) {
+		CToast::ShowWarning(_T("该图标无 SVG 数据"), 2500);
+		return;
+	}
+
+	HWND hParent = ::GetParent(m_hWnd);
+	if( hParent == NULL ) hParent = ::GetWindow(m_hWnd, GW_OWNER);
+	CMainWnd* pMain = (hParent != NULL)
+		? reinterpret_cast<CMainWnd*>(::GetWindowLongPtr(hParent, GWLP_USERDATA))
+		: NULL;
+	if( pMain == NULL ) {
+		CToast::ShowWarning(_T("找不到主窗口"), 2500);
+		return;
+	}
+
+	CDuiString sLabel;
+	if( pLib != NULL && *pLib != _T('\0') && pName != NULL && *pName != _T('\0') )
+		sLabel.Format(_T("%s:%s"), pLib, pName);
+	else if( pName != NULL && *pName != _T('\0') )
+		sLabel = pName;
+	else
+		sLabel = _T("(SVG)");
+
+	if( pMain->ApplyWallpaperFromSvg(utf8, strlen(utf8), sLabel.GetData()) ) {
+		CDuiString sTip;
+		sTip.Format(_T("已设为背景: %s"), sLabel.GetData());
+		CToast::ShowSuccess(sTip.GetData(), 2500);
+		UpdateTitle(sTip.GetData());
+	}
+	else {
+		CToast::ShowDanger(_T("设置背景图失败"), 2500);
+	}
+}
+
 void CIconBrowserWnd::Notify(TNotifyUI& msg)
 {
 	if( msg.sType == DUI_MSGTYPE_SCROLL ) {
@@ -816,6 +861,10 @@ void CIconBrowserWnd::OnClick(TNotifyUI& msg)
 	}
 	if( sName.CompareNoCase(_T("export")) == 0 ) {
 		OpenExportForCell(m_pCtxCell);
+		return;
+	}
+	if( sName.CompareNoCase(_T("as_wallpaper")) == 0 ) {
+		ApplyWallpaperForCell(m_pCtxCell);
 		return;
 	}
 
