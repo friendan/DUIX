@@ -254,6 +254,7 @@ namespace DuiLib
 		m_nIPUpdateFlag=IP_UPDATE;
 		m_dwNativeBkColor = 0xFFFFFFFF;
 		m_dwNativeTextColor = 0x000000E0;
+		m_bNativeBkColorCustom = false;
 		m_bNativeTextColorSet = false;
 		UpdateText();
 		m_nIPUpdateFlag = IP_NONE;
@@ -294,14 +295,15 @@ namespace DuiLib
 
 	void CIPAddressUI::SetNativeBackgroundColor(DWORD dwBackgroundColor)
 	{
-		if( m_dwNativeBkColor == dwBackgroundColor ) return;
 		m_dwNativeBkColor = dwBackgroundColor;
+		m_bNativeBkColorCustom = true;
 		SyncNativeShellColors();
 	}
 
 	DWORD CIPAddressUI::GetNativeBackgroundColor() const
 	{
-		return m_dwNativeBkColor;
+		if( m_bNativeBkColorCustom ) return m_dwNativeBkColor;
+		return GetBackgroundColor();
 	}
 
 	void CIPAddressUI::SetNativeColor(DWORD dwColor)

@@ -28,12 +28,13 @@ namespace DuiLib
 
 		CEditUI* m_pOwner;
 		HBRUSH m_hBkBrush;
+		DWORD m_dwBrushColor;
 		bool m_bInit;
 		bool m_bDrawCaret;
 	};
 
 
-	CEditWnd::CEditWnd() : m_pOwner(NULL), m_hBkBrush(NULL), m_bInit(false), m_bDrawCaret(false)
+	CEditWnd::CEditWnd() : m_pOwner(NULL), m_hBkBrush(NULL), m_dwBrushColor(0), m_bInit(false), m_bDrawCaret(false)
 	{
 	}
 
@@ -209,19 +210,26 @@ namespace DuiLib
 		}
 		else if( uMsg == OCM__BASE + WM_CTLCOLOREDIT  || uMsg == OCM__BASE + WM_CTLCOLORSTATIC ) {
 			::SetBkMode((HDC)wParam, TRANSPARENT);
-			DWORD dwColor = m_pOwner->GetColor();
+			DWORD dwColor = m_pOwner->GetAdjustColor(m_pOwner->GetNativeEditColor());
 			::SetTextColor((HDC)wParam, DuiColorToCOLORREF(dwColor));
 			DWORD clrColor = m_pOwner->GetNativeEditBackgroundColor();
 			if( !DuiColorIsOpaque(clrColor) ) {
-				if (m_hBkBrush != NULL) ::DeleteObject(m_hBkBrush);
+				if (m_hBkBrush != NULL) {
+					::DeleteObject(m_hBkBrush);
+					m_hBkBrush = NULL;
+				}
+				m_dwBrushColor = 0;
 				RECT rcWnd = m_pOwner->GetManager()->GetNativeWindowRect(m_hWnd);
 				HBITMAP hBmpEditBk = CRenderEngine::GenerateBitmap(m_pOwner->GetManager(), rcWnd, m_pOwner, clrColor);
 				m_hBkBrush = ::CreatePatternBrush(hBmpEditBk);
 				::DeleteObject(hBmpEditBk);
 			}
 			else {
-				if (m_hBkBrush == NULL) {
-					m_hBkBrush = ::CreateSolidBrush(DuiColorToCOLORREF(clrColor));
+				DWORD adj = m_pOwner->GetAdjustColor(clrColor);
+				if( m_hBkBrush == NULL || m_dwBrushColor != adj ) {
+					if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
+					m_hBkBrush = ::CreateSolidBrush(DuiColorToCOLORREF(adj));
+					m_dwBrushColor = adj;
 				}
 			}
 			return (LRESULT)m_hBkBrush;
@@ -305,7 +313,8 @@ namespace DuiLib
 
 		CEditUI::CEditUI() : m_pWindow(NULL), m_uMaxChar(255), m_bReadOnly(false), 
 		m_bPasswordMode(false), m_cPasswordChar(_T('*')), m_bAutoSelAll(false), m_uButtonState(0), 
-		m_dwEditbkColor(0xFFFFFFFF), m_dwEditTextColor(0x00000000), m_iWindowStyls(0),m_dwPlaceholderColor(0xBAC0C5FF)
+		m_dwEditbkColor(0), m_dwEditTextColor(0), m_bNativeBkColorCustom(false), m_bNativeTextColorCustom(false),
+		m_iWindowStyls(0), m_dwPlaceholderColor(0xBAC0C5FF)
 	{
 		SetPadding(CDuiBox(4, 10, 4, 10)); // 默认左右内边距，圆角时文字不贴边
 		SetBackgroundColor(0xFFFFFFFF);
@@ -645,23 +654,42 @@ namespace DuiLib
 	void CEditUI::SetNativeEditBackgroundColor(DWORD dwBackgroundColor)
 	{
 		m_dwEditbkColor = dwBackgroundColor;
+		m_bNativeBkColorCustom = true;
+		SyncNativeEditColors();
 	}
 
 	DWORD CEditUI::GetNativeEditBackgroundColor() const
 	{
-		return m_dwEditbkColor;
+		// 未写 native-background-color 时跟控件背景（主题/默认属性），避免聚焦 WC_EDIT 冒出白条
+		if( m_bNativeBkColorCustom ) return m_dwEditbkColor;
+		return GetBackgroundColor();
 	}
 
 	void CEditUI::SetNativeEditColor( LPCTSTR pStrColor )
 	{
 		DWORD clrColor = 0;
-		if( ParseColorString(pStrColor, clrColor) )
+		if( ParseColorString(pStrColor, clrColor) ) {
 			m_dwEditTextColor = clrColor;
+			m_bNativeTextColorCustom = true;
+			SyncNativeEditColors();
+		}
 	}
 
 	DWORD CEditUI::GetNativeEditColor() const
 	{
-		return m_dwEditTextColor;
+		if( m_bNativeTextColorCustom ) return m_dwEditTextColor;
+		DWORD c = GetColor();
+		if( c != 0 ) return c;
+		if( m_pManager != NULL ) return m_pManager->GetDefaultFontColor();
+		return 0x000000E0;
+	}
+
+	void CEditUI::SyncNativeEditColors()
+	{
+		if( m_pWindow == NULL ) return;
+		HWND hWnd = m_pWindow->GetHWND();
+		if( hWnd != NULL && ::IsWindow(hWnd) )
+			::InvalidateRect(hWnd, NULL, TRUE);
 	}
 
 	bool CEditUI::IsAutoSelAll()

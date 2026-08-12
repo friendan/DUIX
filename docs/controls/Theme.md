@@ -56,6 +56,14 @@ Toast / Modal：新建时按当前 **kind / token** 建 UI；`ApplyToExistingMan
 
 热切换重解；可走控件有效色板。
 
+悬停底色强度（小图标推荐 `medium`）：
+
+| Token | 说明 |
+|-------|------|
+| `color-bg-hover` | 轻：列表/大面积 |
+| `color-bg-hover-medium` | 中：图标按钮 |
+| `color-bg-hover-primary` | 强：主色倾向底 |
+
 ### 内置 id
 
 `default` / `azure` / `emerald` / `graphite`（冷灰 slate：正文微灰、主色 `#334155`、标题栏同族） / `dark`

@@ -71,15 +71,35 @@ namespace DuiLib {
 
 
 	/////////////////////////////////////////////////////////////////////////////////////
+	// HWND 自定义消息号段
 	//
-	// 内部保留的消息
+	// 库占用 WM_APP 低端 [WM_DUILIB_MSG_FIRST, WM_DUILIB_MSG_LAST]（+0 .. +0x1FE）。
+	// 应用程序只用 WM_DUILIB_USER + 0, +1, +2 ...（整段 WM_USER）。
+	// 不要从 WM_APP+0 起自定义消息，会撞库号段。
+	// 比较时用宏/枚举名，不要写死数字。
+	//
+#define WM_DUILIB_MSG_FIRST   (WM_APP + 0)
+#define WM_DUILIB_MSG_LAST    (WM_APP + 0x1FE)
+#define WM_DUILIB_USER        (WM_USER + 0)
+#define DUILIB_IS_LIB_MSG(uMsg) \
+	((UINT)(uMsg) >= (UINT)WM_DUILIB_MSG_FIRST && (UINT)(uMsg) <= (UINT)WM_DUILIB_MSG_LAST)
+
 	typedef enum MSGTYPE_UI
 	{
-		UIMSG_TRAYICON = WM_USER + 1,// 托盘消息
-		UIMSG_SET_DPI,				 // DPI
-		WM_MENUCLICK,				 // 菜单消息
-		UIMSG_USER = WM_USER + 100,	 // 程序自定义消息
+		UIMSG_TRAYICON = WM_DUILIB_MSG_FIRST, // 托盘回调
+		UIMSG_SET_DPI,                        // DPI 已更新
+		UIMSG_MENUCLICK,                      // 菜单项点击
+		UIMSG_ASYNC_NOTIFY,                   // 异步 Notify / DelayedCleanup
+		UIMSG__LIB_LAST = UIMSG_ASYNC_NOTIFY, // 库消息上限（追加时改此）
+
+		UIMSG_USER = WM_DUILIB_USER,          // 同 WM_DUILIB_USER
 	};
+
+	static_assert(UIMSG__LIB_LAST <= WM_DUILIB_MSG_LAST, "DuiLib HWND messages exceed reserved range");
+
+#ifndef WM_MENUCLICK
+#define WM_MENUCLICK UIMSG_MENUCLICK
+#endif
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -360,6 +380,27 @@ namespace DuiLib {
 		LPCTSTR GetLayeredImage();
 		void SetLayeredImage(LPCTSTR pstrImage);
 
+		/// 异形窗：PNG / 内存图。分层靠 alpha；非分层可 SetWindowRgn。
+		void SetShapeImage(LPCTSTR pstrImage);
+		LPCTSTR GetShapeImage() const;
+		/// 命中/RGN 用 mask；空则用 shape-image
+		void SetShapeMask(LPCTSTR pstrMask);
+		LPCTSTR GetShapeMask() const;
+		LPCTSTR GetShapeHitImage() const;
+		bool SetShapeImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask = 0);
+		bool SetShapeMaskFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask = 0);
+		void SetShapeAlphaThreshold(BYTE nThreshold);
+		BYTE GetShapeAlphaThreshold() const;
+		/// 未显式 action 时，shape-image 是否自动 move（默认 true）
+		void SetShapeDragEnabled(bool bEnable);
+		bool IsShapeDragEnabled() const;
+		/// 按 shape-image（无则 mask）像素算客户区尺寸；clampWorkArea 时等比钳到工作区
+		bool CalcShapeWindowClientSize(SIZE& szOut, bool clampWorkArea = true, int workAreaPercent = 95) const;
+		/// 对 hWnd ResizeClient；需外部持有 HWND（或用 WindowImplBase::FitToShapeImage）
+		bool FitToShapeImage(HWND hWnd, bool clampWorkArea = true, int workAreaPercent = 95);
+		/// 对 hWnd 应用外形；无 shape 图返回 false（调用方继续圆角逻辑）
+		bool ApplyWindowShapeRgn(HWND hWnd);
+
 		CShadowUI* GetShadow();
 
 		void SetUseGdiplusText(bool bUse);
@@ -628,6 +669,11 @@ namespace DuiLib {
 		bool m_bLayeredChanged;
 		RECT m_rcLayeredUpdate;
 		TDrawInfo m_diLayered;
+		CDuiString m_sShapeImage;
+		CDuiString m_sShapeMask;
+		BYTE m_nShapeAlphaThreshold;
+		bool m_bShapeDragEnabled;
+		bool m_bWindowActionFromShape;
 
 		bool m_bMouseTracking;
 		bool m_bMouseCapture;

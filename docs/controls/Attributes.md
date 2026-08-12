@@ -34,7 +34,7 @@
 | 命中测试 | `pointer-events`（`none`/`auto`）；旧名 `mouse` / `mouse-child` |
 | 命名样式 | `class` / `style` → `<Default name>` |
 | 窗口拖拽 | `html { action: title; }` 落到 root；控件仍可用 `action="title"`。子控件若 `PreferClientHit()`（已配 `*-hover`/`*-active`、SETCURSOR、cursor 等）保持客户区，悬停态才会生效 |
-| 控件缩窗 | 任意控件（含 `TabLayout`）`window-resize` / `window-size-box`：按边启用宿主 HWND 缩放热区；与窗口 `size-box` 互补。`size-box` / `window-size-box` 四值均为 **左,上,右,下（LTRB）**，与 `margin`/`padding` 的 CSS 上右下左不同。若只要控件上的边、不要整窗其它边，把窗口 `size-box` 对应边设为 `0` |
+| 控件缩窗 | 任意控件（含 **`TabLayout`**，浏览器多标签最常见）`window-resize` / `window-size-box`：按边启用宿主 HWND 缩放热区；与窗口 `size-box` 互补。四值均为 **左,上,右,下（LTRB）**。只要控件边、不要整窗其它边时，把窗口 `size-box` 对应边设为 `0`。内嵌 WebBrowser 时见 [WebBrowser.md](WebBrowser.md#原生-hwnd-与-window-resize)、[TabBar.md](TabBar.md#tablayout--webbrowser-缩窗) |
 
 注意：`padding` 是内边距；外边距用 `margin`。
 

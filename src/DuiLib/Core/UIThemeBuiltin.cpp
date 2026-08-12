@@ -84,6 +84,8 @@ namespace DuiLib {
 		t->SetToken(_T("color-bg"), 0xFFFFFFFF);
 		t->SetToken(_T("color-bg-elevated"), 0xF8F9FAFF);
 		t->SetToken(_T("color-bg-hover"), 0xF0F0F0FF);
+		t->SetToken(_T("color-bg-hover-medium"), 0xDEE2E6FF);
+		t->SetToken(_T("color-bg-hover-primary"), 0xCFE2FFFF);
 		t->SetToken(_T("color-disabled-bg"), 0xE9ECEFFF);
 		t->SetToken(_T("color-disabled-text"), 0xADB5BDFF);
 		t->SetToken(_T("color-control-bg"), 0xFFFFFFFF);
@@ -135,6 +137,8 @@ namespace DuiLib {
 		pAzure->SetToken(_T("color-control-border-focus"), 0x1677FFFF);
 		pAzure->SetToken(_T("color-selection"), 0xE6F4FFFF);
 		pAzure->SetToken(_T("color-bg-hover"), 0xE6F4FFFF);
+		pAzure->SetToken(_T("color-bg-hover-medium"), 0xBAE0FFFF);
+		pAzure->SetToken(_T("color-bg-hover-primary"), 0x91CAFFFF);
 		pAzure->SetToken(_T("color-bg-elevated"), 0xF0F5FFFF);
 		// 滚动条偏中性，不跟主色抢戏
 		pAzure->SetToken(_T("color-scrollbar-rail"), 0xEEF2F6FF);
@@ -168,6 +172,8 @@ namespace DuiLib {
 		pEmerald->SetToken(_T("color-control-border-focus"), 0x10B981FF);
 		pEmerald->SetToken(_T("color-selection"), 0xD1FAE5FF);
 		pEmerald->SetToken(_T("color-bg-hover"), 0xECFDF5FF);
+		pEmerald->SetToken(_T("color-bg-hover-medium"), 0xA7F3D0FF);
+		pEmerald->SetToken(_T("color-bg-hover-primary"), 0x6EE7B7FF);
 		pEmerald->SetToken(_T("color-bg-elevated"), 0xF4FBF7FF);
 		pEmerald->SetToken(_T("color-scrollbar-rail"), 0xEEF2F0FF);
 		pEmerald->SetToken(_T("color-scrollbar-thumb"), 0xA8B8B0FF);
@@ -183,6 +189,8 @@ namespace DuiLib {
 		pGraphite->SetToken(_T("color-bg"), 0xF8FAFCFF);
 		pGraphite->SetToken(_T("color-bg-elevated"), 0xF1F5F9FF);
 		pGraphite->SetToken(_T("color-bg-hover"), 0xE2E8F0FF);
+		pGraphite->SetToken(_T("color-bg-hover-medium"), 0xCBD5E1FF);
+		pGraphite->SetToken(_T("color-bg-hover-primary"), 0x94A3B8FF);
 		pGraphite->SetToken(_T("color-control-bg"), 0xFFFFFFFF);
 		pGraphite->SetToken(_T("color-modal-bg"), 0xF8FAFCFF);
 		pGraphite->SetToken(_T("color-text"), 0x0F172AFF);
@@ -237,6 +245,8 @@ namespace DuiLib {
 		pDark->SetToken(_T("color-control-border-focus"), 0x4096FFFF);
 		pDark->SetToken(_T("color-selection"), 0x1A3050FF);
 		pDark->SetToken(_T("color-bg-hover"), 0x2A2A2AFF);
+		pDark->SetToken(_T("color-bg-hover-medium"), 0x3A3A3AFF);
+		pDark->SetToken(_T("color-bg-hover-primary"), 0x1A3A5CFF);
 		pDark->SetToken(_T("color-scrollbar-rail"), 0x1F1F1FFF);
 		pDark->SetToken(_T("color-scrollbar-thumb"), 0x505050FF);
 		pDark->SetToken(_T("color-scrollbar-thumb-hover"), 0x737373FF);

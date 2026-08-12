@@ -57,6 +57,10 @@ SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。 |
 | `layered` | 分层窗口 |
 | `layered-opacity` | 分层整体透明度 `0`–`255` |
 | `layered-image` | 启用分层并设置分层图 |
+| `shape-image` | 异形窗参考图。分层靠 alpha；未设 `action` 且 `shape-drag`（默认开）时自动 `move`。见 [Shape.md](Shape.md) |
+| `shape-mask` | 非分层 RGN 用；省略则用 `shape-image` |
+| `shape-alpha-threshold` | 异形 alpha 阈值，默认 `16` |
+| `shape-drag` | `true`/`false`：是否自动 `move`（默认 true） |
 | `showshadow` / `shadowsize` / `shadowsharpness` / `shadowdarkness` / `shadowposition` / `shadowcolor` / `shadowcorner` / `shadowimage` | 阴影套件 |
 | `default-font-color` / `disabled-font-color` / `link-font-color` / `link-hover-font-color` | 默认/链接字体色 |
 | `selected-color` | 默认选中背景色（与 Option 的 `color-selected` / `background-color-selected` 不同） |
@@ -115,3 +119,5 @@ pSettings->ShowModal();
 - 无 Owner（主窗）时为空操作；默认皆关
 - Demo：Accordion → Modal →「铺满设置窗（同步主窗）」（`CSettingsSyncWnd` / `settings_sync.html`）
 - 轻量确认框仍用 [Modal.md](Modal.md) 的 `CModal::SyncOwnerMove`；业务模态窗用本基类
+
+HWND 自定义消息号段（库占用 `WM_APP` 低端，业务用 `WM_DUILIB_USER + n`）见 **[Messages.md](Messages.md)**。

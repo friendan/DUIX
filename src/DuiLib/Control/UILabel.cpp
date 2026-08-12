@@ -448,25 +448,23 @@ namespace DuiLib
 				SetFontStrikeout(s);
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("color")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("color")) == 0
+			|| _tcsicmp(pstrName, _T("color-disabled")) == 0
+			|| _tcsicmp(pstrName, _T("color-hover")) == 0
+			|| _tcsicmp(pstrName, _T("color-active")) == 0
+			|| _tcsicmp(pstrName, _T("color-focus")) == 0 ) {
+			if( pstrValue != NULL && _tcsnicmp(pstrValue, _T("var("), 4) == 0 ) {
+				CDuiString key;
+				key.Format(_T("_tvar:%s"), pstrName);
+				AddCustomAttribute(key.GetData(), pstrValue);
+			}
 			DWORD clrColor = 0;
-			if( ParseColorString(pstrValue, clrColor) ) SetColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 ) {
-			DWORD clrColor = 0;
-			if( ParseColorString(pstrValue, clrColor) ) SetDisabledColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("color-hover")) == 0 ) {
-			DWORD clrColor = 0;
-			if( ParseColorString(pstrValue, clrColor) ) SetHoverColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("color-active")) == 0 ) {
-			DWORD clrColor = 0;
-			if( ParseColorString(pstrValue, clrColor) ) SetActiveColor(clrColor);
-		}
-		else if( _tcsicmp(pstrName, _T("color-focus")) == 0 ) {
-			DWORD clrColor = 0;
-			if( ParseColorString(pstrValue, clrColor) ) SetFocusedColor(clrColor);
+			if( !ParseColorString(pstrValue, clrColor) ) return;
+			if( _tcsicmp(pstrName, _T("color")) == 0 ) SetColor(clrColor);
+			else if( _tcsicmp(pstrName, _T("color-disabled")) == 0 ) SetDisabledColor(clrColor);
+			else if( _tcsicmp(pstrName, _T("color-hover")) == 0 ) SetHoverColor(clrColor);
+			else if( _tcsicmp(pstrName, _T("color-active")) == 0 ) SetActiveColor(clrColor);
+			else SetFocusedColor(clrColor);
 		}
 		else if( _tcsicmp(pstrName, _T("showhtml")) == 0 ) SetShowHtml(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("clickable")) == 0 ) {

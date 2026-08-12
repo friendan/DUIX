@@ -67,6 +67,8 @@ namespace DuiLib
 		enum TintMode { TintFill = 0, TintStroke = 1, TintBoth = 2, TintSkip = 3 };
 		static TintMode DetectTintMode(const std::string& svgUtf8);
 		DWORD GetPaintColor() const;
+		void SyncControlStateFromButton();
+		void EnsureInteractiveCursor();
 		void ClearCache();
 		bool EnsureCache(int w, int h, DWORD dwColor);
 

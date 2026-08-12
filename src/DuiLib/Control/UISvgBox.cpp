@@ -124,7 +124,9 @@ namespace DuiLib
 	{
 		// 与 PreferClientHit 对齐：有热态时带 SETCURSOR，供 WM_SETCURSOR；勿回调 PreferClientHit
 		if( !IsEnabled() ) return 0;
-		if( m_dwHoverColor != 0 || m_dwActiveColor != 0 ) return UIFLAG_SETCURSOR;
+		if( m_wCursor != 0 ) return UIFLAG_SETCURSOR;
+		if( m_dwHoverColor != 0 || m_dwActiveColor != 0 || HasStateVisual() )
+			return UIFLAG_SETCURSOR;
 		return 0;
 	}
 
@@ -133,6 +135,21 @@ namespace DuiLib
 		if( !IsEnabled() ) return false;
 		if( m_dwHoverColor != 0 || m_dwActiveColor != 0 ) return true;
 		return CControlUI::PreferClientHit();
+	}
+
+	void CSvgBoxUI::SyncControlStateFromButton()
+	{
+		// 仅同步交互态；保留基类 FOCUSED / SELECTED 等
+		const UINT kMask = UISTATE_HOT | UISTATE_PUSHED | UISTATE_CAPTURED | UISTATE_DISABLED;
+		m_uControlState = (m_uControlState & ~kMask) | (m_uButtonState & kMask);
+	}
+
+	void CSvgBoxUI::EnsureInteractiveCursor()
+	{
+		// 已显式 cursor= 时不覆盖；有悬停/按下视觉或可点反馈时默认手型
+		if( GetCursor() != 0 ) return;
+		if( m_dwHoverColor != 0 || m_dwActiveColor != 0 || HasStateVisual() )
+			SetCursor(DUI_HAND);
 	}
 
 	CDuiString CSvgBoxUI::ResolveFilePath(LPCTSTR pstrPath)
@@ -237,6 +254,7 @@ namespace DuiLib
 	{
 		if( m_dwHoverColor == dwColor ) return;
 		m_dwHoverColor = dwColor;
+		EnsureInteractiveCursor();
 		if( bInvalidate ) Invalidate();
 	}
 
@@ -249,6 +267,7 @@ namespace DuiLib
 	{
 		if( m_dwActiveColor == dwColor ) return;
 		m_dwActiveColor = dwColor;
+		EnsureInteractiveCursor();
 		if( bInvalidate ) Invalidate();
 	}
 
@@ -276,11 +295,13 @@ namespace DuiLib
 		if( m_bEnabled == bEnable ) {
 			if( bEnable ) m_uButtonState &= ~UISTATE_DISABLED;
 			else m_uButtonState |= UISTATE_DISABLED;
+			SyncControlStateFromButton();
 			return;
 		}
 		CControlUI::SetEnabled(bEnable);
 		if( bEnable ) m_uButtonState &= ~UISTATE_DISABLED;
 		else m_uButtonState |= UISTATE_DISABLED;
+		SyncControlStateFromButton();
 	}
 
 	void CSvgBoxUI::Invalidate()
@@ -329,6 +350,7 @@ namespace DuiLib
 		{
 			if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() ) {
 				m_uButtonState |= UISTATE_PUSHED | UISTATE_CAPTURED;
+				SyncControlStateFromButton();
 				Invalidate();
 			}
 			return;
@@ -340,6 +362,7 @@ namespace DuiLib
 					m_uButtonState |= UISTATE_PUSHED;
 				else
 					m_uButtonState &= ~UISTATE_PUSHED;
+				SyncControlStateFromButton();
 				Invalidate();
 			}
 			return;
@@ -348,6 +371,7 @@ namespace DuiLib
 		{
 			if( (m_uButtonState & UISTATE_CAPTURED) != 0 ) {
 				m_uButtonState &= ~(UISTATE_PUSHED | UISTATE_CAPTURED);
+				SyncControlStateFromButton();
 				Invalidate();
 				if( ::PtInRect(&m_rcItem, event.ptMouse) && IsEnabled() && m_pManager != NULL )
 					m_pManager->SendNotify(this, DUI_MSGTYPE_CLICK);
@@ -358,6 +382,7 @@ namespace DuiLib
 		{
 			if( IsEnabled() ) {
 				m_uButtonState |= UISTATE_HOT;
+				SyncControlStateFromButton();
 				Invalidate();
 			}
 			return;
@@ -366,6 +391,7 @@ namespace DuiLib
 		{
 			if( IsEnabled() ) {
 				m_uButtonState &= ~UISTATE_HOT;
+				SyncControlStateFromButton();
 				Invalidate();
 			}
 			return;
@@ -426,9 +452,11 @@ namespace DuiLib
 				SetActiveColor(ParseColorValue(pstrValue));
 			else
 				SetDisabledColor(ParseColorValue(pstrValue));
+			EnsureInteractiveCursor();
 		}
 		else {
 			CControlUI::SetAttribute(pstrName, pstrValue);
+			EnsureInteractiveCursor();
 		}
 	}
 

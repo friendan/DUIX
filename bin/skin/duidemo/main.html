@@ -70,6 +70,26 @@
                         <Label text="PNG · 提交自动禁用 2s · CSS tint" theme="secondary" />
                       </HBox>
                     </AccordionItem>
+                    <AccordionItem title="Shape（异形）" active="false" header-align="left">
+                      <VBox height="260" gap="10" padding="8,12,8,12">
+                        <HBox height="120" gap="20" align-items="vcenter">
+                          <Box width="120" height="120">
+                            <Button name="btn_behind_shape" text="底下" kind="warning" width="100" height="36"
+                                position="absolute" margin="42,10,0,0" />
+                            <ShapeButton name="shape_btn_circle" shape-image="shape_circle.png" width="96" height="96"
+                                position="absolute" margin="12,12,0,0"
+                                text="圆" color="#FFFFFFFF" tooltip="仅圆内可点；圆外点穿到底下" />
+                          </Box>
+                          <ShapeButton name="shape_btn_star" shape-image="shape_star.png" width="96" height="96"
+                              text="星" color="#FFFFFFFF" tooltip="仅星形内可点" />
+                          <ShapeBox name="shape_box_demo" shape-image="shape_circle.png" width="96" height="96">
+                            <Label text="Box" align="center" valign="vcenter" color="#FFFFFFFF" />
+                          </ShapeBox>
+                          <Button name="btn_shape_wnd" text="打开异形窗" kind="primary" width="110" height="36" />
+                        </HBox>
+                        <Label text="ShapeButton/ShapeBox：alpha 命中；可用 shape-mask 与 image 分离。窗口 FitToShapeImage + shape-drag。" theme="secondary" />
+                      </VBox>
+                    </AccordionItem>
                     <AccordionItem title="Switch" active="false" header-align="left">
                       <VBox height="150" gap="10" padding="8,12,8,12">
                         <HBox height="28" gap="16" align-items="vcenter">
@@ -123,7 +143,7 @@
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="SvgBox" active="false" header-align="left">
-                      <VBox height="240" gap="8" padding="4,8,4,8">
+                      <VBox height="336" gap="8" padding="4,8,4,8">
                         <HBox height="40" gap="8" align-items="vcenter">
                           <Button name="btn_bsicon" text="bsicon" kind="info" bsicon="bootstrap" icon-size="14" width="100" height="32" tooltip="打开 Bootstrap Icons 浏览器" />
                           <Button name="btn_iconpark" text="iconpark" kind="warning" iconpark="all-application" icon-size="14" width="110" height="32" tooltip="打开 IconPark 图标浏览器" />
@@ -144,6 +164,22 @@
                           <Label text="内联 color / color-hover / color-active" theme="secondary" />
                         </HBox>
                         <HBox height="40" gap="12" align-items="vcenter" theme="none">
+                          <Svg lucide="settings" width="32" height="32"
+                            color="var(--color-text-secondary)" color-hover="var(--color-primary)"
+                            background-color-hover="var(--color-bg-hover)" border-radius="6" />
+                          <Svg lucide="bell" width="32" height="32"
+                            color="var(--color-text-secondary)" color-hover="var(--color-primary)"
+                            background-color-hover="var(--color-bg-hover-medium)" border-radius="6" />
+                          <Svg lucide="star" width="32" height="32"
+                            color="var(--color-text-secondary)" color-hover="var(--color-primary-text)"
+                            background-color-hover="var(--color-bg-hover-primary)" border-radius="6" />
+                          <Svg lucide="trash-2" width="32" height="32"
+                            color="var(--color-text-secondary)" color-hover="var(--color-danger-text)"
+                            background-color-hover="var(--color-danger)"
+                            background-color-active="var(--color-danger-active)" border-radius="6" />
+                          <Label text="悬停底：轻 bg-hover / 中 medium / 强 primary；右一 danger" theme="secondary" />
+                        </HBox>
+                        <HBox height="40" gap="12" align-items="vcenter" theme="none">
                           <Svg name="svg_css_demo" lucide="heart" width="32" height="32" />
                           <Svg src="svg/check.svg" width="32" height="32" color="#1677FFFF" color-hover="#69B1FFFF" />
                           <Label text="左：#id:hover color；右：内联 color-hover" theme="secondary" />
@@ -155,6 +191,27 @@
                           </HBox>
                           <Label text="通用伪类：background-color/color/background-image → *-hover" theme="secondary" />
                         </HBox>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="RollText" active="false" header-align="left">
+                      <VBox height="280" gap="10" padding="8,12,8,12">
+                        <RollText roll="true" roll-direction="left" roll-interval="30" roll-step="1" height="28"
+                          text="【公告】向左滚动 roll-direction=left · 默认悬停暂停 · 颜色跟随主题……"
+                          color="var(--color-text)" background-color="var(--color-bg-elevated)"
+                          padding="0,10,0,10" border-radius="4" />
+                        <RollText roll="true" roll-direction="right" roll-interval="30" height="28"
+                          text="向右滚动 roll-direction=right · 悬停同样暂停 · 移开继续……"
+                          color="var(--color-primary)" background-color="var(--color-bg-hover)"
+                          padding="0,10,0,10" border-radius="4" />
+                        <RollText roll="true" roll-pause-hover="false" roll-interval="40" height="28"
+                          text="悬停不暂停：roll-pause-hover=false · 鼠标放上也继续滚"
+                          color="var(--color-text)" background-color="var(--color-bg-hover-medium)"
+                          padding="0,10,0,10" border-radius="4" />
+                        <RollText roll="true" roll-loop="2" roll-interval="30" height="28"
+                          text="只循环 2 次后停下（roll-loop=2），并发 textrollend"
+                          color="var(--color-text)" background-color="var(--color-bg-elevated)"
+                          padding="0,10,0,10" border-radius="4" />
+                        <Label text="direction: left / right / up / down。roll-pause-hover 默认 true。" theme="secondary" />
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Badge / Tag" active="false" header-align="left">
@@ -254,7 +311,39 @@
 
                 <!-- 1 表单 -->
                 <Accordion mode="single" header-height="40">
-                    <AccordionItem title="Spin / Number" active="true" header-align="left">
+                    <AccordionItem title="Edit" active="true" header-align="left">
+                      <VBox height="220" gap="10" padding="8,12,8,12">
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="普通" theme="secondary" width="70" />
+                          <Edit name="edit_demo" text="点此聚焦" width="200" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Label text="占位" theme="secondary" width="40" />
+                          <Edit name="edit_placeholder" placeholder="请输入用户名" width="200" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="密码" theme="secondary" width="70" />
+                          <Edit name="edit_password" type="password" placeholder="密码" width="200" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Label text="全选" theme="secondary" width="40" />
+                          <Edit name="edit_selall" text="获得焦点时全选" select-on-focus="true" width="200" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="数字" theme="secondary" width="70" />
+                          <Edit name="edit_number" type="number" text="12345" width="120" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Label text="只读" theme="secondary" width="40" />
+                          <Edit name="edit_readonly" text="只读内容" readonly="true" width="160" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                          <Label text="限长" theme="secondary" width="40" />
+                          <Edit name="edit_maxlen" placeholder="最多 8 字" maxlength="8" width="140" height="32"
+                              border="1px solid" border-radius="4" padding="0,8,0,8" />
+                        </HBox>
+                        <Label text="聚焦原生 WC_EDIT 底色跟 background-color（换主题后点进去看）；步进/小数请用 Spin·Number" theme="secondary" />
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="Spin / Number" active="false" header-align="left">
                       <VBox height="120" gap="10" padding="8,12,8,12">
                         <HBox height="36" gap="12" align-items="vcenter">
                           <Label text="整数" theme="secondary" width="70" />

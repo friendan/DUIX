@@ -47,6 +47,8 @@
 
 #include "Utils/Utils.h"
 #include "Utils/unzip.h"
+#include "Utils/zip.h"
+#include "Utils/UIZip.h"
 #include "Utils/VersionHelpers.h"
 #include "Core/UIMarkup.h"
 #include "Utils/observer_impl_base.h"
@@ -71,6 +73,7 @@
 #include "Core/UIRender.h"
 #include "Core/GdiRenderContext.h"
 #include "Core/D2dRenderDevice.h"
+#include "Utils/UIShape.h"
 #include "Utils/WinImplBase.h"
 
 #include "Layout/UILinearLayout.h"
@@ -116,6 +119,7 @@
 #include "Control/UIAnimation.h"
 #include "Layout/UIAnimationTabLayout.h"
 #include "Control/UIButton.h"
+#include "Control/UIShapeButton.h"
 #include "Control/UIOption.h"
 #include "Control/UISwitch.h"
 #include "Control/UIImage.h"

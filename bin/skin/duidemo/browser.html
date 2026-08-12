@@ -8,24 +8,30 @@
         <HBox name="addressBar" theme="panel" height="40">
             <Spacer width="100" />
             <Svg name="backBtn" tabler-outline="arrow-left" width="24" height="24"
-                color="var(--color-text-secondary)" color-hover="var(--color-primary)" color-disabled="var(--color-border-strong)" />
+                color="var(--color-text-secondary)" color-hover="var(--color-primary)" color-disabled="var(--color-border-strong)"
+                background-color-hover="var(--color-bg-hover-medium)" border-radius="4" />
             <Svg name="forwardBtn" tabler-outline="arrow-right" width="24" height="24"
-                color="var(--color-text-secondary)" color-hover="var(--color-primary)" color-disabled="var(--color-border-strong)" />
+                color="var(--color-text-secondary)" color-hover="var(--color-primary)" color-disabled="var(--color-border-strong)"
+                background-color-hover="var(--color-bg-hover-medium)" border-radius="4" />
             <Svg name="refreshBtn" bsicon="arrow-repeat" width="24" height="24"
-                color="var(--color-text-secondary)" color-hover="var(--color-primary)" tooltip="刷新" />
+                color="var(--color-text-secondary)" color-hover="var(--color-primary)"
+                background-color-hover="var(--color-bg-hover-medium)" border-radius="4" tooltip="刷新" />
             <Svg name="homeBtn" tabler-outline="home" width="24" height="24"
-                color="var(--color-text-secondary)" color-hover="var(--color-primary)" />
+                color="var(--color-text-secondary)" color-hover="var(--color-primary)"
+                background-color-hover="var(--color-bg-hover-medium)" border-radius="4" />
             <Spacer width="10" />
             <Edit name="urlBox" placeholder="输入网址或搜索内容后回车" maxlength="2048" flexible="true" />
             <Button name="goBtn" text="转到" kind="primary" width="52" height="28" />
             <Svg name="menuBtn" tabler-outline="dots-vertical" width="24" height="24"
-                color="var(--color-text-secondary)" color-hover="var(--color-primary)" tooltip="菜单" />
+                color="var(--color-text-secondary)" color-hover="var(--color-primary)"
+                background-color-hover="var(--color-bg-hover-medium)" border-radius="4" tooltip="菜单" />
         </HBox>
         <!-- 第三行：侧边栏 + 页面（TabLayout 右/下边缩窗；勿再靠窗口 size-box 给 WebBrowser 让缝） -->
         <HBox name="contentArea">
             <VBox name="sideToolBar" theme="panel">
                 <Svg name="sideToolHome" tabler-outline="home" width="24" height="24"
-                    color="var(--color-text-secondary)" color-hover="var(--color-primary)" />
+                    color="var(--color-text-secondary)" color-hover="var(--color-primary)"
+                    background-color-hover="var(--color-bg-hover-medium)" border-radius="4" />
                 <Spacer height="16" />
                 <ThemeSwitcher name="themeSwitch" width="36" height="28" tooltip="选择主题" />
             </VBox>

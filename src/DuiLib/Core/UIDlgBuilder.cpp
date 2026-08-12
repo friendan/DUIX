@@ -124,6 +124,18 @@ namespace DuiLib {
 			pManager->SetLayered(true);
 			pManager->SetLayeredImage(pstrValue);
 		}
+		else if( _tcsicmp(pstrName, _T("shape-image")) == 0 ) {
+			pManager->SetShapeImage(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("shape-mask")) == 0 ) {
+			pManager->SetShapeMask(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("shape-alpha-threshold")) == 0 ) {
+			pManager->SetShapeAlphaThreshold((BYTE)_ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("shape-drag")) == 0 ) {
+			pManager->SetShapeDragEnabled(_tcsicmp(pstrValue, _T("true")) == 0);
+		}
 		else if( _tcscmp(pstrName, _T("no-activate")) == 0 ) {
 			pManager->SetNoActivate(_tcsicmp(pstrValue, _T("true")) == 0);
 		}

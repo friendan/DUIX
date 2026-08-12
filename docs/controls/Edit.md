@@ -28,9 +28,11 @@
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
 | `select-on-focus` | 获得焦点时全选 | 无标准属性名（行为近似） |
-| `native-color` / `native-background-color` | 原生 HWND 色 | 无 |
+| `native-color` / `native-background-color` | 原生 HWND 色；**未设置时分别跟 `color` / `background-color`（主题默认）** | 无 |
 
 失焦自绘文字走 **GDI ClearType**（`GetDC`），与聚焦时原生 `WC_EDIT` 观感一致；D2D 预乘目标上无法 ClearType。
+
+聚焦时原生窗高度仅为字体行高（垂直居中），底色若仍是硬编码白，深色/主题底上会像一条白带。未写 `native-background-color` 时已跟 `background-color`；主题热切会 `SyncNativeEditColors`。
 
 **`opacity`：** 默认继承父；有效透明度 < 255 时**不创建原生 `WC_EDIT`**。不跟父淡：`opacity-isolate="true"`。
 

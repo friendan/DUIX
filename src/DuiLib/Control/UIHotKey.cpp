@@ -235,7 +235,8 @@ namespace DuiLib{
 	//////////////////////////////////////////////////////////////////////////
 	IMPLEMENT_DUICONTROL(CHotKeyUI)
 
-	CHotKeyUI::CHotKeyUI() : m_pWindow(NULL), m_wVirtualKeyCode(0), m_wModifiers(0), m_uButtonState(0), m_dwHotKeybkColor(0xFFFFFFFF)
+	CHotKeyUI::CHotKeyUI() : m_pWindow(NULL), m_wVirtualKeyCode(0), m_wModifiers(0), m_uButtonState(0),
+		m_dwHotKeybkColor(0), m_bNativeBkColorCustom(false)
 	{
 		SetTextPadding(CDuiRect(4, 3, 4, 3));
 		SetBackgroundColor(0xFFFFFFFF);
@@ -398,11 +399,18 @@ namespace DuiLib{
 	void CHotKeyUI::SetNativeBackgroundColor(DWORD dwBackgroundColor)
 	{
 		m_dwHotKeybkColor = dwBackgroundColor;
+		m_bNativeBkColorCustom = true;
+		if( m_pWindow != NULL ) {
+			HWND hWnd = m_pWindow->GetHWND();
+			if( hWnd != NULL && ::IsWindow(hWnd) )
+				::InvalidateRect(hWnd, NULL, TRUE);
+		}
 	}
 
 	DWORD CHotKeyUI::GetNativeBackgroundColor() const
 	{
-		return m_dwHotKeybkColor;
+		if( m_bNativeBkColorCustom ) return m_dwHotKeybkColor;
+		return GetBackgroundColor();
 	}
 
 	void CHotKeyUI::SetPos(RECT rc)

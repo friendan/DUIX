@@ -5,6 +5,7 @@
 - Agent / 开发者：改或接入某控件时，先读对应 `docs/controls/<Name>.md`
 - **属性总览 / 盒模型**：先读 [Attributes.md](Attributes.md)
 - **窗口级属性**：[Window.md](Window.md)
+- **HWND 自定义消息**：[Messages.md](Messages.md)
 - `AGENTS.md`：只保留构建、渲染硬约束与本目录入口
 - 属性说明以本目录为准（运行真相在各控件 `SetAttribute`）
 
@@ -14,6 +15,12 @@
 |------|------|
 | [CustomControl.md](CustomControl.md) | 自定义控件：工厂 / 窗口回调 / 插件 / 并入库 |
 
+## 工具
+
+| 文档 | 说明 |
+|------|------|
+| [Zip.md](Zip.md) | ZIP 创建 / 解压 / 皮肤 `SetResourceZip` |
+
 ## 属性符合度
 
 | 文档 | 说明 |
@@ -22,6 +29,7 @@
 | [Control.md](Control.md) | 基类 `CControlUI` |
 | [Container.md](Container.md) | 容器与布局 |
 | [Window.md](Window.md) | 窗口 / `html` 根 |
+| [Messages.md](Messages.md) | HWND 自定义消息号段（库 / 业务） |
 
 ## 控件索引
 
@@ -29,6 +37,7 @@
 |------|------|------|
 | Label | [Label.md](Label.md) | `src/DuiLib/Control/UILabel.*` |
 | Button | [Button.md](Button.md) | `src/DuiLib/Control/UIButton.*` |
+| ShapeButton / ShapeBox | [Shape.md](Shape.md) | `UIShapeButton.*` / `UIShape.*` |
 | Option / CheckBox | [Option.md](Option.md) | `src/DuiLib/Control/UIOption.*` |
 | Switch | [Switch.md](Switch.md) | `src/DuiLib/Control/UISwitch.*` |
 | Spin / Number | [Spin.md](Spin.md) | `src/DuiLib/Control/UISpin.*` |

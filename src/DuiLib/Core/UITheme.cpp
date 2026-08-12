@@ -839,6 +839,8 @@ namespace DuiLib {
 						ThemeSetColorAttr(pControl, _T("native-background-color"), ctrlBg);
 						ThemeSetColorAttr(pControl, _T("native-color"), text);
 						ThemeSetColorAttr(pControl, _T("placeholder-color"), textSec);
+						CEditUI* pEdit = static_cast<CEditUI*>(pControl->GetInterface(DUI_CTR_EDIT));
+						if (pEdit != NULL) pEdit->SyncNativeEditColors();
 					}
 					if (bRichEdit) {
 						ThemeSetColorAttr(pControl, _T("placeholder-color"), textSec);

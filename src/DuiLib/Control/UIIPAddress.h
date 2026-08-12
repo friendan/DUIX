@@ -45,6 +45,7 @@ namespace DuiLib
 		int		m_nIPUpdateFlag;
 		DWORD	m_dwNativeBkColor;
 		DWORD	m_dwNativeTextColor;
+		bool	m_bNativeBkColorCustom;
 		bool	m_bNativeTextColorSet;
 
 		CIPAddressWnd* m_pWindow;

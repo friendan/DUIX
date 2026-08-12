@@ -288,6 +288,9 @@ namespace DuiLib {
 		m_bLayered(false),
 		m_bLayeredCompositionEnabled(true),
 		m_bLayeredChanged(false),
+		m_nShapeAlphaThreshold(16),
+		m_bShapeDragEnabled(true),
+		m_bWindowActionFromShape(false),
 		m_bShowUpdateRect(false),
 		m_bUseGdiplusText(false),
 		m_trh(0),
@@ -1159,6 +1162,7 @@ namespace DuiLib {
 	void CPaintManagerUI::SetWindowAction(UIAction action)
 	{
 		m_windowAction = action;
+		m_bWindowActionFromShape = false;
 		ApplyDefaultWindowAction();
 	}
 
@@ -1282,6 +1286,184 @@ namespace DuiLib {
 		CRenderEngine::DrawImageInfo(NULL, this, rcNull, rcNull, &m_diLayered);
 		m_bLayeredChanged = true;
 		Invalidate();
+	}
+
+	void CPaintManagerUI::SetShapeImage(LPCTSTR pstrImage)
+	{
+		m_sShapeImage = pstrImage ? pstrImage : _T("");
+		if( !m_sShapeImage.IsEmpty() && m_bShapeDragEnabled && m_windowAction == UIACTION_NONE ) {
+			m_windowAction = UIACTION_MOVEWINDOW;
+			m_bWindowActionFromShape = true;
+			ApplyDefaultWindowAction();
+		}
+	}
+
+	LPCTSTR CPaintManagerUI::GetShapeImage() const
+	{
+		return m_sShapeImage.GetData();
+	}
+
+	void CPaintManagerUI::SetShapeMask(LPCTSTR pstrMask)
+	{
+		m_sShapeMask = pstrMask ? pstrMask : _T("");
+	}
+
+	LPCTSTR CPaintManagerUI::GetShapeMask() const
+	{
+		return m_sShapeMask.GetData();
+	}
+
+	LPCTSTR CPaintManagerUI::GetShapeHitImage() const
+	{
+		if( !m_sShapeMask.IsEmpty() ) return m_sShapeMask.GetData();
+		return m_sShapeImage.GetData();
+	}
+
+	namespace {
+		const TCHAR kShapeImageMemKey[] = _T("__dui_shape_image_mem");
+		const TCHAR kShapeMaskMemKey[] = _T("__dui_shape_mask_mem");
+
+		bool InstallShapeMemImage(CPaintManagerUI* pm, LPCTSTR key, const BYTE* pData, DWORD dwSize, DWORD mask)
+		{
+			if( pm == NULL || pData == NULL || dwSize == 0 || key == NULL ) return false;
+			TImageInfo* pInfo = CRenderEngine::LoadImageFromMemory(pData, dwSize, mask);
+			if( pInfo == NULL || pInfo->hBitmap == NULL ) {
+				if( pInfo ) CRenderEngine::FreeImage(pInfo);
+				return false;
+			}
+			const int w = pInfo->nX;
+			const int h = pInfo->nY;
+			const bool bA = pInfo->bAlpha;
+			HBITMAP hBmp = pInfo->hBitmap;
+			pInfo->hBitmap = NULL;
+			CRenderEngine::FreeImage(pInfo);
+			pm->RemoveImage(key, false);
+			return pm->AddImage(key, hBmp, w, h, bA, false) != NULL;
+		}
+	}
+
+	bool CPaintManagerUI::SetShapeImageFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask)
+	{
+		if( !InstallShapeMemImage(this, kShapeImageMemKey, pData, dwSize, mask) )
+			return false;
+		SetShapeImage(kShapeImageMemKey);
+		return true;
+	}
+
+	bool CPaintManagerUI::SetShapeMaskFromMemory(const BYTE* pData, DWORD dwSize, DWORD mask)
+	{
+		if( !InstallShapeMemImage(this, kShapeMaskMemKey, pData, dwSize, mask) )
+			return false;
+		SetShapeMask(kShapeMaskMemKey);
+		return true;
+	}
+
+	void CPaintManagerUI::SetShapeAlphaThreshold(BYTE nThreshold)
+	{
+		m_nShapeAlphaThreshold = nThreshold;
+	}
+
+	BYTE CPaintManagerUI::GetShapeAlphaThreshold() const
+	{
+		return m_nShapeAlphaThreshold;
+	}
+
+	void CPaintManagerUI::SetShapeDragEnabled(bool bEnable)
+	{
+		m_bShapeDragEnabled = bEnable;
+		if( !bEnable ) {
+			if( m_bWindowActionFromShape && m_windowAction == UIACTION_MOVEWINDOW ) {
+				m_windowAction = UIACTION_NONE;
+				m_bWindowActionFromShape = false;
+				if( m_pRoot != NULL && m_pRoot->GetAction() == UIACTION_MOVEWINDOW )
+					m_pRoot->SetAction(UIACTION_NONE);
+			}
+			return;
+		}
+		if( !m_sShapeImage.IsEmpty() && m_windowAction == UIACTION_NONE ) {
+			m_windowAction = UIACTION_MOVEWINDOW;
+			m_bWindowActionFromShape = true;
+			ApplyDefaultWindowAction();
+		}
+	}
+
+	bool CPaintManagerUI::IsShapeDragEnabled() const
+	{
+		return m_bShapeDragEnabled;
+	}
+
+	bool CPaintManagerUI::CalcShapeWindowClientSize(SIZE& szOut, bool clampWorkArea, int workAreaPercent) const
+	{
+		szOut.cx = szOut.cy = 0;
+		LPCTSTR pImg = GetShapeImage();
+		if( pImg == NULL || *pImg == _T('\0') ) pImg = GetShapeMask();
+		if( pImg == NULL || *pImg == _T('\0') ) return false;
+		const TImageInfo* pInfo = const_cast<CPaintManagerUI*>(this)->GetImageEx(pImg);
+		if( pInfo == NULL || pInfo->nX < 1 || pInfo->nY < 1 ) return false;
+		int w = pInfo->nX;
+		int h = pInfo->nY;
+		if( clampWorkArea ) {
+			if( workAreaPercent < 1 ) workAreaPercent = 1;
+			if( workAreaPercent > 100 ) workAreaPercent = 100;
+			RECT rcWork = { 0, 0, 1280, 720 };
+			::SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWork, 0);
+			const int maxW = (rcWork.right - rcWork.left) * workAreaPercent / 100;
+			const int maxH = (rcWork.bottom - rcWork.top) * workAreaPercent / 100;
+			if( w > maxW || h > maxH ) {
+				const double sx = (double)maxW / (double)w;
+				const double sy = (double)maxH / (double)h;
+				const double s = (sx < sy) ? sx : sy;
+				w = (int)(w * s + 0.5);
+				h = (int)(h * s + 0.5);
+			}
+		}
+		if( w < 1 ) w = 1;
+		if( h < 1 ) h = 1;
+		szOut.cx = w;
+		szOut.cy = h;
+		return true;
+	}
+
+	bool CPaintManagerUI::FitToShapeImage(HWND hWnd, bool clampWorkArea, int workAreaPercent)
+	{
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return false;
+		SIZE sz = { 0, 0 };
+		if( !CalcShapeWindowClientSize(sz, clampWorkArea, workAreaPercent) ) return false;
+		RECT rc = { 0, 0, sz.cx, sz.cy };
+		::AdjustWindowRectEx(&rc, (DWORD)::GetWindowLong(hWnd, GWL_STYLE), FALSE,
+			(DWORD)::GetWindowLong(hWnd, GWL_EXSTYLE));
+		const int ww = rc.right - rc.left;
+		const int wh = rc.bottom - rc.top;
+		::SetWindowPos(hWnd, NULL, 0, 0, ww, wh, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+		Invalidate();
+		return true;
+	}
+
+	bool CPaintManagerUI::ApplyWindowShapeRgn(HWND hWnd)
+	{
+		LPCTSTR pHit = GetShapeHitImage();
+		if( hWnd == NULL || pHit == NULL || *pHit == _T('\0') ) return false;
+
+		// 分层窗外形靠 Present 的每像素 alpha；再 SetWindowRgn 会硬切抗锯齿边
+		if( m_bLayered ) {
+			::SetWindowRgn(hWnd, NULL, TRUE);
+			return true;
+		}
+
+		const TImageInfo* pInfo = GetImageEx(pHit);
+		if( pInfo == NULL || pInfo->hBitmap == NULL ) return false;
+
+		RECT rcWnd = { 0 };
+		::GetWindowRect(hWnd, &rcWnd);
+		const int w = rcWnd.right - rcWnd.left;
+		const int h = rcWnd.bottom - rcWnd.top;
+		if( w < 1 || h < 1 ) return false;
+
+		HRGN hRgn = CreateRegionFromAlphaImage(pInfo, m_nShapeAlphaThreshold, w, h);
+		if( hRgn == NULL ) return false;
+		::SetWindowRgn(hWnd, hRgn, TRUE);
+		::DeleteObject(hRgn);
+		return true;
 	}
 
 	CShadowUI* CPaintManagerUI::GetShadow()
@@ -1415,7 +1597,7 @@ namespace DuiLib {
 		}
 		// Custom handling of events
 		switch( uMsg ) {
-		case WM_APP + 1:
+		case UIMSG_ASYNC_NOTIFY:
 			{
 				for( int i = 0; i < m_aDelayedCleanup.GetSize(); i++ ) 
 					delete static_cast<CControlUI*>(m_aDelayedCleanup[i]);
@@ -3845,7 +4027,7 @@ namespace DuiLib {
 	void CPaintManagerUI::PostAsyncNotify()
 	{
 		if (!m_bAsyncNotifyPosted) {
-			::PostMessage(m_hWndPaint, WM_APP + 1, 0, 0L);
+			::PostMessage(m_hWndPaint, UIMSG_ASYNC_NOTIFY, 0, 0L);
 			m_bAsyncNotifyPosted = true;
 		}
 	}

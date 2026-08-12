@@ -76,6 +76,7 @@ namespace DuiLib{
 		CDuiString m_sFocusImage;
 		CDuiString m_sDisabledImage;
 		DWORD m_dwHotKeybkColor;
+		bool m_bNativeBkColorCustom;
 
 	protected:
 		WORD m_wVirtualKeyCode;

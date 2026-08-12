@@ -50,7 +50,25 @@
 | `fill="currentColor"` 或无 stroke | `fill:#rgb; stroke:none` | Bootstrap / Remix / Tabler Filled |
 | 其它 | fill+stroke 同色 | 通用回退 |
 
-`PreferClientHit`：配置了 `color-hover` / `color-active`（或基类热态）时，不继承 `html { action: title }` 的标题拖拽，悬停才能生效。新控件优先用基类 `background-color-hover` 等，不必再改命中测试。
+`PreferClientHit`：配置了 `color-hover` / `color-active`（或基类热态）时，不继承 `html { action: title }` 的标题拖拽，悬停才能生效。有悬停/按下视觉时默认 `cursor=hand`（仍可用 `cursor` 覆盖）。
+
+悬停反馈建议同时用基类背景（不必另加开关）：
+
+```xml
+<SvgBox lucide="settings" width="32" height="32"
+        color="var(--color-text-secondary)" color-hover="var(--color-primary)"
+        background-color-hover="var(--color-bg-hover-medium)" border-radius="6" />
+```
+
+`background-color-hover` / `background-color-active` / `border-color-hover` 等见 [Control.md](Control.md)；图标色仍用本页 `color-*`。颜色可用 `var(--token)`（热切主题重解）；SvgBox **不会**像 FontIcon 那样自动套 chrome，需皮肤显式写 token。
+
+悬停底色三档（见 [Theme.md](Theme.md)）：
+
+| Token | 强度 | 典型用途 |
+|-------|------|----------|
+| `color-bg-hover` | 轻 | 列表行、大面积 |
+| `color-bg-hover-medium` | 中 | 工具栏 / 图标按钮（推荐） |
+| `color-bg-hover-primary` | 强 | 主色倾向；图标可用 `color-primary-text` |
 
 ### 导出
 

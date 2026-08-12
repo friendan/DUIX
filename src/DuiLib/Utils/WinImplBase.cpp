@@ -2,6 +2,23 @@
 #include <algorithm>
 namespace DuiLib
 {
+	namespace
+	{
+		LRESULT HitWindowResizeDeep(CControlUI* p, POINT pt)
+		{
+			if( p == NULL || !p->IsVisible() ) return HTCLIENT;
+			if( !::PtInRect(&p->GetPos(), pt) ) return HTCLIENT;
+
+			CContainerUI* pCont = static_cast<CContainerUI*>(p->GetInterface(DUI_CTR_CONTAINER));
+			if( pCont != NULL ) {
+				for( int i = pCont->GetCount() - 1; i >= 0; --i ) {
+					LRESULT ht = HitWindowResizeDeep(pCont->GetItemAt(i), pt);
+					if( ht != HTCLIENT ) return ht;
+				}
+			}
+			return p->HitWindowResize(pt);
+		}
+	}
 	//////////////////////////////////////////////////////////////////////////
 	//
 	DUI_BEGIN_MESSAGE_MAP(WindowImplBase, CNotifyPump)
@@ -40,6 +57,17 @@ namespace DuiLib
 		}
 		else if( m_hWnd != NULL && ::IsWindow(m_hWnd) )
 			CaptureOwnerSyncOffset();
+	}
+
+	bool WindowImplBase::FitToShapeImage(bool clampWorkArea, bool bCenter, int workAreaPercent)
+	{
+		SIZE sz = { 0, 0 };
+		if( !m_pm.CalcShapeWindowClientSize(sz, clampWorkArea, workAreaPercent) )
+			return false;
+		ResizeClient(sz.cx, sz.cy);
+		if( bCenter ) CenterWindow();
+		m_pm.Invalidate();
+		return true;
 	}
 
 	HWND WindowImplBase::ResolveSyncOwner() const
@@ -359,10 +387,17 @@ namespace DuiLib
 		}
 
 		// 控件边缘缩放宿主（TabLayout 等可只开 N 条边；与窗口 size-box 互补）
+		// FindControl 会跳过 mouse=false（如 window 模式 WebBrowser），可能拿不到 TabLayout；
+		// 先沿命中链，再从 root 深搜含该点且开了 window-resize 的控件。
 		{
 			CControlUI* pHitCtrl = m_pm.FindControl(pt);
 			for (CControlUI* pWalk = pHitCtrl; pWalk != NULL; pWalk = pWalk->GetParent()) {
 				LRESULT ht = pWalk->HitWindowResize(pt);
+				if (ht != HTCLIENT) return ht;
+			}
+			CControlUI* pRoot = m_pm.GetRoot();
+			if (pRoot != NULL) {
+				LRESULT ht = HitWindowResizeDeep(pRoot, pt);
 				if (ht != HTCLIENT) return ht;
 			}
 		}
@@ -501,14 +536,16 @@ namespace DuiLib
 		SIZE szBorderRadius = m_pm.GetBorderRadius();
 #if defined(WIN32) && !defined(UNDER_CE)
 		if( !::IsIconic(*this) ) {
-			CDuiRect rcWnd;
-			::GetWindowRect(*this, &rcWnd);
-			rcWnd.Offset(-rcWnd.left, -rcWnd.top);
-			rcWnd.right++; rcWnd.bottom++;
-			SIZE szEllipse = CssRadiusToEllipse(szBorderRadius);
-			HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom, szEllipse.cx, szEllipse.cy);
-			::SetWindowRgn(*this, hRgn, TRUE);
-			::DeleteObject(hRgn);
+			if( !m_pm.ApplyWindowShapeRgn(*this) ) {
+				CDuiRect rcWnd;
+				::GetWindowRect(*this, &rcWnd);
+				rcWnd.Offset(-rcWnd.left, -rcWnd.top);
+				rcWnd.right++; rcWnd.bottom++;
+				SIZE szEllipse = CssRadiusToEllipse(szBorderRadius);
+				HRGN hRgn = ::CreateRoundRectRgn(rcWnd.left, rcWnd.top, rcWnd.right, rcWnd.bottom, szEllipse.cx, szEllipse.cy);
+				::SetWindowRgn(*this, hRgn, TRUE);
+				::DeleteObject(hRgn);
+			}
 
 			if (m_pm.IsValid() && wParam == SIZE_RESTORED) {
 				SyncMaxRestoreButtons(m_pm, false);

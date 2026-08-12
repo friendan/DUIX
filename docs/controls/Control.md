@@ -77,7 +77,7 @@ float a = p->GetEffectiveOpacityF();
 
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
-| `window-resize` | 控件边缩放宿主 HWND：`true`/`all`；`false`/`none`；或边名列表 `left,top,right,bottom`（可 `l,t,r,b`，无顺序要求）。子控件命中沿父链（适合 TabLayout）。含原生子 HWND 的控件（如 WebBrowser）会按祖先热区内缩，避免盖住右/下边 | 无 |
+| `window-resize` | **opt-in**。控件边缩放宿主 HWND：`true`/`all`；`false`/`none`；或边名列表。未设置（且无 `window-size-box`）则 WebBrowser **不**建挖空层。WebBrowser 原理见 [WebBrowser.md](WebBrowser.md#原生-hwnd-与-window-resize) | 无 |
 | `window-size-box` | 四边热区厚度，顺序为 **左,上,右,下（LTRB）**，与窗口 `size-box` 相同；**不是** CSS `margin`/`padding` 的上右下左。例：`0,0,6,6` = 仅右、下各 6px。某边 `>0` 自动启用该边（若未写 `window-resize`）；已启用边厚度为 `0` 时回退窗口 `size-box`。最大化跳过 | 无 |
 | `inner-style` | 内联属性列表字符串 | HTML `style`（命名相反） |
 | `position-align` | 绝对子控件相对父级对齐 | 无；接近绝对定位 + inset/transform 组合 |

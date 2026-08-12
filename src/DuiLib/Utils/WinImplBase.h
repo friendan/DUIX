@@ -39,6 +39,9 @@ namespace DuiLib
 		UINT ShowModal();
 		void ShowModalFake();
 
+		/// 按 shape-image 像素 ResizeClient（默认同屏工作区 95% 钳制）并可选居中
+		bool FitToShapeImage(bool clampWorkArea = true, bool bCenter = true, int workAreaPercent = 95);
+
 	protected:
 		virtual CDuiString GetSkinType() { return _T(""); }
 		virtual CDuiString GetSkinFile() = 0;

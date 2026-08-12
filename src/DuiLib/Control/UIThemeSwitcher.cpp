@@ -195,6 +195,8 @@ namespace {
 		const DWORD textDis = ColorMix(textSolid, bg, 90);
 		const DWORD elev = bDarkBg ? ColorMix(paper, bg, 28) : ColorMix(ink, bg, 10);
 		const DWORD bgHover = ColorMix(primary, bg, 28);
+		const DWORD bgHoverMedium = ColorMix(primary, bg, 64);
+		const DWORD bgHoverPrimary = ColorMix(primary, bg, 110);
 		const DWORD border = ColorMix(textSolid, bg, 48);
 		const DWORD borderStrong = ColorMix(textSolid, bg, 90);
 		const DWORD ctrlBg = bDarkBg ? ColorMix(paper, bg, 18) : bg;
@@ -237,6 +239,8 @@ namespace {
 		t->SetToken(_T("color-bg"), bg);
 		t->SetToken(_T("color-bg-elevated"), elev);
 		t->SetToken(_T("color-bg-hover"), bgHover);
+		t->SetToken(_T("color-bg-hover-medium"), bgHoverMedium);
+		t->SetToken(_T("color-bg-hover-primary"), bgHoverPrimary);
 		t->SetToken(_T("color-border"), border);
 		t->SetToken(_T("color-border-strong"), borderStrong);
 		t->SetToken(_T("color-text"), textSolid);
@@ -364,7 +368,9 @@ namespace {
 		static const Item kMap[] = {
 			{ _T("color-bg"), _T("窗口/页面背景色") },
 			{ _T("color-bg-elevated"), _T("抬升面板背景（panel）") },
-			{ _T("color-bg-hover"), _T("列表/菜单等悬停底色") },
+			{ _T("color-bg-hover"), _T("悬停底色（轻：列表/大面积）") },
+			{ _T("color-bg-hover-medium"), _T("悬停底色（中：图标按钮等）") },
+			{ _T("color-bg-hover-primary"), _T("悬停底色（强：主色倾向）") },
 			{ _T("color-text"), _T("正文文字色") },
 			{ _T("color-text-secondary"), _T("次要/说明文字色") },
 			{ _T("color-text-disabled"), _T("禁用文字色") },
@@ -523,6 +529,7 @@ namespace {
 		_T("color-titlebar-close-hover"),
 		// 窗口
 		_T("color-bg"), _T("color-bg-elevated"), _T("color-bg-hover"),
+		_T("color-bg-hover-medium"), _T("color-bg-hover-primary"),
 		_T("color-border"), _T("color-border-strong"),
 		_T("color-selection"),
 		_T("color-scrollbar-rail"), _T("color-scrollbar-thumb"), _T("color-scrollbar-thumb-hover"),

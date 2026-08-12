@@ -50,6 +50,8 @@ namespace DuiLib
 		DWORD GetNativeEditBackgroundColor() const;
 		void SetNativeEditColor( LPCTSTR pStrColor );
 		DWORD GetNativeEditColor() const;
+		/// 主题热切时：已打开的原生 WC_EDIT 重刷底/字色
+		void SyncNativeEditColors();
 
 		bool IsAutoSelAll();
 		void SetAutoSelAll(bool bAutoSelAll);
@@ -97,6 +99,8 @@ namespace DuiLib
 		DWORD m_dwPlaceholderColor;
 		DWORD m_dwEditbkColor;
 		DWORD m_dwEditTextColor;
+		bool m_bNativeBkColorCustom;
+		bool m_bNativeTextColorCustom;
 		int m_iWindowStyls;
 	};
 }

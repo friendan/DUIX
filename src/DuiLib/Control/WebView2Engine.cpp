@@ -328,6 +328,7 @@ namespace DuiLib
 			::ShowWindow(m_hCompHost, m_bVisible ? SW_SHOW : SW_HIDE);
 		AttachHandlers();
 		FlushPendingNavigate();
+		if( m_pFacade ) m_pFacade->ScheduleNativeResizeHook(true);
 	}
 
 	bool CWebView2Engine::Create(CControlUI* pOwner, HWND hParent, const RECT& rc)
@@ -804,6 +805,13 @@ namespace DuiLib
 	LRESULT CWebView2Engine::HandleCompHostMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch( uMsg ) {
+		case WM_NCHITTEST:
+			if( m_pFacade != NULL ) {
+				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				if( m_pFacade->HitNativeHostResize(pt) != HTCLIENT )
+					return HTTRANSPARENT;
+			}
+			break;
 		case WM_SETCURSOR:
 			if( m_pCompController ) {
 				HCURSOR cur = NULL;

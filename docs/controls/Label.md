@@ -16,8 +16,8 @@
 | `text-align` / `vertical-align` | 文字对齐（`middle`/`vcenter` 均可）；旧名 `align` / `valign` 仍可用 |
 | `font-family` / `font-size` | 字体 |
 | `font-weight` / `font-style` / `text-decoration` | `bold`/`700`；`italic`；`underline` / `line-through` |
-| `color` / `color-disabled` | 文字色 |
-| `color-hover` / `color-active` / `color-focus` | 悬停 / 按下 / 焦点文字色 |
+| `color` / `color-disabled` | 文字色；支持 `var(--token)` 热切主题 |
+| `color-hover` / `color-active` / `color-focus` | 悬停 / 按下 / 焦点文字色（同样支持 `var(--token)`） |
 | `width="auto"` / `width="fit-content"` | 基类通用属性；Label 按**文字**自动算宽（改 `text` 会 `NeedParentUpdate`） |
 | `height="auto"` / `height="fit-content"` | 基类通用属性；多行/非单行时可按文字算高 |
 | `text-overflow="ellipsis"` | 尾部省略（`clip` 关闭） |

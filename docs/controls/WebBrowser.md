@@ -43,6 +43,7 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 | `engine` | `webview2` / `ie` / `cef`；省略则优先 webview2（若编译启用）否则 ie |
 | `engine-fallback` | `true`（默认）时创建失败回退 `ie` |
 | `host` / `host-mode` | WebView2：`window`（默认）/ `composition`；外接 CEF 离屏：`osr` / `offscreen`（别名）。composition 失败自动回退 window |
+| `native-window-resize` | `true`（默认）/`false`：是否允许挖空缩窗层。运行时亦可用 `SetNativeWindowResizeEnabled` |
 | `home-page` | 主页 URL；同时作为尚未导航时的 `GetLocationUrl` 回落 |
 | `auto-navi` | `true` 时创建后自动导航到 `home-page` |
 | `user-data-folder` | WebView2 用户数据目录（可选） |
@@ -57,16 +58,88 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 
 分层窗注意：composition 使用**独立子 HWND** 做 DComp Target，避免与 DuiLib 分层主窗的 DComp 根冲突；仍非「画进 `DoPaint`」。真·像素进控件树请用 `osr` + 外接引擎。`host=window` / `composition` 的网页内容在独立 HWND 内，**不受控件 `opacity` 影响**。
 
+### 原生 HWND 与 window-resize
+
+问题：`host=window` 时 WebView2/IE 的内容 HWND 盖满控件，父窗收不到边缘 `WM_NCHITTEST`；又不能靠皮肤留 6px 缝（难看）。目标：页面铺满 + 右/下等边仍能缩宿主窗，且**不拖动网页滚动条**。
+
+**默认关闭（opt-in）**：自身及祖先都未设 `window-resize` / `window-size-box` 时，**不创建** overlay，网页区域行为与普通 WebBrowser 相同。只写窗口 `size-box`、不写控件 `window-resize` 时，也不会为 WebBrowser 开这套边框层（非 WebBrowser 区域仍可走窗口自己的 `OnNcHitTest` + `size-box`）。
+
+#### 现行做法（挖空 popup）
+
+源码：`UIWebBrowser.cpp`（`m_hResizeOverlay` / `UpdateResizeOverlay`）。
+
+1. 仅当祖先链上存在 `window-resize`（或 `window-size-box` 自动启用的边）时才建层。
+2. 建一层 **几乎透明** 的 `WS_POPUP`（`WS_EX_LAYERED` + alpha≈1，`WS_EX_NOACTIVATE`），**owner = paint 窗**。
+3. `SetWindowRgn` 只保留已启用边的 **L/T/R/B 边条**（厚度来自 `window-size-box`，缺省回退窗口 `size-box`）；中间挖空 → 鼠标落到引擎 HWND。
+4. 点在边上：`PostMessage(paint, WM_NCLBUTTONDOWN, HTLEFT/…)`；**不要**往 WebView2 塞鼠标。
+5. 定时 / `SetPos` / `WM_MOVE` / `WM_SIZE` / 激活等调用 `UpdateResizeOverlay`。
+6. 最大化：拆掉。最小化：拆掉；还原后重建。
+7. FG 为 `ThemePickerWnd` / `DuiMessageBoxWnd` / 名称含 `Modal` 时暂时 Hide（启发式）。**自定义弹层请主动** `SetNativeWindowResizeEnabled(false)`，关闭后再 `true`——比类名猜测更稳。
+8. 运行时总开关：`SetNativeWindowResizeEnabled` / `IsNativeWindowResizeEnabled`（默认 true）；皮肤亦可 `native-window-resize="false"`。
+
+皮肤配合（Demo `browser.html`）：
+
+```xml
+<html> size-box: 0,0,0,0; </html>
+<body name="root" window-resize="all">
+  <TabLayout name="pages" window-resize="right,bottom" />
+```
+
+`OnNcHitTest` 对 `window-resize` 做深搜（WebBrowser 常 `mouse=false`）。
+
+应用侧示例（弹自有顶层窗）：
+
+```cpp
+pBrowser->SetNativeWindowResizeEnabled(false);
+// Show 自定义弹层 ...
+pBrowser->SetNativeWindowResizeEnabled(true);
+```
+
+#### 试过但放弃的方案
+
+| 方案 | 为何不行 |
+|------|----------|
+| 为 `size-box` 内缩引擎 HWND 留缝 | 能缩窗，但 UI 有一圈空白，明确不要 |
+| `SetWindowSubclass` 引擎 HWND | 同进程部分有效；WebView2 跨进程 / OOP 子窗改不了对方 `NCHITTEST` |
+| 独立 gripper 子窗盖在边上 | 常被 WebView2 压在下面，点不到 |
+| `WH_MOUSE_LL` 边缘拦截再 `SendMessage(WM_NCLBUTTONDOWN)` | 钩子里同步发消息会泵掉队列，**LBUTTON 仍进页面 → 拖滚动条**；改 `PostMessage` 仍难干净 |
+| overlay 做 paint 的 `WS_CHILD` | 同级/上层 WebView2 子窗仍压住，肉眼「完全看不见」覆盖层 |
+| overlay 做引擎内容 HWND 的 `WS_CHILD` | 枚举/层级不稳，正常打开时经常挂不上或点不到 |
+| 顶层 popup 每 200ms 无脑 `HWND_TOP` | 能压住 WebView2，但会盖住无 owner 的主题选择窗 |
+| 新建后 `SWP_NOZORDER` 只跟位置 | 主题窗好了，但还原后 WebView2 再抢前 → 不能缩，**拖一下主窗又好**（位置/激活被顺带修好） |
+
+#### 踩过的坑（改前必读）
+
+1. **中间必须 RGN 挖空**  
+   全窗实心透明层会吃掉页面所有鼠标；只有边条属于 overlay。
+
+2. **缩窗用 `PostMessage(WM_NCLBUTTONDOWN)`，禁止往 WebView2 塞鼠标**  
+   合成/注入的按下很容易变成拖滚动条。
+
+3. **owner 用 paint，不要 TOPMOST 常驻**  
+   调试可用洋红 + TOPMOST 确认层级；正式 alpha≈1 即可。
+
+4. **`ShouldHide` 不要用「前台 ∉ paint 家族」一刀切**  
+   浏览器从主窗打开、最小化再还原后，前台常仍是**主窗**；若因此一直 Hide overlay，就会出现「还原后不能缩，拖一下标题栏（等于激活）又好了」。  
+   正确：只对会盖住边缘的已知弹层类名隐藏（主题窗 / MessageBox / Modal 等）。
+
+5. **最小化 / 还原要重建 overlay**  
+   owned popup 随 owner 最小化后状态不可靠；还原后应销毁再建并对齐屏幕坐标，并继续跟 `WM_MOVE`/`WM_SIZE`。
+
+6. **调试建议**  
+   临时把 overlay 画成半透明醒目色、加厚边条：若仍看不见 → 层级/未创建；若整页有色 → RGN 没挖空；若只有边条有色 → 层级 OK，再查 hit / `WM_NCLBUTTONDOWN`。
+
 ### C++ API（常用）
 
 | 方法 | 说明 |
 |------|------|
 | `SetEngine` / `GetEngineName` | 选择 / 查询引擎 |
 | `SetHostMode` / `GetHostMode` | WebView2 宿主模式 |
+| `SetNativeWindowResizeEnabled` / `IsNativeWindowResizeEnabled` | 临时开关挖空缩窗层（默认 true）。自定义顶层弹层前关、关后开 |
 | `SetHomePage` / `GetHomePage` | 主页 |
 | `SetLocationUrl` / `GetLocationUrl` | 当前地址缓存：`NavigateUrl` 写入；导航完成建议再用 `SetLocationUrl`；空则回落 `HomePage` |
 | `Navigate2` / `NavigateUrl` / `NavigateHomePage` | 导航（会更新 `LocationUrl`） |
-| `SetPos` | 布局；原生宿主 HWND 会避开窗口 `size-box`（LTRB）以及自身/祖先的 `window-resize` 热区，以免盖住缩放。Demo `browser.html`：窗口 `size-box: 0` + `TabLayout`/`root` 的 `window-resize`（仅热区数像素内缩，非整圈大留白） |
+| `SetPos` | 布局。原生 HWND **铺满**（无 6px 留白）。`window-resize` 靠挖空 popup，见上文「原生 HWND 与 window-resize」。OSR 无子窗。Demo `browser.html`：`size-box: 0` + `TabLayout`/`root` 的 `window-resize` |
 | `GoBack` / `GoForward` / `Refresh` / `Refresh2` | 历史与刷新（`Refresh2` 仅 IE） |
 | `CanGoBack` / `CanGoForward` | 历史栈是否可退/可进 |
 | `Stop` | 停止加载 |

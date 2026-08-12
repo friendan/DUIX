@@ -11,7 +11,7 @@ struct IDispatch;
 
 namespace DuiLib
 {
-	class UILIB_API CWebBrowserUI : public CControlUI
+	class UILIB_API CWebBrowserUI : public CControlUI, public IMessageFilterUI
 	{
 		DECLARE_DUICONTROL(CWebBrowserUI)
 	public:
@@ -29,9 +29,18 @@ namespace DuiLib
 		virtual UINT GetControlFlags() const;
 		virtual void DoEvent(TEventUI& event);
 		virtual bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
+		virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 
 		/// host=osr / 引擎 IsOffScreen()
 		bool IsOffScreenHost() const;
+
+		/// 盖在引擎 HWND 上的挖空 popup：中间穿透给页面/滚动条，边缘缩窗
+		void ScheduleNativeResizeHook(bool bResetRetry = false);
+		/// 临时开关挖空缩窗层（默认 true）。弹自定义顶层窗前设 false，关闭后再 true，避免边条挡点击
+		void SetNativeWindowResizeEnabled(bool bEnable);
+		bool IsNativeWindowResizeEnabled() const;
+		/// 屏幕坐标；落在 window-resize 热区返回 HTLEFT/…；未启用或已 Suspend 则 HTCLIENT
+		LRESULT HitNativeHostResize(POINT ptScreen) const;
 
 		void SetEngine(LPCTSTR name);
 		LPCTSTR GetEngineName() const;
@@ -85,6 +94,9 @@ namespace DuiLib
 		void DestroyEngine();
 		void SyncHostInteraction();
 		CDuiString ResolveDefaultEngine() const;
+		void UpdateResizeOverlay(bool bForceRecreate = false);
+		void DestroyResizeOverlay();
+		RECT GetNativeResizeGripInset() const;
 
 		IWebBrowserEngine* m_pEngine;
 		CDuiString m_sEngineName;
@@ -99,6 +111,9 @@ namespace DuiLib
 		CWebBrowserHostEvents* m_pHostEvents;
 		CWebBrowserEventHandler* m_pWebBrowserEventHandler;
 		CDuiString m_sPendingUrl;
+		HWND m_hResizeOverlay;
+		bool m_bPaintWasIconic;
+		bool m_bNativeWindowResizeEnabled;
 	};
 
 	/// XML `<WebView2>` 别名：强制 engine=webview2

@@ -1,8 +1,6 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "duilib.h"
 #include <sstream>
-
-#define UIMSG_SET_DPI WM_USER + 200
 
 CFrameWnd::CFrameWnd( LPCTSTR pszXMLPath )
 	:  m_strXMLPath(pszXMLPath)

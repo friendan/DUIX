@@ -8,6 +8,7 @@
 #include "CarouselTestWnd.h"
 #include "LayoutTestWnd.h"
 #include "SettingsSyncWnd.h"
+#include "ShapeDemoWnd.h"
 #include "Icons/BootstrapIconsData.h"
 #include "Icons/LucideIconsIconsData.h"
 #include "Icons/IconParkIconsData.h"
@@ -337,7 +338,7 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	else if( msg.sType == DUI_MSGTYPE_TITLEBARCLOSING )
 	{
 		CTitleBarUI* pBar = static_cast<CTitleBarUI*>(msg.pSender->GetInterface(DUI_CTR_TITLEBAR));
-		if(MSGID_OK != CMsgWnd::MessageBox(m_hWnd, _T("提示"), _T("确定退出d程序？")))
+		if(MSGID_OK != CMsgWnd::MessageBox(m_hWnd, _T("提示"), _T("确定退出程序？")))
 		{
 			if( pBar != NULL ) pBar->CancelNotify();
 		}
@@ -592,6 +593,21 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("btn_browser_test")) == 0)
 	{
 		CBrowserWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_shape_wnd")) == 0)
+	{
+		CShapeDemoWnd* pWnd = new CShapeDemoWnd();
+		pWnd->Create(m_hWnd, _T("异形窗口"), WS_POPUP | WS_VISIBLE, WS_EX_TOOLWINDOW, 0, 0, 800, 600);
+		// 最终尺寸 / 居中在 InitWindow（按 apple.png + 工作区）
+	}
+	else if(sName.CompareNoCase(_T("shape_btn_circle")) == 0
+		|| sName.CompareNoCase(_T("shape_btn_star")) == 0)
+	{
+		CToast::ShowSuccess(_T("点中了异形按钮（外形内）"), 2000);
+	}
+	else if(sName.CompareNoCase(_T("btn_behind_shape")) == 0)
+	{
+		CToast::ShowInfo(_T("点到了底下按钮（外形外穿透）"), 2000);
 	}
 	else if(sName.CompareNoCase(_T("btn_theme_toggle")) == 0)
 	{

@@ -303,9 +303,13 @@ protected:                                                                \
 
 #define  DUI_CTR_COMBO                           (_T("Combo"))
 #define  DUI_CTR_LABEL                           (_T("Label"))
+#define  DUI_CTR_ROLLTEXT                        (_T("RollText"))
+#define  DUI_CTR_MARQUEE                         (_T("Marquee"))
 #define  DUI_CTR_FLASH							 (_T("Flash"))
 
 #define  DUI_CTR_BUTTON                          (_T("Button"))
+#define  DUI_CTR_SHAPEBUTTON                     (_T("ShapeButton"))
+#define  DUI_CTR_SHAPEBOX                        (_T("ShapeBox"))
 #define  DUI_CTR_THEMESWITCHER                   (_T("ThemeSwitcher"))
 #define  DUI_CTR_OPTION                          (_T("Option"))
 #define  DUI_CTR_SLIDER                          (_T("Slider"))

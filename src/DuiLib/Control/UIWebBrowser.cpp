@@ -8,6 +8,141 @@
 
 namespace DuiLib
 {
+	namespace
+	{
+		const UINT kTimerNativeResizeHook = 0x57485201;
+		const UINT kOverlayFollowMs = 200;
+		const TCHAR kOverlayClass[] = _T("DuiLib_WbResizeOverlay");
+		bool g_bOverlayClassReg = false;
+
+		LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+		{
+			CWebBrowserUI* pWeb = reinterpret_cast<CWebBrowserUI*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
+			switch( uMsg ) {
+			case WM_MOUSEACTIVATE:
+				return MA_NOACTIVATE;
+			case WM_NCHITTEST:
+				return HTCLIENT;
+			case WM_SETCURSOR:
+				if( pWeb != NULL ) {
+					POINT pt = { 0, 0 };
+					::GetCursorPos(&pt);
+					LRESULT ht = pWeb->HitNativeHostResize(pt);
+					LPCTSTR idc = IDC_ARROW;
+					if( ht == HTLEFT || ht == HTRIGHT ) idc = IDC_SIZEWE;
+					else if( ht == HTTOP || ht == HTBOTTOM ) idc = IDC_SIZENS;
+					else if( ht == HTTOPLEFT || ht == HTBOTTOMRIGHT ) idc = IDC_SIZENWSE;
+					else if( ht == HTTOPRIGHT || ht == HTBOTTOMLEFT ) idc = IDC_SIZENESW;
+					::SetCursor(::LoadCursor(NULL, idc));
+					return TRUE;
+				}
+				break;
+			case WM_LBUTTONDOWN:
+				if( pWeb != NULL && pWeb->GetManager() != NULL ) {
+					POINT pt = { 0, 0 };
+					::GetCursorPos(&pt);
+					LRESULT ht = pWeb->HitNativeHostResize(pt);
+					HWND hPaint = pWeb->GetManager()->GetPaintWindow();
+					if( hPaint != NULL && ht != HTCLIENT ) {
+						::ReleaseCapture();
+						::PostMessage(hPaint, WM_NCLBUTTONDOWN, (WPARAM)ht,
+							MAKELPARAM(pt.x, pt.y));
+					}
+					return 0;
+				}
+				break;
+			case WM_ERASEBKGND:
+				return 1;
+			case WM_PAINT: {
+				PAINTSTRUCT ps;
+				::BeginPaint(hWnd, &ps);
+				::EndPaint(hWnd, &ps);
+				return 0;
+			}
+			case WM_NCDESTROY:
+				::SetWindowLongPtr(hWnd, GWLP_USERDATA, 0);
+				break;
+			default:
+				break;
+			}
+			return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+		}
+
+		void RegisterOverlayClass()
+		{
+			if( g_bOverlayClassReg ) return;
+			WNDCLASSEX wc = { sizeof(wc) };
+			wc.lpfnWndProc = OverlayWndProc;
+			wc.hInstance = (HINSTANCE)::GetModuleHandle(NULL);
+			wc.lpszClassName = kOverlayClass;
+			wc.hCursor = ::LoadCursor(NULL, IDC_ARROW);
+			wc.hbrBackground = (HBRUSH)::GetStockObject(NULL_BRUSH);
+			::RegisterClassEx(&wc);
+			g_bOverlayClassReg = true;
+		}
+
+		HWND CreateResizeOverlay(HWND hPaint, CWebBrowserUI* pWeb)
+		{
+			RegisterOverlayClass();
+			HWND hWnd = ::CreateWindowEx(
+				WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+				kOverlayClass, NULL,
+				WS_POPUP,
+				0, 0, 0, 0, hPaint, NULL, (HINSTANCE)::GetModuleHandle(NULL), NULL);
+			if( hWnd == NULL ) return NULL;
+			::SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pWeb);
+			::SetLayeredWindowAttributes(hWnd, 0, 1, LWA_ALPHA);
+			return hWnd;
+		}
+
+		void CombineEdgeRgn(HRGN rgn, int x1, int y1, int x2, int y2)
+		{
+			if( x2 <= x1 || y2 <= y1 ) return;
+			HRGN edge = ::CreateRectRgn(x1, y1, x2, y2);
+			::CombineRgn(rgn, rgn, edge, RGN_OR);
+			::DeleteObject(edge);
+		}
+
+		RECT ControlRectToScreen(HWND hPaint, const RECT& rcItem)
+		{
+			POINT tl = { rcItem.left, rcItem.top };
+			POINT br = { rcItem.right, rcItem.bottom };
+			::ClientToScreen(hPaint, &tl);
+			::ClientToScreen(hPaint, &br);
+			RECT rc = { tl.x, tl.y, br.x, br.y };
+			return rc;
+		}
+
+		bool IsPaintFamilyWindow(HWND hPaint, HWND hOverlay, HWND hWnd)
+		{
+			if( hWnd == NULL || hPaint == NULL ) return false;
+			if( hWnd == hPaint || hWnd == hOverlay ) return true;
+			if( ::IsChild(hPaint, hWnd) ) return true;
+			HWND hRoot = ::GetAncestor(hWnd, GA_ROOT);
+			if( hRoot == hPaint || hRoot == hOverlay ) return true;
+			for( HWND hOwner = ::GetWindow(hWnd, GW_OWNER); hOwner != NULL;
+				hOwner = ::GetWindow(hOwner, GW_OWNER) ) {
+				if( hOwner == hPaint || hOwner == hOverlay ) return true;
+			}
+			return false;
+		}
+
+		bool ShouldHideResizeOverlay(HWND hPaint, HWND hOverlay)
+		{
+			HWND hFg = ::GetForegroundWindow();
+			if( hFg == NULL || hFg == hPaint || hFg == hOverlay ) return false;
+			if( IsPaintFamilyWindow(hPaint, hOverlay, hFg) ) return false;
+
+			// 勿因主窗/其它无关窗在前台就藏 overlay（最小化还原后常见），
+			// 否则要等用户点标题栏激活浏览器才“突然好了”。
+			TCHAR cls[128] = { 0 };
+			::GetClassName(hFg, cls, _countof(cls));
+			if( _tcscmp(cls, _T("ThemePickerWnd")) == 0 ) return true;
+			if( _tcscmp(cls, _T("DuiMessageBoxWnd")) == 0 ) return true;
+			if( _tcsstr(cls, _T("Modal")) != NULL ) return true;
+			return false;
+		}
+	}
 	IMPLEMENT_DUICONTROL(CWebBrowserUI)
 	IMPLEMENT_DUICONTROL(CWebView2UI)
 
@@ -66,12 +201,17 @@ namespace DuiLib
 		, m_bForceEngine(false)
 		, m_pHostEvents(NULL)
 		, m_pWebBrowserEventHandler(NULL)
+		, m_hResizeOverlay(NULL)
+		, m_bPaintWasIconic(false)
+		, m_bNativeWindowResizeEnabled(true)
 	{
 		SetMouseEnabled(false);
 	}
 
 	CWebBrowserUI::~CWebBrowserUI()
 	{
+		if( m_pManager != NULL )
+			m_pManager->RemoveMessageFilter(this);
 		DestroyEngine();
 	}
 
@@ -189,6 +329,157 @@ namespace DuiLib
 		return false;
 	}
 
+	void CWebBrowserUI::SetNativeWindowResizeEnabled(bool bEnable)
+	{
+		if( m_bNativeWindowResizeEnabled == bEnable ) return;
+		m_bNativeWindowResizeEnabled = bEnable;
+		UpdateResizeOverlay();
+	}
+
+	bool CWebBrowserUI::IsNativeWindowResizeEnabled() const
+	{
+		return m_bNativeWindowResizeEnabled;
+	}
+
+	LRESULT CWebBrowserUI::HitNativeHostResize(POINT ptScreen) const
+	{
+		if( !m_bNativeWindowResizeEnabled ) return HTCLIENT;
+		if( m_pManager == NULL ) return HTCLIENT;
+		HWND hPaint = m_pManager->GetPaintWindow();
+		if( hPaint == NULL || ::IsZoomed(hPaint) ) return HTCLIENT;
+
+		POINT pt = ptScreen;
+		::ScreenToClient(hPaint, &pt);
+
+		// 仅 window-resize / window-size-box（祖先链）；未配置则不缩窗
+		for( const CControlUI* p = this; p != NULL; p = p->GetParent() ) {
+			LRESULT ht = p->HitWindowResize(pt);
+			if( ht != HTCLIENT ) return ht;
+		}
+		return HTCLIENT;
+	}
+
+	RECT CWebBrowserUI::GetNativeResizeGripInset() const
+	{
+		RECT inset = { 0, 0, 0, 0 };
+		if( m_pManager == NULL ) return inset;
+		HWND hPaint = m_pManager->GetPaintWindow();
+		if( hPaint == NULL || ::IsZoomed(hPaint) ) return inset;
+
+		const RECT& rc = m_rcItem;
+		for( const CControlUI* p = this; p != NULL; p = p->GetParent() ) {
+			if( p->GetWindowResizeEdges() == 0 ) continue;
+			RECT sb = p->GetWindowResizeThickness();
+			const RECT& a = p->GetPos();
+			if( sb.right > 0 && rc.right >= a.right - 1 )
+				inset.right = MAX(inset.right, sb.right);
+			if( sb.bottom > 0 && rc.bottom >= a.bottom - 1 )
+				inset.bottom = MAX(inset.bottom, sb.bottom);
+			if( sb.left > 0 && rc.left <= a.left + 1 )
+				inset.left = MAX(inset.left, sb.left);
+			if( sb.top > 0 && rc.top <= a.top + 1 )
+				inset.top = MAX(inset.top, sb.top);
+		}
+		return inset;
+	}
+
+	void CWebBrowserUI::DestroyResizeOverlay()
+	{
+		KillTimer(kTimerNativeResizeHook);
+		if( m_hResizeOverlay != NULL && ::IsWindow(m_hResizeOverlay) )
+			::DestroyWindow(m_hResizeOverlay);
+		m_hResizeOverlay = NULL;
+	}
+
+	void CWebBrowserUI::UpdateResizeOverlay(bool bForceRecreate)
+	{
+		if( IsOffScreenHost() || m_pEngine == NULL || m_pManager == NULL || !IsVisible() ) {
+			DestroyResizeOverlay();
+			return;
+		}
+		HWND hPaint = m_pManager->GetPaintWindow();
+		if( hPaint == NULL ) {
+			DestroyResizeOverlay();
+			return;
+		}
+		if( ::IsZoomed(hPaint) ) {
+			DestroyResizeOverlay();
+			return;
+		}
+		if( ::IsIconic(hPaint) ) {
+			m_bPaintWasIconic = true;
+			if( m_hResizeOverlay != NULL && ::IsWindow(m_hResizeOverlay) ) {
+				::DestroyWindow(m_hResizeOverlay);
+				m_hResizeOverlay = NULL;
+			}
+			SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+			return;
+		}
+		if( m_bPaintWasIconic ) {
+			bForceRecreate = true;
+			m_bPaintWasIconic = false;
+		}
+
+		const RECT& rc = m_rcItem;
+		const int wItem = rc.right - rc.left;
+		const int hItem = rc.bottom - rc.top;
+		RECT inset = GetNativeResizeGripInset();
+		if( !m_bNativeWindowResizeEnabled || wItem < 1 || hItem < 1
+			|| (inset.left < 1 && inset.top < 1 && inset.right < 1 && inset.bottom < 1) ) {
+			if( m_hResizeOverlay != NULL )
+				::ShowWindow(m_hResizeOverlay, SW_HIDE);
+			if( m_bNativeWindowResizeEnabled )
+				SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+			else
+				KillTimer(kTimerNativeResizeHook);
+			return;
+		}
+
+		if( ShouldHideResizeOverlay(hPaint, m_hResizeOverlay) ) {
+			if( m_hResizeOverlay != NULL )
+				::ShowWindow(m_hResizeOverlay, SW_HIDE);
+			SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+			return;
+		}
+
+		if( bForceRecreate && m_hResizeOverlay != NULL && ::IsWindow(m_hResizeOverlay) ) {
+			::DestroyWindow(m_hResizeOverlay);
+			m_hResizeOverlay = NULL;
+		}
+		if( m_hResizeOverlay != NULL && !::IsWindow(m_hResizeOverlay) )
+			m_hResizeOverlay = NULL;
+		if( m_hResizeOverlay == NULL )
+			m_hResizeOverlay = CreateResizeOverlay(hPaint, this);
+		if( m_hResizeOverlay == NULL ) {
+			SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+			return;
+		}
+
+		const RECT rcScreen = ControlRectToScreen(hPaint, rc);
+		const int w = rcScreen.right - rcScreen.left;
+		const int h = rcScreen.bottom - rcScreen.top;
+
+		HRGN rgn = ::CreateRectRgn(0, 0, 0, 0);
+		CombineEdgeRgn(rgn, 0, 0, inset.left, h);
+		CombineEdgeRgn(rgn, 0, 0, w, inset.top);
+		CombineEdgeRgn(rgn, w - inset.right, 0, w, h);
+		CombineEdgeRgn(rgn, 0, h - inset.bottom, w, h);
+		::SetWindowRgn(m_hResizeOverlay, rgn, TRUE);
+
+		::SetWindowPos(m_hResizeOverlay, HWND_TOP, rcScreen.left, rcScreen.top, w, h,
+			SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+	}
+
+	void CWebBrowserUI::ScheduleNativeResizeHook(bool bResetRetry)
+	{
+		if( IsOffScreenHost() || m_pEngine == NULL || m_pManager == NULL ) {
+			DestroyResizeOverlay();
+			return;
+		}
+		UpdateResizeOverlay(bResetRetry);
+	}
+
 	void CWebBrowserUI::SyncHostInteraction()
 	{
 		const bool osr = IsOffScreenHost();
@@ -206,6 +497,10 @@ namespace DuiLib
 
 	void CWebBrowserUI::DoEvent(TEventUI& event)
 	{
+		if( event.Type == UIEVENT_TIMER && event.wParam == kTimerNativeResizeHook ) {
+			UpdateResizeOverlay();
+			return;
+		}
 		if( m_pEngine != NULL && m_pEngine->IsOffScreen() ) {
 			if( event.Type == UIEVENT_SETFOCUS || event.Type == UIEVENT_KILLFOCUS ) {
 				CControlUI::DoEvent(event);
@@ -248,6 +543,8 @@ namespace DuiLib
 
 	void CWebBrowserUI::DestroyEngine()
 	{
+		KillTimer(kTimerNativeResizeHook);
+		DestroyResizeOverlay();
 		if( m_pEngine ) {
 			m_pEngine->Destroy();
 			delete m_pEngine;
@@ -303,6 +600,7 @@ namespace DuiLib
 		SyncHostInteraction();
 		m_pEngine->SetVisible(IsVisible());
 		m_pEngine->SetPos(m_rcItem);
+		ScheduleNativeResizeHook(true);
 
 		if( !m_sPendingUrl.IsEmpty() ) {
 			m_pEngine->Navigate(m_sPendingUrl.GetData());
@@ -321,8 +619,53 @@ namespace DuiLib
 
 	void CWebBrowserUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit)
 	{
+		if( m_pManager != NULL )
+			m_pManager->RemoveMessageFilter(this);
 		CControlUI::SetManager(pManager, pParent, bInit);
+		if( m_pManager != NULL )
+			m_pManager->AddMessageFilter(this);
 		if( pManager && bInit ) EnsureEngine();
+	}
+
+	LRESULT CWebBrowserUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& bHandled)
+	{
+		bHandled = false;
+		if( m_pEngine == NULL || IsOffScreenHost() )
+			return 0;
+		switch( uMsg ) {
+		case WM_MOVE:
+		case WM_MOVING:
+		case WM_EXITSIZEMOVE:
+			UpdateResizeOverlay();
+			break;
+		case WM_ACTIVATE:
+			if( wParam != WA_INACTIVE )
+				UpdateResizeOverlay(m_bPaintWasIconic);
+			break;
+		case WM_ACTIVATEAPP:
+			if( wParam )
+				UpdateResizeOverlay(m_bPaintWasIconic);
+			break;
+		case WM_SHOWWINDOW:
+			if( wParam )
+				UpdateResizeOverlay(true);
+			break;
+		case WM_SIZE:
+			if( wParam == SIZE_MINIMIZED ) {
+				m_bPaintWasIconic = true;
+				UpdateResizeOverlay();
+			}
+			else if( wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED ) {
+				UpdateResizeOverlay(true);
+			}
+			break;
+		case WM_WINDOWPOSCHANGED:
+			UpdateResizeOverlay(m_bPaintWasIconic);
+			break;
+		default:
+			break;
+		}
+		return 0;
 	}
 
 	void CWebBrowserUI::SetPos(RECT rc, bool bNeedInvalidate)
@@ -331,41 +674,22 @@ namespace DuiLib
 		EnsureEngine();
 		if( m_pEngine == NULL ) return;
 
-		// 原生宿主 HWND 勿盖住窗口 size-box / 祖先 window-resize 热区；OSR 无子窗，用完整控件矩形
-		RECT rcHost = m_rcItem;
-		if( !IsOffScreenHost() && m_pManager != NULL ) {
-			HWND hWnd = m_pManager->GetPaintWindow();
-			if( hWnd != NULL && !::IsZoomed(hWnd) ) {
-				RECT rcClient = { 0 };
-				::GetClientRect(hWnd, &rcClient);
-				RECT sb = m_pManager->GetSizeBox();
-				if( rcHost.right > rcClient.right - sb.right )
-					rcHost.right = rcClient.right - sb.right;
-				if( rcHost.bottom > rcClient.bottom - sb.bottom )
-					rcHost.bottom = rcClient.bottom - sb.bottom;
-				if( rcHost.left < rcClient.left + sb.left )
-					rcHost.left = rcClient.left + sb.left;
-				if( rcHost.top < rcClient.top + sb.top )
-					rcHost.top = rcClient.top + sb.top;
-				if( rcHost.right < rcHost.left ) rcHost.right = rcHost.left;
-				if( rcHost.bottom < rcHost.top ) rcHost.bottom = rcHost.top;
-				// size-box 为 0 时仍须避开 TabLayout 等 window-resize 边，否则子 HWND 吃掉右/下缩放
-				ApplyAncestorWindowResizeHostInset(rcHost);
-			}
-		}
-		m_pEngine->SetPos(rcHost);
+		m_pEngine->SetPos(m_rcItem);
+		ScheduleNativeResizeHook();
 	}
 
 	void CWebBrowserUI::SetVisible(bool bVisible)
 	{
 		CControlUI::SetVisible(bVisible);
 		if( m_pEngine ) m_pEngine->SetVisible(IsVisible());
+		UpdateResizeOverlay();
 	}
 
 	void CWebBrowserUI::SetInternVisible(bool bVisible)
 	{
 		CControlUI::SetInternVisible(bVisible);
 		if( m_pEngine ) m_pEngine->SetVisible(IsVisible());
+		UpdateResizeOverlay();
 	}
 
 	void CWebBrowserUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -387,6 +711,9 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("host")) == 0 || _tcsicmp(pstrName, _T("host-mode")) == 0 ) {
 			SetHostMode(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("native-window-resize")) == 0 ) {
+			SetNativeWindowResizeEnabled(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
 		else {
 			CControlUI::SetAttribute(pstrName, pstrValue);

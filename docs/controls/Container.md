@@ -58,6 +58,6 @@
 | LinearLayout | `sep-size`、`sep-imm` |
 | FlowLayout | `wrap`、`line-spacing`；`align` 仍作 `justify-content` 别名 |
 | TileLayout | `item-size`、`columns` |
-| TabLayout | `selected-id`；动态 `Add`/`SelectItem` 会恢复子项 `InternVisible`（见 [TabBar.md](TabBar.md)）。可用基类 `window-resize` / `window-size-box` 只开 N 条边缩窗口（见 [Control.md](Control.md)） |
+| TabLayout | `selected-id`；动态 `Add`/`SelectItem` 会恢复子项 `InternVisible`（见 [TabBar.md](TabBar.md)）。常见：页上放 `WebBrowser` 时在 **TabLayout**（或 root）写 `window-resize`，窗口 `size-box` 置 `0`，铺满仍能缩边（见 [Control.md](Control.md)、[WebBrowser.md](WebBrowser.md#原生-hwnd-与-window-resize)） |
 | ChildLayout | `xml-file` |
 | AnimationTabLayout | `animation-direction` |

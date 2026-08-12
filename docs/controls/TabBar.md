@@ -170,6 +170,17 @@
 
 浏览器壳示例见 [WebBrowser.md](WebBrowser.md) Demo / `CBrowserWnd`。
 
+### TabLayout + WebBrowser 缩窗
+
+多标签页里嵌原生 HWND（尤其 WebView2）时，不要再靠 padding/`size-box` 留缝。
+
+- **未写 `window-resize` / `window-size-box`（祖先也无）时功能关闭**，不建挖空层
+- 需要时：窗口可 `size-box: 0,0,0,0`；`TabLayout`（或 root）写 `window-resize="right,bottom"` 等
+- 厚度用 `window-size-box`（LTRB）；已启用边厚度为 0 时回退窗口 `size-box`
+- 自定义顶层弹层：对活动 `WebBrowser` 调 `SetNativeWindowResizeEnabled(false/true)`
+
+属性见 [Control.md](Control.md)；原理与坑见 [WebBrowser.md · 原生 HWND 与 window-resize](WebBrowser.md#原生-hwnd-与-window-resize)。
+
 ---
 
 ## 常用 API
