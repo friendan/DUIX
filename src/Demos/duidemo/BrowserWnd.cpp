@@ -74,6 +74,7 @@ void CBrowserWnd::InitWindow()
 	if( m_pTabBar != NULL && m_pTabBar->GetTabCount() == 0 )
 		AddNewTab(_T("新标签页"), _T("https://project.feishu.cn"));
 	UpdateNavButtons();
+	// 托盘由 WindowImplBase::EnsureAutoTray（browser.html min-to-tray）自动创建 + 默认菜单
 }
 
 bool CBrowserWnd::IsBrowserAlive(CWebBrowserUI* pWeb) const
@@ -208,6 +209,10 @@ LRESULT CBrowserWnd::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		MenuCmd* pMenuCmd = (MenuCmd*)wParam;
 		if( pMenuCmd != NULL ) {
 			CDuiString sName = pMenuCmd->szName;
+			if( ProcessDefaultTrayMenuCommand(sName.GetData()) ) {
+				m_pm.DeletePtr(pMenuCmd);
+				return 0;
+			}
 			m_pm.DeletePtr(pMenuCmd);
 			HandleMenuCommand(sName.GetData());
 		}

@@ -118,6 +118,7 @@ namespace DuiLib {
 		void PaintStatusImage(IRenderContext& ctx);
 
 	protected:
+		BOOL IsColumnResizeEnabled() const;
 		POINT ptLastMouse;
 		BOOL m_bDragable;
 		UINT m_uButtonState;

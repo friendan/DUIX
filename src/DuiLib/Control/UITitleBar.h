@@ -46,6 +46,12 @@ namespace DuiLib
 
 		void SetShowMin(bool bShow);
 		bool IsShowMin() const { return m_bShowMin; }
+		/// 最小化到托盘：Hide 主窗（不进任务栏）。托盘图标由应用 CTrayIcon 自行创建。
+		void SetMinimizeToTray(bool bTray);
+		bool IsMinimizeToTray() const { return m_bMinimizeToTray; }
+		/// 关闭到托盘：点关闭 / 系统关闭时藏窗，不销毁。真正退出用 WindowImplBase::ForceClose。
+		void SetCloseToTray(bool bTray);
+		bool IsCloseToTray() const { return m_bCloseToTray; }
 		void SetShowMax(bool bShow);
 		bool IsShowMax() const { return m_bShowMax; }
 		void SetShowClose(bool bShow);
@@ -101,6 +107,8 @@ namespace DuiLib
 		bool m_bShowMin;
 		bool m_bShowMax;
 		bool m_bShowClose;
+		bool m_bMinimizeToTray;
+		bool m_bCloseToTray;
 		int m_nBtnWidth;
 		bool m_bNotifyCancel;
 		bool m_bChromeReady;

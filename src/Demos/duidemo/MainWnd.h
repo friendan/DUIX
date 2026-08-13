@@ -86,7 +86,6 @@ private:// UI变量
 	CButtonUI* m_pSkinBtn;
 	CMenuWnd* m_pMenu;
 	CStdStringPtrMap m_MenuInfos;
-	CTrayIcon m_trayIcon;
 	CVirtualListDemoCallback m_vlistCallback;
 
 public:

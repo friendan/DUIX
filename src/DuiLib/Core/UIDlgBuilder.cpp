@@ -3,7 +3,6 @@
 namespace DuiLib {
 
 	static void ParseCssBlock(CPaintManagerUI* pManager, LPCTSTR pCssText);
-	static void LoadCssFile(CPaintManagerUI* pManager, LPCTSTR pstrSrc);
 	static void ApplyWindowAttribute(CPaintManagerUI* pManager, LPCTSTR pstrName, LPCTSTR pstrValue);
 	static void ApplyWindowAttributeList(CPaintManagerUI* pManager, LPCTSTR pstrList);
 	static void ApplyWindowCssRules(CPaintManagerUI* pManager);
@@ -561,7 +560,7 @@ namespace DuiLib {
 		return m_xml.GetLastErrorLocation(pstrSource, cchMax);
 	}
 
-	static void LoadCssFile(CPaintManagerUI* pManager, LPCTSTR pstrSrc)
+	void LoadCssFile(CPaintManagerUI* pManager, LPCTSTR pstrSrc)
 	{
 		if (pManager == NULL || pstrSrc == NULL || *pstrSrc == _T('\0')) return;
 
@@ -866,7 +865,7 @@ namespace DuiLib {
 						pControl = builder.Create((UINT)id, m_pstrtype, m_pCallback, pManager, pParent);
 					}
 					else {
-						pControl = builder.Create((LPCTSTR)szValue, (UINT)0, m_pCallback, pManager, pParent);
+						pControl = builder.Create((LPCTSTR)szValue, NULL, m_pCallback, pManager, pParent);
 					}
 				}
 				continue;
@@ -881,7 +880,8 @@ namespace DuiLib {
 					CStdPtrArray* pPlugins = CPaintManagerUI::GetPlugins();
 					LPCREATECONTROL lpCreateControl = NULL;
 					for( int i = 0; i < pPlugins->GetSize(); ++i ) {
-						lpCreateControl = (LPCREATECONTROL)pPlugins->GetAt(i);
+						lpCreateControl = reinterpret_cast<LPCREATECONTROL>(
+							reinterpret_cast<uintptr_t>(pPlugins->GetAt(i)));
 						if( lpCreateControl != NULL ) {
 							pControl = lpCreateControl(pstrClass);
 							if( pControl != NULL ) break;

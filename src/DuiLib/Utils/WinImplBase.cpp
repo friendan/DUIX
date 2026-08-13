@@ -30,6 +30,9 @@ namespace DuiLib
 		, m_bSyncOwnerSize(false)
 		, m_bHaveOwnerOffset(false)
 		, m_bSyncingOwner(false)
+		, m_bForceClose(false)
+		, m_bTrayAutoCreated(false)
+		, m_pDefaultTrayMenu(NULL)
 	{
 		m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
 		m_szOwnerDelta.cx = m_szOwnerDelta.cy = 0;
@@ -200,6 +203,40 @@ namespace DuiLib
 		return NULL;
 	}
 
+	static CTitleBarUI* FindMinimizeToTrayTitleBar(CPaintManagerUI& pm)
+	{
+		CControlUI* pNamed = pm.FindControl(_T("titlebar"));
+		if( pNamed != NULL ) {
+			CTitleBarUI* pBar = static_cast<CTitleBarUI*>(pNamed->GetInterface(DUI_CTR_TITLEBAR));
+			if( pBar != NULL && pBar->IsMinimizeToTray() ) return pBar;
+		}
+		CStdPtrArray* pList = pm.FindSubControlsByClass(pm.GetRoot(), _T("TitleBarUI"));
+		if( pList == NULL ) return NULL;
+		for( int i = 0; i < pList->GetSize(); ++i ) {
+			CControlUI* p = static_cast<CControlUI*>(pList->GetAt(i));
+			CTitleBarUI* pBar = p ? static_cast<CTitleBarUI*>(p->GetInterface(DUI_CTR_TITLEBAR)) : NULL;
+			if( pBar != NULL && pBar->IsMinimizeToTray() ) return pBar;
+		}
+		return NULL;
+	}
+
+	static CTitleBarUI* FindCloseToTrayTitleBar(CPaintManagerUI& pm)
+	{
+		CControlUI* pNamed = pm.FindControl(_T("titlebar"));
+		if( pNamed != NULL ) {
+			CTitleBarUI* pBar = static_cast<CTitleBarUI*>(pNamed->GetInterface(DUI_CTR_TITLEBAR));
+			if( pBar != NULL && pBar->IsCloseToTray() ) return pBar;
+		}
+		CStdPtrArray* pList = pm.FindSubControlsByClass(pm.GetRoot(), _T("TitleBarUI"));
+		if( pList == NULL ) return NULL;
+		for( int i = 0; i < pList->GetSize(); ++i ) {
+			CControlUI* p = static_cast<CControlUI*>(pList->GetAt(i));
+			CTitleBarUI* pBar = p ? static_cast<CTitleBarUI*>(p->GetInterface(DUI_CTR_TITLEBAR)) : NULL;
+			if( pBar != NULL && pBar->IsCloseToTray() ) return pBar;
+		}
+		return NULL;
+	}
+
 	static void SyncMaxRestoreButtons(CPaintManagerUI& pm, bool bMaximized)
 	{
 		CControlUI* pMax = static_cast<CControlUI*>(pm.FindControl(_T("maxbtn")));
@@ -226,6 +263,12 @@ namespace DuiLib
 	void WindowImplBase::OnFinalMessage( HWND hWnd )
 	{
 		m_bHaveOwnerOffset = false;
+		if( m_pDefaultTrayMenu != NULL ) {
+			delete m_pDefaultTrayMenu;
+			m_pDefaultTrayMenu = NULL;
+		}
+		if( m_bTrayAutoCreated )
+			m_trayIcon.DeleteTrayIcon();
 		m_pm.RemovePreMessageFilter(this);
 		m_pm.RemoveNotifier(this);
 		m_pm.ReapObjects(m_pm.GetRoot());
@@ -276,8 +319,117 @@ namespace DuiLib
 		return FALSE;
 	}
 
+	void WindowImplBase::ForceClose(UINT nRet)
+	{
+		m_bForceClose = true;
+		Close(nRet);
+	}
+
+	CDuiString WindowImplBase::GetAutoTrayTooltip() const
+	{
+		TCHAR szTitle[256] = { 0 };
+		if( m_hWnd != NULL )
+			::GetWindowText(m_hWnd, szTitle, 255);
+		if( szTitle[0] != _T('\0') )
+			return szTitle;
+		CControlUI* pNamed = const_cast<CPaintManagerUI&>(m_pm).FindControl(_T("titlebar"));
+		if( pNamed != NULL ) {
+			CTitleBarUI* pBar = static_cast<CTitleBarUI*>(pNamed->GetInterface(DUI_CTR_TITLEBAR));
+			if( pBar != NULL ) {
+				CDuiString s = pBar->GetTitle();
+				if( !s.IsEmpty() ) return s;
+			}
+		}
+		return _T("Application");
+	}
+
+	void WindowImplBase::EnsureAutoTray()
+	{
+		if( FindMinimizeToTrayTitleBar(m_pm) == NULL && FindCloseToTrayTitleBar(m_pm) == NULL )
+			return;
+		if( m_trayIcon.IsEnabled() )
+			return;
+		CDuiString tip = GetAutoTrayTooltip();
+		if( m_trayIcon.Create(m_hWnd, 1, tip.GetData()) ) {
+			m_bTrayAutoCreated = true;
+			m_trayIcon.SetNotifyVersion(NOTIFYICON_VERSION_4);
+		}
+	}
+
+	void WindowImplBase::ShowDefaultTrayMenu(POINT pt)
+	{
+		if( m_pDefaultTrayMenu != NULL ) {
+			delete m_pDefaultTrayMenu;
+			m_pDefaultTrayMenu = NULL;
+		}
+		static const TCHAR kXml[] =
+			_T("<Menu border-width=\"1\" border-radius=\"4,4\" padding=\"4,4,4,4\" item-padding=\"0,14,0,32\">")
+			_T("<MenuElement name=\"tray_show\" text=\"显示主窗口\"/>")
+			_T("<MenuElement name=\"tray_exit\" text=\"退出\"/>")
+			_T("</Menu>");
+		m_pDefaultTrayMenu = new CMenuWnd();
+		m_pDefaultTrayMenu->Init(NULL, kXml, pt, &m_pm);
+		m_pDefaultTrayMenu->ResizeMenu();
+	}
+
+	bool WindowImplBase::ProcessDefaultTrayMenuCommand(LPCTSTR pstrName)
+	{
+		if( pstrName == NULL ) return false;
+		if( _tcsicmp(pstrName, _T("tray_show")) == 0 ) {
+			CTrayIcon::ShowWindowOnTaskbar(m_hWnd, true);
+			return true;
+		}
+		if( _tcsicmp(pstrName, _T("tray_exit")) == 0 ) {
+			ForceClose(0);
+			return true;
+		}
+		return false;
+	}
+
+	bool WindowImplBase::ProcessAutoTrayMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult)
+	{
+		lResult = 0;
+		if( !m_bTrayAutoCreated )
+			return false;
+
+		if( uMsg == CTrayIcon::GetTaskbarCreatedMsg() ) {
+			m_trayIcon.Recreate();
+			return true;
+		}
+		if( uMsg == UIMSG_TRAYICON ) {
+			UINT ev = CTrayIcon::DecodeNotifyMsg(wParam, lParam, m_trayIcon.GetNotifyVersion());
+			POINT pt = CTrayIcon::DecodeNotifyPos(wParam, lParam, m_trayIcon.GetNotifyVersion());
+			if( ev == WM_LBUTTONUP ) {
+				if( !::IsWindowVisible(m_hWnd) || CTrayIcon::IsWindowHiddenFromTaskbar(m_hWnd) )
+					CTrayIcon::ShowWindowOnTaskbar(m_hWnd, true);
+				else
+					CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+			}
+			else if( ev == WM_RBUTTONUP ) {
+				ShowDefaultTrayMenu(pt);
+			}
+			return true;
+		}
+		if( uMsg == WM_MENUCLICK ) {
+			MenuCmd* pMenuCmd = (MenuCmd*)wParam;
+			if( pMenuCmd == NULL ) return false;
+			CDuiString sName = pMenuCmd->szName;
+			const bool bOurs = ProcessDefaultTrayMenuCommand(sName.GetData());
+			if( bOurs )
+				m_pm.DeletePtr(pMenuCmd);
+			return bOurs;
+		}
+		return false;
+	}
+
 	LRESULT WindowImplBase::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
+		if( !m_bForceClose && FindCloseToTrayTitleBar(m_pm) != NULL ) {
+			CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+			bHandled = TRUE;
+			return 0;
+		}
+		m_bForceClose = false;
 		bHandled = FALSE;
 		return 0;
 	}
@@ -566,9 +718,22 @@ namespace DuiLib
 	{
 		if (wParam == SC_CLOSE)
 		{
+			if( FindCloseToTrayTitleBar(m_pm) != NULL ) {
+				CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+				bHandled = TRUE;
+				return 0;
+			}
 			bHandled = TRUE;
 			SendMessage(WM_CLOSE);
 			return 0;
+		}
+		// min-to-tray：禁止 DefWindowProc 走 SC_MINIMIZE（否则会以 iconic 留在任务栏）
+		if( (wParam & 0xFFF0) == SC_MINIMIZE ) {
+			if( FindMinimizeToTrayTitleBar(m_pm) != NULL ) {
+				CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+				bHandled = TRUE;
+				return 0;
+			}
 		}
 #if defined(WIN32) && !defined(UNDER_CE)
 		BOOL bZoomed = ::IsZoomed(*this);
@@ -624,6 +789,8 @@ namespace DuiLib
 		}
 		// 窗口初始化完毕
 		InitWindow();
+		// min-to-tray / close-to-tray：若应用未自行 Create 托盘则自动创建 + 默认菜单
+		EnsureAutoTray();
 		return 0;
 	}
 
@@ -800,6 +967,9 @@ namespace DuiLib
 		}
 		if (bHandled) return lRes;
 
+		if( ProcessAutoTrayMessage(uMsg, wParam, lParam, lRes) )
+			return lRes;
+
 		lRes = HandleCustomMessage(uMsg, wParam, lParam, bHandled);
 		if (bHandled) return lRes;
 
@@ -829,10 +999,16 @@ namespace DuiLib
 			switch (pSender->GetAction())
 			{
 			case UIACTION_CLOSE:
-				Close();
+				if( FindCloseToTrayTitleBar(m_pm) != NULL )
+					CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+				else
+					Close();
 				return;
 			case UIACTION_MIN:
-				SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
+				if( FindMinimizeToTrayTitleBar(m_pm) != NULL )
+					CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+				else
+					SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
 				return;
 			case UIACTION_MAX:
 				SendMessage(WM_SYSCOMMAND, ::IsZoomed(m_hWnd) ? SC_RESTORE : SC_MAXIMIZE, 0);
@@ -867,13 +1043,36 @@ namespace DuiLib
 		}
 
 		CDuiString sCtrlName = msg.pSender->GetName();
+		// TitleBar 系统按钮由 CTitleBarUI 处理；to-tray 时在此再兜底 Hide
+		if( sCtrlName == _T("closebtn") || sCtrlName == _T("minbtn")
+			|| sCtrlName == _T("maxbtn") || sCtrlName == _T("restorebtn") ) {
+			CTitleBarUI* pBar = FindOwnerTitleBar(msg.pSender);
+			if( pBar == NULL ) {
+				CControlUI* pNamed = m_pm.FindControl(_T("titlebar"));
+				if( pNamed != NULL )
+					pBar = static_cast<CTitleBarUI*>(pNamed->GetInterface(DUI_CTR_TITLEBAR));
+			}
+			if( pBar != NULL ) {
+				if( sCtrlName == _T("minbtn") && pBar->IsMinimizeToTray() )
+					CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+				else if( sCtrlName == _T("closebtn") && pBar->IsCloseToTray() )
+					CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+				return;
+			}
+		}
 		if( sCtrlName == _T("closebtn") ) {
-			Close();
+			if( FindCloseToTrayTitleBar(m_pm) != NULL )
+				CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+			else
+				Close();
 			return; 
 		}
-		else if( sCtrlName == _T("minbtn")) { 
-			SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0); 
-			return; 
+		else if( sCtrlName == _T("minbtn")) {
+			if( FindMinimizeToTrayTitleBar(m_pm) != NULL )
+				CTrayIcon::HideWindowFromTaskbar(m_hWnd);
+			else
+				SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
+			return;
 		}
 		else if( sCtrlName == _T("maxbtn")) { 
 			SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0); 

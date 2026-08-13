@@ -74,8 +74,8 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 4. 点在边上：`PostMessage(paint, WM_NCLBUTTONDOWN, HTLEFT/…)`；**不要**往 WebView2 塞鼠标。
 5. 定时 / `SetPos` / `WM_MOVE` / `WM_SIZE` / 激活等调用 `UpdateResizeOverlay`。
 6. 最大化：拆掉。最小化：拆掉；还原后重建。
-7. FG 为 `ThemePickerWnd` / `DuiMessageBoxWnd` / 名称含 `Modal` 时暂时 Hide（启发式）。**自定义弹层请主动** `SetNativeWindowResizeEnabled(false)`，关闭后再 `true`——比类名猜测更稳。
-8. 运行时总开关：`SetNativeWindowResizeEnabled` / `IsNativeWindowResizeEnabled`（默认 true）；皮肤亦可 `native-window-resize="false"`。
+7. FG 为 `ThemePickerWnd` / `DuiMessageBoxWnd` / 名称含 `Modal` 时暂时 Hide（启发式）。**自定义弹层请主动** `SuspendNativeResizeOverlay(true)`，关闭后再 `false`（或旧接口 `SetNativeWindowResizeEnabled`）——比类名猜测更稳。
+8. 运行时：`SetNativeWindowResizeEnabled`（功能开关）/ `SuspendNativeResizeOverlay`（临时停定时器并拆 popup，与 Enabled 独立）；皮肤亦可 `native-window-resize="false"`。
 
 皮肤配合（Demo `browser.html`）：
 
@@ -90,10 +90,12 @@ IWebBrowser2* pIe = p->GetWebBrowser2(); // 非 ie 引擎时为 NULL
 应用侧示例（弹自有顶层窗）：
 
 ```cpp
-pBrowser->SetNativeWindowResizeEnabled(false);
+pBrowser->SuspendNativeResizeOverlay(true);   // 停跟随定时器 + 拆边条 popup
 // Show 自定义弹层 ...
-pBrowser->SetNativeWindowResizeEnabled(true);
+pBrowser->SuspendNativeResizeOverlay(false);  // 恢复
 ```
+
+旧写法仍可用：`SetNativeWindowResizeEnabled(false/true)`（改的是功能开关，不是 Suspend 标志）。
 
 #### 试过但放弃的方案
 
@@ -126,7 +128,10 @@ pBrowser->SetNativeWindowResizeEnabled(true);
 5. **最小化 / 还原要重建 overlay**  
    owned popup 随 owner 最小化后状态不可靠；还原后应销毁再建并对齐屏幕坐标，并继续跟 `WM_MOVE`/`WM_SIZE`。
 
-6. **调试建议**  
+6. **拖窗时不要对每个 `SIZE_RESTORED` 强制重建 overlay**  
+   交互缩放时几乎每个 `WM_SIZE` 都是 `SIZE_RESTORED`；`UpdateResizeOverlay(true)` 会 Destroy+Create 分层 popup，标题栏等 chrome 会狂闪。仅最小化还原才 `bForceRecreate`；拖拽中用 `WM_ENTERSIZEMOVE` 合并更新，且勿每帧 `HWND_TOP`。布局更新也勿每帧 `DestroySurface`（交给 `Ensure`）。
+
+7. **调试建议**  
    临时把 overlay 画成半透明醒目色、加厚边条：若仍看不见 → 层级/未创建；若整页有色 → RGN 没挖空；若只有边条有色 → 层级 OK，再查 hit / `WM_NCLBUTTONDOWN`。
 
 ### C++ API（常用）
@@ -135,7 +140,8 @@ pBrowser->SetNativeWindowResizeEnabled(true);
 |------|------|
 | `SetEngine` / `GetEngineName` | 选择 / 查询引擎 |
 | `SetHostMode` / `GetHostMode` | WebView2 宿主模式 |
-| `SetNativeWindowResizeEnabled` / `IsNativeWindowResizeEnabled` | 临时开关挖空缩窗层（默认 true）。自定义顶层弹层前关、关后开 |
+| `SetNativeWindowResizeEnabled` / `IsNativeWindowResizeEnabled` | 挖空缩窗层功能开关（默认 true） |
+| `SuspendNativeResizeOverlay` / `IsNativeResizeOverlaySuspended` | 临时停跟随定时器并拆 overlay；与 Enabled 独立 |
 | `SetHomePage` / `GetHomePage` | 主页 |
 | `SetLocationUrl` / `GetLocationUrl` | 当前地址缓存：`NavigateUrl` 写入；导航完成建议再用 `SetLocationUrl`；空则回落 `HomePage` |
 | `Navigate2` / `NavigateUrl` / `NavigateHomePage` | 导航（会更新 `LocationUrl`） |

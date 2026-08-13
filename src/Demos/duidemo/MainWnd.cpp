@@ -138,6 +138,7 @@ void CMainWnd::InitWindow()
 	m_pSkinBtn = static_cast<CButtonUI*>(m_pm.FindControl(_T("skinbtn")));
 
 	m_trayIcon.CreateTrayIcon(m_hWnd, IDR_MAINFRAME, _T("Duilib演示大全"));
+	// 应用自行 Create → 不会走 WindowImplBase 自动托盘/默认菜单，仍用下方自定义右键菜单
 
 	CControlUI* pVListCtrl = m_pm.FindControl(_T("vlist"));
 	CVirtualListUI* pVList = pVListCtrl
@@ -338,6 +339,9 @@ void CMainWnd::Notify(TNotifyUI& msg)
 	else if( msg.sType == DUI_MSGTYPE_TITLEBARCLOSING )
 	{
 		CTitleBarUI* pBar = static_cast<CTitleBarUI*>(msg.pSender->GetInterface(DUI_CTR_TITLEBAR));
+		// close-to-tray：只是藏到托盘，不退出，无需确认
+		if( pBar != NULL && pBar->IsCloseToTray() )
+			return;
 		if(MSGID_OK != CMsgWnd::MessageBox(m_hWnd, _T("提示"), _T("确定退出程序？")))
 		{
 			if( pBar != NULL ) pBar->CancelNotify();
@@ -1109,7 +1113,7 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 				}			 
 			}
 			else if(sMenuName == _T("exit")) {
-				Close(0);
+				ForceClose(0);
 			}
 			else
 			{
@@ -1121,10 +1125,12 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 	}
 	else if(uMsg == UIMSG_TRAYICON)
 	{
-		UINT uIconMsg = (UINT)lParam;
+		UINT uIconMsg = CTrayIcon::DecodeNotifyMsg(wParam, lParam, m_trayIcon.GetNotifyVersion());
 		if(uIconMsg == WM_LBUTTONUP) {
-			BOOL bVisible = IsWindowVisible(m_hWnd);
-			::ShowWindow(m_hWnd, !bVisible ?  SW_SHOW : SW_HIDE);
+			if( !::IsWindowVisible(m_hWnd) || CTrayIcon::IsWindowHiddenFromTaskbar(m_hWnd) )
+				CTrayIcon::ShowWindowOnTaskbar(m_hWnd, true);
+			else
+				CTrayIcon::HideWindowFromTaskbar(m_hWnd);
 		}
 		else if(uIconMsg == WM_RBUTTONUP) {
 			if(m_pMenu != NULL) {
@@ -1132,13 +1138,17 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 				m_pMenu = NULL;
 			}
 			m_pMenu = new CMenuWnd();
-			CDuiPoint point;
-			::GetCursorPos(&point);
-			point.y -= 100;
+			CDuiPoint point = CTrayIcon::DecodeNotifyPos(wParam, lParam, m_trayIcon.GetNotifyVersion());
 			m_pMenu->Init(NULL, _T("menu.html"), point, &m_pm);
 			// 动态添加后重新设置菜单的大小
 			m_pMenu->ResizeMenu();
 		}
+	}
+	else if(uMsg == CTrayIcon::GetTaskbarCreatedMsg())
+	{
+		m_trayIcon.Recreate();
+		bHandled = TRUE;
+		return 0;
 	}
 	// WM_DPICHANGED 已由 WindowImplBase::OnDPIChanged 统一处理（含 SyncOwner）
 	bHandled = FALSE;

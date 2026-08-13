@@ -1,8 +1,12 @@
 ﻿#ifndef WIN_IMPL_BASE_HPP
 #define WIN_IMPL_BASE_HPP
 
+#include "TrayIcon.h"
+
 namespace DuiLib
 {
+	class CMenuWnd;
+
 	class UILIB_API WindowImplBase
 		: public CWindowWnd
 		, public CNotifyPump
@@ -42,6 +46,15 @@ namespace DuiLib
 		/// 按 shape-image 像素 ResizeClient（默认同屏工作区 95% 钳制）并可选居中
 		bool FitToShapeImage(bool clampWorkArea = true, bool bCenter = true, int workAreaPercent = 95);
 
+		/// 真正关闭窗口（绕过 TitleBar close-to-tray）。托盘菜单「退出」等应调用此方法。
+		void ForceClose(UINT nRet = 0);
+
+		/// 内置托盘（min-to-tray / close-to-tray 时 EnsureAutoTray 可能自动 Create）
+		CTrayIcon& GetTrayIcon() { return m_trayIcon; }
+		const CTrayIcon& GetTrayIcon() const { return m_trayIcon; }
+		/// 是否由库自动创建的托盘（应用在 InitWindow 里自行 Create 则为 false）
+		bool IsTrayAutoCreated() const { return m_bTrayAutoCreated; }
+
 	protected:
 		virtual CDuiString GetSkinType() { return _T(""); }
 		virtual CDuiString GetSkinFile() = 0;
@@ -50,11 +63,26 @@ namespace DuiLib
 		virtual LRESULT ResponseDefaultKeyEvent(WPARAM wParam);
 		CPaintManagerUI m_pm;
 
+		/// TitleBar 带 min-to-tray / close-to-tray 且尚未 Create 托盘时自动创建
+		void EnsureAutoTray();
+		/// 自动托盘默认提示（默认同窗口标题）
+		virtual CDuiString GetAutoTrayTooltip() const;
+		/// 处理自动托盘消息；返回 true 表示已处理。自建托盘+自定义菜单的窗口不会走到这里（m_bTrayAutoCreated=false）
+		bool ProcessAutoTrayMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lResult);
+		/// 默认右键菜单：「显示主窗口」「退出」
+		void ShowDefaultTrayMenu(POINT pt);
+		/// 处理默认托盘菜单命令（tray_show / tray_exit）
+		bool ProcessDefaultTrayMenuCommand(LPCTSTR pstrName);
+
 		HWND ResolveSyncOwner() const;
 		void CaptureOwnerSyncOffset();
 		void SyncOwnerPosition();
 		void SyncOwnerSize();
 		void SyncOwnerGeometry(bool bPos, bool bSize);
+
+		CTrayIcon m_trayIcon;
+		CMenuWnd* m_pDefaultTrayMenu;
+		bool m_bTrayAutoCreated;
 
 	public:
 		virtual UINT GetClassStyle() const;
@@ -96,6 +124,7 @@ namespace DuiLib
 		bool m_bSyncOwnerSize;
 		bool m_bHaveOwnerOffset;
 		bool m_bSyncingOwner;
+		bool m_bForceClose;
 		POINT m_ptOwnerOffset;
 		SIZE m_szOwnerDelta;
 	};

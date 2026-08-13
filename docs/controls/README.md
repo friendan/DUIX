@@ -20,6 +20,7 @@
 | 文档 | 说明 |
 |------|------|
 | [Zip.md](Zip.md) | ZIP 创建 / 解压 / 皮肤 `SetResourceZip` |
+| [TrayIcon.md](TrayIcon.md) | 系统托盘 `CTrayIcon` |
 
 ## 属性符合度
 

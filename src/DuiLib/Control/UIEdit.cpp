@@ -203,10 +203,11 @@ namespace DuiLib
 			// 异步通知：避免在 Edit WM_KEYDOWN 里同步 Navigate/SetText 重入
 			m_pOwner->GetManager()->SendNotify(m_pOwner, DUI_MSGTYPE_RETURN, 0, 0, true);
 		}
-		else if( uMsg == WM_KEYDOWN && TCHAR(wParam) == VK_TAB ){
-			if (m_pOwner->GetManager()->IsLayered()) {
-				m_pOwner->GetManager()->SetNextTabControl();
-			}
+		else if( uMsg == WM_KEYDOWN && wParam == VK_TAB ){
+			// 分层 Edit 为 WS_POPUP，进不了 PreMessageHandler，这里负责切焦点。
+			// SetNextTabControl 内会同步 WM_KILLFOCUS → m_pOwner=NULL，之后勿再解引用。
+			if( m_pOwner != NULL && m_pOwner->GetManager() != NULL )
+				m_pOwner->GetManager()->SetNextTabControl(::GetKeyState(VK_SHIFT) >= 0);
 		}
 		else if( uMsg == OCM__BASE + WM_CTLCOLOREDIT  || uMsg == OCM__BASE + WM_CTLCOLORSTATIC ) {
 			::SetBkMode((HDC)wParam, TRANSPARENT);

@@ -311,10 +311,10 @@ namespace DuiLib
 	//
 	//
 
-	CStdValArray::CStdValArray(int iElementSize, int iPreallocSize /*= 0*/) : 
-	m_pVoid(NULL), 
-		m_nCount(0), 
-		m_iElementSize(iElementSize), 
+	CStdValArray::CStdValArray(int iElementSize, int iPreallocSize /*= 0*/) :
+		m_pVoid(NULL),
+		m_iElementSize(iElementSize),
+		m_nCount(0),
 		m_nAllocated(iPreallocSize)
 	{
 		ASSERT(iElementSize>0);
@@ -866,7 +866,7 @@ namespace DuiLib
 	//
 	//
 
-	static UINT HashKey(LPCTSTR Key)
+	UINT HashKey(LPCTSTR Key)
 	{
 		UINT i = 0;
 		SIZE_T len = _tcslen(Key);
@@ -874,10 +874,10 @@ namespace DuiLib
 		return i;
 	}
 
-	static UINT HashKey(const CDuiString& Key)
+	UINT HashKey(const CDuiString& Key)
 	{
 		return HashKey(Key.GetData());
-	};
+	}
 
 	CStdStringPtrMap::CStdStringPtrMap(int nSize) : m_nCount(0)
 	{
@@ -1035,7 +1035,7 @@ namespace DuiLib
 
 	LPCTSTR CStdStringPtrMap::GetAt(int iIndex) const
 	{
-		if( m_nBuckets == 0 || GetSize() == 0 ) return false;
+		if( m_nBuckets == 0 || GetSize() == 0 ) return NULL;
 
 		int pos = 0;
 		int len = m_nBuckets;
@@ -1747,6 +1747,53 @@ namespace DuiLib
 		bEnableX = en1;
 		bEnableY = en2;
 		return true;
+	}
+
+	std::vector<CDuiString> StrSplit(CDuiString text, CDuiString sp)
+	{
+		std::vector<CDuiString> vResults;
+		int pos = text.Find(sp.GetData(), 0);
+		while( pos >= 0 )
+		{
+			CDuiString t = text.Left(pos);
+			vResults.push_back(t);
+			text = text.Right(text.GetLength() - pos - sp.GetLength());
+			pos = text.Find(sp.GetData());
+		}
+		vResults.push_back(text);
+		return vResults;
+	}
+
+	char* w2a(wchar_t* lpszSrc, UINT CodePage)
+	{
+		if( lpszSrc != NULL )
+		{
+			int nANSILen = WideCharToMultiByte(CodePage, 0, lpszSrc, -1, NULL, 0, NULL, NULL);
+			char* pANSI = new char[nANSILen + 1];
+			if( pANSI != NULL )
+			{
+				ZeroMemory(pANSI, nANSILen + 1);
+				WideCharToMultiByte(CodePage, 0, lpszSrc, -1, pANSI, nANSILen, NULL, NULL);
+				return pANSI;
+			}
+		}
+		return NULL;
+	}
+
+	wchar_t* a2w(char* lpszSrc, UINT CodePage)
+	{
+		if( lpszSrc != NULL )
+		{
+			int nUnicodeLen = MultiByteToWideChar(CodePage, 0, lpszSrc, -1, NULL, 0);
+			LPWSTR pUnicode = new WCHAR[nUnicodeLen + 1];
+			if( pUnicode != NULL )
+			{
+				ZeroMemory((void*)pUnicode, (nUnicodeLen + 1) * sizeof(WCHAR));
+				MultiByteToWideChar(CodePage, 0, lpszSrc, -1, pUnicode, nUnicodeLen);
+				return pUnicode;
+			}
+		}
+		return NULL;
 	}
 
 } // namespace DuiLib

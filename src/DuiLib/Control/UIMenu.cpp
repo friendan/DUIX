@@ -14,6 +14,10 @@ namespace DuiLib {
 	{
 		if (GetHeader() != NULL)
 			GetHeader()->SetVisible(false);
+		// 默认项内边距（Win32 RECT：left,top,right,bottom）= 图标槽宽 + 右侧留白
+		// 二级菜单无 XML 时也有左边距；一级菜单可被 item-padding 覆盖
+		RECT rcItemPad = { ITEM_DEFAULT_ICON_WIDTH + 6, 0, 14, 0 };
+		SetItemTextPadding(rcItemPad);
 	}
 
 	CMenuUI::~CMenuUI()
@@ -337,6 +341,20 @@ namespace DuiLib {
 			if( pDefaultAttributes ) {
 				m_pLayout->ApplyAttributeList(pDefaultAttributes);
 			}
+			// 继承一级菜单的 item-padding / padding，避免二级文字贴左边
+			{
+				CControlUI* pParentCtrl = m_pOwner->GetParent();
+				CMenuUI* pParentMenu = pParentCtrl
+					? static_cast<CMenuUI*>(pParentCtrl->GetInterface(_T("Menu")))
+					: NULL;
+				if( pParentMenu != NULL ) {
+					RECT rcItemPad = pParentMenu->GetItemTextPadding();
+					if( m_pOwner->GetManager() != NULL && m_pOwner->GetManager()->GetDPIObj() != NULL )
+						m_pOwner->GetManager()->GetDPIObj()->ScaleBack(&rcItemPad);
+					m_pLayout->SetItemTextPadding(rcItemPad);
+					m_pLayout->SetPadding(pParentMenu->GetPadding());
+				}
+			}
 			m_pLayout->GetList()->SetAutoDestroy(false);
 
 			for( int i = 0; i < m_pOwner->GetCount(); i++ ) {
@@ -395,10 +413,11 @@ namespace DuiLib {
 		CControlUI* pRoot = m_pm.GetRoot();
 		if( pRoot == NULL ) return;
 
+		CDuiPoint point = m_BasedPoint;
 #if defined(WIN32) && !defined(UNDER_CE)
-		MONITORINFO oMonitor = {}; 
+		MONITORINFO oMonitor = {};
 		oMonitor.cbSize = sizeof(oMonitor);
-		::GetMonitorInfo(::MonitorFromWindow(*this, MONITOR_DEFAULTTOPRIMARY), &oMonitor);
+		::GetMonitorInfo(::MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST), &oMonitor);
 		CDuiRect rcWork = oMonitor.rcWork;
 #else
 		CDuiRect rcWork;
@@ -414,7 +433,6 @@ namespace DuiLib {
 
 		SIZE szInit = m_pm.GetInitSize();
 		CDuiRect rc;
-		CDuiPoint point = m_BasedPoint;
 		rc.left = point.x;
 		rc.top = point.y;
 		rc.right = rc.left + szInit.cx;
@@ -433,6 +451,28 @@ namespace DuiLib {
 		{
 			rc.bottom = point.y;
 			rc.top = rc.bottom - nHeight;
+		}
+
+		// 钳制到显示器工作区（托盘在顶/底/侧栏时避免菜单被挡住）
+		if( rc.bottom > rcWork.bottom ) {
+			rc.bottom = point.y;
+			rc.top = rc.bottom - nHeight;
+		}
+		if( rc.top < rcWork.top ) {
+			rc.top = rcWork.top;
+			rc.bottom = rc.top + nHeight;
+			if( rc.bottom > rcWork.bottom )
+				rc.bottom = rcWork.bottom;
+		}
+		if( rc.right > rcWork.right ) {
+			rc.right = point.x;
+			rc.left = rc.right - nWidth;
+		}
+		if( rc.left < rcWork.left ) {
+			rc.left = rcWork.left;
+			rc.right = rc.left + nWidth;
+			if( rc.right > rcWork.right )
+				rc.right = rcWork.right;
 		}
 
 		SetForegroundWindow(m_hWnd);

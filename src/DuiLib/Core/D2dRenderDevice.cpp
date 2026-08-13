@@ -843,12 +843,19 @@ namespace DuiLib {
 		FLOAT y0 = (FLOAT)rc.top;
 		FLOAT x1 = (FLOAT)rc.right;
 		FLOAT y1 = (FLOAT)rc.bottom;
-		// 轴对齐细线对齐到像素中心，避免 PER_PRIMITIVE 抗锯齿把 1px 糊成约 2px
-		if( stroke <= 1.0f ) {
+		const bool bAxisHair = (stroke <= 1.0f) && (rc.left == rc.right || rc.top == rc.bottom);
+		D2D1_ANTIALIAS_MODE oldAA = m_pRT->GetAntialiasMode();
+		if( bAxisHair ) {
+			// 轴对齐 1px 用 ALIASED，避免 PER_PRIMITIVE 把细线糊成约 2px
+			m_pRT->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+		}
+		else if( stroke <= 1.0f ) {
 			if( rc.left == rc.right ) { x0 += 0.5f; x1 += 0.5f; }
 			else if( rc.top == rc.bottom ) { y0 += 0.5f; y1 += 0.5f; }
 		}
 		m_pRT->DrawLine(D2D1::Point2F(x0, y0), D2D1::Point2F(x1, y1), pBrush, stroke);
+		if( bAxisHair )
+			m_pRT->SetAntialiasMode(oldAA);
 	}
 
 	void CD2dRenderContext::DrawRect(const RECT& rc, int nSize, DWORD dwPenColor, int nStyle)
@@ -1001,9 +1008,12 @@ namespace DuiLib {
 		}
 
 		UINT32 len = (UINT32)_tcslen(pstrText);
+		D2D1_DRAW_TEXT_OPTIONS opts = ((uStyle & DT_NOCLIP) != 0)
+			? D2D1_DRAW_TEXT_OPTIONS_NONE
+			: D2D1_DRAW_TEXT_OPTIONS_CLIP;
 		m_pRT->DrawText(
 			pstrText, len, pFormat, ToRectF(rc), pBrush,
-			D2D1_DRAW_TEXT_OPTIONS_CLIP, DWRITE_MEASURING_MODE_NATURAL);
+			opts, DWRITE_MEASURING_MODE_NATURAL);
 		pFormat->Release();
 	}
 

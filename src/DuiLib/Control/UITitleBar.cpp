@@ -68,6 +68,8 @@ namespace DuiLib
 		, m_bShowMin(true)
 		, m_bShowMax(true)
 		, m_bShowClose(true)
+		, m_bMinimizeToTray(false)
+		, m_bCloseToTray(false)
 		, m_nBtnWidth(46)
 		, m_bNotifyCancel(false)
 		, m_bChromeReady(false)
@@ -308,7 +310,7 @@ namespace DuiLib
 
 		m_pMinBtn = new CButtonUI;
 		m_pMinBtn->SetName(_T("minbtn"));
-		m_pMinBtn->SetToolTip(_T("最小化"));
+		m_pMinBtn->SetToolTip(m_bMinimizeToTray ? _T("最小化到托盘") : _T("最小化"));
 		ApplySysButtonStyle(m_pMinBtn, false);
 		m_pMinBtn->OnNotify += MakeDelegate(this, &CTitleBarUI::OnSysButtonNotify);
 		m_pSys->Add(m_pMinBtn);
@@ -330,7 +332,7 @@ namespace DuiLib
 
 		m_pCloseBtn = new CButtonUI;
 		m_pCloseBtn->SetName(_T("closebtn"));
-		m_pCloseBtn->SetToolTip(_T("关闭"));
+		m_pCloseBtn->SetToolTip(m_bCloseToTray ? _T("关闭到托盘") : _T("关闭"));
 		ApplySysButtonStyle(m_pCloseBtn, true);
 		m_pCloseBtn->OnNotify += MakeDelegate(this, &CTitleBarUI::OnSysButtonNotify);
 		m_pSys->Add(m_pCloseBtn);
@@ -399,6 +401,24 @@ namespace DuiLib
 		SyncSysButtonVisibility();
 	}
 
+	void CTitleBarUI::SetMinimizeToTray(bool bTray)
+	{
+		if( m_bMinimizeToTray == bTray ) return;
+		m_bMinimizeToTray = bTray;
+		EnsureChrome();
+		if( m_pMinBtn != NULL )
+			m_pMinBtn->SetToolTip(bTray ? _T("最小化到托盘") : _T("最小化"));
+	}
+
+	void CTitleBarUI::SetCloseToTray(bool bTray)
+	{
+		if( m_bCloseToTray == bTray ) return;
+		m_bCloseToTray = bTray;
+		EnsureChrome();
+		if( m_pCloseBtn != NULL )
+			m_pCloseBtn->SetToolTip(bTray ? _T("关闭到托盘") : _T("关闭"));
+	}
+
 	void CTitleBarUI::SetShowMax(bool bShow)
 	{
 		if( m_bShowMax == bShow ) return;
@@ -459,7 +479,13 @@ namespace DuiLib
 	{
 		HWND hWnd = GetOwnerHWND();
 		if( hWnd == NULL ) return;
-		::SendMessage(hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+		if( m_bMinimizeToTray ) {
+			// 不能只 SW_HIDE：Win10/11 常残留任务栏按钮；走 HideWindowFromTaskbar。
+			CTrayIcon::HideWindowFromTaskbar(hWnd);
+		}
+		else {
+			::SendMessage(hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+		}
 	}
 
 	void CTitleBarUI::DoSysMax()
@@ -473,7 +499,10 @@ namespace DuiLib
 	{
 		HWND hWnd = GetOwnerHWND();
 		if( hWnd == NULL ) return;
-		::PostMessage(hWnd, WM_CLOSE, 0, 0);
+		if( m_bCloseToTray )
+			CTrayIcon::HideWindowFromTaskbar(hWnd);
+		else
+			::PostMessage(hWnd, WM_CLOSE, 0, 0);
 	}
 
 	bool CTitleBarUI::OnSysButtonNotify(void* param)
@@ -537,6 +566,13 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("show-min")) == 0 ) {
 			SetShowMin(ParseBoolValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("min-to-tray")) == 0
+			|| _tcsicmp(pstrName, _T("minimize-to-tray")) == 0 ) {
+			SetMinimizeToTray(ParseBoolValue(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("close-to-tray")) == 0 ) {
+			SetCloseToTray(ParseBoolValue(pstrValue));
 		}
 		else if( _tcsicmp(pstrName, _T("show-max")) == 0 ) {
 			SetShowMax(ParseBoolValue(pstrValue));

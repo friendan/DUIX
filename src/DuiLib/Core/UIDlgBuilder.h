@@ -35,6 +35,9 @@ namespace DuiLib {
     	HINSTANCE m_instance;
 	};
 
+	/// 从资源/文件加载 CSS 并解析进 pManager（UTF-8，可选 BOM）
+	UILIB_API void LoadCssFile(CPaintManagerUI* pManager, LPCTSTR pstrSrc);
+
 } // namespace DuiLib
 
 #endif // __UIDLGBUILDER_H__

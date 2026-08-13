@@ -39,6 +39,7 @@ namespace DuiLib {
 		DWORD dwLineColor;
 		bool bShowRowLine;
 		bool bShowColumnLine;
+		bool bShowHeaderColumnLine;
 		bool bShowHtml;
 		bool bMultiExpandable;
 		bool bRSelected;
@@ -179,6 +180,8 @@ namespace DuiLib {
 		void SetItemLineColor(DWORD dwLineColor);
 		void SetItemShowRowLine(bool bShowLine = false);
 		void SetItemShowColumnLine(bool bShowLine = false);
+		void SetHeaderShowColumnLine(bool bShowLine = false);
+		bool IsHeaderShowColumnLine() const;
 		bool IsItemShowHtml();
 		void SetItemShowHtml(bool bShowHtml = true);
 		bool IsItemRSelected();
@@ -297,6 +300,7 @@ namespace DuiLib {
 
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
+		void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
 
 		SIZE EstimateSize(SIZE szAvailable);
 		void SetPos(RECT rc, bool bNeedInvalidate = true);
@@ -306,7 +310,10 @@ namespace DuiLib {
 		bool IsScaleHeader() const;
 
 		void DoInit();
+		void PaintBorder(IRenderContext& ctx);
+		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 		void DoPostPaint(IRenderContext& ctx, const RECT& rcPaint);
+		void PaintSeparator(IRenderContext& ctx);
 	private:
 		bool m_bIsScaleHeader;
 	};
@@ -351,6 +358,7 @@ namespace DuiLib {
 		void SetFocusImage(LPCTSTR pStrImage);
 		LPCTSTR GetSepImage() const;
 		void SetSepImage(LPCTSTR pStrImage);
+		void PaintColumnLine(IRenderContext& ctx);
 		void SetScale(int nScale);
 		int GetScale() const;
 
@@ -358,11 +366,13 @@ namespace DuiLib {
 		SIZE EstimateSize(SIZE szAvailable);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		RECT GetThumbRect() const;
+		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 
 		void PaintText(IRenderContext& ctx);
 		void PaintStatusImage(IRenderContext& ctx);
 
 	protected:
+		bool IsColumnResizeEnabled() const;
 		POINT ptLastMouse;
 		bool m_bDragable;
 		UINT m_uButtonState;
@@ -524,6 +534,7 @@ namespace DuiLib {
 
 		LPCTSTR GetText(int iIndex) const;
 		void SetText(int iIndex, LPCTSTR pstrText);
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 
 		DWORD GetColor(int iIndex) const;
 		void SetColor(int iIndex, DWORD dwColor);

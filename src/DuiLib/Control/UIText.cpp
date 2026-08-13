@@ -8,8 +8,11 @@ namespace DuiLib
 	CTextUI::CTextUI() : m_nLinks(0), m_nHoverLink(-1)
 	{
 		m_uTextStyle = DT_WORDBREAK;
+		// Label 基类已 ZeroMemory；这里显式写左右，并保证 top/bottom 为 0
 		m_rcTextPadding.left = 2;
+		m_rcTextPadding.top = 0;
 		m_rcTextPadding.right = 2;
+		m_rcTextPadding.bottom = 0;
 		::ZeroMemory(m_rcLinks, sizeof(m_rcLinks));
 	}
 

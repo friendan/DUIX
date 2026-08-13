@@ -36,9 +36,13 @@ namespace DuiLib
 
 		/// 盖在引擎 HWND 上的挖空 popup：中间穿透给页面/滚动条，边缘缩窗
 		void ScheduleNativeResizeHook(bool bResetRetry = false);
-		/// 临时开关挖空缩窗层（默认 true）。弹自定义顶层窗前设 false，关闭后再 true，避免边条挡点击
+		/// 功能开关（默认 true）。皮肤 `native-window-resize`；关则不建边条层
 		void SetNativeWindowResizeEnabled(bool bEnable);
 		bool IsNativeWindowResizeEnabled() const;
+		/// 临时挂起跟随：停定时器并拆掉 overlay（弹自定义顶层窗 / 全屏等）。
+		/// 与 Enabled 独立：Suspend(true) 不改 Enabled；结束后 Suspend(false) 按 Enabled 恢复。
+		void SuspendNativeResizeOverlay(bool bSuspend);
+		bool IsNativeResizeOverlaySuspended() const;
 		/// 屏幕坐标；落在 window-resize 热区返回 HTLEFT/…；未启用或已 Suspend 则 HTCLIENT
 		LRESULT HitNativeHostResize(POINT ptScreen) const;
 
@@ -96,6 +100,7 @@ namespace DuiLib
 		CDuiString ResolveDefaultEngine() const;
 		void UpdateResizeOverlay(bool bForceRecreate = false);
 		void DestroyResizeOverlay();
+		void ArmNativeResizeFollowTimer(UINT uElapse);
 		RECT GetNativeResizeGripInset() const;
 
 		IWebBrowserEngine* m_pEngine;
@@ -113,7 +118,9 @@ namespace DuiLib
 		CDuiString m_sPendingUrl;
 		HWND m_hResizeOverlay;
 		bool m_bPaintWasIconic;
+		bool m_bHostSizeMove;
 		bool m_bNativeWindowResizeEnabled;
+		bool m_bNativeResizeOverlaySuspended;
 	};
 
 	/// XML `<WebView2>` 别名：强制 engine=webview2

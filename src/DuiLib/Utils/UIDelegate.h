@@ -29,14 +29,14 @@ class CDelegateStatic: public CDelegateBase
 {
     typedef bool (*Fn)(void*);
 public:
-    CDelegateStatic(Fn pFn) : CDelegateBase(NULL, pFn) { } 
+    CDelegateStatic(Fn pFn) : CDelegateBase(NULL, reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(pFn))) { } 
     CDelegateStatic(const CDelegateStatic& rhs) : CDelegateBase(rhs) { } 
     virtual CDelegateBase* Copy() const { return new CDelegateStatic(*this); }
 
 protected:
     virtual bool Invoke(void* param)
     {
-        Fn pFn = (Fn)GetFn();
+        Fn pFn = reinterpret_cast<Fn>(reinterpret_cast<uintptr_t>(GetFn()));
         return (*pFn)(param); 
     }
 };

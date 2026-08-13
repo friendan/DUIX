@@ -10,6 +10,8 @@ namespace DuiLib {
 		m_pCurrentControl( NULL ),
 		m_bControlVisibleFlag( false )
 	{
+		::ZeroMemory(&m_rcCurPos, sizeof(m_rcCurPos));
+		::ZeroMemory(&m_rcItemOld, sizeof(m_rcItemOld));
 		Attach(this);
 	}
 

@@ -301,6 +301,9 @@ void CWindowWnd::ShowWindow(bool bShow /*= true*/, bool bTakeFocus /*= false*/)
 {
     ASSERT(::IsWindow(m_hWnd));
     if( !::IsWindow(m_hWnd) ) return;
+    // HideWindowFromTaskbar 打过标记时，普通 Show 也自动恢复任务栏样式
+    if( bShow )
+        CTrayIcon::RestoreWindowToTaskbarIfNeeded(m_hWnd);
     ::ShowWindow(m_hWnd, bShow ? (bTakeFocus ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE) : SW_HIDE);
 }
 
@@ -504,6 +507,12 @@ LRESULT CALLBACK CWindowWnd::__WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
             return lRes;
         }
     }
+    // 任意 ::ShowWindow(SW_SHOW*) 在真正显示前恢复 HideWindowFromTaskbar 标记
+    if( uMsg == WM_WINDOWPOSCHANGING && lParam != 0 ) {
+        WINDOWPOS* pPos = reinterpret_cast<WINDOWPOS*>(lParam);
+        if( pPos != NULL && (pPos->flags & SWP_SHOWWINDOW) )
+            CTrayIcon::RestoreWindowToTaskbarIfNeeded(hWnd);
+    }
     if( pThis != NULL ) {
         return pThis->HandleMessage(uMsg, wParam, lParam);
     } 
@@ -531,6 +540,11 @@ LRESULT CALLBACK CWindowWnd::__ControlProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
             pThis->OnFinalMessage(hWnd);
             return lRes;
         }
+    }
+    if( uMsg == WM_WINDOWPOSCHANGING && lParam != 0 ) {
+        WINDOWPOS* pPos = reinterpret_cast<WINDOWPOS*>(lParam);
+        if( pPos != NULL && (pPos->flags & SWP_SHOWWINDOW) )
+            CTrayIcon::RestoreWindowToTaskbarIfNeeded(hWnd);
     }
     if( pThis != NULL ) {
         return pThis->HandleMessage(uMsg, wParam, lParam);

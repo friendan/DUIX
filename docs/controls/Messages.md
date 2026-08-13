@@ -55,7 +55,7 @@ LRESULT OnMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 
 | 枚举 | 含义 |
 |------|------|
-| `UIMSG_TRAYICON` | 托盘回调 |
+| `UIMSG_TRAYICON` | 托盘回调（配合 [TrayIcon.md](TrayIcon.md) / `CTrayIcon`） |
 | `UIMSG_SET_DPI` | DPI 已更新 |
 | `UIMSG_MENUCLICK` | 菜单项点击（旧名 `WM_MENUCLICK` 仍可用） |
 | `UIMSG_ASYNC_NOTIFY` | 异步 Notify / DelayedCleanup（内部） |

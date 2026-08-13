@@ -232,20 +232,8 @@ namespace DuiLib
 		TCHAR m_szBuffer[MAX_LOCAL_STRING_LEN + 1];
 	};
 
-	static std::vector<CDuiString> StrSplit(CDuiString text, CDuiString sp)
-	{
-		std::vector<CDuiString> vResults;
-		int pos = text.Find(sp.GetData(), 0);
-		while (pos >= 0)
-		{
-			CDuiString t = text.Left(pos);
-			vResults.push_back(t);
-			text = text.Right(text.GetLength() - pos - sp.GetLength());
-			pos = text.Find(sp.GetData());
-		}
-		vResults.push_back(text);
-		return vResults;
-}
+	UILIB_API std::vector<CDuiString> StrSplit(CDuiString text, CDuiString sp);
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 
@@ -256,6 +244,9 @@ namespace DuiLib
 		struct TITEM* pPrev;
 		struct TITEM* pNext;
 	};
+
+	UILIB_API UINT HashKey(LPCTSTR Key);
+	UILIB_API UINT HashKey(const CDuiString& Key);
 
 	class UILIB_API CStdStringPtrMap
 	{
@@ -339,37 +330,9 @@ namespace DuiLib
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	//
-	static char* w2a(wchar_t* lpszSrc, UINT   CodePage = CP_ACP)
-	{
-		if (lpszSrc != NULL)
-		{
-			int  nANSILen = WideCharToMultiByte(CodePage, 0, lpszSrc, -1, NULL, 0, NULL, NULL);
-			char* pANSI = new char[nANSILen + 1];
-			if (pANSI != NULL)
-			{
-				ZeroMemory(pANSI, nANSILen + 1);
-				WideCharToMultiByte(CodePage, 0, lpszSrc, -1, pANSI, nANSILen, NULL, NULL);
-				return pANSI;
-			}
-		}	
-		return NULL;
-	}
-
-	static wchar_t* a2w(char* lpszSrc, UINT   CodePage = CP_ACP)
-	{
-		if (lpszSrc != NULL)
-		{
-			int nUnicodeLen = MultiByteToWideChar(CodePage, 0, lpszSrc, -1, NULL, 0);
-			LPWSTR pUnicode = new WCHAR[nUnicodeLen + 1];
-			if (pUnicode != NULL)
-			{
-				ZeroMemory((void*)pUnicode, (nUnicodeLen + 1) * sizeof(WCHAR));
-				MultiByteToWideChar(CodePage, 0, lpszSrc,-1, pUnicode, nUnicodeLen);
-				return pUnicode;
-			}
-		}
-		return NULL;
-	}
+	/// 返回 new[] 缓冲区，调用方 delete[]
+	UILIB_API char* w2a(wchar_t* lpszSrc, UINT CodePage = CP_ACP);
+	UILIB_API wchar_t* a2w(char* lpszSrc, UINT CodePage = CP_ACP);
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	////

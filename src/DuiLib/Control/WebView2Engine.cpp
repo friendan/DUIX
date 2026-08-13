@@ -620,6 +620,10 @@ namespace DuiLib
 
 	void CWebView2Engine::SetPos(const RECT& rc)
 	{
+		if( m_rc.left == rc.left && m_rc.top == rc.top
+			&& m_rc.right == rc.right && m_rc.bottom == rc.bottom
+			&& m_pController != NULL )
+			return;
 		m_rc = rc;
 		ApplyBounds();
 	}

@@ -738,6 +738,9 @@ namespace DuiLib {
 		static CStdPtrArray m_aPlugins;
 	};
 
+	/// 将子 HWND 的屏幕矩形转为相对 hWnd 客户区的坐标
+	UILIB_API void GetChildWndRect(HWND hWnd, HWND hChildWnd, RECT& rcChildWnd);
+
 } // namespace DuiLib
 
 #endif // __UIMANAGER_H__

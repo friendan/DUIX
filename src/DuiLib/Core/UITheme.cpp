@@ -233,6 +233,8 @@ namespace DuiLib {
 		DWORD link = TokenOr(_T("color-link"), TokenOr(_T("color-primary"), 0x0D6EFDFF));
 		DWORD linkH = TokenOr(_T("color-link-hover"), link);
 		DWORD selection = TokenOr(_T("color-selection"), bgElev);
+		DWORD bgHover = TokenOr(_T("color-bg-hover"), bgElev);
+		DWORD primary = TokenOr(_T("color-primary"), 0x0D6EFDFF);
 
 		// 分层窗若已显式设过窗口底（Modal 圆角要透明），勿用主题色盖掉，
 		// 否则 AttachDialog→ApplyToManager 会把角外重新铺成不透明白。
@@ -264,9 +266,10 @@ namespace DuiLib {
 		pManager->AddDefaultAttributeList(_T("TitleBar"), sTitle.GetData(), true);
 
 		CDuiString sForm;
+		// 表单控件默认 1px 边：仅有 border-color 时宽度为 0，白底上看不出边界
 		sForm.Format(
 			_T("background-color=\"#%08X\" border-color=\"#%08X\" border-color-focus=\"#%08X\" ")
-			_T("color=\"#%08X\" background-color-disabled=\"#%08X\""),
+			_T("border-width=\"1\" color=\"#%08X\" background-color-disabled=\"#%08X\""),
 			ctrlBg, ctrlBd, ctrlFocus, text, disBg);
 		pManager->AddDefaultAttributeList(_T("Edit"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("RichEdit"), sForm.GetData(), true);
@@ -275,6 +278,34 @@ namespace DuiLib {
 		pManager->AddDefaultAttributeList(_T("Combo"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("ComboBox"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("DateTime"), sForm.GetData(), true);
+
+		CDuiString sList;
+		// List：外框、分割线、斑马纹；整行 hover / 选中底色（DrawItemBk 铺满行宽）
+		sList.Format(
+			_T("background-color=\"#%08X\" border-color=\"#%08X\" border-width=\"1\" ")
+			_T("item-line-color=\"#%08X\" item-show-row-line=\"true\" item-show-column-line=\"true\" ")
+			_T("header-show-column-line=\"true\" ")
+			_T("item-alternate-background=\"true\" item-alternate-background-color=\"#%08X\" ")
+			_T("item-background-color-hover=\"#%08X\" item-background-color-selected=\"#%08X\" ")
+			_T("item-color-selected=\"#%08X\""),
+			ctrlBg, ctrlBd, border, bgElev, bgHover, selection, primary);
+		pManager->AddDefaultAttributeList(_T("List"), sList.GetData(), true);
+
+		CDuiString sVList;
+		sVList.Format(
+			_T("background-color=\"#%08X\" border-color=\"#%08X\" border-width=\"1\" ")
+			_T("item-line-color=\"#%08X\" item-show-row-line=\"true\" ")
+			_T("item-alternate-background=\"true\" item-alternate-background-color=\"#%08X\" ")
+			_T("item-background-color-hover=\"#%08X\" item-background-color-selected=\"#%08X\" ")
+			_T("item-color-selected=\"#%08X\""),
+			ctrlBg, ctrlBd, border, bgElev, bgHover, selection, primary);
+		pManager->AddDefaultAttributeList(_T("VirtualList"), sVList.GetData(), true);
+
+		CDuiString sListHdr;
+		sListHdr.Format(
+			_T("background-color=\"#%08X\" border-color=\"#%08X\" border-bottom-width=\"1\""),
+			bgElev, border);
+		pManager->AddDefaultAttributeList(_T("ListHeader"), sListHdr.GetData(), true);
 
 		CDuiString sAccItem;
 		sAccItem.Format(
@@ -969,6 +1000,7 @@ namespace DuiLib {
 				}
 				else if (bList) {
 					const bool bMenu = (pControl->GetInterface(_T("Menu")) != NULL);
+					const bool bVirtualList = (pControl->GetInterface(DUI_CTR_VIRTUALLIST) != NULL);
 					ThemeSetColorAttr(pControl, _T("item-color"), text);
 					ThemeSetColorAttr(pControl, _T("item-background-color"), ctrlBg);
 					ThemeSetColorAttr(pControl, _T("item-color-hover"), text);
@@ -984,7 +1016,29 @@ namespace DuiLib {
 					ThemeSetColorAttr(pControl, _T("item-line-color"), border);
 					if( !bMenu ) {
 						ThemeSetColorAttr(pControl, _T("item-alternate-background-color"), bgElev);
-						pControl->SetAttribute(_T("item-alternate-background"), _T("true"));
+						// 行/列线、斑马纹开关：只靠 DefaultAttribute + 皮肤 XML。
+						// 此处勿再强制 true，否则 item-show-column-line="false" 等会被盖掉。
+						if( pControl->GetCustomAttribute(_T("item-alternate-background")) == NULL )
+							pControl->SetAttribute(_T("item-alternate-background"), _T("true"));
+						if( pControl->GetCustomAttribute(_T("item-show-row-line")) == NULL )
+							pControl->SetAttribute(_T("item-show-row-line"), _T("true"));
+						if( !bVirtualList && pControl->GetCustomAttribute(_T("item-show-column-line")) == NULL )
+							pControl->SetAttribute(_T("item-show-column-line"), _T("true"));
+						if( !bVirtualList && pControl->GetCustomAttribute(_T("header-show-column-line")) == NULL )
+							pControl->SetAttribute(_T("header-show-column-line"), _T("true"));
+						if( pControl->GetCustomAttribute(_T("border")) == NULL )
+							pControl->SetBorderWidth(1);
+						CListUI* pList = static_cast<CListUI*>(pControl->GetInterface(DUI_CTR_LIST));
+						if( pList != NULL ) {
+							CListHeaderUI* pHdr = pList->GetHeader();
+							if( pHdr != NULL ) {
+								ThemeSetColorAttr(pHdr, _T("background-color"), bgElev);
+								// 与 item-line-color 同色，避免 border-strong 比行线更深/更粗
+								ThemeSetColorAttr(pHdr, _T("border-color"), border);
+								if( pHdr->GetCustomAttribute(_T("border-bottom-width")) == NULL )
+									pHdr->SetAttribute(_T("border-bottom-width"), _T("1"));
+							}
+						}
 					}
 					else {
 						pControl->SetAttribute(_T("item-alternate-background"), _T("false"));

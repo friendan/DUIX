@@ -46,6 +46,10 @@ root（`body`/`VBox`）上仍可写 `theme`，会覆盖 html 级默认。
 
 TitleBar、ScrollBar（含无图箭头色跟 thumb）、Edit/HotKey/**IPAddress（含聚焦原生 HWND；打开中热切重刷）**/**RichEdit（placeholder-color 跟 Edit）**/Spin/Number、Combo（含下拉；**打开中热切会重刷壳**）、DateTime（字段 + 日历；**打开中热切重刷壳**）、**Switch**（轨道 / 滑块 / 禁用）、**CheckBox**（方框 / 选中悬停 / 禁用 / 勾号）、**Option**（含 `group` 作 Radio）、Accordion、TabBar（含内置右键菜单；**嵌在 TitleBar 内时底/字/图标按标题栏亮度适配**）、List/TreeView/**VirtualList 斑马纹**、**纯色弹出 Menu**（`ApplyMenuChrome`；禁用项透明底；`theme=none` / `background-image` 壳跳过）、**Transfer（含左右面板壳）**、GroupBox、PageControl、**Carousel / CarouselItem caption**、**SidePanel（面板底/边/标题；遮罩色保留皮肤）**、**Avatar / FontIcon 默认色跟 primary**、Tag/Badge/Rate/Steps/Timeline、Empty/Skeleton/Loading/ColorPalette、**Segmented（悬停/选中边按亮度自适应）** 等。
 
+表单默认属性（`Edit` / `RichEdit` / `Spin` / `Number` / `Combo` / `ComboBox` / `DateTime`）：含 `border-width="1"` 与主题边框色；皮肤可用 `border="none"` 关掉。
+
+列表默认属性（`List` / `VirtualList` / `ListHeader`）：`List`/`VirtualList` 含 `border-width="1"`、行线（`List` 另开内容列线 `item-show-column-line` 与表头列线 `header-show-column-line`）、斑马纹、整行 `item-background-color-hover` / `item-background-color-selected`（及 `item-color-selected`）；`ListHeader` 含底部分隔与 elevated 底。chrome 热切对非 Menu 的 List 同步上述边界与态色；可用 `border="none"` / `item-show-row-line="false"` / `item-show-column-line="false"` / `header-show-column-line="false"` / `item-alternate-background="false"` 关闭。
+
 装饰色请用 `theme="none"`（如紫色 Switch、自定义 DateTime 日历色）。
 
 Toast / Modal：新建时按当前 **kind / token** 建 UI；`ApplyToExistingManager` / `RefreshAllManagers` 均跳过 `toastRoot` / `modalRoot`。`SetWindowBackgroundColor` 不覆盖已 `SetKind` 的根底色（避免 Toast 白字打在主题白底上）。

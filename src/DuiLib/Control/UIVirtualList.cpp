@@ -591,10 +591,12 @@ namespace DuiLib
 			if( ParseColorString(pstrValue, clr) ) { m_dwItemLineColor = clr; Invalidate(); }
 		}
 		else if( _tcsicmp(pstrName, _T("item-show-row-line")) == 0 ) {
+			AddCustomAttribute(_T("item-show-row-line"), pstrValue);
 			m_bShowRowLine = (_tcsicmp(pstrValue, _T("true")) == 0);
 			Invalidate();
 		}
 		else if( _tcsicmp(pstrName, _T("item-alternate-background")) == 0 ) {
+			AddCustomAttribute(_T("item-alternate-background"), pstrValue);
 			m_bAlternateBk = (_tcsicmp(pstrValue, _T("true")) == 0);
 			Invalidate();
 		}

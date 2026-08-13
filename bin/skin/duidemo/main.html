@@ -1,7 +1,7 @@
 <html theme="chrome" wallpaper-bleed="0.72">
     <VBox name="root">
         <TitleBar name="titlebar" title="title" height="40"
-            show-min="true" show-max="true" show-close="true" action="title">
+            show-min="true" min-to-tray="true" close-to-tray="false" show-max="true" show-close="true" action="title">
             <Spacer />
             <Button name="btn_wallpaper" lucide="image" width="36" height="40"
                 tooltip="选择窗口背景图（wallpaper-bleed 透出）"
@@ -679,7 +679,7 @@
 
                 <!-- 4 列表 -->
                 <Accordion mode="single" header-height="40">
-                    <AccordionItem title="List 斑马纹" active="true" header-align="left">
+                    <AccordionItem title="List 斑马纹" active="false" header-align="left">
                       <VBox height="280" gap="6" padding="4,8,4,8">
                         <HBox height="28" gap="8" align-items="vcenter">
                           <Label text="传统 List：偶数行底 / 奇数行 item-alternate-background-color" theme="secondary" />
@@ -751,6 +751,83 @@
                             </Empty>
                           </List>
                         </HBox>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="List 表头" active="true" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <Label text="text-align；列宽：像素 / auto / % / 不写占剩余" theme="secondary" />
+                        <List name="list_header_demo" height="230"
+                            item-padding="0,12,0,12"
+                            border="1px solid" border-radius="4">
+                          <ListHeader height="40">
+                            <ListHeaderItem text="名称" width="140" text-align="left" />
+                            <ListHeaderItem text="类型" width="auto" text-align="center" />
+                            <ListHeaderItem text="大小" width="80" text-align="right" />
+                            <ListHeaderItem text="修改时间" text-align="center" />
+                          </ListHeader>
+                          <ListTextElement height="32" text="readme.md|文档|12 KB|2026-08-01" />
+                          <ListTextElement height="32" text="main.cpp|源码|48 KB|2026-08-10" />
+                          <ListTextElement height="32" text="CMakeLists.txt|构建|4 KB|2026-08-11" />
+                          <ListTextElement height="32" text="AGENTS.md|文档|8 KB|2026-08-13" />
+                        </List>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="List 表头空内容" active="false" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <Label text="仅 ListHeader，无数据行；empty-text 显示空态" theme="secondary" />
+                        <List name="list_header_empty" height="230"
+                            empty-text="暂无数据"
+                            item-padding="0,12,0,12"
+                            border="1px solid" border-radius="4">
+                          <ListHeader height="40">
+                            <ListHeaderItem text="名称" width="140" />
+                            <ListHeaderItem text="类型" width="100" />
+                            <ListHeaderItem text="大小" width="80" />
+                            <ListHeaderItem text="修改时间" width="160" />
+                          </ListHeader>
+                        </List>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="List 无列线" active="false" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <Label text="表头与内容都关：header-show-column-line=false + item-show-column-line=false" theme="secondary" />
+                        <List name="list_header_nocol" height="230"
+                            header-show-column-line="false"
+                            item-show-column-line="false"
+                            item-padding="0,12,0,12"
+                            border="1px solid" border-radius="4">
+                          <ListHeader height="40">
+                            <ListHeaderItem text="名称" width="140" />
+                            <ListHeaderItem text="类型" width="100" />
+                            <ListHeaderItem text="大小" width="80" />
+                            <ListHeaderItem text="修改时间" width="160" />
+                          </ListHeader>
+                          <ListLabelElement height="32" text="readme.md" />
+                          <ListLabelElement height="32" text="main.cpp" />
+                          <ListLabelElement height="32" text="CMakeLists.txt" />
+                          <ListLabelElement height="32" text="AGENTS.md" />
+                        </List>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="List 仅表头列线" active="false" header-align="left">
+                      <VBox height="280" gap="6" padding="4,8,4,8">
+                        <Label text="表头有列线、内容无：header-show-column-line=true + item-show-column-line=false" theme="secondary" />
+                        <List name="list_header_col_only" height="230"
+                            header-show-column-line="true"
+                            item-show-column-line="false"
+                            item-padding="0,12,0,12"
+                            border="1px solid" border-radius="4">
+                          <ListHeader height="40">
+                            <ListHeaderItem text="名称" width="140" />
+                            <ListHeaderItem text="类型" width="100" />
+                            <ListHeaderItem text="大小" width="80" />
+                            <ListHeaderItem text="修改时间" width="160" />
+                          </ListHeader>
+                          <ListLabelElement height="32" text="readme.md" />
+                          <ListLabelElement height="32" text="main.cpp" />
+                          <ListLabelElement height="32" text="CMakeLists.txt" />
+                          <ListLabelElement height="32" text="AGENTS.md" />
+                        </List>
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="TreeView 图标" active="false" header-align="left">

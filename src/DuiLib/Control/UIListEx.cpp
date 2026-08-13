@@ -371,6 +371,8 @@ namespace DuiLib {
 		m_bEditable(FALSE),m_bComboable(FALSE),m_bCheckBoxable(FALSE),m_uCheckBoxState(0),m_bChecked(FALSE),m_pOwner(NULL)
 	{
 		SetPadding(CDuiBox(0, 2, 0, 2));
+		::ZeroMemory(&m_rcTextPadding, sizeof(m_rcTextPadding));
+		m_cxyCheckBox.cx = m_cxyCheckBox.cy = 0;
 		ptLastMouse.x = ptLastMouse.y = 0;
 		SetMinWidth(16);
 	}
@@ -388,8 +390,18 @@ namespace DuiLib {
 
 	UINT CListContainerHeaderItemUI::GetControlFlags() const
 	{
-		if( IsEnabled() && m_iSepWidth != 0 ) return UIFLAG_SETCURSOR;
+		if( IsEnabled() && IsColumnResizeEnabled() ) return UIFLAG_SETCURSOR;
 		else return 0;
+	}
+
+	BOOL CListContainerHeaderItemUI::IsColumnResizeEnabled() const
+	{
+		if( !m_bDragable || m_iSepWidth == 0 ) return FALSE;
+		CControlUI* pHdr = GetParent();
+		if( pHdr == NULL || pHdr->GetParent() == NULL ) return TRUE;
+		CListUI* pList = static_cast<CListUI*>(pHdr->GetParent()->GetInterface(DUI_CTR_LIST));
+		if( pList == NULL ) return TRUE;
+		return pList->IsHeaderShowColumnLine() ? TRUE : FALSE;
 	}
 
 	void CListContainerHeaderItemUI::SetEnabled(BOOL bEnable)
@@ -548,6 +560,22 @@ namespace DuiLib {
 				m_uTextStyle &= ~(DT_LEFT | DT_CENTER);
 				m_uTextStyle |= DT_RIGHT;
 			}
+			Invalidate();
+		}
+		else if( _tcsicmp(pstrName, _T("vertical-align")) == 0 ) {
+			if( _tcsstr(pstrValue, _T("top")) != NULL ) {
+				m_uTextStyle &= ~(DT_VCENTER | DT_BOTTOM);
+				m_uTextStyle |= DT_TOP;
+			}
+			else if( _tcsstr(pstrValue, _T("bottom")) != NULL ) {
+				m_uTextStyle &= ~(DT_TOP | DT_VCENTER);
+				m_uTextStyle |= DT_BOTTOM;
+			}
+			else {
+				m_uTextStyle &= ~(DT_TOP | DT_BOTTOM | DT_WORDBREAK);
+				m_uTextStyle |= (DT_VCENTER | DT_SINGLELINE);
+			}
+			Invalidate();
 		}
 		else if( _tcsicmp(pstrName, _T("text-overflow")) == 0 ) 
 		{
@@ -701,7 +729,7 @@ namespace DuiLib {
 			else
 				rcSeparator.right+=4;
 			if( ::PtInRect(&rcSeparator, event.ptMouse) ) {
-				if( m_bDragable ) {
+				if( IsColumnResizeEnabled() ) {
 					m_uButtonState |= UISTATE_CAPTURED;
 					ptLastMouse = event.ptMouse;
 				}
@@ -738,7 +766,10 @@ namespace DuiLib {
 				}
 
 				if( rc.right - rc.left > GetMinWidth() ) {
-					m_cxyFixed.cx = rc.right - rc.left;
+					int cx = rc.right - rc.left;
+					SetAutoCalcWidth(false);
+					m_fWidthPercent = 0.0f;
+					m_cxyFixed.cx = cx;
 					ptLastMouse = event.ptMouse;
 					if( GetParent() ) 
 						GetParent()->NeedParentUpdate();
@@ -753,7 +784,7 @@ namespace DuiLib {
 				rcSeparator.left-=4;
 			else
 				rcSeparator.right+=4;
-			if( IsEnabled() && m_bDragable && ::PtInRect(&rcSeparator, event.ptMouse) ) {
+			if( IsEnabled() && IsColumnResizeEnabled() && ::PtInRect(&rcSeparator, event.ptMouse) ) {
 				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_SIZEWE)));
 				return;
 			}
@@ -779,8 +810,47 @@ namespace DuiLib {
 
 	SIZE CListContainerHeaderItemUI::EstimateSize(SIZE szAvailable)
 	{
-		if( m_cxyFixed.cy == 0 ) return CDuiSize(m_cxyFixed.cx, m_pManager->GetDefaultFontInfo()->tm.tmHeight + 14);
-		return CContainerUI::EstimateSize(szAvailable);
+		int cx = 0;
+		if( GetWidthPercent() > 0.0f ) {
+			if( szAvailable.cx > 0 )
+				cx = (int)(szAvailable.cx * (double)GetWidthPercent() + 0.5);
+		}
+		else if( GetAutoCalcWidth() ) {
+			CDuiBox pad = GetPadding();
+			RECT rcTextPad = GetTextPadding();
+			const int padLR = pad.left + pad.right + rcTextPad.left + rcTextPad.right;
+			int sep = (int)GetSepWidth();
+			if( sep < 0 ) sep = -sep;
+			int slack = 6;
+			CDuiString sText = GetText();
+			if( m_pManager != NULL ) {
+				slack = m_pManager->GetDPIObj()->Scale(6);
+				if( !sText.IsEmpty() ) {
+					SIZE szText = RenderMeasureTextSize(m_pManager, sText.GetData(), m_iFont, DT_SINGLELINE);
+					cx = szText.cx + padLR + sep + slack;
+				}
+				else {
+					SIZE szContent = MeasureContent(szAvailable);
+					cx = (szContent.cx > 0 ? szContent.cx : 0) + padLR + sep;
+				}
+			}
+			else {
+				cx = padLR + sep;
+			}
+			if( cx < GetMinWidth() ) cx = GetMinWidth();
+		}
+		else {
+			cx = GetFixedWidth();
+		}
+
+		int cy = GetFixedHeight();
+		if( cy <= 0 ) {
+			if( m_pManager != NULL )
+				cy = m_pManager->GetDefaultFontInfo()->tm.tmHeight + 14;
+			else
+				cy = 28;
+		}
+		return CDuiSize(cx, cy);
 	}
 
 	RECT CListContainerHeaderItemUI::GetThumbRect() const
@@ -823,6 +893,27 @@ namespace DuiLib {
 			m_sSepImageModify.Empty();
 			m_sSepImageModify.SmallFormat(_T("dest='%d,%d,%d,%d'"), rcThumb.left, rcThumb.top, rcThumb.right, rcThumb.bottom);
 			if( !DrawImage(ctx, m_sSepImage.GetData(), m_sSepImageModify.GetData()) ) {}
+		}
+
+		// 表头列线：跟随 List header-show-column-line
+		{
+			bool bShow = true;
+			DWORD clr = 0xDEE2E6FF;
+			CControlUI* pHdr = GetParent();
+			CListUI* pList = NULL;
+			if( pHdr != NULL && pHdr->GetParent() != NULL )
+				pList = static_cast<CListUI*>(pHdr->GetParent()->GetInterface(DUI_CTR_LIST));
+			if( pList != NULL ) {
+				TListInfoUI* pInfo = pList->GetListInfo();
+				if( pInfo != NULL ) {
+					bShow = pInfo->bShowHeaderColumnLine;
+					if( pInfo->dwLineColor != 0 ) clr = pInfo->dwLineColor;
+				}
+			}
+			if( bShow ) {
+				RECT rcLine = { m_rcItem.right - 1, m_rcItem.top, m_rcItem.right - 1, m_rcItem.bottom };
+				ctx.DrawLine(rcLine, 1, GetAdjustColor(clr), PS_SOLID);
+			}
 		}
 
 		if(m_bCheckBoxable)
@@ -894,18 +985,28 @@ Label_ForegroundImage:
 			GetCheckBoxRect(rcCheck);
 			rcText.left += (rcCheck.right - rcCheck.left);
 		}
+		{
+			int sep = (int)GetSepWidth();
+			if( sep < 0 ) sep = -sep;
+			if( sep > 0 && rcText.right - rcText.left > sep )
+				rcText.right -= sep;
+		}
+		if( rcText.right <= rcText.left || rcText.bottom <= rcText.top ) return;
 
 		CDuiString sText = GetText();
 		if( sText.IsEmpty() ) return;
 
+		UINT uStyle = m_uTextStyle | DT_SINGLELINE | DT_NOCLIP;
+		if( (uStyle & (DT_TOP | DT_VCENTER | DT_BOTTOM)) == 0 )
+			uStyle |= DT_VCENTER;
 
 		int nLinks = 0;
 		if( m_bShowHtml )
-			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(m_dwColor), \
-			NULL, NULL, nLinks, m_iFont, DT_SINGLELINE | m_uTextStyle);
+			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(m_dwColor),
+				NULL, NULL, nLinks, m_iFont, uStyle);
 		else
-			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(m_dwColor), \
-			m_iFont, DT_SINGLELINE | m_uTextStyle);
+			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(m_dwColor),
+				m_iFont, uStyle);
 	}
 
 	BOOL CListContainerHeaderItemUI::GetColumeEditable()
@@ -1325,12 +1426,41 @@ Label_ForegroundImage:
 			CDuiString strText;//不使用LPCTSTR，否则限制太多 by cddjr 2011/10/20
 			if( pCallback ) strText = pCallback->GetItemText(this, m_iIndex, i);
 			else strText.Assign(GetText(i));
+			UINT uColStyle = DT_SINGLELINE | pInfo->uTextStyle;
+			CListHeaderUI* pHeader = pListCtrl->GetHeader();
+			if( pHeader != NULL && i < pHeader->GetCount() ) {
+				CControlUI* pCol = pHeader->GetItemAt(i);
+				CListContainerHeaderItemUI* pHItem = pCol == NULL ? NULL :
+					static_cast<CListContainerHeaderItemUI*>(pCol->GetInterface(_T("ListContainerHeaderItem")));
+				if( pHItem == NULL && pCol != NULL )
+					pHItem = static_cast<CListContainerHeaderItemUI*>(pCol->GetInterface(DUI_CTR_LISTHEADERITEM));
+				if( pHItem != NULL ) {
+					UINT uHdr = pHItem->GetTextStyle();
+					uColStyle &= ~(DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM);
+					uColStyle |= (uHdr & (DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM));
+					if( (uColStyle & (DT_TOP | DT_VCENTER | DT_BOTTOM)) == 0 ) uColStyle |= DT_VCENTER;
+					if( (uColStyle & (DT_LEFT | DT_CENTER | DT_RIGHT)) == 0 ) uColStyle |= DT_CENTER;
+					uColStyle |= DT_SINGLELINE;
+				}
+				else {
+					CListHeaderItemUI* pHI = pCol == NULL ? NULL :
+						static_cast<CListHeaderItemUI*>(pCol->GetInterface(DUI_CTR_LISTHEADERITEM));
+					if( pHI != NULL ) {
+						UINT uHdr = pHI->GetTextStyle();
+						uColStyle &= ~(DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM);
+						uColStyle |= (uHdr & (DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM));
+						if( (uColStyle & (DT_TOP | DT_VCENTER | DT_BOTTOM)) == 0 ) uColStyle |= DT_VCENTER;
+						if( (uColStyle & (DT_LEFT | DT_CENTER | DT_RIGHT)) == 0 ) uColStyle |= DT_CENTER;
+						uColStyle |= DT_SINGLELINE;
+					}
+				}
+			}
 			if( pInfo->bShowHtml )
 				ctx.DrawHtmlText(rcItem, strText.GetData(), GetAdjustColor(iTextColor), \
-				&m_rcLinks[m_nLinks], &m_sLinks[m_nLinks], nLinks, pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
+				&m_rcLinks[m_nLinks], &m_sLinks[m_nLinks], nLinks, pInfo->nFont, uColStyle);
 			else
 				ctx.DrawText(rcItem, strText.GetData(), GetAdjustColor(iTextColor), \
-				pInfo->nFont, DT_SINGLELINE | pInfo->uTextStyle);
+				pInfo->nFont, uColStyle);
 
 			m_nLinks += nLinks;
 			nLinks = lengthof(m_rcLinks) - m_nLinks; 

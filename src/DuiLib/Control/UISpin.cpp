@@ -284,6 +284,14 @@ namespace DuiLib
 
 		LayoutButtons();
 
+		if( event.Type == UIEVENT_SETCURSOR && IsEnabled() ) {
+			// 上下钮：手型；文本区交给 Edit（I 型）
+			if( HitButton(event.ptMouse) != 0 ) {
+				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND)));
+				return;
+			}
+		}
+
 		if( event.Type == UIEVENT_SCROLLWHEEL && IsEnabled() && !IsReadOnly() ) {
 			bool bDown = (LOWORD(event.wParam) == SB_LINEDOWN);
 			if( bDown ) StepDown();

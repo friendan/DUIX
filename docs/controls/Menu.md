@@ -19,6 +19,7 @@
 
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
+| `item-padding` | 菜单项文字区（同 List）；默认约 `0,14,0,32`（左为图标槽）。**二级菜单**会继承一级 `Menu` 的该值 | padding |
 | `icon` / `icon-src` | SVG 文件或 PNG/BMP/JPG 路径 | 无 |
 | `lucide` / `tabler-outline` / `bsicon` 等 | SVG 图标库（与 Button / ListLabel 同名） | 无 |
 | `icon-size` | `16` 或 `16,16` | 无 |

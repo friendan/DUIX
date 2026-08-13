@@ -12,10 +12,9 @@
 ### 最小示例
 
 ```xml
-<Spin value="1" min="0" max="99" step="1" width="120" height="32"
-    border="1px solid #D9D9D9" border-radius="4" />
-<Number value="1.5" min="0" max="10" step="0.5" precision="1" width="120" height="32"
-    border="1px solid #D9D9D9" border-radius="4" />
+<!-- 主题默认已带 1px 边框色/宽；无主题或要改样式时再写 border -->
+<Spin value="1" min="0" max="99" step="1" width="120" height="32" />
+<Number value="1.5" min="0" max="10" step="0.5" precision="1" width="120" height="32" />
 ```
 
 ```cpp
@@ -41,6 +40,7 @@ double v = p->GetValue();
 ### 交互
 
 - 点 ▲▼ 或 ↑↓ 键、滚轮：步进
+- 悬停 ▲▼：手型光标；文本区仍为 I 型
 - 键盘输入后失焦或合法 EN_CHANGE：夹紧到 `[min,max]` 并规范化显示
 - 通知：`textchanged`（Edit）+ `valuechanged`（数值变化）
 

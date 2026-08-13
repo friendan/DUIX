@@ -949,8 +949,15 @@ namespace DuiLib {
 
 	RECT CControlUI::GetBorderRectWidth() const
 	{
+		// m_rcBorderWidth 存的是四边厚度（inset），不是几何矩形；勿走 Scale(RECT*)
 		RECT rcBorderWidth = m_rcBorderWidth;
-		if(m_pManager != NULL) m_pManager->GetDPIObj()->Scale(&rcBorderWidth);
+		if( m_pManager != NULL ) {
+			CDPI* pDpi = m_pManager->GetDPIObj();
+			rcBorderWidth.left = pDpi->Scale(m_rcBorderWidth.left);
+			rcBorderWidth.top = pDpi->Scale(m_rcBorderWidth.top);
+			rcBorderWidth.right = pDpi->Scale(m_rcBorderWidth.right);
+			rcBorderWidth.bottom = pDpi->Scale(m_rcBorderWidth.bottom);
+		}
 		return rcBorderWidth;
 	}
 
@@ -2240,6 +2247,7 @@ namespace DuiLib {
 		else if( _tcsicmp(pstrName, _T("color-hsl")) == 0 ) SetColorHSL(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("border")) == 0 ) {
 			// HTML/CSS 简写：border="1px solid #DDD"；顺序可任意；none/0 清除
+			AddCustomAttribute(_T("border"), pstrValue);
 			ApplyBorderShorthand(this, pstrValue);
 		}
 		else if( _tcsicmp(pstrName, _T("border-width")) == 0 ) {
@@ -2262,7 +2270,10 @@ namespace DuiLib {
 		else if( _tcsicmp(pstrName, _T("border-left-width")) == 0 ) SetLeftBorderWidth(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("border-top-width")) == 0 ) SetTopBorderWidth(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("border-right-width")) == 0 ) SetRightBorderWidth(_ttoi(pstrValue));
-		else if( _tcsicmp(pstrName, _T("border-bottom-width")) == 0 ) SetBottomBorderWidth(_ttoi(pstrValue));
+		else if( _tcsicmp(pstrName, _T("border-bottom-width")) == 0 ) {
+			AddCustomAttribute(_T("border-bottom-width"), pstrValue);
+			SetBottomBorderWidth(_ttoi(pstrValue));
+		}
 		else if( _tcsicmp(pstrName, _T("border-style")) == 0 ) {
 			int nStyle = PS_SOLID;
 			bool bNone = false;

@@ -195,4 +195,4 @@ namespace DuiLib
 		return HitTestAlphaBGRA(pBgra, srcW, srcH, x, y, stride, alphaThreshold);
 	}
 }
-
+

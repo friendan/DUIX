@@ -40,4 +40,4 @@ namespace DuiLib
 }
 
 #endif // __UISHAPE_H__
-
+

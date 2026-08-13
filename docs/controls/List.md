@@ -8,13 +8,16 @@
 | 继承属性 | 见 [Container.md](Container.md) |
 
 > 本页聚焦 **属性与 HTML/CSS 的符合度**。盒模型全局约定见 [Attributes.md](Attributes.md)。
+>
+> 主题默认：`List` 外框 1px + 行/列分割线 + 斑马纹 + 整行 hover/选中底色；`ListHeader` 底部分隔 + 列分割线（`header-show-column-line`，与内容区 `item-show-column-line` **独立**）；`VirtualList` 外框 + 行线 + 斑马纹 + 整行 hover/选中。见 [Theme.md](Theme.md)。关闭：`border="none"` / `item-show-row-line="false"` / `item-show-column-line="false"` / `header-show-column-line="false"` / `item-alternate-background="false"`；自定义态色用 `item-background-color-hover` / `item-background-color-selected`。
 
 ### 接近 HTML/CSS
 
 | 属性 | 说明 |
 |------|------|
 | `selected` | — |
-| `text-align` | — |
+| `text-align` | 表头列水平对齐：`left` / `center` / `right`；默认 `center`；内容区同列继承 |
+| `vertical-align` | 表头列垂直对齐：`top` / `middle`（或 `center`）/ `bottom`；默认垂直居中；内容区同列继承 |
 | `font-family` | — |
 | `font-size` | — |
 | `color` | — |
@@ -101,6 +104,46 @@ CSS 伪类（解析期改写到 `item-*-hover` / `item-*-selected` 等）：
 </List>
 ```
 
+### 列宽（ListHeader / ListHeaderItem）
+
+表头列宽由 `CListHeaderUI::SetPos` 排布；内容区多列（如 `ListTextElement`）跟表头同列宽度对齐。写法与全局 [Attributes.md](Attributes.md) 的 `width` 约定对齐。
+
+| 写法 | 语义 |
+|------|------|
+| `width="140"` | 固定像素宽 |
+| `width="30%"` | 相对表头**可用宽**的百分比（已扣纵向滚动条） |
+| `width="auto"` / `width="fit-content"` | 按表头文字（+ padding / text-padding）测固有宽 |
+| **不写** `width`（固定宽为 0） | **占满剩余**：与其它未定宽列均分剩余宽度 |
+
+可混用：例如两列固定/`%`/`auto`，其余不写 `width` 吃掉剩余。各列 `width="%"` 之和不必为 100；超出可用宽时按测量结果排布（可能出现横向溢出）。
+
+兼容旧写法：`ListHeader` 上 `scale-header="true"` + 各列 `scale="30"`（整数百分比）。开启后以 `scale` 为准，一般勿再与 `width`/`%` 混用。
+
+```xml
+<!-- 固定 + 百分比 + 占剩余 -->
+<ListHeader height="40">
+  <ListHeaderItem text="名称" width="140" />
+  <ListHeaderItem text="类型" width="20%" />
+  <ListHeaderItem text="备注" />
+</ListHeader>
+
+<!-- auto：按标题文字宽度 -->
+<ListHeader height="40">
+  <ListHeaderItem text="ID" width="auto" />
+  <ListHeaderItem text="名称" width="30%" />
+  <ListHeaderItem text="说明" />
+</ListHeader>
+
+<!-- 旧：scale-header -->
+<ListHeader height="40" scale-header="true">
+  <ListHeaderItem text="名称" scale="30" />
+  <ListHeaderItem text="类型" scale="20" />
+  <ListHeaderItem text="备注" scale="50" />
+</ListHeader>
+```
+
+说明：列可拖拽改宽仍依赖 `header-show-column-line`；拖拽会写入固定像素宽，与 `%` / `scale-header` 是不同路径，拖过后该列变为固定宽。
+
 ### 其它非标准 / 无 HTML 等价（续）
 
 | 属性 | 说明 | HTML/CSS 对照 |
@@ -110,9 +153,10 @@ CSS 伪类（解析期改写到 `item-*-hover` / `item-*-selected` 等）：
 | `item-color-selected` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-background-color-selected` | — | 无标准等价（控件皮肤/列表项专用） |
 | `item-image-selected` | — | 无标准等价（控件皮肤/列表项专用） |
-| `item-line-color` | — | 无标准等价（控件皮肤/列表项专用） |
-| `item-show-row-line` | — | 无标准等价（控件皮肤/列表项专用） |
-| `item-show-column-line` | — | 无标准等价（控件皮肤/列表项专用） |
+| `item-line-color` | 行/列分割线颜色；主题默认写入 | 无标准等价（控件皮肤/列表项专用） |
+| `item-show-row-line` | 行分割线；主题默认 `true` | 无标准等价（控件皮肤/列表项专用） |
+| `item-show-column-line` | 内容区列分割线；主题默认 `true`（VirtualList 无列线） | 无标准等价（控件皮肤/列表项专用） |
+| `header-show-column-line` | 表头列分割线；主题默认 `true`；与 `item-show-column-line` 独立；为 `false` 时不可拖拽改列宽 | 无标准等价（控件皮肤/列表项专用） |
 | `item-show-html` | — | 无 |
 | `multi-select` | — | multiple（select/list） |
 | `item-right-selected` | — | 无标准等价（控件皮肤/列表项专用） |
@@ -123,8 +167,8 @@ CSS 伪类（解析期改写到 `item-*-hover` / `item-*-selected` 等）：
 | `image` | 状态皮肤图（DuiLib file='…' 串） | background-image / <img> |
 | `image-focus` | — | :focus { background-image } |
 | `sep-image` | — | background-image / <img>（取值多为 DuiLib 图串） |
-| `scale` | — | 无（列宽比例） |
-| `scale-header` | — | 无 |
+| `scale` | `ListHeaderItem`：旧百分比整数（需 `scale-header`）；优先用 `width="%"` | 无（非 CSS `%`） |
+| `scale-header` | `ListHeader`：旧比例模式；优先用各列 `width="%"` | 无 |
 | `editable` | — | 无标准等价 |
 | `comboable` | — | 无标准等价 |
 | `checkable` | — | 无标准等价 |

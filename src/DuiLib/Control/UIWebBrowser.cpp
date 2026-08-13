@@ -203,7 +203,9 @@ namespace DuiLib
 		, m_pWebBrowserEventHandler(NULL)
 		, m_hResizeOverlay(NULL)
 		, m_bPaintWasIconic(false)
+		, m_bHostSizeMove(false)
 		, m_bNativeWindowResizeEnabled(true)
+		, m_bNativeResizeOverlaySuspended(false)
 	{
 		SetMouseEnabled(false);
 	}
@@ -333,7 +335,10 @@ namespace DuiLib
 	{
 		if( m_bNativeWindowResizeEnabled == bEnable ) return;
 		m_bNativeWindowResizeEnabled = bEnable;
-		UpdateResizeOverlay();
+		if( !bEnable )
+			DestroyResizeOverlay();
+		else if( !m_bNativeResizeOverlaySuspended )
+			UpdateResizeOverlay();
 	}
 
 	bool CWebBrowserUI::IsNativeWindowResizeEnabled() const
@@ -341,9 +346,24 @@ namespace DuiLib
 		return m_bNativeWindowResizeEnabled;
 	}
 
+	void CWebBrowserUI::SuspendNativeResizeOverlay(bool bSuspend)
+	{
+		if( m_bNativeResizeOverlaySuspended == bSuspend ) return;
+		m_bNativeResizeOverlaySuspended = bSuspend;
+		if( bSuspend )
+			DestroyResizeOverlay(); // KillTimer + 拆 popup
+		else if( m_bNativeWindowResizeEnabled )
+			UpdateResizeOverlay(true);
+	}
+
+	bool CWebBrowserUI::IsNativeResizeOverlaySuspended() const
+	{
+		return m_bNativeResizeOverlaySuspended;
+	}
+
 	LRESULT CWebBrowserUI::HitNativeHostResize(POINT ptScreen) const
 	{
-		if( !m_bNativeWindowResizeEnabled ) return HTCLIENT;
+		if( !m_bNativeWindowResizeEnabled || m_bNativeResizeOverlaySuspended ) return HTCLIENT;
 		if( m_pManager == NULL ) return HTCLIENT;
 		HWND hPaint = m_pManager->GetPaintWindow();
 		if( hPaint == NULL || ::IsZoomed(hPaint) ) return HTCLIENT;
@@ -391,9 +411,17 @@ namespace DuiLib
 		m_hResizeOverlay = NULL;
 	}
 
+	void CWebBrowserUI::ArmNativeResizeFollowTimer(UINT uElapse)
+	{
+		if( m_bNativeResizeOverlaySuspended || !m_bNativeWindowResizeEnabled )
+			return;
+		SetTimer(kTimerNativeResizeHook, uElapse);
+	}
+
 	void CWebBrowserUI::UpdateResizeOverlay(bool bForceRecreate)
 	{
-		if( IsOffScreenHost() || m_pEngine == NULL || m_pManager == NULL || !IsVisible() ) {
+		if( m_bNativeResizeOverlaySuspended
+			|| IsOffScreenHost() || m_pEngine == NULL || m_pManager == NULL || !IsVisible() ) {
 			DestroyResizeOverlay();
 			return;
 		}
@@ -412,7 +440,7 @@ namespace DuiLib
 				::DestroyWindow(m_hResizeOverlay);
 				m_hResizeOverlay = NULL;
 			}
-			SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+			ArmNativeResizeFollowTimer(kOverlayFollowMs);
 			return;
 		}
 		if( m_bPaintWasIconic ) {
@@ -429,7 +457,7 @@ namespace DuiLib
 			if( m_hResizeOverlay != NULL )
 				::ShowWindow(m_hResizeOverlay, SW_HIDE);
 			if( m_bNativeWindowResizeEnabled )
-				SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+				ArmNativeResizeFollowTimer(kOverlayFollowMs);
 			else
 				KillTimer(kTimerNativeResizeHook);
 			return;
@@ -438,7 +466,7 @@ namespace DuiLib
 		if( ShouldHideResizeOverlay(hPaint, m_hResizeOverlay) ) {
 			if( m_hResizeOverlay != NULL )
 				::ShowWindow(m_hResizeOverlay, SW_HIDE);
-			SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+			ArmNativeResizeFollowTimer(kOverlayFollowMs);
 			return;
 		}
 
@@ -451,7 +479,7 @@ namespace DuiLib
 		if( m_hResizeOverlay == NULL )
 			m_hResizeOverlay = CreateResizeOverlay(hPaint, this);
 		if( m_hResizeOverlay == NULL ) {
-			SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+			ArmNativeResizeFollowTimer(kOverlayFollowMs);
 			return;
 		}
 
@@ -466,15 +494,31 @@ namespace DuiLib
 		CombineEdgeRgn(rgn, 0, h - inset.bottom, w, h);
 		::SetWindowRgn(m_hResizeOverlay, rgn, TRUE);
 
-		::SetWindowPos(m_hResizeOverlay, HWND_TOP, rcScreen.left, rcScreen.top, w, h,
-			SWP_NOACTIVATE | SWP_SHOWWINDOW);
-		SetTimer(kTimerNativeResizeHook, kOverlayFollowMs);
+		// 拖拽改大小时勿每帧 HWND_TOP：会搅动 DWM，标题栏闪得很厉害。
+		// 新建 / 强制重建 / 非拖拽再抬一次即可。
+		UINT uFlags = SWP_NOACTIVATE | SWP_SHOWWINDOW;
+		HWND hInsertAfter = HWND_TOP;
+		if( m_bHostSizeMove && !bForceRecreate ) {
+			uFlags |= SWP_NOZORDER;
+			hInsertAfter = NULL;
+		}
+		::SetWindowPos(m_hResizeOverlay, hInsertAfter, rcScreen.left, rcScreen.top, w, h, uFlags);
+		ArmNativeResizeFollowTimer(kOverlayFollowMs);
 	}
 
 	void CWebBrowserUI::ScheduleNativeResizeHook(bool bResetRetry)
 	{
+		if( m_bNativeResizeOverlaySuspended ) {
+			DestroyResizeOverlay();
+			return;
+		}
 		if( IsOffScreenHost() || m_pEngine == NULL || m_pManager == NULL ) {
 			DestroyResizeOverlay();
+			return;
+		}
+		// 交互缩放中：只跟 bounds，overlay 用定时器合并，避免每帧 Destroy/Create/TOP
+		if( m_bHostSizeMove && !bResetRetry ) {
+			ArmNativeResizeFollowTimer(50);
 			return;
 		}
 		UpdateResizeOverlay(bResetRetry);
@@ -633,9 +677,16 @@ namespace DuiLib
 		if( m_pEngine == NULL || IsOffScreenHost() )
 			return 0;
 		switch( uMsg ) {
+		case WM_ENTERSIZEMOVE:
+			m_bHostSizeMove = true;
+			break;
 		case WM_MOVE:
 		case WM_MOVING:
+			if( !m_bHostSizeMove )
+				UpdateResizeOverlay();
+			break;
 		case WM_EXITSIZEMOVE:
+			m_bHostSizeMove = false;
 			UpdateResizeOverlay();
 			break;
 		case WM_ACTIVATE:
@@ -655,11 +706,21 @@ namespace DuiLib
 				m_bPaintWasIconic = true;
 				UpdateResizeOverlay();
 			}
-			else if( wParam == SIZE_RESTORED || wParam == SIZE_MAXIMIZED ) {
-				UpdateResizeOverlay(true);
+			else if( wParam == SIZE_MAXIMIZED ) {
+				UpdateResizeOverlay();
+			}
+			else if( wParam == SIZE_RESTORED ) {
+				// 拖拽中每个 WM_SIZE 都是 SIZE_RESTORED；旧逻辑 UpdateResizeOverlay(true)
+				// 会每帧 Destroy+Create overlay → 整窗（含标题栏）狂闪。
+				if( m_bPaintWasIconic )
+					UpdateResizeOverlay(true);
+				else if( !m_bHostSizeMove )
+					UpdateResizeOverlay(false);
 			}
 			break;
 		case WM_WINDOWPOSCHANGED:
+			if( m_bHostSizeMove )
+				break;
 			UpdateResizeOverlay(m_bPaintWasIconic);
 			break;
 		default:
@@ -670,11 +731,14 @@ namespace DuiLib
 
 	void CWebBrowserUI::SetPos(RECT rc, bool bNeedInvalidate)
 	{
+		const bool bSame = (rc.left == m_rcItem.left && rc.top == m_rcItem.top
+			&& rc.right == m_rcItem.right && rc.bottom == m_rcItem.bottom);
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		EnsureEngine();
 		if( m_pEngine == NULL ) return;
 
-		m_pEngine->SetPos(m_rcItem);
+		if( !bSame )
+			m_pEngine->SetPos(m_rcItem);
 		ScheduleNativeResizeHook();
 	}
 

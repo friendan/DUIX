@@ -12,7 +12,7 @@ namespace DuiLib {
 	//
 	//
 
-	static void GetChildWndRect(HWND hWnd, HWND hChildWnd, RECT& rcChildWnd)
+	void GetChildWndRect(HWND hWnd, HWND hChildWnd, RECT& rcChildWnd)
 	{
 		::GetWindowRect(hChildWnd, &rcChildWnd);
 
@@ -256,28 +256,25 @@ namespace DuiLib {
 	CStdPtrArray CPaintManagerUI::m_aPlugins;
 
 	CPaintManagerUI::CPaintManagerUI() :
-	m_hWndPaint(NULL),
+		m_hWndPaint(NULL),
 		m_hDcPaint(NULL),
 		m_pRenderContext(NULL),
 		m_pOffscreenSurface(NULL),
 		m_pBackgroundSurface(NULL),
-		m_bOffscreenPaint(true),
 		m_hwndTooltip(NULL),
-		m_uTimerID(0x1000),
+		m_iHoverTime(400UL),
+		m_bShowUpdateRect(false),
 		m_pRoot(NULL),
 		m_pFocus(NULL),
 		m_pEventHover(NULL),
 		m_pEventClick(NULL),
 		m_pEventRClick(NULL),
 		m_pEventKey(NULL),
+		m_uTimerID(0x1000),
 		m_bFirstLayout(true),
-		m_bFocusNeeded(false),
 		m_bUpdateNeeded(false),
-		m_bMouseTracking(false),
-		m_bMouseCapture(false),
-		m_bAsyncNotifyPosted(false),
-		m_bUsedVirtualWnd(false),
-		m_bForceUseSharedRes(false),
+		m_bFocusNeeded(false),
+		m_bOffscreenPaint(true),
 		m_nOpacity(0xFF),
 		m_nWallpaperBleed(0xFF),
 		m_bWallpaperBleedNeedImage(true),
@@ -291,14 +288,17 @@ namespace DuiLib {
 		m_nShapeAlphaThreshold(16),
 		m_bShapeDragEnabled(true),
 		m_bWindowActionFromShape(false),
-		m_bShowUpdateRect(false),
+		m_bMouseTracking(false),
+		m_bMouseCapture(false),
+		m_bUsedVirtualWnd(false),
+		m_bAsyncNotifyPosted(false),
+		m_bForceUseSharedRes(false),
+		m_pDPI(NULL),
 		m_bUseGdiplusText(false),
 		m_trh(0),
 		m_bDragDrop(false),
 		m_bDragMode(false),
-		m_hDragBitmap(NULL),
-		m_pDPI(NULL),
-		m_iHoverTime(400UL)
+		m_hDragBitmap(NULL)
 	{
 		if (m_SharedResInfo.m_DefaultFontInfo.sFontName.IsEmpty())
 		{
@@ -794,8 +794,9 @@ namespace DuiLib {
 		if( hModule != NULL ) {
 			LPCREATECONTROL lpCreateControl = (LPCREATECONTROL)::GetProcAddress(hModule, "CreateControl");
 			if( lpCreateControl != NULL ) {
-				if( m_aPlugins.Find(lpCreateControl) >= 0 ) return true;
-				m_aPlugins.Add(lpCreateControl);
+				LPVOID pFn = reinterpret_cast<LPVOID>(reinterpret_cast<uintptr_t>(lpCreateControl));
+				if( m_aPlugins.Find(pFn) >= 0 ) return true;
+				m_aPlugins.Add(pFn);
 				return true;
 			}
 		}
@@ -1503,7 +1504,7 @@ namespace DuiLib {
 			}
 		}
 		switch( uMsg ) {
-		case WM_KEYDOWN:
+			case WM_KEYDOWN:
 			{
 				// Tabbing between controls
 				if( wParam == VK_TAB ) {
@@ -1513,8 +1514,10 @@ namespace DuiLib {
 					if( m_pFocus && m_pFocus->IsVisible() && m_pFocus->IsEnabled() && _tcsstr(m_pFocus->GetClass(), _T("WkeWebkitUI")) != NULL ) {
 						return false;
 					}
+					// 必须吞掉：SetNextTabControl 会同步 KillFocus 原生 Edit，
+					// 若仍 Dispatch 到 CEditWnd，此时 m_pOwner 已空 → 崩溃
 					SetNextTabControl(::GetKeyState(VK_SHIFT) >= 0);
-					return false;
+					return true;
 				}
 			}
 			break;
@@ -1712,14 +1715,8 @@ namespace DuiLib {
 					if( !::IsRectEmpty(&rcClient) && !::IsIconic(m_hWndPaint) ) {
 						if( m_pRoot->IsUpdateNeeded() ) {
 							RECT rcRoot = rcClient;
-							if( m_pOffscreenSurface != NULL ) {
-								GetRenderDevice()->DestroySurface(m_pOffscreenSurface);
-								m_pOffscreenSurface = NULL;
-							}
-							if( m_pBackgroundSurface != NULL ) {
-								GetRenderDevice()->DestroySurface(m_pBackgroundSurface);
-								m_pBackgroundSurface = NULL;
-							}
+							// 尺寸变化交给下方 Ensure() 扩缩；勿每帧 DestroySurface，
+							// 否则拖窗时整缓冲重建 → 标题栏等 chrome 闪烁严重。
 							if( m_bLayered ) {
 								rcRoot.left += m_rcLayeredPadding.left;
 								rcRoot.top += m_rcLayeredPadding.top;
@@ -3239,10 +3236,8 @@ namespace DuiLib {
 
 	RECT CPaintManagerUI::GetNativeWindowRect(HWND hChildWnd)
 	{
-		RECT rcChildWnd;
-		::GetWindowRect(hChildWnd, &rcChildWnd);
-		::ScreenToClient(m_hWndPaint, (LPPOINT)(&rcChildWnd));
-		::ScreenToClient(m_hWndPaint, (LPPOINT)(&rcChildWnd)+1);
+		RECT rcChildWnd = { 0 };
+		GetChildWndRect(m_hWndPaint, hChildWnd, rcChildWnd);
 		return rcChildWnd;
 	}
 
