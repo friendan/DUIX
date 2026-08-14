@@ -1201,15 +1201,38 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 		if (pManager == NULL) return;
 		EnsureInitialized();
 		CTheme* pTheme = GetChromeTheme();
-		CControlUI* pRoot = pManager->GetRoot();
+		CControlUI* pRoot = pManager->GetRootPtr();
 		if (pTheme != NULL && pRoot != NULL)
 			ApplyChromeRecursive(pRoot, pTheme);
+	}
+
+	void CThemeManager::ApplyChromeToControl(CControlUI* pControl)
+	{
+		if (pControl == NULL) return;
+		EnsureInitialized();
+
+		CPaintManagerUI* pManager = pControl->GetManager();
+		if (pManager != NULL) {
+			// Builder.Create 阶段会短暂 SetManager，此时尚未 AttachDialog；勿用 GetRoot()（带 ASSERT）
+			CControlUI* pRoot = pManager->GetRootPtr();
+			if (pRoot != NULL) {
+				CDuiString rootName = pRoot->GetName();
+				if (!rootName.IsEmpty() && (_tcscmp(rootName.GetData(), _T("toastRoot")) == 0
+					|| _tcscmp(rootName.GetData(), _T("modalRoot")) == 0))
+					return;
+			}
+		}
+
+		CTheme* pTheme = GetChromeTheme();
+		if (pTheme == NULL) return;
+		ApplyChromeRecursive(pControl, pTheme);
+		RefreshVarAttributesRecursive(pControl);
 	}
 
 	void CThemeManager::ApplyToExistingManager(CPaintManagerUI* pManager)
 	{
 		if( pManager == NULL ) return;
-		CControlUI* pRoot = pManager->GetRoot();
+		CControlUI* pRoot = pManager->GetRootPtr();
 		// 与 RefreshAllManagers 一致：Toast / Modal 在 BuildUI 快照配色，勿再套 chrome
 		if( pRoot != NULL ) {
 			CDuiString rootName = pRoot->GetName();
@@ -1219,6 +1242,8 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 		}
 		ApplyManagerDefaults(pManager);
 		ApplyChromeToManager(pManager);
+		if( pRoot != NULL )
+			RefreshVarAttributesRecursive(pRoot);
 	}
 
 	void CThemeManager::RefreshAllManagers()
@@ -1233,7 +1258,7 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 			for (int i = 0; i < pManagers->GetSize(); ++i) {
 				CPaintManagerUI* pManager = static_cast<CPaintManagerUI*>((*pManagers)[i]);
 				if (pManager == NULL) continue;
-				CControlUI* pRoot = pManager->GetRoot();
+				CControlUI* pRoot = pManager->GetRootPtr();
 				// Toast / Modal 内容在 BuildUI 时按主题快照；半套 Refresh 会花屏，跳过
 				if (pRoot != NULL) {
 					CDuiString rootName = pRoot->GetName();

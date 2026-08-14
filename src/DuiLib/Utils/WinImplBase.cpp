@@ -179,6 +179,36 @@ namespace DuiLib
 		SyncOwnerGeometry(false, true);
 	}
 
+	void WindowImplBase::SyncOwnerShowState()
+	{
+		if( (!m_bSyncOwnerMove && !m_bSyncOwnerSize) || m_bSyncingOwner ) return;
+		HWND hOwner = ResolveSyncOwner();
+		if( hOwner == NULL ) return;
+
+		const bool selfIconic = ::IsIconic(m_hWnd) != FALSE;
+		const bool ownerIconic = ::IsIconic(hOwner) != FALSE;
+
+		if( selfIconic ) {
+			// 本窗最小化 → Owner 一起收起，否则禁用的主窗仍露在桌面上
+			if( !ownerIconic ) {
+				m_bSyncingOwner = true;
+				::ShowWindow(hOwner, SW_MINIMIZE);
+				m_bSyncingOwner = false;
+			}
+			return;
+		}
+
+		if( ownerIconic ) {
+			m_bSyncingOwner = true;
+			::ShowWindow(hOwner, SW_RESTORE);
+			m_bSyncingOwner = false;
+		}
+
+		// 从最小化还原后重新对齐；最大化几何仍由 SyncOwnerGeometry 内 IsZoomed 跳过
+		if( !::IsZoomed(m_hWnd) && !::IsIconic(m_hWnd) )
+			SyncOwnerGeometry(m_bSyncOwnerMove, m_bSyncOwnerSize);
+	}
+
 	UINT WindowImplBase::ShowModal()
 	{
 		CaptureOwnerSyncOffset();
@@ -703,6 +733,9 @@ namespace DuiLib
 				SyncMaxRestoreButtons(m_pm, false);
 			}
 		}
+		// SyncOwner*：最小化/还原与 Owner 联动（几何同步仍跳过 iconic/zoomed 矩形）
+		if( wParam == SIZE_MINIMIZED || wParam == SIZE_RESTORED )
+			SyncOwnerShowState();
 #endif
 		bHandled = FALSE;
 		return 0;

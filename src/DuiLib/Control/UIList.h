@@ -45,6 +45,8 @@ namespace DuiLib {
 		bool bRSelected;
 	} TListInfoUI;
 
+	/// 多列内容格：在 item-padding 基础上，左/右对齐列至少对齐 ListHeaderItem 的左右 padding（默认 8），避免贴列线
+	void ApplyListColumnCellPadding(RECT& rcCell, CListHeaderUI* pHeader, int iCol, const TListInfoUI* pInfo);
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//

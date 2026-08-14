@@ -89,7 +89,11 @@ namespace DuiLib
 	{
 		if( pControl == NULL) return false;
 
-		if( m_pManager != NULL ) m_pManager->InitControls(pControl, this);
+		if( m_pManager != NULL ) {
+			m_pManager->InitControls(pControl, this);
+			// XML 首次挂载走 AttachDialog→ApplyToExistingManager；运行时 Add 需补 chrome / var
+			CThemeManager::GetInstance()->ApplyChromeToControl(pControl);
+		}
 		if( IsVisible() && m_nUpdateLock == 0 ) NeedUpdate();
 		else pControl->SetInternVisible(false);
 		return m_items.Add(pControl);   
@@ -99,7 +103,10 @@ namespace DuiLib
 	{
 		if( pControl == NULL) return false;
 
-		if( m_pManager != NULL ) m_pManager->InitControls(pControl, this);
+		if( m_pManager != NULL ) {
+			m_pManager->InitControls(pControl, this);
+			CThemeManager::GetInstance()->ApplyChromeToControl(pControl);
+		}
 		if( IsVisible() && m_nUpdateLock == 0 ) NeedUpdate();
 		else pControl->SetInternVisible(false);
 		return m_items.InsertAt(iIndex, pControl);
@@ -1264,6 +1271,9 @@ namespace DuiLib
 	void CContainerUI::DestroyChild(CControlUI* pControl)
 	{
 		if( !m_bAutoDestroy ) return;
+		// 立即删除路径也要先 Reap；延迟路径里 AddDelayedCleanup 会再 Reap 一次（幂等）。
+		if( m_pManager != NULL )
+			m_pManager->ReapObjects(pControl);
 		if( m_bDelayedDestroy && m_pManager )
 			m_pManager->AddDelayedCleanup(pControl);
 		else

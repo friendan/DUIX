@@ -25,8 +25,10 @@ void CSettingsSyncWnd::Open(HWND hOwner)
 	if( w < 1 || h < 1 ) return;
 
 	CSettingsSyncWnd* pWnd = new CSettingsSyncWnd();
-	pWnd->Create(hOwner, _T("设置"), WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-		WS_EX_TOOLWINDOW, rcOwner.left, rcOwner.top, w, h);
+	// MINIMIZEBOX/MAXIMIZEBOX：标题栏最小/最大化可用；勿用 TOOLWINDOW，便于任务栏还原测联动
+	pWnd->Create(hOwner, _T("设置（SyncOwner）"),
+		WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
+		0, rcOwner.left, rcOwner.top, w, h);
 	if( pWnd->GetHWND() == NULL ) {
 		delete pWnd;
 		return;

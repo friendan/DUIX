@@ -116,6 +116,8 @@ namespace DuiLib {
 		void ApplyManagerDefaults(CPaintManagerUI* pManager);
 		/// 窗口 root 就绪后套 Default + chrome（勿在控件 ctor 路径调用）
 		void ApplyToExistingManager(CPaintManagerUI* pManager);
+		/// 动态 Add / SetAttribute(theme) 后：对本控件子树套 chrome，再重解 var(--token)
+		void ApplyChromeToControl(CControlUI* pControl);
 
 		/// 纯色弹出 Menu：套 list chrome + 分隔线；图片壳 / theme=none 跳过
 		void ApplyMenuChrome(CMenuUI* pMenu);

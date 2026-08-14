@@ -79,6 +79,8 @@ namespace DuiLib
 		void SyncOwnerPosition();
 		void SyncOwnerSize();
 		void SyncOwnerGeometry(bool bPos, bool bSize);
+		/// 本窗最小化/还原时联动 Owner，避免露出后面的主窗
+		void SyncOwnerShowState();
 
 		CTrayIcon m_trayIcon;
 		CMenuWnd* m_pDefaultTrayMenu;

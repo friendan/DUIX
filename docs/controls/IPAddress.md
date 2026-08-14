@@ -11,7 +11,7 @@
 
 ## IPAddress（系统控件）
 
-聚焦时创建 Windows **SysIPAddress32**（`WC_IPADDRESS`）子窗口；失焦后销毁，文本画回 Label。
+聚焦时创建 Windows **SysIPAddress32**（`WC_IPADDRESS`）子窗口；失焦后隐藏/关闭，文本画回 Label。删除仍持有焦点的控件是安全的（与 Edit 相同：先清 `m_pFocus`，析构同步拆掉原生 HWND）。
 
 构造时若尚未设置文本，会尝试用本机 IP 初始化（`gethostname` / `gethostbyname`）。
 

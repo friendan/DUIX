@@ -34,6 +34,7 @@ namespace DuiLib
 		void Init(CIPAddressUI* pOwner);
 		RECT CalPos();
 		void RefreshColors();
+		void CloseAndDetach();
 
 		LPCTSTR GetWindowClassName() const;
 		LPCTSTR GetSuperClassName() const;
@@ -139,17 +140,34 @@ namespace DuiLib
 		return WC_IPADDRESS;
 	}
 
+	void CIPAddressWnd::CloseAndDetach()
+	{
+		m_bInit = false;
+		if( m_pOwner != NULL && m_pOwner->m_pWindow == this )
+			m_pOwner->m_pWindow = NULL;
+		m_pOwner = NULL;
+		if( ::IsWindow(m_hWnd) )
+			::DestroyWindow(m_hWnd);
+		else
+			delete this;
+	}
+
 	void CIPAddressWnd::OnFinalMessage(HWND /*hWnd*/)
 	{
-		// Clear reference and die
-		if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
-		m_pOwner->m_pWindow = NULL;
+		if( m_hBkBrush != NULL ) {
+			::DeleteObject(m_hBkBrush);
+			m_hBkBrush = NULL;
+		}
+		if( m_pOwner != NULL && m_pOwner->m_pWindow == this )
+			m_pOwner->m_pWindow = NULL;
+		m_pOwner = NULL;
 		delete this;
 	}
 
 	LRESULT CIPAddressWnd::OnCtlColor(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
 		bHandled = TRUE;
+		if( m_pOwner == NULL ) return (LRESULT)::GetStockObject(NULL_BRUSH);
 		HDC hDC = (HDC)wParam;
 		DWORD dwText = m_pOwner->GetNativeColor();
 		DWORD clrColor = m_pOwner->GetNativeBackgroundColor();
@@ -177,15 +195,18 @@ namespace DuiLib
 		else if (uMsg == WM_KEYUP && (wParam == VK_DELETE || wParam == VK_BACK))
 		{
 			LRESULT lRes = ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-			m_pOwner->m_nIPUpdateFlag = IP_DELETE;
-			m_pOwner->UpdateText();
+			if( m_pOwner != NULL ) {
+				m_pOwner->m_nIPUpdateFlag = IP_DELETE;
+				m_pOwner->UpdateText();
+			}
 			PostMessage(WM_CLOSE);
 			return lRes;
 		}
 		else if (uMsg == WM_KEYUP && wParam == VK_ESCAPE)
 		{
 			LRESULT lRes = ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-			m_pOwner->m_nIPUpdateFlag = IP_KEEP;
+			if( m_pOwner != NULL )
+				m_pOwner->m_nIPUpdateFlag = IP_KEEP;
 			PostMessage(WM_CLOSE);
 			return lRes;
 		}
@@ -202,6 +223,7 @@ namespace DuiLib
 		}
 		else if( uMsg == WM_ERASEBKGND )
 		{
+			if( m_pOwner == NULL ) return 1;
 			RECT rc = { 0 };
 			::GetClientRect(m_hWnd, &rc);
 			DWORD clrColor = m_pOwner->GetNativeBackgroundColor();
@@ -232,7 +254,7 @@ namespace DuiLib
 		}
 
 		LRESULT lRes = ::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
-		if (m_pOwner->m_nIPUpdateFlag == IP_NONE)
+		if( m_pOwner != NULL && m_pOwner->m_nIPUpdateFlag == IP_NONE )
 		{
 			::SendMessage(m_hWnd, IPM_GETADDRESS, 0, (LPARAM)&m_pOwner->m_dwIP);
 			m_pOwner->m_nIPUpdateFlag = IP_UPDATE;
@@ -258,6 +280,17 @@ namespace DuiLib
 		m_bNativeTextColorSet = false;
 		UpdateText();
 		m_nIPUpdateFlag = IP_NONE;
+	}
+
+	CIPAddressUI::~CIPAddressUI()
+	{
+		if( m_pManager != NULL && m_pManager->GetFocus() == this )
+			m_pManager->ReapObjects(this);
+		if( m_pWindow != NULL ) {
+			CIPAddressWnd* pWnd = m_pWindow;
+			m_pWindow = NULL;
+			pWnd->CloseAndDetach();
+		}
 	}
 
 	LPCTSTR CIPAddressUI::GetClass() const
@@ -362,6 +395,10 @@ namespace DuiLib
 		{
 			if( m_pWindow ) 
 			{
+				return;
+			}
+			if( m_pParent == NULL || m_pManager == NULL || m_pManager->GetFocus() != this ) {
+				Invalidate();
 				return;
 			}
 			m_pWindow = new CIPAddressWnd();

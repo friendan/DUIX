@@ -61,3 +61,7 @@
 | TabLayout | `selected-id`；动态 `Add`/`SelectItem` 会恢复子项 `InternVisible`（见 [TabBar.md](TabBar.md)）。常见：页上放 `WebBrowser` 时在 **TabLayout**（或 root）写 `window-resize`，窗口 `size-box` 置 `0`，铺满仍能缩边（见 [Control.md](Control.md)、[WebBrowser.md](WebBrowser.md#原生-hwnd-与-window-resize)） |
 | ChildLayout | `xml-file` |
 | AnimationTabLayout | `animation-direction` |
+
+### 动态 Add
+
+运行时 `new` 子控件：先 `SetAttribute`（含 `theme` / `var(--token)`），再 `Add` / `AddAt`。详见 [Theme.md · 动态创建](Theme.md#动态创建)。

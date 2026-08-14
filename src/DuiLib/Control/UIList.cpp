@@ -35,6 +35,42 @@ namespace DuiLib {
 		}
 	}
 
+	void ApplyListColumnCellPadding(RECT& rcCell, CListHeaderUI* pHeader, int iCol, const TListInfoUI* pInfo)
+	{
+		if( pInfo == NULL ) return;
+		int padL = pInfo->rcTextPadding.left;
+		int padR = pInfo->rcTextPadding.right;
+		int padT = pInfo->rcTextPadding.top;
+		int padB = pInfo->rcTextPadding.bottom;
+
+		if( pHeader != NULL && iCol >= 0 && iCol < pHeader->GetCount() ) {
+			CControlUI* pCol = pHeader->GetItemAt(iCol);
+			CListHeaderItemUI* pItem = (pCol == NULL) ? NULL :
+				static_cast<CListHeaderItemUI*>(pCol->GetInterface(DUI_CTR_LISTHEADERITEM));
+			if( pItem != NULL ) {
+				UINT uHdr = pItem->GetTextStyle();
+				const bool bLeft = ((uHdr & DT_CENTER) == 0 && (uHdr & DT_RIGHT) == 0);
+				const bool bRight = ((uHdr & DT_RIGHT) != 0 && (uHdr & DT_CENTER) == 0);
+				CDuiBox hp = pItem->GetPadding();
+				RECT ht = pItem->GetTextPadding();
+				const int hL = hp.left + ht.left;
+				const int hR = hp.right + ht.right;
+				// 左对齐：内容至少跟表头同左距（ListHeaderItem 默认 padding-left=8）
+				if( bLeft && hL > padL ) padL = hL;
+				if( bRight && hR > padR ) padR = hR;
+				if( !bLeft && !bRight ) {
+					if( hL > padL ) padL = hL;
+					if( hR > padR ) padR = hR;
+				}
+			}
+		}
+
+		rcCell.left += padL;
+		rcCell.right -= padR;
+		rcCell.top += padT;
+		rcCell.bottom -= padB;
+	}
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 	//
@@ -3829,10 +3865,7 @@ namespace DuiLib {
 		for( int i = 0; i < pInfo->nColumns; i++ )
 		{
 			RECT rcItem = { pInfo->rcColumn[i].left, m_rcItem.top, pInfo->rcColumn[i].right, m_rcItem.bottom };
-			rcItem.left += pInfo->rcTextPadding.left;
-			rcItem.right -= pInfo->rcTextPadding.right;
-			rcItem.top += pInfo->rcTextPadding.top;
-			rcItem.bottom -= pInfo->rcTextPadding.bottom;
+			ApplyListColumnCellPadding(rcItem, m_pOwner->GetHeader(), i, pInfo);
 
 			DWORD iTextColor = pInfo->dwColor;
 			CDuiString strText;

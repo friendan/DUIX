@@ -17,6 +17,7 @@ namespace DuiLib
 		friend class CIPAddressWnd;
 	public:
 		CIPAddressUI();
+		~CIPAddressUI();
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
 

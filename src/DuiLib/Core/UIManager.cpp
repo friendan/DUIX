@@ -242,9 +242,8 @@ namespace DuiLib {
 	CDuiString CPaintManagerUI::m_pStrResourcePath;
 	CDuiString CPaintManagerUI::m_pStrResourceZip;
 	CDuiString CPaintManagerUI::m_pStrResourceZipPwd;  //Garfield 20160325 ??????zip??????
-	HANDLE CPaintManagerUI::m_hResourceZip = NULL;
+	CZipFile* CPaintManagerUI::m_pResourceZip = NULL;
 	bool CPaintManagerUI::m_bCachedResourceZip = true;
-	BYTE* CPaintManagerUI::m_cbZipBuf = nullptr;
 	int CPaintManagerUI::m_nResType = UILIB_FILE;
 	TResInfo CPaintManagerUI::m_SharedResInfo;
 	HINSTANCE CPaintManagerUI::m_hInstance = NULL;
@@ -546,7 +545,7 @@ namespace DuiLib {
 
 	HANDLE CPaintManagerUI::GetResourceZipHandle()
 	{
-		return m_hResourceZip;
+		return (HANDLE)m_pResourceZip;
 	}
 
 	void CPaintManagerUI::SetInstance(HINSTANCE hInst)
@@ -574,63 +573,45 @@ namespace DuiLib {
 
 	void CPaintManagerUI::SetResourceZip(LPVOID pVoid, unsigned int len, LPCTSTR password)
 	{
-		if( m_pStrResourceZip == _T("membuffer") ) return;
-		if( m_bCachedResourceZip && m_hResourceZip != NULL ) {
-			CloseZip((HZIP)m_hResourceZip);
-			m_hResourceZip = NULL;
+		if( m_pResourceZip != NULL ) {
+			delete m_pResourceZip;
+			m_pResourceZip = NULL;
 		}
 		m_pStrResourceZip = _T("membuffer");
-        if (m_cbZipBuf)
-        {
-            delete[] m_cbZipBuf;
-            m_cbZipBuf = nullptr;
-        }
-        if (!m_cbZipBuf)
-        {
-            m_cbZipBuf = new BYTE[len];
-            memcpy(m_cbZipBuf, pVoid, len);
-        }
-
 		m_bCachedResourceZip = true;
-		m_pStrResourceZipPwd = password;  //Garfield 20160325 ??????zip??????
-		if( m_bCachedResourceZip ) 
-		{
-#ifdef UNICODE
-			char* pwd = w2a((wchar_t*)password);
-			m_hResourceZip = (HANDLE)OpenZip(m_cbZipBuf, len, pwd);
-			if(pwd) {
-				delete[] pwd;
-				pwd = NULL;
-			}
-#else
-			m_hResourceZip = (HANDLE)OpenZip(m_cbZipBuf, len, password);
-#endif
+		m_pStrResourceZipPwd = (password != NULL) ? password : _T("");
+		if( pVoid == NULL || len == 0 ) return;
+
+		m_pResourceZip = new CZipFile();
+		m_pResourceZip->SetPassword(m_pStrResourceZipPwd.GetData());
+		if( !m_pResourceZip->OpenMemory(pVoid, len) ) {
+			delete m_pResourceZip;
+			m_pResourceZip = NULL;
 		}
 	}
 
 	void CPaintManagerUI::SetResourceZip(LPCTSTR pStrPath, bool bCachedResourceZip, LPCTSTR password)
 	{
-		if( m_pStrResourceZip == pStrPath && m_bCachedResourceZip == bCachedResourceZip ) return;
-		if( m_bCachedResourceZip && m_hResourceZip != NULL ) {
-			CloseZip((HZIP)m_hResourceZip);
-			m_hResourceZip = NULL;
+		CDuiString pwd = (password != NULL) ? password : _T("");
+		if( m_pStrResourceZip == pStrPath && m_bCachedResourceZip == bCachedResourceZip
+			&& m_pStrResourceZipPwd == pwd && m_pResourceZip != NULL )
+			return;
+		if( m_pResourceZip != NULL ) {
+			delete m_pResourceZip;
+			m_pResourceZip = NULL;
 		}
 		m_pStrResourceZip = pStrPath;
 		m_bCachedResourceZip = bCachedResourceZip;
-		m_pStrResourceZipPwd = password;
-		if( m_bCachedResourceZip ) {
+		m_pStrResourceZipPwd = pwd;
+		if( m_bCachedResourceZip && pStrPath != NULL && *pStrPath != _T('\0') ) {
 			CDuiString sFile = CPaintManagerUI::GetResourcePath();
 			sFile += CPaintManagerUI::GetResourceZip();
-#ifdef UNICODE
-			char* pwd = w2a((wchar_t*)password);
-			m_hResourceZip = (HANDLE)OpenZip(sFile.GetData(), pwd);
-			if(pwd) {
-				delete[] pwd;
-				pwd = NULL;
+			m_pResourceZip = new CZipFile();
+			m_pResourceZip->SetPassword(pwd.GetData());
+			if( !m_pResourceZip->Open(sFile.GetData()) ) {
+				delete m_pResourceZip;
+				m_pResourceZip = NULL;
 			}
-#else
-			m_hResourceZip = (HANDLE)OpenZip(sFile.GetData(), password);
-#endif
 		}
 	}
 
@@ -681,44 +662,33 @@ namespace DuiLib {
 
 		// 2) ZIP / ZIPRESOURCE（membuffer）— 磁盘没有时用打包资源
 		if( !GetResourceZip().IsEmpty() ) {
-			HZIP hz = NULL;
-			bool bCloseZip = false;
+			CZipFile* pZip = NULL;
+			CZipFile localZip;
+			bool bOwned = false;
 			if( IsCachedResourceZip() ) {
-				hz = (HZIP)GetResourceZipHandle();
+				pZip = m_pResourceZip;
 			}
 			else {
 				CDuiString sZip = GetResourcePath();
 				sZip += GetResourceZip();
-				CDuiString sPwd = GetResourceZipPwd();
-#ifdef UNICODE
-				char* pwd = w2a((wchar_t*)sPwd.GetData());
-				hz = OpenZip(sZip.GetData(), pwd);
-				if( pwd ) delete[] pwd;
-#else
-				hz = OpenZip(sZip.GetData(), sPwd.GetData());
-#endif
-				bCloseZip = true;
+				localZip.SetPassword(GetResourceZipPwd().GetData());
+				if( localZip.Open(sZip.GetData()) ) {
+					pZip = &localZip;
+					bOwned = true;
+				}
 			}
-			if( hz != NULL ) {
-				ZIPENTRY ze;
-				int i = 0;
+			if( pZip != NULL ) {
 				CDuiString key = pstrRelativePath;
 				key.Replace(_T("\\"), _T("/"));
-				if( FindZipItem(hz, key.GetData(), true, &i, &ze) == 0 && ze.unc_size > 0 ) {
-					DWORD dwSize = ze.unc_size;
-					BYTE* pData = new BYTE[dwSize];
-					int res = UnzipItem(hz, i, pData, dwSize);
-					if( bCloseZip ) CloseZip(hz);
-					if( res == 0x00000000 || res == 0x00000600 ) {
-						*ppData = pData;
-						*pdwSize = dwSize;
-						return true;
-					}
-					delete[] pData;
+				BYTE* pData = NULL;
+				DWORD dwSize = 0;
+				if( pZip->ExtractMemory(key.GetData(), &pData, &dwSize) && pData != NULL && dwSize > 0 ) {
+					*ppData = pData;
+					*pdwSize = dwSize;
+					return true;
 				}
-				else if( bCloseZip ) {
-					CloseZip(hz);
-				}
+				delete[] pData;
+				(void)bOwned;
 			}
 		}
 
@@ -2836,15 +2806,9 @@ namespace DuiLib {
 
 		{
 			DUI_EXIT_SCOPE(L"Term CloseZip");
-			if( m_bCachedResourceZip && m_hResourceZip != NULL ) {
-				CloseZip((HZIP)m_hResourceZip);
-				m_hResourceZip = NULL;
-			}
-
-			if (m_cbZipBuf)
-			{
-				delete[] m_cbZipBuf;
-				m_cbZipBuf = nullptr;
+			if( m_pResourceZip != NULL ) {
+				delete m_pResourceZip;
+				m_pResourceZip = NULL;
 			}
 		}
 	}
@@ -2926,28 +2890,32 @@ namespace DuiLib {
 
 	void CPaintManagerUI::SetFocus(CControlUI* pControl)
 	{
-		// Paint manager window has focus?
-		HWND hFocusWnd = ::GetFocus();
-		if( hFocusWnd != m_hWndPaint && pControl != m_pFocus ) ::SetFocus(m_hWndPaint);
 		// Already has focus?
 		if( pControl == m_pFocus ) return;
-		// Remove focus from old control
-		if( m_pFocus != NULL ) 
+
+		// 先清空 m_pFocus，再发 KillFocus / 同步 HWND 焦点。
+		// 否则原生 Edit DestroyWindow → paint 收到 WM_SETFOCUS 时仍指向旧控件，
+		// DoEvent(SETFOCUS) 会在析构中途重新 new CEditWnd 导致崩溃。
+		CControlUI* pOldFocus = m_pFocus;
+		m_pFocus = NULL;
+		if( pOldFocus != NULL )
 		{
 			TEventUI event = { 0 };
 			event.Type = UIEVENT_KILLFOCUS;
 			event.pSender = pControl;
 			event.dwTimestamp = ::GetTickCount();
-			m_pFocus->Event(event);
-			SendNotify(m_pFocus, DUI_MSGTYPE_KILLFOCUS);
-			m_pFocus = NULL;
+			pOldFocus->Event(event);
+			SendNotify(pOldFocus, DUI_MSGTYPE_KILLFOCUS);
 		}
+
+		HWND hFocusWnd = ::GetFocus();
+		if( hFocusWnd != m_hWndPaint )
+			::SetFocus(m_hWndPaint);
+
 		if( pControl == NULL ) return;
-		// Set focus to new control
-		if( pControl != NULL 
-			&& pControl->GetManager() == this 
-			&& pControl->IsVisible() 
-			&& pControl->IsEnabled() ) 
+		if( pControl->GetManager() == this
+			&& pControl->IsVisible()
+			&& pControl->IsEnabled() )
 		{
 			m_pFocus = pControl;
 			TEventUI event = { 0 };
@@ -2961,17 +2929,18 @@ namespace DuiLib {
 
 	void CPaintManagerUI::SetFocusNeeded(CControlUI* pControl)
 	{
-		::SetFocus(m_hWndPaint);
-		if( pControl == NULL ) return;
-		if( m_pFocus != NULL ) {
+		CControlUI* pOldFocus = m_pFocus;
+		m_pFocus = NULL;
+		if( pOldFocus != NULL ) {
 			TEventUI event = { 0 };
 			event.Type = UIEVENT_KILLFOCUS;
 			event.pSender = pControl;
 			event.dwTimestamp = ::GetTickCount();
-			m_pFocus->Event(event);
-			SendNotify(m_pFocus, DUI_MSGTYPE_KILLFOCUS);
-			m_pFocus = NULL;
+			pOldFocus->Event(event);
+			SendNotify(pOldFocus, DUI_MSGTYPE_KILLFOCUS);
 		}
+		::SetFocus(m_hWndPaint);
+		if( pControl == NULL ) return;
 		FINDTABINFO info = { 0 };
 		info.pFocus = pControl;
 		info.bForward = false;
@@ -3244,6 +3213,8 @@ namespace DuiLib {
 	void CPaintManagerUI::AddDelayedCleanup(CControlUI* pControl)
 	{
 		if (pControl == NULL) return;
+		// 入队前清掉 focus/hover 等引用，避免延迟删除窗口期 m_pFocus 仍指向已摘树控件。
+		ReapObjects(pControl);
 		pControl->SetManager(this, NULL, false);
 		m_aDelayedCleanup.Add(pControl);
 		PostAsyncNotify();

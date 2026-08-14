@@ -1410,10 +1410,7 @@ Label_ForegroundImage:
 				ctx.DrawColor(rcItem, iTextBkColor);
 			}
 
-			rcItem.left += pInfo->rcTextPadding.left;
-			rcItem.right -= pInfo->rcTextPadding.right;
-			rcItem.top += pInfo->rcTextPadding.top;
-			rcItem.bottom -= pInfo->rcTextPadding.bottom;
+			ApplyListColumnCellPadding(rcItem, m_pOwner->GetHeader(), i, pInfo);
 
 			//检查是否需要显示CheckBox
 			if (pListCtrl->CheckColumCheckBoxable(i))
@@ -1676,10 +1673,7 @@ Label_ForegroundImage:
 		for( int i = 0; i < pInfo->nColumns; i++ )
 		{
 			RECT rcItem = { pInfo->rcColumn[i].left, m_rcItem.top, pInfo->rcColumn[i].right, m_rcItem.bottom };
-			rcItem.left += pInfo->rcTextPadding.left;
-			rcItem.right -= pInfo->rcTextPadding.right;
-			rcItem.top += pInfo->rcTextPadding.top;
-			rcItem.bottom -= pInfo->rcTextPadding.bottom;
+			ApplyListColumnCellPadding(rcItem, m_pOwner->GetHeader(), i, pInfo);
 
 			if( ::PtInRect(&rcItem, ptMouse)) 
 			{

@@ -25,35 +25,31 @@ namespace DuiLib
 		bool IsDirectory() const { return (attr & FILE_ATTRIBUTE_DIRECTORY) != 0; }
 	};
 
-	enum ZipPasswordEncoding
-	{
-		ZIP_PWD_ASCII = 0,     // 仅 7-bit ASCII，含非 ASCII 则失败
-		ZIP_PWD_UNICODE = 1    // LPCTSTR 自动转 UTF-8（与环境无关；需要兼容旧包时可指定 CP_ACP）
-	};
-
 	/// ZIP CRUD 封装。创建阶段连续 Add 走原生写入；已打开的包上 Add/Update/Remove 会重写整包。
+	/// 后端：minizip-ng + zlib；加密为 WinZip AES（无 ZipCrypto）。
 	class UILIB_API CZipFile
 	{
 	public:
 		CZipFile();
 		~CZipFile();
 
+		/// 可在 Open/Create 之后调用；会同步到当前 reader/writer。空或 NULL = 无密码。
+		/// 宽字符密码固定转为 UTF-8（不随系统代码页）。
 		void SetPassword(LPCTSTR pszPassword);
-		void SetPassword(LPCTSTR pszPassword, ZipPasswordEncoding encoding);
 		LPCTSTR GetPassword() const;
-		/// UNICODE 时 uCodePage：0 = CP_UTF8。一般不必改；仅打开旧 ANSI 包时传 CP_ACP。ASCII 模式忽略代码页。
-		void SetPasswordEncoding(ZipPasswordEncoding encoding, UINT uCodePage = 0);
-		ZipPasswordEncoding GetPasswordEncoding() const;
-		UINT GetPasswordCodePage() const;
 
 		/// 单条解压/重写时未压缩大小上限；默认 512MB。0 = 不限制（仅可信包）。
 		void SetMaxUncompressedSize(DWORD dwBytes);
 		DWORD GetMaxUncompressedSize() const;
 
 		bool Create(LPCTSTR pszZipPath);
+		/// nMaxBytes：可选软上限（mz 内存流 buffer_limit）；0 = 不限制。默认值仅作软上限提示。
 		bool CreateMemory(unsigned int nMaxBytes = 32 * 1024 * 1024);
 		bool Open(LPCTSTR pszZipPath);
-		bool OpenMemory(const void* pData, unsigned int nLen);
+		/// bCopy=true（默认）拷贝缓冲；false = 零拷贝挂接，缓冲须在 CZipFile 使用期间保持有效。
+		bool OpenMemory(const void* pData, unsigned int nLen, bool bCopy = true);
+		/// 等同 OpenMemory(pData, nLen, false)。
+		bool AttachMemory(const void* pData, unsigned int nLen);
 		/// 打开已加载模块里的 ZIP 资源（默认 RT_RCDATA）。内部拷贝一份。hInst=NULL 用资源 DLL / 本模块。
 		bool OpenResource(HINSTANCE hInst, LPCTSTR pszName, LPCTSTR pszType = RT_RCDATA);
 		bool OpenResource(HINSTANCE hInst, UINT nID, LPCTSTR pszType = RT_RCDATA);
@@ -61,12 +57,21 @@ namespace DuiLib
 		bool OpenResourceFile(LPCTSTR pszModulePath, LPCTSTR pszName, LPCTSTR pszType = RT_RCDATA);
 		bool OpenResourceFile(LPCTSTR pszModulePath, UINT nID, LPCTSTR pszType = RT_RCDATA);
 		void Close();
+		/// 写入会话显式收尾（内存包提交到内部缓冲并切到只读；文件包关闭 writer 再打开）。
+		bool Commit();
 		bool IsOpen() const;
 		bool IsMemory() const;
+		/// 当前包是否含加密条目（读中央目录标志，不解压）。
+		bool IsEncrypted();
 		LPCTSTR GetPath() const;
+
+		/// 压缩级别：-1=默认，0=仅存储(STORE)，1..9=deflate。Create/Open 后也可改，影响后续写入。
+		void SetCompressLevel(int nLevel);
+		int GetCompressLevel() const;
 
 		int GetCount();
 		bool GetItem(int nIndex, TZipItem& item);
+		bool GetItem(LPCTSTR pszName, TZipItem& item);
 		int Find(LPCTSTR pszName, bool bIgnoreCase = true);
 		bool Exists(LPCTSTR pszName);
 		bool IsDir(LPCTSTR pszName);
@@ -76,6 +81,8 @@ namespace DuiLib
 		bool ExtractAll(LPCTSTR pszDestDir);
 		/// 成功时 *ppData 为 new BYTE[]，调用方 delete[]；空文件 *pdwSize=0 且 *ppData 非空。
 		bool ExtractMemory(LPCTSTR pszName, BYTE** ppData, DWORD* pdwSize);
+		/// 解压校验全部条目（不落盘，校验 CRC/密码）。失败时 *pFailIndex 为出错条目下标（可 NULL）。
+		bool Test(int* pFailIndex = NULL);
 
 		/// pszZipName 为空则用源文件名。已存在且 bReplace=false 则失败。
 		bool AddFile(LPCTSTR pszZipName, LPCTSTR pszSrcFile, bool bReplace = true);
@@ -101,11 +108,17 @@ namespace DuiLib
 		bool SaveResourceDll(LPCTSTR pszDllPath, UINT nID, LPCTSTR pszType = RT_RCDATA, WORD wLanguage = 0);
 		/// 整包字节；*ppData 为 new BYTE[]，调用方 delete[]。
 		bool GetMemory(BYTE** ppData, DWORD* pdwSize);
+		/// 整包长度（不拷贝）。写入会话会先 Commit。失败返回 0。
+		DWORD GetMemorySize();
+		/// 交出内部整包所有权（须为本对象拥有的内存缓冲）。成功后对象关闭；*ppData 由调用方 delete[]。
+		bool DetachMemory(BYTE** ppData, DWORD* pdwSize);
 
-		ZRESULT GetLastResult() const;
+		/// minizip-ng 结果码（MZ_OK=0）。
+		int GetLastResult() const;
 		CDuiString GetErrorMessage() const;
 
-		static bool UnzipToDirectory(LPCTSTR pszZipPath, LPCTSTR pszDestDir, LPCTSTR pszPassword = NULL, ZipPasswordEncoding encoding = ZIP_PWD_UNICODE);
+		static bool UnzipToDirectory(LPCTSTR pszZipPath, LPCTSTR pszDestDir, LPCTSTR pszPassword = NULL);
+		static bool UnzipMemoryToDirectory(const void* pData, unsigned int nLen, LPCTSTR pszDestDir, LPCTSTR pszPassword = NULL);
 
 	private:
 		CZipFile(const CZipFile&);
@@ -115,8 +128,13 @@ namespace DuiLib
 		enum EMutate { kAddFile, kAddMem, kAddDir, kUpdateFile, kUpdateMem, kRemove };
 
 		bool Ok();
-		bool Fail(ZRESULT r, LPCTSTR pszText = NULL);
+		bool Fail(int mzCode, LPCTSTR pszText = NULL);
 		bool PreparePassword();
+		/// 把当前密码应用到已打开的 reader/writer（Open 后改密码用）。
+		bool SyncCryptoOpts();
+		bool CheckMzBufSize(unsigned int nBytes, LPCTSTR pszWhat);
+		/// 校验并接管自有内存包；失败时 delete[] pOwned，且不改动当前已打开状态。
+		bool InstallOwnedMemory(BYTE* pOwned, DWORD nLen);
 		const char* Pwd() const;
 		void ClearWriteNames();
 		int FindWriteName(LPCTSTR pszName) const;
@@ -130,27 +148,38 @@ namespace DuiLib
 		bool Rewrite(EMutate op, const CDuiString& target, const void* pData, DWORD dwSize, LPCTSTR pszSrcFile, bool bRecursive);
 		bool RewriteToFile(EMutate op, const CDuiString& target, const void* pData, DWORD dwSize, LPCTSTR pszSrcFile, bool bRecursive);
 		bool RewriteToMemory(EMutate op, const CDuiString& target, const void* pData, DWORD dwSize, LPCTSTR pszSrcFile, bool bRecursive);
-		ZRESULT CopyItem(HZIP hzSrc, HZIP hzDst, int nIndex);
-		ZRESULT AddNewItem(HZIP hzDst, EMutate op, const CDuiString& name, const void* pData, DWORD dwSize, LPCTSTR pszSrcFile);
-		unsigned int EstimateMemCap(DWORD dwExtra) const;
+		int AddNewItem(void* writer, EMutate op, const CDuiString& name, const void* pData, DWORD dwSize, LPCTSTR pszSrcFile);
 		bool ReopenRead();
 		bool ClassifyDir(LPCTSTR pszDir, bool& bDirEntry, bool& bChildren, bool& bFileExact);
 		bool AddDirWalk(const CDuiString& zipDir, LPCTSTR pszSrcDir, bool bRecursive);
-		bool ExtractOne(int nIndex, const ZIPENTRY& ze, LPCTSTR pszDestPath, LPCTSTR pszContainRoot);
+		bool ExtractOne(int nIndex, LPCTSTR pszDestPath, LPCTSTR pszContainRoot);
+		/// 解压 reader 当前条目（不再 GotoIndex）。
+		bool ExtractCurrent(LPCTSTR pszDestPath, LPCTSTR pszContainRoot);
+		bool GotoIndex(int nIndex);
+		bool FillItemFromCurrent(int nIndex, TZipItem& item);
+		void InvalidateEntryCount();
+		void ApplyWriterOpts(void* writer);
+		void ApplyReaderOpts(void* reader);
+		void DestroyReader();
+		void DestroyWriter();
+		void FreeMemBuf();
 
-		HZIP m_hz;
+		void* m_reader;
+		void* m_writer;
+		void* m_memStream;
 		EMode m_mode;
 		CDuiString m_path;
 		CDuiString m_password;
 		CDuiString m_errText;
 		char* m_pwdA;
-		ZipPasswordEncoding m_pwdEncoding;
-		UINT m_pwdCodePage;
 		BYTE* m_memBuf;
 		DWORD m_memLen;
+		bool m_bMemOwned;
 		unsigned int m_maxMem;
 		DWORD m_maxUncompressed;
-		ZRESULT m_last;
+		int m_compressLevel;
+		int m_cachedCount;
+		int m_last;
 		CStdPtrArray m_writeNames;
 	};
 }

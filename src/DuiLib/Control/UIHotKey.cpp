@@ -50,11 +50,27 @@ namespace DuiLib{
 		return _T("HotKeyClass");
 	}
 
+	void CHotKeyWnd::CloseAndDetach()
+	{
+		m_bInit = false;
+		if( m_pOwner != NULL && m_pOwner->m_pWindow == this )
+			m_pOwner->m_pWindow = NULL;
+		m_pOwner = NULL;
+		if( ::IsWindow(m_hWnd) )
+			::DestroyWindow(m_hWnd);
+		else
+			delete this;
+	}
+
 	void CHotKeyWnd::OnFinalMessage(HWND /*hWnd*/)
 	{
-		// Clear reference and die
-		if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
-		m_pOwner->m_pWindow = NULL;
+		if( m_hBkBrush != NULL ) {
+			::DeleteObject(m_hBkBrush);
+			m_hBkBrush = NULL;
+		}
+		if( m_pOwner != NULL && m_pOwner->m_pWindow == this )
+			m_pOwner->m_pWindow = NULL;
+		m_pOwner = NULL;
 		delete this;
 	}
 
@@ -72,7 +88,8 @@ namespace DuiLib{
 			}
 		}
 		else if( uMsg == WM_KEYDOWN && TCHAR(wParam) == VK_RETURN ) {
-			m_pOwner->GetManager()->SendNotify(m_pOwner, _T("return"));
+			if( m_pOwner != NULL )
+				m_pOwner->GetManager()->SendNotify(m_pOwner, _T("return"));
 		}
 		else if ( (uMsg == WM_NCACTIVATE) || (uMsg == WM_NCACTIVATE) || (uMsg == WM_NCCALCSIZE) )
 		{
@@ -80,6 +97,10 @@ namespace DuiLib{
 		}
 		else if (uMsg == WM_PAINT)
 		{
+			if( m_pOwner == NULL ) {
+				bHandled = TRUE;
+			}
+			else {
 			PAINTSTRUCT ps = { 0 };
 			HDC hDC = ::BeginPaint(m_hWnd, &ps);
 			DWORD dwColor = m_pOwner->GetColor();
@@ -100,6 +121,7 @@ namespace DuiLib{
 			::SetCaretPos(size.cx, 0);
 			::EndPaint(m_hWnd, &ps);
 			bHandled = TRUE;
+			}
 		}
 		else bHandled = FALSE;
 		if( !bHandled ) return CWindowWnd::HandleMessage(uMsg, wParam, lParam);
@@ -242,6 +264,17 @@ namespace DuiLib{
 		SetBackgroundColor(0xFFFFFFFF);
 	}
 
+	CHotKeyUI::~CHotKeyUI()
+	{
+		if( m_pManager != NULL && m_pManager->GetFocus() == this )
+			m_pManager->ReapObjects(this);
+		if( m_pWindow != NULL ) {
+			CHotKeyWnd* pWnd = m_pWindow;
+			m_pWindow = NULL;
+			pWnd->CloseAndDetach();
+		}
+	}
+
 	LPCTSTR CHotKeyUI::GetClass() const
 	{
 		return _T("HotKeyUI");
@@ -283,6 +316,10 @@ namespace DuiLib{
 		if( event.Type == UIEVENT_SETFOCUS && IsEnabled() ) 
 		{
 			if( m_pWindow ) return;
+			if( m_pParent == NULL || m_pManager == NULL || m_pManager->GetFocus() != this ) {
+				Invalidate();
+				return;
+			}
 			m_pWindow = new CHotKeyWnd();
 			ASSERT(m_pWindow);
 			m_pWindow->Init(this);

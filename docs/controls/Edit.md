@@ -36,6 +36,8 @@
 
 **`opacity`：** 默认继承父；有效透明度 < 255 时**不创建原生 `WC_EDIT`**。不跟父淡：`opacity-isolate="true"`。
 
+删除仍持有焦点的 Edit 是安全的：manager 会先 `ReapObjects` 清掉 `m_pFocus`，且 `SetFocus` 在同步 HWND 焦点前先置空焦点，避免 `DestroyWindow` 触发 paint `WM_SETFOCUS` 时在析构中途重建原生编辑框。
+
 需要 **上下步进 / 小数 / min·max** 时用 [Spin / Number](Spin.md)，不要只用 `type="number"`。
 
 ### 非标准

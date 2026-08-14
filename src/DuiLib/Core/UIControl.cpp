@@ -2517,6 +2517,12 @@ namespace DuiLib {
 		else if( _tcsicmp(pstrName, _T("outline")) == 0 ) {
 			SetOutline(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
+		else if( _tcsicmp(pstrName, _T("theme")) == 0 || _tcsicmp(pstrName, _T("theme-id")) == 0 ) {
+			AddCustomAttribute(pstrName, pstrValue);
+			// 已挂到窗口的动态控件：改 theme 后立刻套 chrome（Add 时若尚未写 theme 也会漏）
+			if( m_pManager != NULL )
+				CThemeManager::GetInstance()->ApplyChromeToControl(this);
+		}
 		else {
 			AddCustomAttribute(pstrName, pstrValue);
 		}

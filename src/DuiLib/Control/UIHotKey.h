@@ -13,6 +13,7 @@ namespace DuiLib{
 	public:
 		void Init(CHotKeyUI * pOwner);
 		RECT CalPos();
+		void CloseAndDetach();
 		LPCTSTR GetWindowClassName() const;
 		void OnFinalMessage(HWND hWnd);
 		LPCTSTR GetSuperClassName() const;
@@ -38,6 +39,7 @@ namespace DuiLib{
 		friend CHotKeyWnd;
 	public:
 		CHotKeyUI();
+		~CHotKeyUI();
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
 		UINT GetControlFlags() const;

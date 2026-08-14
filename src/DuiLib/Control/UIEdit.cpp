@@ -323,6 +323,9 @@ namespace DuiLib
 
 	CEditUI::~CEditUI()
 	{
+		// DestroyWindow 前确保 manager 不再认为本控件有焦点，避免 paint WM_SETFOCUS 回打重建。
+		if( m_pManager != NULL && m_pManager->GetFocus() == this )
+			m_pManager->ReapObjects(this);
 		if( m_pWindow != NULL ) {
 			CEditWnd* pWnd = m_pWindow;
 			m_pWindow = NULL;
@@ -405,6 +408,11 @@ namespace DuiLib
 		if( event.Type == UIEVENT_SETFOCUS && IsEnabled() ) 
 		{
 			if( m_pWindow ) return;
+			// 已摘树 / 非当前焦点时不创建原生窗（删除获焦 Edit 时的重入保护）。
+			if( m_pParent == NULL || m_pManager == NULL || m_pManager->GetFocus() != this ) {
+				Invalidate();
+				return;
+			}
 			if( !CanHostNativeEdit() ) {
 				Invalidate();
 				return;

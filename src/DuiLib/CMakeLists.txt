@@ -5,7 +5,11 @@ aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/Layout LayoutSrc)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/Utils UtilsSrc)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/Icons IconsSrc)
 
-add_library(DuiLib STATIC ${RootSrc} ${ControlSrc} ${CoreSrc} ${LayoutSrc} ${UtilsSrc} ${IconsSrc})
+add_library(DuiLib STATIC
+    ${RootSrc} ${ControlSrc} ${CoreSrc} ${LayoutSrc} ${UtilsSrc} ${IconsSrc}
+    $<TARGET_OBJECTS:zlib>
+    $<TARGET_OBJECTS:minizip_ng>
+)
 
 target_include_directories(DuiLib
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
@@ -15,9 +19,14 @@ target_include_directories(DuiLib
         ${CMAKE_CURRENT_SOURCE_DIR}/Layout
         ${CMAKE_CURRENT_SOURCE_DIR}/Utils
         ${CMAKE_CURRENT_SOURCE_DIR}/Icons
+        ${CMAKE_SOURCE_DIR}/3rd/minizip-ng-4.2.2
+        ${CMAKE_SOURCE_DIR}/3rd/zlib-1.3.2
 )
 
-target_compile_definitions(DuiLib PUBLIC UILIB_STATIC)
+target_compile_definitions(DuiLib
+    PUBLIC UILIB_STATIC
+    PRIVATE HAVE_ZLIB HAVE_WZAES HAVE_BCRYPT ZLIB_COMPAT
+)
 
 # 编译期默认后端：ON=Direct2D，OFF=GDI（仍可运行时 EnableGdi/EnableD2d 切换）
 option(DUILIB_USE_D2D "Compile with Direct2D as default render backend" ON)

@@ -56,6 +56,21 @@ Toast / Modal：新建时按当前 **kind / token** 建 UI；`ApplyToExistingMan
 
 未覆盖（刻意）：Slider 滑块图、Ring 位图、Svg 自动 tint（需皮肤写 `color`/`icon-tint`）。
 
+### 动态创建
+
+**推荐顺序：先 `SetAttribute`（含 `theme` / `var(--token)`），再 `parent->Add(p)`。**
+
+```cpp
+CEditUI* p = new CEditUI;
+p->SetAttribute(_T("theme"), _T("chrome"));           // 或继承父级 chrome
+p->SetAttribute(_T("border-color"), _T("var(--color-primary)"));
+pParent->Add(p);  // Add 时套 chrome，再重解 var(--token)
+```
+
+`Add` / `AddAt`（已有 Manager）会调用 `CThemeManager::ApplyChromeToControl`：先 chrome，再重解已记录的 `_tvar:`。若 `Add` 之后才改 `theme` / `theme-id`，`SetAttribute` 也会触发同一套用。需要时也可手动调 `ApplyChromeToControl`。
+
+说明：XML 路径在 `AttachDialog` 后整树套 chrome；勿依赖「只 new + SetAttribute、不 Add」来吃 chrome。
+
 ### `var(--token)`
 
 热切换重解；可走控件有效色板。

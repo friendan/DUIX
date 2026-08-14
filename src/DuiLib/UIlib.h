@@ -46,8 +46,6 @@
 #include <gdiplus.h>
 
 #include "Utils/Utils.h"
-#include "Utils/unzip.h"
-#include "Utils/zip.h"
 #include "Utils/UIZip.h"
 #include "Utils/VersionHelpers.h"
 #include "Core/UIMarkup.h"

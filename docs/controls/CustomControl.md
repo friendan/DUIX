@@ -175,7 +175,7 @@ CPaintManagerUI::LoadPlugin(_T("MyControls.dll"));
 2. `ControlFactory.cpp` 构造函数里加 `INNER_REGISTER_DUICONTROL(CXxxUI);`。
 3. 若 CMake 用 `aux_source_directory`，新 cpp 后重新跑一次 `build_clang_ninja_*_init.bat`。
 4. 在 `docs/controls/` 补同名 md，并在 [README.md](README.md) 索引表追加一行。
-5. 需要主题色时对接 `kind` / `CTheme`（见 [Theme.md](Theme.md)）。
+5. 需要主题色时对接 `kind` / `CTheme`（见 [Theme.md](Theme.md)）。动态 `new` 时：**先 `SetAttribute`，再 `parent->Add`**（同页「动态创建」）。
 
 ---
 
@@ -183,6 +183,7 @@ CPaintManagerUI::LoadPlugin(_T("MyControls.dll"));
 
 - [ ] 皮肤标签能创建（Debug 下未知标签会 `DUITRACE`「未知控件」）
 - [ ] 自有属性经 `SetAttribute` 生效；未识别的交给基类（宽高、背景等仍可用）
+- [ ] 动态创建：先写属性再 `Add`（主题 chrome / `var(--token)`，见 [Theme.md](Theme.md#动态创建)）
 - [ ] `FindControl` + `GetInterface` 能转到具体类型
 - [ ] 悬停 / 点击 / 禁用态绘制正常；D2D 下无整区空白
 - [ ] （可选）`duidemo` 同页对照 `ControlEx` 行为

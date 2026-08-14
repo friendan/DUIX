@@ -1,26 +1,32 @@
 # ZIP
 
-对外请用 **`CZipFile`**（CRUD）。底层仍是 Lucian Wischik Zip Utils；改/删没有原地 API，封装里会重写整包。
+对外请用 **`CZipFile`**（CRUD）。底层为 **minizip-ng + zlib**；改/删没有原地 API，封装里会重写整包。密码加密为 **WinZip AES**（不兼容旧 XZip / ZipCrypto）。
 
 | | |
 |--|--|
 | 封装 | `CZipFile` / `TZipItem` |
 | 头文件 | `src/DuiLib/Utils/UIZip.h`（`UIlib.h` 已包含） |
 | 源码 | `src/DuiLib/Utils/UIZip.cpp` |
-| 底层 | `zip.h` / `unzip.h` |
+| 底层 | minizip-ng 4.2.2 + zlib 1.3.2（`src/3rd/`，链接 `minizip_ng::minizip_ng`） |
 | 皮肤 | `CPaintManagerUI::SetResourceZip` / `LoadResourceData` |
 
 ---
 
 ## CZipFile（推荐）
 
-密码用 `SetPassword`（`LPCTSTR`）。默认 **UNICODE → UTF-8**，不随系统代码页变化。`ZIP_PWD_ASCII` 则要求纯 ASCII。打开与压缩必须同一编码。
+密码用 `SetPassword`（`LPCTSTR`）。宽字符**固定转 UTF-8**（与系统代码页无关）。有密码时写 **WinZip AES**；未设密码（或空 / NULL）则普通明文包。可在 `Open` / `Create` **之后**再改密码（会同步到当前 reader/writer）。
+
+`SetCompressLevel(-1..9)`：`-1` 默认 deflate，`0` 仅存储（适合 png/jpg），`1..9` 为 deflate 级别。
+
+内存包 / 单条 `AddMemory` 长度上限为 **2GB-1**（minizip `int32_t`）；超限直接失败。
 
 ```cpp
-zip.SetPassword(_T("secret"));                     // 默认 UNICODE / UTF-8
-zip.SetPassword(_T("中文密码"));                    // 宽字符 → UTF-8 字节
-zip.SetPasswordEncoding(ZIP_PWD_ASCII);            // 含非 ASCII 则失败
-zip.SetPasswordEncoding(ZIP_PWD_UNICODE, CP_ACP);  // 仅用于打开旧的系统 ANSI 包
+zip.SetPassword(_T("secret"));
+zip.SetPassword(_T("中文密码"));   // → UTF-8
+zip.SetCompressLevel(0);           // STORE
+if( zip.IsEncrypted() ) { /* 需密码 */ }
+TZipItem item;
+zip.GetItem(_T("main.xml"), item);
 ```
 
 | 操作 | 方法 | 说明 |
@@ -41,7 +47,7 @@ zip.SetPasswordEncoding(ZIP_PWD_UNICODE, CP_ACP);  // 仅用于打开旧的系�
 - `ExtractAll` / `ExtractDir` 解压后路径必须仍在目标目录内（防 zip-slip）
 - 单条未压缩大小默认上限 **512MB**（`SetMaxUncompressedSize`；`0` = 不限制，仅可信包）
 - 改包时用临时文件 + `ReplaceFile`，失败不删原包
-- 密码：默认 UNICODE → UTF-8；`ZIP_PWD_ASCII` 才要求纯 ASCII。`AddDir` 不跟随交接点（reparse point）
+- 密码：宽字符固定 UTF-8。`AddDir` 不跟随交接点（reparse point）
 
 ```cpp
 zip.AddFile(_T("/ssss/sss/aa/sss.txt"), _T("c:\\data\\sss.txt"));
@@ -84,31 +90,42 @@ if( zip.ExtractMemory(_T("main.xml"), &p, &cb) ) {
 
 // 内存包
 CZipFile mem;
-mem.CreateMemory(8 * 1024 * 1024);
+mem.CreateMemory(0);
 mem.AddMemory(_T("a.txt"), "hello", 5);
-BYTE* pZip = NULL; DWORD nZip = 0;
-mem.GetMemory(&pZip, &nZip);
+mem.Commit();                               // 可选：显式结束写入
+DWORD nZip = mem.GetMemorySize();
+BYTE* pZip = NULL;
+mem.DetachMemory(&pZip, &nZip);             // 零额外拷贝交出整包；之后 mem 已关闭
 CPaintManagerUI::SetResourceZip(pZip, nZip);
 delete[] pZip;
 
+// 零拷贝打开已有缓冲（缓冲须保持有效）
+CZipFile view;
+view.AttachMemory(pExisting, nExisting);
+
 // 一句解压
 CZipFile::UnzipToDirectory(_T("skin.zip"), _T("c:\\tmp\\skin"));
+CZipFile::UnzipMemoryToDirectory(pZip, nZip, _T("c:\\tmp\\skin2"));
 ```
 
 | 方法 | 说明 |
 |------|------|
-| `SetPassword` / `GetPassword` | 整包同一密码；空 = 无密码 |
-| `SetPasswordEncoding` | `ZIP_PWD_ASCII` 或 `ZIP_PWD_UNICODE`（默认 UTF-8；旧包可传 `CP_ACP`） |
+| `SetPassword` / `GetPassword` | 整包同一密码（UTF-8）；空 / NULL = 无密码；打开后可改 |
+| `SetCompressLevel` / `GetCompressLevel` | `-1` 默认；`0` STORE；`1..9` deflate |
+| `IsEncrypted` | 是否含加密条目（不解压） |
 | `Create(路径)` | 新建/覆盖磁盘 ZIP，进入写入会话 |
-| `CreateMemory(nMaxBytes)` | 内存 ZIP，`nMaxBytes` 为**压缩后整包上限** |
-| `Open` / `OpenMemory` / `OpenResource` / `OpenResourceFile` | 打开 zip 文件 / 内存 / 已加载模块 / 磁盘 EXE、DLL 资源 |
-| `Close` / `IsOpen` / `IsMemory` / `GetPath` | |
+| `CreateMemory(nMaxBytes)` | 内存 ZIP；`nMaxBytes` 为**可选软上限**（可增长）；`0` = 不限制 |
+| `Open` / `OpenMemory` / `AttachMemory` / `OpenResource` / `OpenResourceFile` | 打开 zip；`OpenMemory` 默认拷贝；`AttachMemory` / `OpenMemory(..., false)` 零拷贝（缓冲须保持有效） |
+| `Close` / `Commit` / `IsOpen` / `IsMemory` / `GetPath` | `Commit` 显式结束写入会话 |
 | `SaveAs` / `SaveResource` / `SaveResourceDll` | 另存 zip；写回已有 EXE/DLL 资源；**新建**仅含资源的 DLL |
-| `GetMemory` | 整包字节，`delete[]` |
+| `GetMemory` / `GetMemorySize` / `DetachMemory` | 整包拷贝；只取长度；交出内部缓冲所有权（`delete[]`） |
+| `GetCount` / `GetItem` / `Find` | `GetItem` 支持下标或条目名；`GetCount` 有缓存 |
 | `AddDir` / `ExtractDir` / `IsDir` | 打包磁盘目录；解出目录（去掉前缀）；判断是否为目录 |
 | `Remove` / `RemoveDir` | 删文件；删目录（含 `dir/` 子路径）。目录不存在或目标是文件则失败 |
+| `Test` | 解压校验全部条目（不落盘）；可选返回失败下标 |
 | `SetMaxUncompressedSize` | 单条解压上限，默认 512MB；`0` 不限制 |
-| `GetLastResult` / `GetErrorMessage` | `ZRESULT` 与说明 |
+| `GetLastResult` / `GetErrorMessage` | minizip `MZ_*` 结果码（`MZ_OK=0`）与说明 |
+| `UnzipToDirectory` / `UnzipMemoryToDirectory` | 静态：文件/内存包解到目录 |
 
 ---
 
@@ -164,26 +181,8 @@ zip.SaveResourceDll(_T("c:\\app\\skin.dll"), _T("SKIN"), RT_RCDATA);
 
 ---
 
-## 底层 API
+## 兼容说明
 
-一般不必直接用。创建与打开是两种 `HZIP`，**不能混用**（`ZR_ZMODE`）。没有原地改/删。
-
-```cpp
-HZIP hz = CreateZip(_T("a.zip"), NULL);
-ZipAdd(hz, _T("a.txt"), _T("c:\\a.txt"));
-CloseZip(hz);
-
-hz = OpenZip(_T("a.zip"), NULL);
-ZIPENTRY ze = {};
-GetZipItem(hz, -1, &ze);
-int n = ze.index;
-FindZipItem(hz, _T("a.txt"), true, &i, &ze);
-UnzipItem(hz, i, ze.name);
-CloseZip(hz);
-```
-
-密码参数是 `const char*`（ASCII）。`CloseZip` 按句柄分发到创建侧或解压侧。
-
-常用结果码：`ZR_OK`、`ZR_MORE`（解压缓冲不够）、`ZR_NOTFOUND`、`ZR_PASSWORD`、`ZR_CORRUPT`、`ZR_NOFILE`、`ZR_MEMSIZE`、`ZR_ZMODE`。`FormatZipMessage` 可转成字符串。
-
-首次把 `zip.cpp` / `UIZip.cpp` 加进工程后需 **CMake 重新 configure**（`aux_source_directory(Utils)` 只在 configure 时扫文件）。
+- 旧 Lucian Wischik `zip.h` / `unzip.h` / ZipCrypto 已移除；请只用 `CZipFile`。
+- 带密码的新包为 AES；旧 ZipCrypto 包无法用当前后端打开。
+- 首次改动 `UIZip.cpp` / `src/3rd` 后需 **CMake 重新 configure**（`aux_source_directory` / 第三方目标只在 configure 时生效）。

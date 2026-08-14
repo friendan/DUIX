@@ -11,6 +11,7 @@ namespace DuiLib {
 	class CIDropTarget;
 	class IRenderContext;
 	class IRenderSurface;
+	class CZipFile;
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
@@ -724,8 +725,7 @@ namespace DuiLib {
 		static CDuiString m_pStrResourcePath;
 		static CDuiString m_pStrResourceZip;
 		static CDuiString m_pStrResourceZipPwd;
-		static HANDLE m_hResourceZip;
-        static BYTE* m_cbZipBuf;
+		static CZipFile* m_pResourceZip;
 
 		static bool m_bCachedResourceZip;
 		static int m_nResType;

@@ -7,7 +7,7 @@
 | 源码 | `src/DuiLib/Control/UIHotKey.*` |
 | 继承属性 | 见 [Label.md](Label.md) |
 
-快捷键录入框：获得焦点后创建系统 `HOTKEY` 子窗口，用户按下组合键后回写显示文本。可用 C++ `SetHotKey` / `GetHotKey` 读写虚拟键与修饰符。
+快捷键录入框：获得焦点后创建系统 `HOTKEY` 子窗口，用户按下组合键后回写显示文本。可用 C++ `SetHotKey` / `GetHotKey` 读写虚拟键与修饰符。删除获焦控件时会同步拆掉原生 HWND，避免焦点回打重建崩溃。
 
 ### 最小示例
 

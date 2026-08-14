@@ -16,7 +16,7 @@
 | 属性 | 说明 |
 |------|------|
 | `selected` | — |
-| `text-align` | 表头列水平对齐：`left` / `center` / `right`；默认 `center`；内容区同列继承 |
+| `text-align` | 表头列水平对齐：`left` / `center` / `right`；默认 `center`；内容区同列继承。**左对齐**时内容格至少沿用表头左右 padding（默认 8），避免贴列线；可用更大的 `item-padding` 覆盖 |
 | `vertical-align` | 表头列垂直对齐：`top` / `middle`（或 `center`）/ `bottom`；默认垂直居中；内容区同列继承 |
 | `font-family` | — |
 | `font-size` | — |
