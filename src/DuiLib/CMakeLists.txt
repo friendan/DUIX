@@ -61,6 +61,8 @@ if(DUILIB_USE_WEBVIEW2)
 endif()
 
 target_link_libraries(DuiLib PUBLIC d2d1 dwrite d3d11 dxgi dcomp lunasvg::lunasvg)
+# minizip-ng 的 WinZip AES/加密用 Bcrypt / CSP APIs（源文件合并进 DuiLib）
+target_link_libraries(DuiLib PUBLIC bcrypt ncrypt crypt32)
 
 # 巨型嵌入图标表需要 /bigobj
 if(MSVC OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
