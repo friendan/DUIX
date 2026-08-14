@@ -1104,7 +1104,10 @@ namespace DuiLib
 			m_mode = ModeNone;
 			return Fail(MZ_INTERNAL_ERROR, _T("get memory zip buffer failed"));
 		}
-		mz_stream_mem_get_buffer_length(m_memStream, &nLen);
+		// minizip-ng 的 get_buffer_length 返回 mem->limit，会被 CreateMemory 里的
+		// set_buffer_limit 钉死在容量上限上，拿不到真实已写长度；writer close 后流停在
+		// 归档末尾，用 tell 取当前位置即实际长度。
+		nLen = (int32_t)mz_stream_tell(m_memStream);
 		BYTE* pCopy = NULL;
 		if( nLen > 0 && pBuf != NULL ) {
 			pCopy = new BYTE[nLen];
