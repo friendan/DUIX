@@ -48,7 +48,8 @@ namespace DuiLib
 		CDuiString sVirtualWnd;
 		CControlUI* pSender;
 		DWORD dwTimestamp;
-		POINT ptMouse;
+		POINT ptMouse;      // 客户端坐标（SendNotify 自动填 m_ptLastMousePos）
+		POINT ptScreen;     // 屏幕坐标（SendNotify 自动由 ptMouse 经 ClientToScreen 求得，统一可信）
 		WPARAM wParam;
 		LPARAM lParam;
 	} TNotifyUI;

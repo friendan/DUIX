@@ -98,11 +98,14 @@ LPCTSTR DUI__TraceMsg(UINT uMsg)
 DUI_BASE_BEGIN_MESSAGE_MAP(CNotifyPump)
 DUI_END_MESSAGE_MAP()
 
-static const DUI_MSGMAP_ENTRY* DuiFindMessageEntry(const DUI_MSGMAP_ENTRY* lpEntry,TNotifyUI& msg )
-{
-	CDuiString sMsgType = msg.sType;
-	CDuiString sCtrlName = msg.pSender->GetName();
-	const DUI_MSGMAP_ENTRY* pMsgTypeEntry = NULL;
+	static const DUI_MSGMAP_ENTRY* DuiFindMessageEntry(const DUI_MSGMAP_ENTRY* lpEntry,TNotifyUI& msg )
+	{
+		CDuiString sMsgType = msg.sType;
+		// 稳健：pSender 为空（或明显非法）时无法按其名字匹配，直接返回空，避免空解引用
+		if( lpEntry == NULL || msg.pSender == NULL )
+			return NULL;
+		CDuiString sCtrlName = msg.pSender->GetName();
+		const DUI_MSGMAP_ENTRY* pMsgTypeEntry = NULL;
 	while (lpEntry->nSig != DuiSig_end)
 	{
 		if(lpEntry->sMsgType==sMsgType)

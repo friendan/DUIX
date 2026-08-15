@@ -435,6 +435,28 @@ namespace DuiLib
 	/// `overflow` 简写：1 值双轴；2 值按 CSS 为 overflow-x overflow-y
 	UILIB_API bool ParseCssOverflowShorthand(LPCTSTR pstrValue, bool& bEnableX, bool& bEnableY);
 
+	/////////////////////////////////////////////////////////////////////////////////////
+	//
+	// 极简文本日志（默认关）。供库内排障/使用者定位事件用：
+	//   关闭时零开销，不在分发路径产生任何调用。
+
+	class UILIB_API CDuiLog
+	{
+	public:
+		static void SetEnabled(bool bEnable);
+		static bool IsEnabled();
+		/// 设置日志文件路径（工程固定 UNICODE，写 UTF-16(LE)）。传 NULL/空则恢复默认：
+		/// 有 D 盘用 D:\\DUIX.log，否则 C:\\DUIX.log。
+		static void SetLogFile(LPCTSTR pszPath);
+		/// 写一行（自动加时间戳与换行）；未启用时为空操作。
+		static void Write(LPCTSTR pstrFormat, ...);
+		/// 带来源（文件+行号）写一行。（不建议直接调用，用 DUILOG 宏）
+		static void WriteAt(LPCTSTR pszFile, int nLine, LPCTSTR pstrFormat, ...);
+	};
+
+	/// 带文件与行号写日志（默认关，未启用时零开销）。推荐用这个宏而非直接 Write。
+#define DUILOG(...) DuiLib::CDuiLog::WriteAt(__FILEW__, __LINE__, __VA_ARGS__)
+
 }// namespace DuiLib
 
 #endif // __UTILS_H__

@@ -469,14 +469,20 @@
                         <Label text="加载 skin/duidemo/layouttest.htm" theme="secondary" />
                       </HBox>
                     </AccordionItem>
-                    <AccordionItem title="TabBar" active="false" header-align="left">
-                      <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
-                        <Button name="btn_tabbar_test" text="打开 TabBar 测试窗口" kind="primary" width="180" height="36" tooltip="打开 TabBar 专项测试窗（切换 / 关闭 / 锁定 / 滚动 / 拖拽）" />
-                        <Button name="btn_browser_test" text="打开 Browser 壳" kind="default" width="140" height="36" tooltip="打开 browser.html（TabBar + 地址栏浏览器壳）" />
-                        <Label text="切换 / 关闭 / 锁定 / 左右钮+滚轮溢出 / 左键拖拽排序 / 动态增删" theme="secondary" />
-                      </HBox>
-                    </AccordionItem>
-                </Accordion>
+                					    <AccordionItem title="TabBar" active="false" header-align="left">
+                					      <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
+                					        <Button name="btn_tabbar_test" text="打开 TabBar 测试窗口" kind="primary" width="180" height="36" tooltip="打开 TabBar 专项测试窗（切换 / 关闭 / 锁定 / 滚动 / 拖拽）" />
+                					        <Button name="btn_browser_test" text="打开 Browser 壳" kind="default" width="140" height="36" tooltip="打开 browser.html（TabBar + 地址栏浏览器壳）" />
+                					        <Label text="切换 / 关闭 / 锁定 / 左右钮+滚轮溢出 / 左键拖拽排序 / 动态增删" theme="secondary" />
+                					      </HBox>
+                					    </AccordionItem>
+                					    <AccordionItem title="空白右键菜单" active="false" header-align="left">
+                					      <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
+                					        <Button name="btn_blankmenu_test" text="打开空白右键菜单测试" kind="primary" width="180" height="36" tooltip="页面未铺满时空白右键 -> 给容器/根发 DUI_MSGTYPE_MENU（SetBlankContextMenuEnabled）" />
+                					        <Label text="内容区外空白右键弹菜单，含屏幕坐标" theme="secondary" />
+                					      </HBox>
+                					    </AccordionItem>
+                					  </Accordion>
 
                 <!-- 3 反馈 -->
                 <Accordion mode="single" header-height="40">

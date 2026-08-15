@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window>
+  <VBox padding="16,16,16,16" gap="8">
+    <HBox height="36" gap="8" align-items="vcenter">
+      <Label text="空白右键菜单测试（容器内真空带）" font="1,1" />
+      <Button name="closebtn" text="关闭" kind="default" width="72" height="30" />
+    </HBox>
+    <Label text="模拟 siteTabs+sitePage：TabLayout 铺满，选中页 VBox 也铺满，但站点按钮只占上部一行，下方即为“容器内真空带”。请在其内右键看是否弹菜单。" theme="secondary" />
+    <!-- siteTabs：占满剩余高度 -->
+    <TabLayout name="siteTabs" flexible="1" selected-id="0">
+      <!-- sitePage：铺满 TabLayout，内容只占上部，下部留白（容器内真空） -->
+      <VBox name="sitePage" padding="0" gap="0">
+        <HBox name="siteRow" height="64" gap="8" align-items="vcenter" padding="8,8,8,8">
+          <Button name="site_btn" text="站点按钮(这行有内容)" kind="primary" width="200" height="36" />
+          <Label text="右击此行按钮可弹菜单（控件 MENU）" theme="secondary" flex="1" />
+        </HBox>
+        <!-- 下方无任何子控件 => 真空带 -->
+      </VBox>
+    </TabLayout>
+    <Label name="status" text="就绪" height="24" color="#1677FF" />
+  </VBox>
+</Window>

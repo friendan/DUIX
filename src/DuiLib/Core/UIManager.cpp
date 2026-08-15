@@ -297,6 +297,8 @@ namespace DuiLib {
 		m_trh(0),
 		m_bDragDrop(false),
 		m_bDragMode(false),
+		m_bBlankCtxMenu(false),
+		m_bBlankCtxMenuDeepest(true),
 		m_hDragBitmap(NULL)
 	{
 		if (m_SharedResInfo.m_DefaultFontInfo.sFontName.IsEmpty())
@@ -2319,9 +2321,12 @@ namespace DuiLib {
 				if (!m_bNoActivate) ::SetFocus(m_hWndPaint);
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				m_ptLastMousePos = pt;
+				DUILOG(_T("[rbdn] enter pt=(%d,%d)"), pt.x, pt.y);
 				CControlUI* pControl = FindControl(pt);
-				if( pControl == NULL ) break;
-				if( pControl->GetManager() != this ) break;
+				if( pControl == NULL ) { DUILOG(_T("[rbdn] not found -> break")); break; }
+				if( pControl->GetManager() != this ) { DUILOG(_T("[rbdn] manager mismatch -> break")); break; }
+				DUILOG(_T("[rbdn] found %s(%s)"), pControl->GetClass(),
+					pControl->GetName().IsEmpty() ? _T("(no-name)") : pControl->GetName().GetData());
 				pControl->SetFocus();
 				SetCapture();
 				TEventUI event = { 0 };
@@ -2342,8 +2347,12 @@ namespace DuiLib {
 
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				m_ptLastMousePos = pt;
-				m_pEventRClick = FindControl(pt);
-				if(m_pEventRClick == NULL) break;
+				DUILOG(_T("[rbup] enter pt=(%d,%d) capture=%d"), pt.x, pt.y, m_bMouseCapture ? 1 : 0);
+				CControlUI* pCtrl = FindControl(pt);
+				m_pEventRClick = pCtrl;
+				if(m_pEventRClick == NULL) { DUILOG(_T("[rbup] not found -> break")); break; }
+				DUILOG(_T("[rbup] found %s(%s)"), m_pEventRClick->GetClass(),
+					m_pEventRClick->GetName().IsEmpty() ? _T("(no-name)") : m_pEventRClick->GetName().GetData());
 
 				TEventUI event = { 0 };
 				event.Type = UIEVENT_RBUTTONUP;
@@ -2403,8 +2412,69 @@ namespace DuiLib {
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				::ScreenToClient(m_hWndPaint, &pt);
 				m_ptLastMousePos = pt;
-				if( m_pEventRClick == NULL ) break;
+				// 视为“空白”的数种情形：
+				//  1) m_pEventRClick == NULL（真无控件命中）；
+				//  2) 命中的是未启用右键菜单的容器（纯布局容器原路径本就无菜单）。
+				// 注意：CComboUI/CEditUI/CTextUI/ScrollBar 等自带原生右键菜单的控件不算空白。
+				DUILOG(_T("[ctxmenu] enter pt=(%d,%d) switch=%d evtRClick=%s\n    name=%s used=%d"),
+					pt.x, pt.y, m_bBlankCtxMenu ? 1 : 0,
+					m_pEventRClick ? m_pEventRClick->GetClass() : _T("NULL"),
+					m_pEventRClick ? (m_pEventRClick->GetName().IsEmpty() ? _T("(no-name)") : m_pEventRClick->GetName().GetData()) : _T("(no-name)"),
+					m_pEventRClick ? (m_pEventRClick->IsContextMenuUsed() ? 1 : 0) : -1);
+				if( m_bBlankCtxMenu ) {
+					bool bBlank = ( m_pEventRClick == NULL );
+					if( !bBlank && !m_pEventRClick->IsContextMenuUsed() ) {
+						// 命中未启用右键菜单的容器 -> 视为空白兜底（纯布局容器原路径本就无菜单）
+						IContainerUI* pC = static_cast<IContainerUI*>(m_pEventRClick->GetInterface(_T("IContainer")));
+						bBlank = ( pC != NULL );
+					}
+					if( bBlank ) {
+						ReleaseCapture();
+						CControlUI* pTarget = m_bBlankCtxMenuDeepest ? FindDeepestContainerAt(pt) : m_pRoot;
+						DUILOG(_T("[ctxmenu] blank -> target=%s(%s)"),
+							pTarget ? pTarget->GetClass() : _T("NULL"),
+							pTarget ? (pTarget->GetName().IsEmpty() ? _T("(no-name)") : pTarget->GetName().GetData()) : _T("(no-name)"));
+						// 稳健：target 必须属于本 manager（避免误发到其它窗口/已被摘除的节点），否则回落窗口根
+						if( pTarget != NULL && pTarget->GetManager() != this ) {
+							DUILOG(_T("[ctxmenu] target not owned by this manager -> fallback to root"));
+							pTarget = m_pRoot;
+						}
+						if( pTarget != NULL ) {
+							// 定向：空白 MENU 只发“设置了 OnNotify 回调”的容器，不广播整个 manager。
+							// 就近原则：从命中的最内层容器沿父链向上，找第一个 OnNotify 非空的容器来接收，
+							// 从而“在祖先 A 设置一次，就能覆盖整棵子树（无论空白落在 B/C）”。
+							CControlUI* pDispatch = NULL;
+							for( CControlUI* p = pTarget; p != NULL; p = p->GetParent() ) {
+								if( p->OnNotify ) { pDispatch = p; break; }
+							}
+							TNotifyUI Msg;
+							::ZeroMemory(&Msg, sizeof(Msg));
+							Msg.sType = DUI_MSGTYPE_MENU;
+							Msg.pSender = pTarget;   // 仍指向实际命中的最内层容器，便于回调知道点在哪个容器
+							Msg.wParam = wParam;
+							Msg.lParam = lParam;
+							Msg.ptMouse = m_ptLastMousePos;
+							Msg.ptScreen = m_ptLastMousePos;
+							if( m_hWndPaint != NULL && ::IsWindow(m_hWndPaint) )
+								::ClientToScreen(m_hWndPaint, &Msg.ptScreen);
+							Msg.dwTimestamp = ::GetTickCount();
+							if( m_bUsedVirtualWnd )
+								Msg.sVirtualWnd = pTarget->GetVirtualWnd();
+							if( pDispatch != NULL )
+								pDispatch->OnNotify(&Msg);
+							DUILOG(_T("[ctxmenu] blank hit=%s(%s) dispatchOnNotify=%s(%s)"),
+								pTarget->GetClass(),
+								!(pTarget->GetName().IsEmpty()) ? pTarget->GetName().GetData() : _T("(no-name)"),
+								pDispatch ? pDispatch->GetClass() : _T("NONE"),
+								(pDispatch && !pDispatch->GetName().IsEmpty()) ? pDispatch->GetName().GetData() : _T("(no-name)"));
+						}
+						break;
+					}
+					DUILOG(_T("[ctxmenu] blank=0 (hit non-blank control)"));
+				}
+				if( m_pEventRClick == NULL ) { DUILOG(_T("[ctxmenu] evtRClick NULL, switch off -> break (swallowed)")); break; }
 				ReleaseCapture();
+				DUILOG(_T("[ctxmenu] sending UIEVENT_CONTEXTMENU to %s"), m_pEventRClick->GetClass());
 				TEventUI event = { 0 };
 				event.Type = UIEVENT_CONTEXTMENU;
 				event.pSender = m_pEventRClick;
@@ -2726,6 +2796,14 @@ namespace DuiLib {
 	{
 		MSG msg = { 0 };
 		while( ::GetMessage(&msg, NULL, 0, 0) ) {
+			// 消息派发点日志：看右键消息被投给了哪个 hwnd（区分本窗还是其它窗口）
+			if( (msg.message == WM_RBUTTONDOWN || msg.message == WM_RBUTTONUP || msg.message == WM_CONTEXTMENU)
+				&& CDuiLog::IsEnabled() ) {
+				POINT mpt = { GET_X_LPARAM(msg.lParam), GET_Y_LPARAM(msg.lParam) };
+				HWND mh = ::WindowFromPoint(mpt);
+				DUILOG(_T("[dispatch] uMsg=0x%X hwnd=0x%p windowFromPoint=0x%p pt=(%d,%d)"),
+					msg.message, (void*)msg.hwnd, (void*)mh, mpt.x, mpt.y);
+			}
 			if( !CPaintManagerUI::TranslateMessage(&msg) ) {
 				::TranslateMessage(&msg);
 				try{
@@ -3255,6 +3333,10 @@ namespace DuiLib {
 	void CPaintManagerUI::SendNotify(TNotifyUI& Msg, bool bAsync /*= false*/)
 	{
 		Msg.ptMouse = m_ptLastMousePos;
+		// ptScreen 统一填 ptMouse 的屏幕坐标版：任意通知都可信，控件/空白菜单弹菜单用同一坐标。
+		Msg.ptScreen = m_ptLastMousePos;
+		if( m_hWndPaint != NULL && ::IsWindow(m_hWndPaint) )
+			::ClientToScreen(m_hWndPaint, &Msg.ptScreen);
 		Msg.dwTimestamp = ::GetTickCount();
 		if( m_bUsedVirtualWnd )
 		{
@@ -3263,12 +3345,32 @@ namespace DuiLib {
 
 		if( !bAsync ) {
 			// Send to all listeners
-			if( Msg.pSender != NULL ) {
-				if( Msg.pSender->OnNotify ) Msg.pSender->OnNotify(&Msg);
+			if( Msg.pSender != NULL && !::IsBadReadPtr(Msg.pSender, sizeof(void*)) ) {
+				DUILOG(_T("[notify] before OnNotify sender=%s(%s)"),
+					Msg.pSender->GetClass(),
+					!(Msg.pSender->GetName().IsEmpty()) ? Msg.pSender->GetName().GetData() : _T("(no-name)"));
+				if( Msg.pSender->OnNotify ) {
+					Msg.pSender->OnNotify(&Msg);
+					DUILOG(_T("[notify] after OnNotify"));
+				}
+				else {
+					DUILOG(_T("[notify] OnNotify is null, skip"));
+				}
 			}
-			for( int i = 0; i < m_aNotifiers.GetSize(); i++ ) {
-				static_cast<INotifyUI*>(m_aNotifiers[i])->Notify(Msg);
+			int nNotifiers = m_aNotifiers.GetSize();
+			DUILOG(_T("[notify] broadcasting to %d notifiers"), nNotifiers);
+			for( int i = 0; i < nNotifiers; i++ ) {
+				INotifyUI* pN = static_cast<INotifyUI*>(m_aNotifiers[i]);
+				// 粗查指针可读性，明显非法（垂悬/错位）则跳过，避免拖垮整个消息派发
+				if( pN == NULL || ::IsBadReadPtr(pN, sizeof(void*)) ) {
+					DUILOG(_T("[notify] notifier[%d]=0x%p invalid, skip"), i, (void*)pN);
+					continue;
+				}
+				DUILOG(_T("[notify] notifier[%d]=0x%p -> Notify"), i, (void*)pN);
+				pN->Notify(Msg);
+				DUILOG(_T("[notify] notifier[%d] done"), i);
 			}
+			DUILOG(_T("[notify] broadcast done"));
 		}
 		else {
 			TNotifyUI *pMsg = new TNotifyUI;
@@ -4250,10 +4352,58 @@ namespace DuiLib {
 		return m_pRoot;
 	}
 
+	void CPaintManagerUI::SetBlankContextMenuEnabled(bool bEnable)
+	{
+		m_bBlankCtxMenu = bEnable;
+	}
+
+	bool CPaintManagerUI::IsBlankContextMenuEnabled() const
+	{
+		return m_bBlankCtxMenu;
+	}
+
+	void CPaintManagerUI::SetBlankContextMenuUseDeepestContainer(bool bUse)
+	{
+		m_bBlankCtxMenuDeepest = bUse;
+	}
+
+	bool CPaintManagerUI::IsBlankContextMenuUseDeepestContainer() const
+	{
+		return m_bBlankCtxMenuDeepest;
+	}
+
 	CControlUI* CPaintManagerUI::FindControl(POINT pt) const
 	{
 		ASSERT(m_pRoot);
 		return m_pRoot->FindControl(__FindControlFromPoint, &pt, UIFIND_VISIBLE | UIFIND_HITTEST | UIFIND_TOP_FIRST);
+	}
+
+	// 递归求 pt 处最内层（最深）可见容器。忽略 IsMouseEnabled，纯按矩形+可见性判定；
+	// 只返回容器（叶子控件不算），无更深命中时返回覆盖 pt 的自身容器。
+	static CControlUI* __FindDeepestContainerAtRec(CControlUI* pCtrl, POINT pt)
+	{
+		if( pCtrl == NULL ) return NULL;
+		if( !pCtrl->IsVisible() ) return NULL;
+		if( !::PtInRect(&pCtrl->GetPos(), pt) ) return NULL;
+
+		IContainerUI* pC = static_cast<IContainerUI*>(pCtrl->GetInterface(_T("IContainer")));
+		if( pC != NULL ) {
+			// 优先深层的容器命中；TOP_FIRST 语义：最后加入的在上层，最内层命中优先
+			for( int it = pC->GetCount() - 1; it >= 0; it-- ) {
+				CControlUI* pDeep = __FindDeepestContainerAtRec(pC->GetItemAt(it), pt);
+				if( pDeep != NULL ) return pDeep;
+			}
+			// 子项无更深容器命中 → 返回自身（此容器覆盖 pt）
+			return pCtrl;
+		}
+		// 叶子控件：交由父容器的回退处理，自身不作为“容器”返回
+		return NULL;
+	}
+
+	CControlUI* CPaintManagerUI::FindDeepestContainerAt(POINT pt) const
+	{
+		if( m_pRoot == NULL ) return NULL;
+		return __FindDeepestContainerAtRec(m_pRoot, pt);
 	}
 
 	CControlUI* CPaintManagerUI::FindControl(LPCTSTR pstrName) const

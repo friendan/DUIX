@@ -545,6 +545,14 @@ namespace DuiLib {
 		void SendNotify(TNotifyUI& Msg, bool bAsync = false);
 		void SendNotify(CControlUI* pControl, LPCTSTR pstrMessage, WPARAM wParam = 0, LPARAM lParam = 0, bool bAsync = false);
 
+		// ---- 空白右键菜单（默认全关，对库无影响；开启后仅空白右键多发一条 DUI_MSGTYPE_MENU） ----
+		/// 是否启用“空白右键 -> 给容器/根发 DUI_MSGTYPE_MENU”的兜底。默认 false。
+		void SetBlankContextMenuEnabled(bool bEnable);
+		bool IsBlankContextMenuEnabled() const;
+		/// target 选择：true=最内层覆盖点的可见容器（默认）；false=窗口根容器。
+		void SetBlankContextMenuUseDeepestContainer(bool bUse);
+		bool IsBlankContextMenuUseDeepestContainer() const;
+
 		bool AddPreMessageFilter(IMessageFilterUI* pFilter);
 		bool RemovePreMessageFilter(IMessageFilterUI* pFilter);
 
@@ -600,6 +608,8 @@ namespace DuiLib {
 		static CControlUI* CALLBACK __FindControlFromNameHash(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromCount(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromPoint(CControlUI* pThis, LPVOID pData);
+		/// pt 处最内层可见容器（忽略 mouse），供空白右键菜单 target。
+		CControlUI* FindDeepestContainerAt(POINT pt) const;
 		static CControlUI* CALLBACK __FindControlFromTab(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromShortcut(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromName(CControlUI* pThis, LPVOID pData);
@@ -640,6 +650,8 @@ namespace DuiLib {
         CControlUI* m_pEventRClick;
 		CControlUI* m_pEventKey;
 		CControlUI* m_pLastToolTip;
+		bool m_bBlankCtxMenu;          // 空白右键菜单总开关，默认 false
+		bool m_bBlankCtxMenuDeepest;   // target 模式：true=最内层容器（默认），false=根容器
 		//
 		POINT m_ptLastMousePos;
 		SIZE m_szMinWindow;

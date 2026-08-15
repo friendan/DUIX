@@ -37,3 +37,7 @@
 
 - 纯色弹出菜单：`CMenuWnd` 在 `ResizeMenu` / `ResizeSubMenu` 时自动调用 `CThemeManager::ApplyMenuChrome`（list chrome + 分隔线 `line-color`）；热切主题时已打开菜单也会刷新。
 - 退出自动套色：根 `Menu` 上 `theme="none"`，或使用 `background-image` 图片壳（九宫等不会自动跟色，需自备多套皮或改纯色）。
+
+### 空白处右键
+
+无控件命中（布局空白/未铺满区）的右键默认被框架吞掉。给容器/根补发 `DUI_MSGTYPE_MENU` 的开关见 **[Window.md](Window.md)**「空白右键菜单」。应用层在 `Notify` 收到后可用 `CMenuWnd::Init` 弹出菜单（Demo：`CBlankMenuWnd` / `blankmenu.html`）。

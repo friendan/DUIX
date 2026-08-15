@@ -1796,4 +1796,127 @@ namespace DuiLib
 		return NULL;
 	}
 
+	/////////////////////////////////////////////////////////////////////////////////////
+	//
+
+	namespace {
+		LONG             g_logEnabled = 0;
+		TCHAR            g_logFile[MAX_PATH] = { 0 };   // 空 = 未显式指定，默认自动选 D/C 盘 DUIX.log
+		LONG             g_logCsInit = 0;
+		CRITICAL_SECTION g_logCs;
+
+		CRITICAL_SECTION* LogCs()
+		{
+			// 一次性初始化；对诊断日志而言偶发的竞态可忽略
+			if( InterlockedCompareExchange(&g_logCsInit, 1, 0) == 0 )
+				::InitializeCriticalSection(&g_logCs);
+			return &g_logCs;
+		}
+
+		// 选一个可写的默认路径：有 D 盘优先 D:\\DUIX.log，否则 C:\\DUIX.log，都不行返回 NULL
+		HANDLE TryOpenLogFile(LPCTSTR pPath)
+		{
+			return ::CreateFile(pPath, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		}
+
+		// 私有：真实写入（参数已取好）。prefix 为 文件(行号) 前缀（可为空串）。
+		void WriteVA(LPCTSTR pPrefix, LPCTSTR pstrFormat, va_list args)
+		{
+			TCHAR sz[2048] = { 0 };
+			_vsntprintf_s(sz, 2047, pstrFormat, args);
+
+			SYSTEMTIME st;
+			::GetLocalTime(&st);
+			TCHAR ts[96];
+			_stprintf_s(ts, _T("[%02d:%02d:%02d.%03d] "), st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+			CRITICAL_SECTION* pCs = LogCs();
+			if( pCs != NULL ) ::EnterCriticalSection(pCs);
+
+			HANDLE h = INVALID_HANDLE_VALUE;
+			if( g_logFile[0] != _T('\0') )
+				h = TryOpenLogFile(g_logFile);
+			else {
+				// 默认路径：有 D 盘优先依次试 D、C，只要有一个能建文件就用它
+				DWORD dwBits = ::GetLogicalDrives();
+				bool bHasD = (dwBits & (1u << ('D' - 'A'))) != 0;
+				const TCHAR* pFirst  = bHasD ? _T("D:\\DUIX.log") : _T("C:\\DUIX.log");
+				const TCHAR* pSecond = bHasD ? _T("C:\\DUIX.log") : _T("D:\\DUIX.log");
+				h = TryOpenLogFile(pFirst);
+				if( h == INVALID_HANDLE_VALUE )
+					h = TryOpenLogFile(pSecond);
+			}
+
+			if( h != INVALID_HANDLE_VALUE ) {
+				::SetFilePointer(h, 0, NULL, FILE_END);
+				TCHAR line[2400];
+				_stprintf_s(line, _T("%s%s%s\r\n"), ts, pPrefix, sz);
+				// 工程固定 UNICODE，直接写 UTF-16(LE) 字节
+				DWORD cb = (DWORD)(_tcslen(line) * sizeof(TCHAR));
+				::WriteFile(h, line, cb, &cb, NULL);
+				::CloseHandle(h);
+			}
+			else {
+				// 所有路径写不了就退到调试串
+				::OutputDebugString(ts);
+				::OutputDebugString(pPrefix);
+				::OutputDebugString(sz);
+				::OutputDebugString(_T("\n"));
+			}
+
+			if( pCs != NULL ) ::LeaveCriticalSection(pCs);
+		}
+	}
+
+	void CDuiLog::SetEnabled(bool bEnable)
+	{
+		InterlockedExchange(&g_logEnabled, bEnable ? 1 : 0);
+	}
+
+	bool CDuiLog::IsEnabled()
+	{
+		return g_logEnabled != 0;
+	}
+
+	void CDuiLog::SetLogFile(LPCTSTR pszPath)
+	{
+		CRITICAL_SECTION* pCs = LogCs();
+		if( pCs == NULL ) return;
+		::EnterCriticalSection(pCs);
+		if( pszPath != NULL && *pszPath != _T('\0') )
+			_tcsncpy_s(g_logFile, MAX_PATH, pszPath, _TRUNCATE);
+		else
+			g_logFile[0] = _T('\0');   // 清空 = 回退默认路径
+		::LeaveCriticalSection(pCs);
+	}
+
+	void CDuiLog::Write(LPCTSTR pstrFormat, ...)
+	{
+		if( g_logEnabled == 0 ) return;
+		va_list args;
+		va_start(args, pstrFormat);
+		WriteVA(_T(""), pstrFormat, args);
+		va_end(args);
+	}
+
+	void CDuiLog::WriteAt(LPCTSTR pszFile, int nLine, LPCTSTR pstrFormat, ...)
+	{
+		if( g_logEnabled == 0 ) return;
+		// 提取文件名（去掉目录，避免路径过长）：从最后的 '\\' 或 '/' 开始
+		LPCWSTR pName = pszFile;
+		if( pszFile != NULL ) {
+			for( LPCWSTR p = pszFile; *p; ++p )
+				if( *p == L'\\' || *p == L'/' ) pName = p + 1;
+		}
+		TCHAR prefix[300];
+		if( pName != NULL && nLine > 0 )
+			_stprintf_s(prefix, _T("%s(%d) "), pName, nLine);
+		else
+			prefix[0] = _T('\0');
+		va_list args;
+		va_start(args, pstrFormat);
+		WriteVA(prefix, pstrFormat, args);
+		va_end(args);
+	}
+
 } // namespace DuiLib

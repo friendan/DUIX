@@ -15,12 +15,13 @@
 |------|------|
 | [CustomControl.md](CustomControl.md) | 自定义控件：工厂 / 窗口回调 / 插件 / 并入库 |
 
-## 工具
+	## 工具
 
-| 文档 | 说明 |
-|------|------|
-| [Zip.md](Zip.md) | ZIP 创建 / 解压 / 皮肤 `SetResourceZip` |
-| [TrayIcon.md](TrayIcon.md) | 系统托盘 `CTrayIcon` |
+	| 文档 | 说明 |
+	|------|------|
+	| [Zip.md](Zip.md) | ZIP 创建 / 解压 / 皮肤 `SetResourceZip` |
+	| [TrayIcon.md](TrayIcon.md) | 系统托盘 `CTrayIcon` |
+	| [Window.md](Window.md)#调试日志-cdulog | 通用日志 `CDuiLog`：开关 / 路径（用法详见 Window.md） |
 
 ## 属性符合度
 

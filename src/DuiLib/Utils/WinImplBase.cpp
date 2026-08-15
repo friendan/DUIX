@@ -925,6 +925,26 @@ namespace DuiLib
 	{
 		LRESULT lRes = 0;
 		BOOL bHandled = TRUE;
+		// 鼠标消息最外层入口日志：确认点击是否真到了本窗（含客户区(左/右)与非客户区 NC）。
+		// 开销：类型判断(常量) + 开关原子读，都极快；只有这些消息且开了日志才做坐标/命中计算。
+		// 注意：NC 消息 lParam 是屏幕坐标、wParam 是命中测试 HT 值；客户区消息 lParam 是客户坐标。
+		if( (uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP || uMsg == WM_RBUTTONDOWN
+			 || uMsg == WM_RBUTTONUP || uMsg == WM_MBUTTONDOWN || uMsg == WM_MBUTTONUP
+			 || uMsg == WM_CONTEXTMENU
+			 || uMsg == WM_NCLBUTTONDOWN || uMsg == WM_NCLBUTTONUP || uMsg == WM_NCRBUTTONDOWN
+			 || uMsg == WM_NCRBUTTONUP || uMsg == WM_NCMBUTTONDOWN || uMsg == WM_NCMBUTTONUP)
+			&& CDuiLog::IsEnabled() ) {
+			POINT spta = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			POINT cpta = spta;
+			::ScreenToClient(m_hWnd, &cpta);
+			RECT rcct;
+			::GetClientRect(m_hWnd, &rcct);
+			HWND hfp = ::WindowFromPoint(spta);
+			BOOL bNC = (uMsg >= WM_NCLBUTTONDOWN && uMsg <= WM_NCMBUTTONUP);
+			DUILOG(_T("[HandleMessage] uMsg=0x%X%hs screen=(%d,%d) client=(%d,%d) win=(%d,%d,%d,%d) hit=0x%p"),
+				uMsg, bNC ? "(NC) " : "", spta.x, spta.y, cpta.x, cpta.y,
+				rcct.left, rcct.top, rcct.right, rcct.bottom, (void*)hfp);
+		}
 		switch (uMsg)
 		{
 		case WM_CREATE:			lRes = OnCreate(uMsg, wParam, lParam, bHandled); break;
@@ -952,6 +972,26 @@ namespace DuiLib
 			}
 			bHandled = FALSE;
 			break;
+		}
+		// 非客户区右键（action:title 把空白区判成 HTCAPTION 时，系统发给 WM_NCRBUTTON*）。
+		// 处理：左键仍走 DefWindowProc 拖拽；右键转回客户区消息，让 DUIX 正常走 WM_CONTEXTMENU 弹菜单。
+		case WM_NCRBUTTONDOWN:
+		case WM_NCRBUTTONUP:
+		case WM_NCRBUTTONDBLCLK: {
+			POINT spt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };   // NC 消息坐标是屏幕坐标
+			POINT cpt = spt;
+			::ScreenToClient(m_hWnd, &cpt);
+			// 转客户区坐标，交给客户区右键流程（与 HTMAXBUTTON 的转发同模式）
+			if( uMsg == WM_NCRBUTTONDOWN )
+				::SendMessage(m_hWnd, WM_RBUTTONDOWN, wParam, MAKELPARAM(cpt.x, cpt.y));
+			else if( uMsg == WM_NCRBUTTONUP )
+				::SendMessage(m_hWnd, WM_RBUTTONUP, wParam, MAKELPARAM(cpt.x, cpt.y));
+			else if( uMsg == WM_NCRBUTTONDBLCLK )
+				::SendMessage(m_hWnd, WM_RBUTTONDBLCLK, wParam, MAKELPARAM(cpt.x, cpt.y));
+			// 抬起后补发 WM_CONTEXTMENU（系统对非客户区不会自动生成），DUIX 据此弹菜单
+			if( uMsg == WM_NCRBUTTONUP )
+				::SendMessage(m_hWnd, WM_CONTEXTMENU, wParam, MAKELPARAM(spt.x, spt.y));
+			return 0;
 		}
 		case WM_NCMOUSEHOVER:
 		case WM_NCMOUSELEAVE:

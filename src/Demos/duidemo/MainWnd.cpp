@@ -8,8 +8,9 @@
 #include "CarouselTestWnd.h"
 #include "LayoutTestWnd.h"
 #include "SettingsSyncWnd.h"
-#include "ShapeDemoWnd.h"
-#include "Icons/BootstrapIconsData.h"
+	#include "ShapeDemoWnd.h"
+	#include "BlankMenuWnd.h"
+	#include "Icons/BootstrapIconsData.h"
 #include "Icons/LucideIconsIconsData.h"
 #include "Icons/IconParkIconsData.h"
 #include "Icons/TablerOutlineIconsData.h"
@@ -649,6 +650,10 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("btn_carousel_test")) == 0)
 	{
 		CCarouselTestWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_blankmenu_test")) == 0)
+	{
+		CBlankMenuWnd::Open(m_hWnd);
 	}
 	else if(sName.CompareNoCase(_T("btn_layout_test")) == 0)
 	{
