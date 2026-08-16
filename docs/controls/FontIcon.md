@@ -60,4 +60,6 @@
 | `SetKind` | 套 kind 常态/悬停/按下色，并保持形状圆角（不加 kind 边框） |
 | `SetClickable` | 可点；开启时默认 `DUI_HAND` |
 
-Demo：Accordion → FontIcon（悬停看变色）。
+	Demo：Accordion → FontIcon（悬停看变色）。
+
+	> SVG 图标库（`bsicon`/`iconpark`/`lucide`/`remixicon`/`tabler-*`/`twicon`）的**枚举全部图标名**接口见 [SvgBox.md](SvgBox.md)#枚举图标库，`CFontIconUI` 及 `CSvgBoxUI` 都可参考那套 `GetIconCount/GetNameByIndex` 用法供使用者选择图标。

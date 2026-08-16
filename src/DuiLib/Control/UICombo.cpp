@@ -292,7 +292,8 @@ namespace DuiLib {
 		, m_bShowShadow(false)
 	{
 		m_szDropBox = CDuiSize(0, 150);
-		::ZeroMemory(&m_rcTextPadding, sizeof(m_rcTextPadding));
+		// 默认文字边距（闭合态＋下拉项）左右各 6，避免贴边（用户可再覆盖）
+		m_rcTextPadding = { 6, 0, 6, 0 };     // RECT: left, top, right, bottom
 		::ZeroMemory(&m_rcDropBoxPadding, sizeof(m_rcDropBoxPadding));
 
 		m_ListInfo.nColumns = 0;
@@ -311,7 +312,7 @@ namespace DuiLib {
 		m_ListInfo.dwLineColor = 0;
 		m_ListInfo.bShowHtml = false;
 		m_ListInfo.bMultiExpandable = false;
-		::ZeroMemory(&m_ListInfo.rcTextPadding, sizeof(m_ListInfo.rcTextPadding));
+		m_ListInfo.rcTextPadding = { 6, 0, 6, 0 };   // RECT: left, top, right, bottom
 		::ZeroMemory(&m_ListInfo.rcColumn, sizeof(m_ListInfo.rcColumn));
 
 		m_pCompareFunc = NULL;

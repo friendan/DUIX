@@ -67,6 +67,8 @@
 | `item-show-html` | — | 无 |
 | `arrow-image` | — | 无 |
 
+> **默认边距**：闭合态选中文字与下拉项默认左右各 `6px`（对应 `padding`/`item-padding` 的 `0,6,0,6`），开箱即用不贴边；需要更贴或更大间距再覆盖 `padding` / `item-padding`。
+
 ### 下拉项图标（ListLabelElement）
 
 子项用 `<ListLabelElement>` 时，图标属性与 [List.md](List.md) 相同（`lucide` / `icon` / `icon-tint` 等）。  

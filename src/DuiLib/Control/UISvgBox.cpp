@@ -6,12 +6,14 @@
 #include "UITablerIcons.h"
 #include "UIRemixIconIcons.h"
 #include "UITwemojiIcons.h"
-#include <lunasvg.h>
-#include <string>
-#include <vector>
-#include <memory>
+	#include <lunasvg.h>
+	#include <string>
+	#include <vector>
+	#include <memory>
+	#include "../Utils/stb_image.h"
+	#include <wincodec.h>
 
-namespace DuiLib
+	namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CSvgBoxUI)
 
@@ -89,6 +91,197 @@ namespace DuiLib
 			::memcpy(pDest + y * rowBytes, pSrc + y * stride, (size_t)rowBytes);
 		}
 		return hBitmap;
+	}
+
+	static CDuiString GetPathExtLowerLoc(CDuiString path)
+	{
+		int pos = path.ReverseFind(_T('.'));
+		if( pos < 0 ) return CDuiString();
+		CDuiString ext = path.Mid(pos);
+		ext.MakeLower();
+		return ext;
+	}
+
+	// 本地位图扩展名（favicon/普通图片）：.ico/.png/.jpg/.jpeg/.bmp/.gif/.webp
+	static bool IsBitmapFileExt(LPCTSTR pstrPath)
+	{
+		if( pstrPath == NULL || *pstrPath == _T('\0') ) return false;
+		CDuiString ext = GetPathExtLowerLoc(pstrPath);
+		if( ext.IsEmpty() ) return false;
+		return (ext == _T(".ico") || ext == _T(".png") || ext == _T(".jpg") || ext == _T(".jpeg")
+			|| ext == _T(".bmp") || ext == _T(".gif") || ext == _T(".webp"));
+	}
+
+	// 由 RGBA（top-down, 4ch）像素 → 预乘 alpha BGRA（top-down 32bpp）DIB，按目标 w×h 等比 contain 缩放居中。
+	// 成功返回 HBITMAP（调用方 DeleteObject），失败 NULL。
+	static HBITMAP CreatePremultHBitmapFromRgba(const BYTE* pRgba, int iw, int ih, int w, int h)
+	{
+		if( pRgba == NULL || iw <= 0 || ih <= 0 || w <= 0 || h <= 0 ) return NULL;
+
+		// 目标尺寸：等比 contain（保持源比例，居中，不拉伸变形）
+		int dw = w, dh = h;
+		const double scale = (double)w / iw < (double)h / ih ? (double)w / iw : (double)h / ih;
+		dw = (int)(iw * scale + 0.5);
+		dh = (int)(ih * scale + 0.5);
+		if( dw < 1 ) dw = 1;
+		if( dh < 1 ) dh = 1;
+		const int ox = (w - dw) / 2;
+		const int oy = (h - dh) / 2;
+
+		BITMAPINFO bmi;
+		::ZeroMemory(&bmi, sizeof(bmi));
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = w;
+		bmi.bmiHeader.biHeight = -h;
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+		bmi.bmiHeader.biSizeImage = (DWORD)(w * h * 4);
+
+		LPBYTE pDest = NULL;
+		HBITMAP hBmp = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
+		if( hBmp == NULL || pDest == NULL ) return NULL;
+		::ZeroMemory(pDest, (size_t)w * h * 4);
+
+		// 双线性缩放（预乘 BGRA，top-down），落在目标矩形并居中
+		for( int y = 0; y < dh; ++y ) {
+			const double sy = (y + 0.5) * ih / dh - 0.5;
+			int y0 = (int)sy;
+			double fy = sy - y0;
+			if( y0 < 0 ) { y0 = 0; fy = 0; }
+			int y1 = y0 + 1;
+			if( y1 >= ih ) y1 = ih - 1;
+			for( int x = 0; x < dw; ++x ) {
+				const double sx = (x + 0.5) * iw / dw - 0.5;
+				int x0 = (int)sx;
+				double fx = sx - x0;
+				if( x0 < 0 ) { x0 = 0; fx = 0; }
+				int x1 = x0 + 1;
+				if( x1 >= iw ) x1 = iw - 1;
+
+				const BYTE* p00 = pRgba + (y0 * iw + x0) * 4;
+				const BYTE* p10 = pRgba + (y0 * iw + x1) * 4;
+				const BYTE* p01 = pRgba + (y1 * iw + x0) * 4;
+				const BYTE* p11 = pRgba + (y1 * iw + x1) * 4;
+				BYTE r,g,b,a;
+				for( int c = 0; c < 4; ++c ) {
+					double v = (p00[c]*(1-fx) + p10[c]*fx)*(1-fy) + (p01[c]*(1-fx) + p11[c]*fx)*fy;
+					if( v < 0 ) v = 0; if( v > 255 ) v = 255;
+					BYTE bv = (BYTE)(v + 0.5);
+					if( c == 0 ) r = bv; else if( c == 1 ) g = bv; else if( c == 2 ) b = bv; else a = bv;
+				}
+				const int px = ox + x, py = oy + y;
+				int dstIdx = (py * w + px) * 4;
+				pDest[dstIdx + 0] = (BYTE)((UINT)(b * a) / 255);
+				pDest[dstIdx + 1] = (BYTE)((UINT)(g * a) / 255);
+				pDest[dstIdx + 2] = (BYTE)((UINT)(r * a) / 255);
+				pDest[dstIdx + 3] = a;
+			}
+		}
+		return hBmp;
+	}
+
+	static HBITMAP CreatePremultHBitmapFromRgba(const BYTE* pRgba, int iw, int ih, int w, int h);
+	static HBITMAP CreatePremultHBitmapFromMemory(const BYTE* pData, size_t nLen, int w, int h);
+	static bool DecodeViaWic(const BYTE* pData, size_t nLen, int w, int h, HBITMAP* ppHBitmap);
+
+	// 从文件字节：先 stbi 解码，失败回退 WIC → 预乘 DIB
+	static HBITMAP CreatePremultHBitmapFromFile(LPCTSTR pstrPath, int w, int h)
+	{
+		if( pstrPath == NULL || w <= 0 || h <= 0 ) return NULL;
+		std::string utf8 = DuiStringToUtf8(pstrPath);
+		if( utf8.empty() ) return NULL;
+		int iw = 0, ih = 0, n = 0;
+		BYTE* pRgba = stbi_load(utf8.c_str(), &iw, &ih, &n, 4);
+		if( pRgba != NULL && iw > 0 && ih > 0 ) {
+			HBITMAP hBmp = CreatePremultHBitmapFromRgba(pRgba, iw, ih, w, h);
+			stbi_image_free(pRgba);
+			return hBmp;
+		}
+		if( pRgba ) stbi_image_free(pRgba);
+		// stb 解不出（如某些 ICO）→ 读文件字节走 memory 的 WIC 回退
+		HANDLE hFile = ::CreateFile(pstrPath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if( hFile == INVALID_HANDLE_VALUE ) return NULL;
+		DWORD dwSize = ::GetFileSize(hFile, NULL);
+		HBITMAP hRes = NULL;
+		if( dwSize > 0 && dwSize != INVALID_FILE_SIZE ) {
+			std::vector<BYTE> buf((size_t)dwSize);
+			DWORD rd = 0;
+			if( ::ReadFile(hFile, buf.data(), dwSize, &rd, NULL) && rd == dwSize )
+				hRes = CreatePremultHBitmapFromMemory(buf.data(), (size_t)dwSize, w, h);
+		}
+		::CloseHandle(hFile);
+		return hRes;
+	}
+
+	// 从内存字节：先 stbi 解码，失败（如 ICO/特殊编码）回退 WIC → 预乘 DIB
+	static HBITMAP CreatePremultHBitmapFromMemory(const BYTE* pData, size_t nLen, int w, int h)
+	{
+		if( pData == NULL || nLen == 0 || w <= 0 || h <= 0 ) return NULL;
+		int iw = 0, ih = 0, n = 0;
+		BYTE* pRgba = stbi_load_from_memory(pData, (int)nLen, &iw, &ih, &n, 4);
+		if( pRgba != NULL && iw > 0 && ih > 0 ) {
+			HBITMAP hBmp = CreatePremultHBitmapFromRgba(pRgba, iw, ih, w, h);
+			stbi_image_free(pRgba);
+			return hBmp;
+		}
+		if( pRgba ) stbi_image_free(pRgba);
+		// stb 解不出 → WIC 回退
+		HBITMAP hBmp = NULL;
+		if( DecodeViaWic(pData, nLen, w, h, &hBmp) )
+			return hBmp;
+		return NULL;
+	}
+
+	// WIC 回退解码（stb_image 解不出时用，如某些 ICO）：取 RGBA 像素后走 CreatePremultHBitmapFromRgba。
+	// 返回 true 且 *ppHBitmap 非空表示成功；否则 false。
+	static bool DecodeViaWic(const BYTE* pData, size_t nLen, int w, int h, HBITMAP* ppHBitmap)
+	{
+		if( ppHBitmap ) *ppHBitmap = NULL;
+		if( pData == NULL || nLen == 0 || ppHBitmap == NULL ) return false;
+
+		IWICImagingFactory* pFactory = NULL;
+		HRESULT hr = ::CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
+			IID_IWICImagingFactory, (void**)&pFactory);
+		if( FAILED(hr) || pFactory == NULL ) return false;
+
+		IWICStream* pStream = NULL;
+		IWICBitmapDecoder* pDecoder = NULL;
+		IWICBitmapFrameDecode* pFrame = NULL;
+		IWICFormatConverter* pConv = NULL;
+		BYTE* pRgba = NULL;
+		bool bOk = false;
+		int iw = 0, ih = 0;
+
+		do {
+			if( FAILED(pFactory->CreateStream(&pStream)) || pStream == NULL ) break;
+			if( FAILED(pStream->InitializeFromMemory(const_cast<BYTE*>(pData), (DWORD)nLen)) ) break;
+			if( FAILED(pFactory->CreateDecoderFromStream(pStream, NULL, WICDecodeMetadataCacheOnDemand, &pDecoder))
+				|| pDecoder == NULL ) break;
+			if( FAILED(pDecoder->GetFrame(0, &pFrame)) || pFrame == NULL ) break;
+			UINT ww = 0, hh = 0;
+			if( FAILED(pFrame->GetSize(&ww, &hh)) || ww == 0 || hh == 0 ) break;
+			iw = (int)ww; ih = (int)hh;
+			if( FAILED(pFactory->CreateFormatConverter(&pConv)) || pConv == NULL ) break;
+			if( FAILED(pConv->Initialize(pFrame, GUID_WICPixelFormat32bppRGBA,
+				WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom)) ) break;
+			pRgba = (BYTE*)malloc((size_t)iw * ih * 4);
+			if( pRgba == NULL ) break;
+			if( FAILED(pConv->CopyPixels(NULL, (UINT)iw * 4, (UINT)iw * ih * 4, pRgba)) ) break;
+			HBITMAP hBmp = CreatePremultHBitmapFromRgba(pRgba, iw, ih, w, h);
+			if( hBmp != NULL ) {
+				*ppHBitmap = hBmp;
+				bOk = true;
+			}
+		} while (0);
+
+		if( pRgba ) free(pRgba);
+		if( pConv ) pConv->Release();
+		if( pFrame ) pFrame->Release();
+		if( pDecoder ) pDecoder->Release();
+		if( pStream ) pStream->Release();
+		if( pFactory ) pFactory->Release();
+		return bOk;
 	}
 
 	CSvgBoxUI::CSvgBoxUI()
@@ -216,8 +409,35 @@ namespace DuiLib
 		m_sSvgPath = pstrPath ? pstrPath : _T("");
 		m_sSvgData.Empty();
 		m_sSvgUtf8.clear();
+		m_vBitmapData.clear();
 		ClearCache();
 		Invalidate();
+	}
+
+	void CSvgBoxUI::LoadFromMemory(const BYTE* pData, size_t nLen)
+	{
+		// 二进制图像（.ico/.png/.jpg/.bmp/.gif/.webp）内存数据，按位图显示
+		m_vBitmapData.assign(pData, pData + (nLen > 0 ? nLen : 0));
+		m_sSvgPath.Empty();
+		m_sSvgData.Empty();
+		m_sSvgUtf8.clear();
+		ClearCache();
+		Invalidate();
+	}
+
+	void CSvgBoxUI::LoadFromResource(LPCTSTR pstrType, UINT nID)
+	{
+		// 从资源读取二进制位图数据（默认 RT_RCDATA；也可显式给资源类型）
+		if( pstrType == NULL ) pstrType = RT_RCDATA;
+		HINSTANCE hInst = CPaintManagerUI::GetInstance();
+		if( hInst == NULL ) hInst = (HINSTANCE)::GetModuleHandle(NULL);
+		HRSRC hRes = ::FindResource(hInst, MAKEINTRESOURCE(nID), pstrType);
+		if( hRes == NULL ) return;
+		HGLOBAL hGlob = ::LoadResource(hInst, hRes);
+		DWORD dwSize = ::SizeofResource(hInst, hRes);
+		const BYTE* pData = (hGlob != NULL) ? static_cast<const BYTE*>(::LockResource(hGlob)) : NULL;
+		if( pData == NULL || dwSize == 0 ) return;
+		LoadFromMemory(pData, dwSize);
 	}
 
 	void CSvgBoxUI::LoadFromData(LPCTSTR pstrSvgContent)
@@ -225,6 +445,7 @@ namespace DuiLib
 		m_sSvgData = pstrSvgContent ? pstrSvgContent : _T("");
 		m_sSvgPath.Empty();
 		m_sSvgUtf8.clear();
+		m_vBitmapData.clear();
 		ClearCache();
 		Invalidate();
 	}
@@ -234,6 +455,7 @@ namespace DuiLib
 		m_sSvgUtf8 = utf8Svg ? utf8Svg : "";
 		m_sSvgPath.Empty();
 		m_sSvgData.Empty();
+		m_vBitmapData.clear();
 		ClearCache();
 		Invalidate();
 	}
@@ -721,6 +943,24 @@ namespace DuiLib
 
 		ClearCache();
 		if( m_sSvgPath.IsEmpty() && m_sSvgData.IsEmpty() && m_sSvgUtf8.empty() ) return false;
+
+		// 位图源（favicon .ico/.png/.jpg/.bmp/.gif/.webp）：文件路径 via m_sSvgPath，或内存/资源 via m_vBitmapData。
+		// 按图片解码并等比缩放，不做 SVG 着色；走与 SVG 相同的 m_hCacheBitmap 预乘 HBITMAP，供原样绘制。
+		if( (!m_vBitmapData.empty() || (IsBitmapFileExt(m_sSvgPath.GetData()) && m_sSvgData.IsEmpty() && m_sSvgUtf8.empty()))
+			&& m_sSvgData.IsEmpty() && m_sSvgUtf8.empty() ) {
+			if( !m_vBitmapData.empty() )
+				m_hCacheBitmap = CreatePremultHBitmapFromMemory(m_vBitmapData.data(), m_vBitmapData.size(), w, h);
+			else {
+				CDuiString sRes = ResolveFilePath(m_sSvgPath.GetData());
+				if( sRes.IsEmpty() ) return false;
+				m_hCacheBitmap = CreatePremultHBitmapFromFile(sRes.GetData(), w, h);
+			}
+			if( m_hCacheBitmap == NULL ) return false;
+			m_nCacheW = w;
+			m_nCacheH = h;
+			m_dwCacheColor = dwColor;   // 位图不参与着色，仅用于缓存失效键
+			return true;
+		}
 
 		lunasvg::Bitmap bitmap;
 		if( !RenderSvgToLunaBitmap(m_sSvgPath, m_sSvgData, m_sSvgUtf8, w, h, dwColor, bitmap) )

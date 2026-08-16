@@ -153,6 +153,8 @@ namespace DuiLib
 		INNER_REGISTER_DUICONTROL_EX(_T("SegmentItem"), CSegmentItemUI);
 		INNER_REGISTER_DUICONTROL_EX(_T("ThemeSwitcher"), CThemeSwitcherUI);
 		INNER_REGISTER_DUICONTROL_EX(_T("themeswitcher"), CThemeSwitcherUI);
+		INNER_REGISTER_DUICONTROL_EX(_T("IconPicker"), CIconPickerUI);
+		INNER_REGISTER_DUICONTROL_EX(_T("iconpicker"), CIconPickerUI);
 		INNER_REGISTER_DUICONTROL_EX(_T("segment-item"), CSegmentItemUI);
 		INNER_REGISTER_DUICONTROL_EX(_T("Tag"), CTagUI);
 		INNER_REGISTER_DUICONTROL_EX(_T("tag"), CTagUI);

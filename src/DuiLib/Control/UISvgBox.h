@@ -3,9 +3,10 @@
 
 #pragma once
 
-#include <string>
+	#include <string>
+	#include <vector>
 
-namespace DuiLib
+	namespace DuiLib
 {
 	class UILIB_API CSvgBoxUI : public CControlUI
 	{
@@ -19,8 +20,17 @@ namespace DuiLib
 		UINT GetControlFlags() const;
 		bool PreferClientHit() const;
 
+		/// 从文件加载内容（透明分流）：扩展名为 `.ico/.png/.jpg/.jpeg/.bmp/.gif/.webp` 时按本地位图显示；
+		/// 否则（`.svg` 等）按 SVG 显示。相对路径基于资源路径；也可传绝对路径。
 		void LoadFromFile(LPCTSTR pstrPath);
+		/// 从二进制内存加载**位图**（.ico/.png/.jpg/.jpeg/.bmp/.gif/.webp 字节），不做 SVG 着色。
+		/// 数据会被拷贝一份，可安全释放调用方缓冲。
+		void LoadFromMemory(const BYTE* pData, size_t nLen);
+		/// 从资源加载**位图**字节（如 .rc 里的 ICO/PNG）。pstrType 默认 RT_RCDATA，可给自定义类型。
+		void LoadFromResource(LPCTSTR pstrType, UINT nID);
+		/// 用**字符串形式**的 SVG 内容加载（等效 `src` 内联 SVG）。
 		void LoadFromData(LPCTSTR pstrSvgContent);
+		/// 用 UTF-8 编码的 SVG 字节加载。
 		void LoadFromUtf8Data(const char* utf8Svg);
 		void SetColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetColor() const;
@@ -86,6 +96,7 @@ namespace DuiLib
 		int m_nCacheW;
 		int m_nCacheH;
 		DWORD m_dwCacheColor;
+		std::vector<BYTE> m_vBitmapData;   // 位图内存/资源字节（非空则按位图显示）
 	};
 }
 

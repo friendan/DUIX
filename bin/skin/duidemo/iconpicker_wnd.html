@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window>
+  <VBox padding="16,16,16,16" gap="8">
+    <HBox height="36" gap="8" align-items="vcenter">
+      <Label text="图标选择控件（IconPicker）" font="1,1" />
+      <Control flexible="true" />
+      <Button name="closebtn" text="关闭" kind="default" width="72" height="30" />
+    </HBox>
+
+    <!-- 例 1：libs 白名单 = 只列 lucide / tabler-outline 两个库 -->
+    <HBox height="44" gap="8" align-items="vcenter">
+      <IconPicker name="pic_filter" width="40" height="40"
+          libs="lucide,tabler-outline" iconlib="lucide" icon="palette" />
+      <VBox gap="2">
+        <Label text="例1：libs 白名单（只列 lucide + tabler-outline）" theme="secondary" />
+        <Label name="status_filter" text="就绪" height="20" color="#1677FF" />
+      </VBox>
+    </HBox>
+
+    <!-- 例 2：不设 libs = 全部 7 库；default-lib=打开默认选中 lucide（不设则默认第一个分类）；尺寸 24~96；图标色=纯蓝 -->
+    <HBox height="44" gap="8" align-items="vcenter">
+      <IconPicker name="pic_all" width="40" height="40"
+          iconlib="tabler-outline" icon="settings"
+          default-lib="lucide"
+          size-min="24" size-max="96" icon-tint-color="#0000FF" />
+      <VBox gap="2">
+        <Label text="例2：全部库；default-lib=lucide（默认选中该分类，不设则第一个）" theme="secondary" />
+        <Label name="status_all" text="就绪" height="20" color="#1677FF" />
+      </VBox>
+    </HBox>
+
+    <!-- 例 3：show-size=false + show-color=false = 固定宽高和颜色，只让用户选图标 -->
+    <HBox height="44" gap="8" align-items="vcenter">
+      <IconPicker name="pic_fixed" width="40" height="40"
+          iconlib="tabler-outline" icon="star"
+          default-lib="tabler-outline"
+          icon-size="20" icon-tint-color="#FF8000"
+          show-size="false" show-color="false" />
+      <VBox gap="2">
+        <Label text="例3：show-size=false show-color=false（隐藏大小与颜色设置）" theme="secondary" />
+        <Label name="status_fixed" text="就绪" height="20" color="#1677FF" />
+      </VBox>
+    </HBox>
+  </VBox>
+</Window>

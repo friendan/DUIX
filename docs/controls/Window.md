@@ -35,10 +35,7 @@ pCtrl->SetBackgroundImageFromMemory(pData, cb);
 pCtrl->SetBackgroundImageFromSvg(utf8, n, 256, 256);
 ```
 
-SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。 |
-| `default-font-color` / `disabled-font-color` / `link-font-color` / `link-hover-font-color` | 默认文字色（`ParseColorString`）；`color` 为 `default-font-color` 别名 |
-| `font-family` / `font-size` / `font-weight` / `font-style` / `text-decoration` | 改写默认字体（同 `<Font default>`）。未指定时框架默认为 **微软雅黑 12** |
-| `selected-color` | 默认选中**背景**色 |
+SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。
 
 ### 部分接近
 
@@ -81,8 +78,8 @@ SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。 |
 ```
 
 - `background-image` / `background-color` 均可写在 `<html>` / `<Window>` / `html { ... }` CSS 块
-- 只改**背景色**绘制（`PaintBackgroundColor` → `GetAdjustColor`），文字/边框/背景图不受影响  
-- 默认需根有背景图才生效；`wallpaper-bleed-need-image="false"` 可对纯色底也套 bleed  
+- 只改**背景色**绘制（`PaintBackgroundColor` → `GetAdjustColor`），文字/边框/背景图不受影响
+- 默认需根有背景图才生效；`wallpaper-bleed-need-image="false"` 可对纯色底也套 bleed
 - Demo：标题栏图片按钮 / Theme「选择背景图」；`main.html` 已开 bleed `0.72`
 
 分层 Present、DComp 等渲染约束见根目录 [AGENTS.md](../../AGENTS.md)，不在本页展开。
@@ -121,7 +118,7 @@ pSettings->ShowModal();
 - Demo：Accordion → Modal →「铺满设置窗（同步主窗）」（`CSettingsSyncWnd` / `settings_sync.html`；标题栏含最小/最大化，便于测最小化联动）
 - 轻量确认框仍用 [Modal.md](Modal.md) 的 `CModal::SyncOwnerMove`；业务模态窗用本基类
 
-	HWND 自定义消息号段（库占用 `WM_APP` 低端，业务用 `WM_DUILIB_USER + n`）见 **[Messages.md](Messages.md)**。
+HWND 自定义消息号段（库占用 `WM_APP` 低端，业务用 `WM_DUILIB_USER + n`）见 **[Messages.md](Messages.md)**。
 
 ---
 
@@ -134,57 +131,57 @@ pSettings->ShowModal();
 | `SetBlankContextMenuEnabled(bool)` / `IsBlankContextMenuEnabled()` | `false` | 总开关。关闭时空白右键维持原行为（被吞掉） |
 | `SetBlankContextMenuUseDeepestContainer(bool)` / `IsBlankContextMenuUseDeepestContainer()` | `true` | target：`true`=最内层覆盖该点的**可见容器**（忽略 mouse 开关，鼠标关闭的容器也会命中）；`false`=窗口根容器 |
 
-	用法（**定向派发**）：开启后，空白右键会调用**命中目标容器自身的 `OnNotify` 回调**（`sType = DUI_MSGTYPE_MENU`），**不再广播给整个 manager 的所有 notifier**。想响应的容器必须在它上面挂 `OnNotify` 回调——即“谁处理谁设置”。
+用法（**定向派发**）：开启后，空白右键会调用**命中目标容器自身的 `OnNotify` 回调**（`sType = DUI_MSGTYPE_MENU`），**不再广播给整个 manager 的所有 notifier**。想响应的容器必须在它上面挂 `OnNotify` 回调——即“谁处理谁设置”。
 
-	```cpp
-	// 1) 窗口里开启
-	m_pm.SetBlankContextMenuEnabled(true);
-	// m_pm.SetBlankContextMenuUseDeepestContainer(true); // 默认即 true，可不调
+```cpp
+// 1) 窗口里开启
+m_pm.SetBlankContextMenuEnabled(true);
+// m_pm.SetBlankContextMenuUseDeepestContainer(true); // 默认即 true，可不调
 
-	// 2) 在需要响应空白右键的容器上挂 OnNotify 回调（例如站点页/根容器）。
-	//    用 CEventSource 的 `+=` 挂 MakeDelegate，处理器签名为 bool(void*)：
-	#include "UIlib.h"
-	sitePage->OnNotify += DuiLib::MakeDelegate(this, &CMyPage::OnMenu);
+// 2) 在需要响应空白右键的容器上挂 OnNotify 回调（例如站点页/根容器）。
+//    用 CEventSource 的 `+=` 挂 MakeDelegate，处理器签名为 bool(void*)：
+#include "UIlib.h"
+sitePage->OnNotify += DuiLib::MakeDelegate(this, &CMyPage::OnMenu);
 
-	// 3) 处理器里按需弹菜单：
-	bool CMyPage::OnMenu(void* p)   // 由 OnNotify 回调触发
-	{
-		if( p == NULL ) return false;
-		DuiLib::TNotifyUI* msg = (DuiLib::TNotifyUI*)p;
-		if( msg->sType != DuiLib::DUI_MSGTYPE_MENU ) return false;
-		// 屏幕坐标用 msg->ptScreen；客户端坐标用 msg->ptMouse（同一鼠标点，均可信）
-		ShowBlankContextMenu(msg->ptScreen, msg->pSender);
-		return true;
-	}
-	```
+// 3) 处理器里按需弹菜单：
+bool CMyPage::OnMenu(void* p)   // 由 OnNotify 回调触发
+{
+    if( p == NULL ) return false;
+    DuiLib::TNotifyUI* msg = (DuiLib::TNotifyUI*)p;
+    if( msg->sType != DuiLib::DUI_MSGTYPE_MENU ) return false;
+    // 屏幕坐标用 msg->ptScreen；客户端坐标用 msg->ptMouse（同一鼠标点，均可信）
+    ShowBlankContextMenu(msg->ptScreen, msg->pSender);
+    return true;
+}
+```
 
-	- `CEventSource::OnNotify` 用 `+=` 挂 `MakeDelegate(this, &Class::OnMenu)`；处理器签名 **`bool Class::OnMenu(void*)`**，把 `void*` 转成 `TNotifyUI*` 取字段。容器方法、窗口方法均可挂。
-	- **就近冒泡（推荐挂树上任一祖先即可）**：空白命中某个最内层容器后，通知会从它沿父链**向上找第一个设置了 `OnNotify` 的容器**来派发。因此你**不必精确知道空白落在哪个深层容器**，在任一祖先（含根 / `sitePage` / `siteTabs` 等）上设一次回调，就能覆盖整棵子树。
-	  - 例：容器 A 含 B、B 含 C，空白点在 C 内 —— **只需在 A（或 B）上挂 `OnNotify`**，通知会从 C 冒泡到第一个设过回调的祖先 A 触发；`msg.pSender` 仍指向命中的 C，回调可据此判断点在哪个容器。
-	  - 就近原则：若 A、B 都设了回调，空白落在 C/B 时由**最内层设过回调的**（B）接收，不重复分发。
-	- 通知字段：`sType = DUI_MSGTYPE_MENU`；`pSender` = 命中目标（最内层容器/根）；`ptScreen` = 屏幕坐标；`ptMouse` = 客户端坐标。两者是同一鼠标点，弹菜单直接用它俩。
-	- **不要用 `GET_X/Y_LPARAM(msg.lParam)` 取坐标**：控件右键路径的 `lParam` 是控件指针，空白路径的 `lParam` 才透传原始 `WM_CONTEXTMENU` 屏幕坐标；统一用 `msg.ptScreen` 最稳。
-	- **为何定向**：空白 MENU 只发给命中容器，避免广播给不相干窗口 notifier（早期版本会因窗口 notifier 对未注册 sType 空解引用而崩）。控件 MENU（分类/站点按钮，走 `SetContextMenuUsed` → `DUI_MSGTYPE_MENU` 广播）不受影响，仍走各自 `IsContextMenuUsed`。
-	- 有控件命中时仍走原逻辑（`UIEVENT_CONTEXTMENU`），本开关不影响已有控件右键。
-	- 背景：TabLayout 导航页内容未铺满时，空白区因 `action:title` 会被 `WM_NCHITTEST` 判成非客户区，右键变成 `WM_NCRBUTTONDOWN/UP`；本开关对应的 `WM_NCRBUTTONDOWN/UP` 处理会把右键转回客户区并触发这里。
-	- Demo：主窗 Accordion「空白右键菜单」按钮 → `CBlankMenuWnd` / `blankmenu.html`（页面只占上部，下方空白右键弹菜单）。
+- `CEventSource::OnNotify` 用 `+=` 挂 `MakeDelegate(this, &Class::OnMenu)`；处理器签名 **`bool Class::OnMenu(void*)`**，把 `void*` 转成 `TNotifyUI*` 取字段。容器方法、窗口方法均可挂。
+- **就近冒泡（推荐挂树上任一祖先即可）**：空白命中某个最内层容器后，通知会从它沿父链**向上找第一个设置了 `OnNotify` 的容器**来派发。因此你**不必精确知道空白落在哪个深层容器**，在任一祖先（含根 / `sitePage` / `siteTabs` 等）上设一次回调，就能覆盖整棵子树。
+  - 例：容器 A 含 B、B 含 C，空白点在 C 内 —— **只需在 A（或 B）上挂 `OnNotify`**，通知会从 C 冒泡到第一个设过回调的祖先 A 触发；`msg.pSender` 仍指向命中的 C，回调可据此判断点在哪个容器。
+  - 就近原则：若 A、B 都设了回调，空白落在 C/B 时由**最内层设过回调的**（B）接收，不重复分发。
+- 通知字段：`sType = DUI_MSGTYPE_MENU`；`pSender` = 命中目标（最内层容器/根）；`ptScreen` = 屏幕坐标；`ptMouse` = 客户端坐标。两者是同一鼠标点，弹菜单直接用它俩。
+- **不要用 `GET_X/Y_LPARAM(msg.lParam)` 取坐标**：控件右键路径的 `lParam` 是控件指针，空白路径的 `lParam` 才透传原始 `WM_CONTEXTMENU` 屏幕坐标；统一用 `msg.ptScreen` 最稳。
+- **为何定向**：空白 MENU 只发给命中容器，避免广播给不相干窗口 notifier（早期版本会因窗口 notifier 对未注册 sType 空解引用而崩）。控件 MENU（分类/站点按钮，走 `SetContextMenuUsed` → `DUI_MSGTYPE_MENU` 广播）不受影响，仍走各自 `IsContextMenuUsed`。
+- 有控件命中时仍走原逻辑（`UIEVENT_CONTEXTMENU`），本开关不影响已有控件右键。
+- 背景：TabLayout 导航页内容未铺满时，空白区因 `action:title` 会被 `WM_NCHITTEST` 判成非客户区，右键变成 `WM_NCRBUTTONDOWN/UP`；本开关对应的 `WM_NCRBUTTONDOWN/UP` 处理会把右键转回客户区并触发这里。
+- Demo：主窗 Accordion「空白右键菜单」按钮 → `CBlankMenuWnd` / `blankmenu.html`（页面只占上部，下方空白右键弹菜单）。
 
-	### 调试日志 `CDuiLog`
+### 调试日志 `CDuiLog`
 
-	极简文本日志（默认关，关闭时零开销）。定义在 `src/DuiLib/Utils/Utils.h`，导出给应用。
+极简文本日志（默认关，关闭时零开销）。定义在 `src/DuiLib/Utils/Utils.h`，导出给应用。
 
-	```cpp
-	#include <UIlib.h>
-	DuiLib::CDuiLog::SetEnabled(true);              // 开
-	DuiLib::CDuiLog::SetLogFile(_T("dui_log.txt")); // 显式指定；不设时默认 D:\\DUIX.log（无 D 盘则 C:\\DUIX.log）
-	DuiLib::CDuiLog::Write(_T("msg=%d x=%s"), 1, _T("a"));
+```cpp
+#include <UIlib.h>
+DuiLib::CDuiLog::SetEnabled(true);              // 开
+DuiLib::CDuiLog::SetLogFile(_T("dui_log.txt")); // 显式指定；不设时默认 D:\\DUIX.log（无 D 盘则 C:\\DUIX.log）
+DuiLib::CDuiLog::Write(_T("msg=%d x=%s"), 1, _T("a"));
 
-	DuiLib::CDuiLog::SetEnabled(false);             // 关回
-	bool on = DuiLib::CDuiLog::IsEnabled();
-	```
+DuiLib::CDuiLog::SetEnabled(false);             // 关回
+bool on = DuiLib::CDuiLog::IsEnabled();
+```
 
-	- `SetEnabled(bool)` / `IsEnabled()`：总开关，默认 `false`。日志行自带时间戳并自动换行。
-	- `SetLogFile(LPCTSTR)`：日志文件路径（工程固定 UNICODE，写 **UTF-16(LE)** 字节）。**不调或传 NULL** 时默认写到 `D:\DUIX.log`；无 D 盘则 `C:\DUIX.log`；写不了才退到 `OutputDebugString`。传 `_T("")` 清空 = 回退默认路径。
-	- `Write(格式, …)`：printf 风格，无类别；仅当已启用才写，关闭时为空操作。
-	- 库内已埋点示例：`WM_CONTEXTMENU` 分支会输出 `[ctxmenu]` 行，排查右键不弹菜单时：`evtRClick=…` 看命中对象、`blank=1/0` 看是否走空白兜底、`target=…` 看发给哪个容器、`SendNotify sent` 看广播是否真实执行。
-	- 注意：诊断行不变慢库（关闭时 `Write` 立即返回），但发布版默认应保持关闭。
+- `SetEnabled(bool)` / `IsEnabled()`：总开关，默认 `false`。日志行自带时间戳并自动换行。
+- `SetLogFile(LPCTSTR)`：日志文件路径（工程固定 UNICODE，写 **UTF-16(LE)** 字节）。**不调或传 NULL** 时默认写到 `D:\DUIX.log`；无 D 盘则 `C:\DUIX.log`；写不了才退到 `OutputDebugString`。传 `_T("")` 清空 = 回退默认路径。
+- `Write(格式, …)`：printf 风格，无类别；仅当已启用才写，关闭时为空操作。
+- 库内已埋点示例：`WM_CONTEXTMENU` 分支会输出 `[ctxmenu]` 行，排查右键不弹菜单时：`evtRClick=…` 看命中对象、`blank=1/0` 看是否走空白兜底、`target=…` 看发给哪个容器、`SendNotify sent` 看广播是否真实执行。
+- 注意：诊断行不变慢库（关闭时 `Write` 立即返回），但发布版默认应保持关闭。

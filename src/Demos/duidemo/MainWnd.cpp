@@ -10,6 +10,7 @@
 #include "SettingsSyncWnd.h"
 	#include "ShapeDemoWnd.h"
 	#include "BlankMenuWnd.h"
+	#include "IconPickerDemoWnd.h"
 	#include "Icons/BootstrapIconsData.h"
 #include "Icons/LucideIconsIconsData.h"
 #include "Icons/IconParkIconsData.h"
@@ -654,6 +655,10 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("btn_blankmenu_test")) == 0)
 	{
 		CBlankMenuWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_iconpicker_test")) == 0)
+	{
+		CIconPickerDemoWnd::Open(m_hWnd);
 	}
 	else if(sName.CompareNoCase(_T("btn_layout_test")) == 0)
 	{

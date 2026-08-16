@@ -56,6 +56,13 @@ namespace DuiLib
 		SIZE szFixed = GetFixedSize();
 		if( szFixed.cx > 0 && szFixed.cy > 0 ) return szFixed;
 
+		// 可滚动容器（overflow:auto/scroll 启用了滚动条）不应按内容决定自身外部尺寸：
+		// 应撑满父级可用空间，其内容再由内部 SetPos/ProcessScrollBar 决定裁剪/滚动。
+		// 与 LinearLayout「0 = stretch to fill parent」一致，否则父容器会把可滚动区域
+		// 按内容天然高度铺设（未受限 → 超长内容被裁剪且不出现滚动条）。
+		if( (m_pVerticalScrollBar != NULL || m_pHorizontalScrollBar != NULL) && szFixed.cy <= 0 )
+			return CControlUI::EstimateSize(szAvailable);
+
 		// 与 LinearLayout 一致：自身无固定高且存在「撑满」子项时，向父级声明 cy=0
 		if( szFixed.cy <= 0 ) {
 			for( int i = 0; i < m_items.GetSize(); i++ ) {

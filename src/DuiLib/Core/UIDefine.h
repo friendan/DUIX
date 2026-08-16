@@ -312,6 +312,7 @@ protected:                                                                \
 #define  DUI_CTR_SHAPEBUTTON                     (_T("ShapeButton"))
 #define  DUI_CTR_SHAPEBOX                        (_T("ShapeBox"))
 #define  DUI_CTR_THEMESWITCHER                   (_T("ThemeSwitcher"))
+#define  DUI_CTR_ICONPICKER                       (_T("IconPicker"))
 #define  DUI_CTR_OPTION                          (_T("Option"))
 #define  DUI_CTR_SLIDER                          (_T("Slider"))
 #define  DUI_CTR_TAB_BOX					     (_T("TabBox")) //
