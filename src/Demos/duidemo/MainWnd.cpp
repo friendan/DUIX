@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "resource.h"
 #include "MainWnd.h"
 #include "SkinFrame.h"
@@ -150,6 +150,13 @@ void CMainWnd::InitWindow()
 		pVList->SetCallback(&m_vlistCallback);
 		if( pVList->GetItemCount() <= 0 ) pVList->SetItemCount(100000);
 	}
+
+	CControlUI* pLookupCtrl = m_pm.FindControl(_T("lookup_part"));
+	CLookupEditUI* pLookup = pLookupCtrl
+		? static_cast<CLookupEditUI*>(pLookupCtrl->GetInterface(DUI_CTR_LOOKUPEDIT))
+		: NULL;
+	if( pLookup != NULL )
+		pLookup->SetCallback(&m_lookupCallback);
 }
 
 BOOL CMainWnd::Receive(SkinChangedParam param)
@@ -254,7 +261,7 @@ void CMainWnd::PickWallpaperImage()
 
 /////////////////////////////////////////////////////////////////////////
 
-HRESULT STDMETHODCALLTYPE CMainWnd::UpdateUI( void)
+HRESULT STDMETHODCALLTYPE CMainWnd::UpdateUI(CWebBrowserUI* /*pWeb*/)
 {
 	return S_OK;
 }
@@ -368,10 +375,24 @@ void CMainWnd::Notify(TNotifyUI& msg)
 				pStatus->SetText(s.GetData());
 			}
 		}
+		else if( msg.pSender && msg.pSender->GetName() == _T("lookup_part") ) {
+			CLookupEditUI* pLookup = static_cast<CLookupEditUI*>(
+				msg.pSender->GetInterface(DUI_CTR_LOOKUPEDIT));
+			const int nRow = (int)msg.wParam;
+			CDuiString sName(m_lookupCallback.GetCellText(nRow, 1));
+			CDuiString sCode(m_lookupCallback.GetCellText(nRow, 0));
+			if( pLookup != NULL )
+				pLookup->SetText(sName.GetData());
+			CLabelUI* pStatus = static_cast<CLabelUI*>(m_pm.FindControl(_T("lookup_status")));
+			if( pStatus != NULL ) {
+				CDuiString s;
+				s.Format(_T("%s  行 %d"), sCode.GetData(), nRow);
+				pStatus->SetText(s.GetData());
+			}
+		}
 	}
 	else if( msg.sType == _T("textchanged") )
 	{
-		CEditUI* pEdit = (CEditUI*)msg.pSender;
 	}
 	else if( msg.sType == _T("colorchanging") || msg.sType == _T("colorchanged") )
 	{
@@ -444,6 +465,61 @@ void CMainWnd::Notify(TNotifyUI& msg)
 				s.Format(_T("当前: %s"), pTheme != NULL ? pTheme->GetDisplayName() : _T("default"));
 				pCur->SetText(s.GetData());
 				pCur->SetColor(tm->GetColor(_T("color-primary"), 0x1677FFFF));
+			}
+		}
+		else if( name.CompareNoCase(_T("lookup_droppos")) == 0 ) {
+			CControlUI* pLookupCtrl = m_pm.FindControl(_T("lookup_part"));
+			CLookupEditUI* pLookup = pLookupCtrl
+				? static_cast<CLookupEditUI*>(pLookupCtrl->GetInterface(DUI_CTR_LOOKUPEDIT))
+				: NULL;
+			if( pLookup != NULL ) {
+				CLookupEditUI::DropPosition ePos = CLookupEditUI::DropBottom;
+				LPCTSTR pVal = NULL;
+				CSegmentedUI* pSeg = static_cast<CSegmentedUI*>(
+					msg.pSender->GetInterface(DUI_CTR_SEGMENTED));
+				if( pSeg != NULL ) pVal = pSeg->GetSelectedValue();
+				if( pVal != NULL ) {
+					if( _tcsicmp(pVal, _T("top")) == 0 ) ePos = CLookupEditUI::DropTop;
+					else if( _tcsicmp(pVal, _T("left")) == 0 ) ePos = CLookupEditUI::DropLeft;
+					else if( _tcsicmp(pVal, _T("right")) == 0 ) ePos = CLookupEditUI::DropRight;
+					else if( _tcsicmp(pVal, _T("center")) == 0 ) ePos = CLookupEditUI::DropCenter;
+					else ePos = CLookupEditUI::DropBottom;
+				}
+				pLookup->SetDropPosition(ePos);
+			}
+		}
+		else if( name.CompareNoCase(_T("lookup_dropsize")) == 0 ) {
+			CControlUI* pLookupCtrl = m_pm.FindControl(_T("lookup_part"));
+			CLookupEditUI* pLookup = pLookupCtrl
+				? static_cast<CLookupEditUI*>(pLookupCtrl->GetInterface(DUI_CTR_LOOKUPEDIT))
+				: NULL;
+			if( pLookup != NULL ) {
+				LPCTSTR pVal = NULL;
+				CSegmentedUI* pSeg = static_cast<CSegmentedUI*>(
+					msg.pSender->GetInterface(DUI_CTR_SEGMENTED));
+				if( pSeg != NULL ) pVal = pSeg->GetSelectedValue();
+				if( pVal != NULL && pVal[0] != _T('\0') ) {
+					SIZE sz = { 0, 0 };
+					LPTSTR pEnd = NULL;
+					sz.cx = _tcstol(pVal, &pEnd, 10);
+					if( pEnd != NULL && *pEnd != _T('\0') )
+						sz.cy = _tcstol(pEnd + 1, &pEnd, 10);
+					pLookup->SetDropBoxSize(sz);
+				}
+			}
+		}
+		else if( name.CompareNoCase(_T("lookup_textalign")) == 0 ) {
+			CControlUI* pLookupCtrl = m_pm.FindControl(_T("lookup_part"));
+			CLookupEditUI* pLookup = pLookupCtrl
+				? static_cast<CLookupEditUI*>(pLookupCtrl->GetInterface(DUI_CTR_LOOKUPEDIT))
+				: NULL;
+			if( pLookup != NULL ) {
+				LPCTSTR pVal = NULL;
+				CSegmentedUI* pSeg = static_cast<CSegmentedUI*>(
+					msg.pSender->GetInterface(DUI_CTR_SEGMENTED));
+				if( pSeg != NULL ) pVal = pSeg->GetSelectedValue();
+				if( pVal != NULL && pVal[0] != _T('\0') )
+					pLookup->SetAttribute(_T("text-align"), pVal);
 			}
 		}
 		else {
@@ -1082,7 +1158,7 @@ LRESULT CMainWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 		InvalidateRect(m_hWnd, NULL, TRUE);
 	}
 	else if(uMsg == WM_SYSKEYDOWN || uMsg == WM_KEYDOWN) {
-		int a = 0;
+		bHandled = FALSE;
 	}
 	else if (uMsg == WM_MENUCLICK)
 	{

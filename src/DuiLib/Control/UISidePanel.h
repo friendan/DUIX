@@ -28,10 +28,10 @@ namespace DuiLib
 		CSidePanelUI();
 		~CSidePanelUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
-		UINT GetControlFlags() const;
-		bool PreferClientHit() const;
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
+		UINT GetControlFlags() const override;
+		bool PreferClientHit() const override;
 
 		void Show(bool bAnimate = true);
 		void Hide(bool bAnimate = true);

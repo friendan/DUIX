@@ -13,13 +13,13 @@ namespace DuiLib
 	CWebBrowserIeHost::CWebBrowserIeHost(CWebBrowserUI* pFacade)
 		: m_pWebBrowser2(NULL)
 		, _pHtmlWnd2(NULL)
+		, m_dwRef(0)
+		, m_dwCookie(0)
+		, m_pFacade(pFacade)
 		, m_pWebBrowserEventHandler(NULL)
 		, m_pHostEvents(NULL)
 		, m_bCanGoBack(false)
 		, m_bCanGoForward(false)
-		, m_dwRef(0)
-		, m_dwCookie(0)
-		, m_pFacade(pFacade)
 	{
 		m_clsid = CLSID_WebBrowser;
 	}
@@ -171,7 +171,7 @@ namespace DuiLib
 			CDuiVariant url;
 			url.vt=VT_BSTR;
 			url.bstrVal=T2BSTR(lpszUrl);
-			HRESULT hr = m_pWebBrowser2->Navigate2(&url, NULL, NULL, NULL, NULL);
+			m_pWebBrowser2->Navigate2(&url, NULL, NULL, NULL, NULL);
 		}
 	}
 
@@ -689,7 +689,7 @@ namespace DuiLib
 	IDispatch* CWebBrowserIeHost::GetHtmlWindow()
 	{
 		IDispatch* pDp =  NULL;
-		HRESULT hr;
+		HRESULT hr = E_FAIL;
 		if (m_pWebBrowser2)
 			hr=m_pWebBrowser2->get_Document(&pDp);
 

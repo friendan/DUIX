@@ -837,17 +837,13 @@ namespace DuiLib {
 							for( int j = 0; j < iTimesY; ++j ) {
 								LONG lDestTop = rcDest.top + lHeight * j;
 								LONG lDestBottom = rcDest.top + lHeight * (j + 1);
-								LONG lDrawHeight = lHeight;
 								if( lDestBottom > rcDest.bottom ) {
-									lDrawHeight -= lDestBottom - rcDest.bottom;
 									lDestBottom = rcDest.bottom;
 								}
 								for( int i = 0; i < iTimesX; ++i ) {
 									LONG lDestLeft = rcDest.left + lWidth * i;
 									LONG lDestRight = rcDest.left + lWidth * (i + 1);
-									LONG lDrawWidth = lWidth;
 									if( lDestRight > rcDest.right ) {
-										lDrawWidth -= lDestRight - rcDest.right;
 										lDestRight = rcDest.right;
 									}
 									::BitBlt(hDC, rcDest.left + lWidth * i, rcDest.top + lHeight * j, \
@@ -1190,22 +1186,20 @@ namespace DuiLib {
 		Gdiplus::ImageAttributes imageAtt;
 		if(uFade != 255) {
 			Gdiplus::ColorMatrix colorMatrix =
-			{
-				1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-				0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-				0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-				0.0f, 0.0f, 0.0f, uFade / 255.0f, 0.0f,
-				0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-			};
+			{{
+				{1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+				{0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
+				{0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
+				{0.0f, 0.0f, 0.0f, uFade / 255.0f, 0.0f},
+				{0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+			}};
 			imageAtt.SetColorMatrix (&colorMatrix, Gdiplus::ColorMatrixFlagsDefault, Gdiplus::ColorAdjustTypeBitmap);
 		}
 		
 		Gdiplus::RectF rcDest(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top);
 		Gdiplus::RectF rcSrc(rcBmpPart.left, rcBmpPart.top, rcBmpPart.right - rcBmpPart.left, rcBmpPart.bottom - rcBmpPart.top);
-		if(uRotate > 0) {
+			if(uRotate > 0) {
 			POINT ptCenter = {rc.left + (rc.right - rc.left) / 2, rc.top + (rc.bottom - rc.top) / 2};
-			int cx = rc.right - rc.left;
-			int cy = rc.bottom - rc.top;
 
 			Gdiplus::Matrix matrix;
 			matrix.RotateAt(uRotate, Gdiplus::PointF(ptCenter.x, ptCenter.y));
@@ -1675,7 +1669,7 @@ namespace DuiLib {
 
 		POINT pt = { rc.left, rc.top };
 		int iLinkIndex = 0;
-		int cyLine = pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1);
+		int cyLine = pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1);
 		int cyMinHeight = 0;
 		int cxMaxWidth = 0;
 		POINT ptLinkStart = { 0 };
@@ -1725,7 +1719,7 @@ namespace DuiLib {
 				if( !bLineDraw ) pt.y += cyLine;
 				if( pt.y > rc.bottom && bDraw ) break;
 				ptLinkStart = pt;
-				cyLine = pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1);
+				cyLine = pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1);
 				if( pt.x >= rc.right ) break;
 			}
 			else if( !bInRaw && ( *pstrText == _T('<') || *pstrText == _T('{') )
@@ -1759,7 +1753,7 @@ namespace DuiLib {
 							//    if( ::PtInRect(&rc, ptMouse) )
 							//        clrColor = pManager->GetDefaultLinkHoverFontColor();
 							//}
-							aColorArray.Add((LPVOID)clrColor);
+							aColorArray.Add((LPVOID)(INT_PTR)clrColor);
 							::SetTextColor(hDC,  DuiColorToCOLORREF(clrColor));
 							TFontInfo* pFontInfo = pDefFontInfo;
 							if( aFontArray.GetSize() > 0 ) pFontInfo = (TFontInfo*)aFontArray.GetAt(aFontArray.GetSize() - 1);
@@ -1770,7 +1764,7 @@ namespace DuiLib {
 								aFontArray.Add(pFontInfo);
 								pTm = &pFontInfo->tm;
 								::SelectObject(hDC, pFontInfo->hFont);
-								cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
+								cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
 							}
 							ptLinkStart = pt;
 							bInLink = true;
@@ -1788,7 +1782,7 @@ namespace DuiLib {
 								aFontArray.Add(pFontInfo);
 								pTm = &pFontInfo->tm;
 								::SelectObject(hDC, pFontInfo->hFont);
-								cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
+								cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
 							}
 						}
 						break;
@@ -1797,7 +1791,7 @@ namespace DuiLib {
 							pstrText++;
 							DWORD clrColor = 0;
 							if( ParseColorStringToken(pstrText, clrColor) ) {
-								aColorArray.Add((LPVOID)clrColor);
+								aColorArray.Add((LPVOID)(INT_PTR)clrColor);
 								::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
 							}
 						}
@@ -1851,7 +1845,7 @@ namespace DuiLib {
 								pTm = &pFontInfo->tm;
 								::SelectObject(hDC, pFontInfo->hFont);
 							}
-							cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
+							cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
 						}
 						break;
 					case _T('i'):  // Italic or Image
@@ -1881,7 +1875,7 @@ namespace DuiLib {
 									aFontArray.Add(pFontInfo);
 									pTm = &pFontInfo->tm;
 									::SelectObject(hDC, pFontInfo->hFont);
-									cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
+									cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
 								}
 							}
 							else {
@@ -1982,7 +1976,7 @@ namespace DuiLib {
 							if( pt.x > rc.left ) bLineEnd = true;
 							while( *pstrText > _T('\0') && *pstrText <= _T(' ') ) pstrText = ::CharNext(pstrText);
 							int cyLineExtra = (int)_tcstol(pstrText, const_cast<LPTSTR*>(&pstrText), 10);
-							aPIndentArray.Add((LPVOID)cyLineExtra);
+							aPIndentArray.Add((LPVOID)(INT_PTR)cyLineExtra);
 							cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + cyLineExtra);
 						}
 						break;
@@ -2014,7 +2008,7 @@ namespace DuiLib {
 								aFontArray.Add(pFontInfo);
 								pTm = &pFontInfo->tm;
 								::SelectObject(hDC, pFontInfo->hFont);
-								cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
+								cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
 							}
 						}
 						break;
@@ -2052,7 +2046,7 @@ namespace DuiLib {
 						pstrText++;
 						aColorArray.Remove(aColorArray.GetSize() - 1);
 						DWORD clrColor = dwColor;
-						if( aColorArray.GetSize() > 0 ) clrColor = (int)aColorArray.GetAt(aColorArray.GetSize() - 1);
+						if( aColorArray.GetSize() > 0 ) clrColor = (int)(INT_PTR)aColorArray.GetAt(aColorArray.GetSize() - 1);
 						::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
 					}
 					break;
@@ -2060,7 +2054,7 @@ namespace DuiLib {
 					pstrText++;
 					if( pt.x > rc.left ) bLineEnd = true;
 					aPIndentArray.Remove(aPIndentArray.GetSize() - 1);
-					cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
+					cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
 					break;
 				case _T('s'):
 					{
@@ -2080,7 +2074,7 @@ namespace DuiLib {
 						}
 						aColorArray.Remove(aColorArray.GetSize() - 1);
 						DWORD clrColor = dwColor;
-						if( aColorArray.GetSize() > 0 ) clrColor = (int)aColorArray.GetAt(aColorArray.GetSize() - 1);
+						if( aColorArray.GetSize() > 0 ) clrColor = (int)(INT_PTR)aColorArray.GetAt(aColorArray.GetSize() - 1);
 						::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
 						bInLink = false;
 					}
@@ -2100,7 +2094,7 @@ namespace DuiLib {
 						}
 						pTm = &pFontInfo->tm;
 						::SelectObject(hDC, pFontInfo->hFont);
-						cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
+						cyLine = MAX(cyLine, pTm->tmHeight + pTm->tmExternalLeading + (int)(INT_PTR)aPIndentArray.GetAt(aPIndentArray.GetSize() - 1));
 					}
 					break;
 				}
@@ -2146,7 +2140,7 @@ namespace DuiLib {
 				LPCTSTR p = pstrText;
 				LPCTSTR pstrNext;
 				SIZE szText = { 0 };
-				if( !bInRaw && *p == _T('<') || *p == _T('{') ) p++, cchChars++, cchSize++;
+				if( !bInRaw && (*p == _T('<') || *p == _T('{')) ) p++, cchChars++, cchSize++;
 				while( *p != _T('\0') && *p != _T('\n') ) {
 					// This part makes sure that we're word-wrapping if needed or providing support
 					// for DT_END_ELLIPSIS. Unfortunately the GetTextExtentPoint32() call is pretty
@@ -2239,7 +2233,7 @@ namespace DuiLib {
 					bInSelected = bLineInSelected;
 
 					DWORD clrColor = dwColor;
-					if( aColorArray.GetSize() > 0 ) clrColor = (int)aColorArray.GetAt(aColorArray.GetSize() - 1);
+					if( aColorArray.GetSize() > 0 ) clrColor = (int)(INT_PTR)aColorArray.GetAt(aColorArray.GetSize() - 1);
 					::SetTextColor(hDC, DuiColorToCOLORREF(clrColor));
 					TFontInfo* pFontInfo = (TFontInfo*)aFontArray.GetAt(aFontArray.GetSize() - 1);
 					if( pFontInfo == NULL ) pFontInfo = pDefFontInfo;
@@ -2301,7 +2295,7 @@ namespace DuiLib {
 			pRoot->Paint(renderScope.GetContext(), rc, pStopControl);
 		}
 
-		BITMAPINFO bmi = { 0 };
+		BITMAPINFO bmi = {};
 		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmi.bmiHeader.biWidth = cx;
 		bmi.bmiHeader.biHeight = cy;
@@ -2349,7 +2343,7 @@ namespace DuiLib {
 			pControl->Paint(renderScope.GetContext(), rc, NULL);
 		}
 
-		BITMAPINFO bmi = { 0 };
+		BITMAPINFO bmi = {};
 		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmi.bmiHeader.biWidth = cx;
 		bmi.bmiHeader.biHeight = cy;

@@ -1,7 +1,7 @@
 #include "StdAfx.h"
 
 #ifndef TRACE
-#define TRACE
+#define TRACE(...) ((void)0)
 #endif
 
 namespace DuiLib {
@@ -13,7 +13,7 @@ CMarkupNode::CMarkupNode() : m_pOwner(NULL)
 {
 }
 
-CMarkupNode::CMarkupNode(CMarkup* pOwner, int iPos) : m_pOwner(pOwner), m_iPos(iPos), m_nAttributes(0)
+CMarkupNode::CMarkupNode(CMarkup* pOwner, int iPos) : m_iPos(iPos), m_nAttributes(0), m_pOwner(pOwner)
 {
 }
 
@@ -251,7 +251,7 @@ bool CMarkup::LoadFromMem(BYTE* pByte, DWORD dwSize, int encoding)
 
                 for ( DWORD nSwap = 0 ; nSwap < dwSize ; nSwap ++ )
                 {
-                    register CHAR nTemp = pByte[ ( nSwap << 1 ) + 0 ];
+                    CHAR nTemp = pByte[ ( nSwap << 1 ) + 0 ];
                     pByte[ ( nSwap << 1 ) + 0 ] = pByte[ ( nSwap << 1 ) + 1 ];
                     pByte[ ( nSwap << 1 ) + 1 ] = nTemp;
                 }
@@ -301,7 +301,7 @@ bool CMarkup::LoadFromMem(BYTE* pByte, DWORD dwSize, int encoding)
 
                 for ( DWORD nSwap = 0 ; nSwap < dwSize ; nSwap ++ )
                 {
-                    register CHAR nTemp = pByte[ ( nSwap << 1 ) + 0 ];
+                    CHAR nTemp = pByte[ ( nSwap << 1 ) + 0 ];
                     pByte[ ( nSwap << 1 ) + 0 ] = pByte[ ( nSwap << 1 ) + 1 ];
                     pByte[ ( nSwap << 1 ) + 1 ] = nTemp;
                 }

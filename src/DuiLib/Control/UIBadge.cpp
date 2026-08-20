@@ -156,9 +156,9 @@ namespace DuiLib
 		if( m_bClosable && IsEnabled() ) {
 			if( event.Type == UIEVENT_SETCURSOR ) {
 				if( HitClose(event.ptMouse) )
-					::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND)));
+					::SetCursor(::LoadCursor(NULL, IDC_HAND));
 				else
-					::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_ARROW)));
+					::SetCursor(::LoadCursor(NULL, IDC_ARROW));
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSEMOVE ) {

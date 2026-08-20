@@ -20,8 +20,8 @@ namespace DuiLib
 		CCarouselUI();
 		~CCarouselUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
 		void Next();
 		void Prev();
@@ -87,8 +87,8 @@ namespace DuiLib
 		CCarouselItemUI();
 		~CCarouselItemUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
 		bool Add(CControlUI* pControl) override;
 		bool AddAt(CControlUI* pControl, int iIndex) override;

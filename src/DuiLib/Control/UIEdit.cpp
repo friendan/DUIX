@@ -119,7 +119,7 @@ namespace DuiLib
 
 		CControlUI* pParent = m_pOwner;
 		RECT rcParent;
-		while( pParent = pParent->GetParent() ) {
+		while( (pParent = pParent->GetParent()) ) {
 			if( !pParent->IsVisible() ) {
 				rcPos.left = rcPos.top = rcPos.right = rcPos.bottom = 0;
 				break;
@@ -313,9 +313,9 @@ namespace DuiLib
 	IMPLEMENT_DUICONTROL(CEditUI)
 
 		CEditUI::CEditUI() : m_pWindow(NULL), m_uMaxChar(255), m_bReadOnly(false), 
-		m_bPasswordMode(false), m_cPasswordChar(_T('*')), m_bAutoSelAll(false), m_uButtonState(0), 
-		m_dwEditbkColor(0), m_dwEditTextColor(0), m_bNativeBkColorCustom(false), m_bNativeTextColorCustom(false),
-		m_iWindowStyls(0), m_dwPlaceholderColor(0xBAC0C5FF)
+		m_bPasswordMode(false), m_bAutoSelAll(false), m_cPasswordChar(_T('*')), m_uButtonState(0), 
+		m_dwPlaceholderColor(0xBAC0C5FF), m_dwEditbkColor(0), m_dwEditTextColor(0),
+		m_bNativeBkColorCustom(false), m_bNativeTextColorCustom(false), m_iWindowStyls(0)
 	{
 		SetPadding(CDuiBox(4, 10, 4, 10)); // 默认左右内边距，圆角时文字不贴边
 		SetBackgroundColor(0xFFFFFFFF);
@@ -394,7 +394,7 @@ namespace DuiLib
 
 		if( event.Type == UIEVENT_SETCURSOR && IsEnabled() )
 		{
-			::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_IBEAM)));
+			::SetCursor(::LoadCursor(NULL, IDC_IBEAM));
 			return;
 		}
 		if( event.Type == UIEVENT_WINDOWSIZE )

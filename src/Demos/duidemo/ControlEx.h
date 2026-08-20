@@ -229,4 +229,4 @@ public:
 protected:
 	HWND m_hWnd;
 };
-#endif __CONTROLEX_H__
+#endif // __CONTROLEX_H__

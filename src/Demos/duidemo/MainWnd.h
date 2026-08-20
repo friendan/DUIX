@@ -40,6 +40,24 @@ private:
 	CDuiString m_sText;
 };
 
+class CLookupPartCallback : public ILookupEditCallback
+{
+public:
+	virtual int GetRowCount()
+	{
+		return 10000;
+	}
+	virtual LPCTSTR GetCellText(int nRow, int nCol)
+	{
+		if( nCol == 0 ) m_sText.Format(_T("P%05d"), nRow + 1);
+		else if( nCol == 1 ) m_sText.Format(_T("零件 %d"), nRow + 1);
+		else m_sText.Format(_T("规格-%d"), (nRow % 20) + 1);
+		return m_sText.GetData();
+	}
+private:
+	CDuiString m_sText;
+};
+
 class CMainWnd : public WindowImplBase, public CWebBrowserEventHandler, public SkinChangedReceiver
 {
 public:
@@ -74,7 +92,7 @@ public:// 系统消息
 	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 public:// WebBrowser
-	virtual HRESULT STDMETHODCALLTYPE UpdateUI(void);
+	virtual HRESULT STDMETHODCALLTYPE UpdateUI(CWebBrowserUI* pWeb);
 	virtual HRESULT STDMETHODCALLTYPE GetHostInfo(CWebBrowserUI* pWeb, DOCHOSTUIINFO __RPC_FAR *pInfo);
 	virtual HRESULT STDMETHODCALLTYPE ShowContextMenu(CWebBrowserUI* pWeb, DWORD dwID, POINT __RPC_FAR *ppt, IUnknown __RPC_FAR *pcmdtReserved, IDispatch __RPC_FAR *pdispReserved);
 
@@ -87,6 +105,7 @@ private:// UI变量
 	CMenuWnd* m_pMenu;
 	CStdStringPtrMap m_MenuInfos;
 	CVirtualListDemoCallback m_vlistCallback;
+	CLookupPartCallback m_lookupCallback;
 
 public:
 	CMainPage m_MainPage;

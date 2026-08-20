@@ -81,10 +81,12 @@
 #include "Layout/UITabLayout.h"
 #include "Layout/UIChildLayout.h"
 #include "Layout/UIFlowLayout.h"
+#include "Layout/UISplitLayout.h"
 
 #include "Control/UIList.h"
 #include "Control/UIVirtualList.h"
 #include "Control/UICombo.h"
+#include "Control/UILookupEdit.h"
 #include "Control/UIScrollBar.h"
 #include "Control/UISpacer.h"
 #include "Control/UIAccordion.h"

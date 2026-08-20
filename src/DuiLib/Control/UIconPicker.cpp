@@ -103,9 +103,9 @@ namespace {
 IMPLEMENT_DUICONTROL(CIconPickerUI)
 
 CIconPickerUI::CIconPickerUI()
-	: m_bModal(false)
-	, m_bShowSize(true)
+	: m_bShowSize(true)
 	, m_bShowColor(true)
+	, m_bModal(false)
 	, m_nSizeMin(8)
 	, m_nSizeMax(256)
 	, m_nIconW(18)

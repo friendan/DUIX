@@ -85,10 +85,10 @@ namespace DuiLib {
 		m_bMenuUsed(false),
 		m_bVisible(true), 
 		m_bInternVisible(true),
-		m_bFocused(false),
 		m_bEnabled(true),
 		m_bMouseEnabled(true),
 		m_bKeyboardEnabled(true),
+		m_bFocused(false),
 		m_bAbsolute(false),
 		m_uAbsoluteAlign(0),
 		m_iTextAlign(-1),
@@ -452,7 +452,6 @@ namespace DuiLib {
 		if( !cur.IsEmpty() && nParts < 8 ) parts[nParts++] = cur;
 		if( nParts < 2 ) return false;
 
-		int iColor = 0;
 		bool bReverse = false;
 		int iStart = 0;
 		CDuiString s0 = parts[0];
@@ -1046,7 +1045,7 @@ namespace DuiLib {
 			CControlUI* pParent = this;
 			RECT rcTemp;
 			RECT rcParent;
-			while( pParent = pParent->GetParent() ) {
+			while( (pParent = pParent->GetParent()) ) {
 				if( !pParent->IsVisible() ) return;
 				rcTemp = invalidateRc;
 				rcParent = pParent->GetPos();
@@ -1537,7 +1536,7 @@ namespace DuiLib {
 		CControlUI* pParent = this;
 		RECT rcTemp;
 		RECT rcParent;
-		while( pParent = pParent->GetParent() )
+		while( (pParent = pParent->GetParent()) )
 		{
 			rcTemp = invalidateRc;
 			rcParent = pParent->GetPos();
@@ -1757,7 +1756,7 @@ namespace DuiLib {
 				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(GetCursor())));
 			}
 			else {
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_ARROW)));
+				::SetCursor(::LoadCursor(NULL, IDC_ARROW));
 			}
 			return;
 		}
@@ -2618,7 +2617,6 @@ namespace DuiLib {
 	{
 		// 缁樺埗寰簭锛氳儗鏅鑹?>鑳屾櫙鍥?>鐘舵€佸浘->鏂囨湰->杈规
 		SIZE cxyBorderRadius = GetBorderRadius();
-		RECT rcBorderWidth = GetBorderRectWidth();
 
 		if( cxyBorderRadius.cx > 0 || cxyBorderRadius.cy > 0 ) {
 			CRenderClipScope roundClip(ctx, m_rcPaint, m_rcItem, cxyBorderRadius.cx, cxyBorderRadius.cy);

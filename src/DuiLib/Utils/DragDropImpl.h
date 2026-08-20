@@ -30,6 +30,7 @@ namespace DuiLib {
 	public:
 		CEnumFormatEtc(const FormatEtcArray& ArrFE);
 		CEnumFormatEtc(const PFormatEtcArray& ArrFE);
+		virtual ~CEnumFormatEtc() {}
 		//IUnknown members
 		STDMETHOD(QueryInterface)(REFIID, void FAR* FAR*);
 		STDMETHOD_(ULONG, AddRef)(void);
@@ -50,6 +51,7 @@ namespace DuiLib {
 	public:
 		bool m_bDropped;
 		CIDropSource():m_cRefCount(0),m_bDropped(false) {}
+		virtual ~CIDropSource() {}
 		//IUnknown
 		virtual HRESULT STDMETHODCALLTYPE QueryInterface(
 			/* [in] */ REFIID riid,
@@ -76,7 +78,7 @@ namespace DuiLib {
 
 	public:
 		CIDataObject(CIDropSource* pDropSource);
-		~CIDataObject();
+		virtual ~CIDataObject();
 		void CopyMedium(STGMEDIUM* pMedDest, STGMEDIUM* pMedSrc, FORMATETC* pFmtSrc);
 		//IUnknown
 		virtual HRESULT STDMETHODCALLTYPE QueryInterface(

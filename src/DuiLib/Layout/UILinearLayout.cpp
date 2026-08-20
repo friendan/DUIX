@@ -100,6 +100,13 @@ namespace DuiLib
 
 	SIZE CLinearLayoutUI::MeasureContent(SIZE szAvailable)
 	{
+		RECT rcPadding = GetPadding();
+		SIZE szInnerAvail = szAvailable;
+		SzMain(szInnerAvail) -= RcMainStart(rcPadding) + RcMainEnd(rcPadding);
+		SzCross(szInnerAvail) -= RcCrossStart(rcPadding) + RcCrossEnd(rcPadding);
+		if( SzMain(szInnerAvail) < 0 ) SzMain(szInnerAvail) = 0;
+		if( SzCross(szInnerAvail) < 0 ) SzCross(szInnerAvail) = 0;
+
 		int iGap = GetGap();
 		int mainTotal = 0;
 		int crossMax = 0;
@@ -108,9 +115,25 @@ namespace DuiLib
 			CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
 			if( !pControl->IsVisible() ) continue;
 			if( pControl->IsAbsolute() ) continue;
-			SIZE sz = pControl->EstimateSize(szAvailable);
 			RECT rcMargin = pControl->GetMargin();
-			if( SzMain(sz) == 0 ) continue;
+			SIZE szChildAvail = szInnerAvail;
+			SzMain(szChildAvail) -= RcMainStart(rcMargin) + RcMainEnd(rcMargin);
+			SzCross(szChildAvail) -= RcCrossStart(rcMargin) + RcCrossEnd(rcMargin);
+			if( SzMain(szChildAvail) < 0 ) SzMain(szChildAvail) = 0;
+			if( SzCross(szChildAvail) < 0 ) SzCross(szChildAvail) = 0;
+
+			SIZE sz = pControl->EstimateSize(szChildAvail);
+			// 嵌套 HBox/VBox 默认 EstimateSize 主轴为 0（表示撑满），需递归按子项汇总
+			if( SzMain(sz) == 0 ) {
+				CLinearLayoutUI* pLinear = static_cast<CLinearLayoutUI*>(pControl->GetInterface(_T("LinearLayout")));
+				if( pLinear != NULL )
+					sz = pLinear->MeasureContent(szChildAvail);
+			}
+			if( SzMain(sz) == 0 ) {
+				int nMin = CtrlMainMin(pControl);
+				if( nMin > 0 ) SzMain(sz) = nMin;
+				else continue;
+			}
 			if( SzMain(sz) < CtrlMainMin(pControl) ) SzMain(sz) = CtrlMainMin(pControl);
 			if( SzMain(sz) > CtrlMainMax(pControl) ) SzMain(sz) = CtrlMainMax(pControl);
 			mainTotal += SzMain(sz) + RcMainStart(rcMargin) + RcMainEnd(rcMargin);
@@ -119,6 +142,12 @@ namespace DuiLib
 			nCount++;
 		}
 		if( nCount > 1 ) mainTotal += (nCount - 1) * iGap;
+		mainTotal += RcMainStart(rcPadding) + RcMainEnd(rcPadding);
+		crossMax += RcCrossStart(rcPadding) + RcCrossEnd(rcPadding);
+
+		int nSelfMin = SelfMainMin();
+		if( nSelfMin > 0 && mainTotal < nSelfMin ) mainTotal = nSelfMin;
+
 		SIZE szContent = {0, 0};
 		SzMain(szContent) = mainTotal;
 		SzCross(szContent) = crossMax;

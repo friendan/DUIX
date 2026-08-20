@@ -534,6 +534,8 @@ namespace DuiLib {
 		LPVOID GetInterface(LPCTSTR pstrName);
 		UINT GetControlFlags() const;
 
+		using CListLabelElementUI::GetText;
+		using CListLabelElementUI::SetText;
 		LPCTSTR GetText(int iIndex) const;
 		void SetText(int iIndex, LPCTSTR pstrText);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);

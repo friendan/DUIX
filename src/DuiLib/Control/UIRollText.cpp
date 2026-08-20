@@ -226,9 +226,9 @@ namespace DuiLib
 		Invalidate();
 	}
 
-	void CRollTextUI::SetPos(RECT rc)
+	void CRollTextUI::SetPos(RECT rc, bool bNeedInvalidate)
 	{
-		CLabelUI::SetPos(rc);
+		CLabelUI::SetPos(rc, bNeedInvalidate);
 		m_nText_W_H = 0;
 	}
 

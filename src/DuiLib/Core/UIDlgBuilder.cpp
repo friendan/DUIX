@@ -715,6 +715,7 @@ namespace DuiLib {
 			{ _T("item-background-color"),   _T("item-background-color-hover"),   _T("item-background-color-selected"),   _T("item-background-color-disabled"),   NULL, _T("item-background-color-selected") },
 			{ _T("item-image"),              _T("item-image-hover"),              _T("item-image-selected"),              _T("item-image-disabled"),              NULL, _T("item-image-selected") },
 			{ _T("item-foreground-image"),   _T("item-foreground-image-hover"),   NULL,                                    NULL,                                    NULL, _T("item-foreground-image-selected") },
+			{ _T("sep-color"),               _T("sep-color-hover"),               _T("sep-color-active"),                  NULL,                                    NULL, NULL },
 		};
 		for( int i = 0; i < (int)(sizeof(kMap) / sizeof(kMap[0])); ++i ) {
 			if( _tcsicmp(sKey.GetData(), kMap[i].pBase) != 0 ) continue;

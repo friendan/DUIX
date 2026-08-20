@@ -757,6 +757,7 @@ namespace DuiLib {
 				|| pControl->GetInterface(DUI_CTR_NUMBER) != NULL
 				|| pControl->GetInterface(DUI_CTR_COMBO) != NULL
 				|| pControl->GetInterface(DUI_CTR_COMBOBOX) != NULL
+				|| pControl->GetInterface(DUI_CTR_LOOKUPEDIT) != NULL
 				|| pControl->GetInterface(DUI_CTR_DATETIME) != NULL
 				|| pControl->GetInterface(DUI_CTR_HOTKEY) != NULL
 				|| pControl->GetInterface(DUI_CTR_IPADDRESS) != NULL);

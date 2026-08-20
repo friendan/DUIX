@@ -8,6 +8,8 @@
 | 继承属性 | 见 [Container.md](Container.md) |
 
 > 本页聚焦 **属性与 HTML/CSS 的符合度**。盒模型全局约定见 [Attributes.md](Attributes.md)。
+>
+> 上万条、多列、按字段过滤请用 [LookupEdit](LookupEdit.md)，不要往 Combo 里塞虚拟行。
 
 ### 接近 HTML/CSS
 

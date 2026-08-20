@@ -15,12 +15,12 @@ namespace DuiLib
 		CEditUI();
 		~CEditUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
-		UINT GetControlFlags() const;
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
+		UINT GetControlFlags() const override;
 
-		void SetEnabled(bool bEnable = true);
-		void SetText(LPCTSTR pstrText);
+		void SetEnabled(bool bEnable = true) override;
+		void SetText(LPCTSTR pstrText) override;
 		void SetMaxChar(UINT uMax);
 		UINT GetMaxChar();
 		void SetReadOnly(bool bReadOnly);
@@ -66,17 +66,17 @@ namespace DuiLib
 
 		HWND GetHWND();
 
-		void SetPos(RECT rc, bool bNeedInvalidate = true);
-		void Move(SIZE szOffset, bool bNeedInvalidate = true);
-		void SetVisible(bool bVisible = true);
-		void SetInternVisible(bool bVisible = true);
-		SIZE EstimateSize(SIZE szAvailable);
-		void DoEvent(TEventUI& event);
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		void SetPos(RECT rc, bool bNeedInvalidate = true) override;
+		void Move(SIZE szOffset, bool bNeedInvalidate = true) override;
+		void SetVisible(bool bVisible = true) override;
+		void SetInternVisible(bool bVisible = true) override;
+		SIZE EstimateSize(SIZE szAvailable) override;
+		void DoEvent(TEventUI& event) override;
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 		void SetOpacity(BYTE nOpacity) override;
 
-		void PaintStatusImage(IRenderContext& ctx);
-		void PaintText(IRenderContext& ctx);
+		void PaintStatusImage(IRenderContext& ctx) override;
+		void PaintText(IRenderContext& ctx) override;
 
 	protected:
 		/// 有效透明度 < 255 时不用原生 WC_EDIT，走自绘以支持 opacity

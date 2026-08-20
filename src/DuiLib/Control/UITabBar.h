@@ -21,8 +21,8 @@ namespace DuiLib
 		CTabBarUI();
 		~CTabBarUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 		UINT GetControlFlags() const override;
 		void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true) override;
 		LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled) override;

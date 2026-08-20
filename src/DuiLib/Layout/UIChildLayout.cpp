@@ -16,7 +16,7 @@ namespace DuiLib
 		{
 			this->RemoveAll();
 			CDialogBuilder builder;
-			CContainerUI* pChildWindow = static_cast<CContainerUI*>(builder.Create(m_pstrXMLFile.GetData(), (UINT)0, NULL, m_pManager));
+			CContainerUI* pChildWindow = static_cast<CContainerUI*>(builder.Create(m_pstrXMLFile.GetData(), NULL, NULL, m_pManager));
 			if (pChildWindow)
 			{
 				this->Add(pChildWindow);

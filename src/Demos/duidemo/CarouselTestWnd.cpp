@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "CarouselTestWnd.h"
 
 DUI_BEGIN_MESSAGE_MAP(CCarouselTestWnd, WindowImplBase)

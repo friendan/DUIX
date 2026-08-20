@@ -13,17 +13,17 @@ CShadowUI::CShadowUI(void)
 : m_hWnd((HWND)NULL)
 , m_OriParentProc(NULL)
 , m_Status(0)
+, m_bIsImageMode(false)
+, m_bIsShowShadow(true)
+, m_bIsDisableShadow(false)
 , m_nDarkness(150)
 , m_nSharpness(5)
 , m_nSize(6)
 , m_nxOffset(0)
 , m_nyOffset(0)
-, m_Color(RGB(0, 0, 0))
 , m_WndSize(0)
 , m_bUpdate(false)
-, m_bIsImageMode(false)
-, m_bIsShowShadow(true)
-, m_bIsDisableShadow(false)
+, m_Color(RGB(0, 0, 0))
 {
 	m_rcShadowCorner.left = 8;
 	m_rcShadowCorner.top = 8;
@@ -475,10 +475,8 @@ void CShadowUI::MakeShadow(UINT32 *pShadBits, HWND hParent, RECT *rcParent)
 	ptAnchorsTmp[0][1] = 0;
 	ptAnchorsTmp[nAnchors + 1][0] = szParent.cx;
 	ptAnchorsTmp[nAnchors + 1][1] = 0;
-	int nEroTimes = 0;
 	// morphologic erosion
 	for(int i = 0; i < m_nSharpness - m_nSize; i++) {
-		nEroTimes++;
 		//ptAnchorsTmp[1][0] = szParent.cx;
 		//ptAnchorsTmp[1][1] = 0;
 		//ptAnchorsTmp[szParent.cy + 1][0] = szParent.cx;

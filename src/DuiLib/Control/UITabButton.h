@@ -18,8 +18,8 @@ namespace DuiLib
 		CTabButtonUI();
 		~CTabButtonUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
 		void SetTabTitle(LPCTSTR pstrTitle);
 		CDuiString GetTabTitle() const;

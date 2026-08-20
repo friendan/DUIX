@@ -15,10 +15,10 @@
 		CSvgBoxUI();
 		~CSvgBoxUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
-		UINT GetControlFlags() const;
-		bool PreferClientHit() const;
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
+		UINT GetControlFlags() const override;
+		bool PreferClientHit() const override;
 
 		/// 从文件加载内容（透明分流）：扩展名为 `.ico/.png/.jpg/.jpeg/.bmp/.gif/.webp` 时按本地位图显示；
 		/// 否则（`.svg` 等）按 SVG 显示。相对路径基于资源路径；也可传绝对路径。
@@ -41,11 +41,11 @@
 		void SetDisabledColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetDisabledColor() const;
 
-		void SetEnabled(bool bEnable = true);
+		void SetEnabled(bool bEnable = true) override;
 		void Invalidate() override;
-		void DoEvent(TEventUI& event);
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-		void PaintStatusImage(IRenderContext& ctx);
+		void DoEvent(TEventUI& event) override;
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
+		void PaintStatusImage(IRenderContext& ctx) override;
 		/// 仅绘制缓存位图（供 Button 等父控件内嵌时调用，不走完整 DoPaint）
 		void PaintIcon(IRenderContext& ctx, const RECT& rcPaint);
 

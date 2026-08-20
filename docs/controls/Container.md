@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | 类 | `CContainerUI 及布局子类` |
-| XML | `<Container>` `<HBox>`/`<HorizontalLayout>` `<VBox>`/`<VerticalLayout>` `<FlowLayout>` `<TileLayout>` `<TabLayout>` `<ChildLayout>` `<LinearLayout>` |
+| XML | `<Container>` `<HBox>`/`<HorizontalLayout>` `<VBox>`/`<VerticalLayout>` `<SplitLayout>`/`<HSplit>`/`<VSplit>` `<FlowLayout>` `<TileLayout>` `<TabLayout>` `<ChildLayout>` `<LinearLayout>` |
 | 源码 | `src/DuiLib/Core/UIContainer.*`、`src/DuiLib/Layout/*` |
 | 继承属性 | 见 [Control.md](Control.md) |
 
@@ -43,6 +43,7 @@
 | `sep-height` | — | 同上 |
 | `sep-size` | — | 同上 |
 | `sep-imm` | — | 同上 |
+| SplitLayout `orientation` / `sep-color` | 内部分隔条，见 [SplitLayout.md](SplitLayout.md) | 无 |
 | `line-spacing` | 优先 `row-gap` | row-gap |
 | `item-size` | — | grid 单元格尺寸 |
 | `columns` | — | grid-template-columns |
@@ -54,7 +55,8 @@
 
 | 控件 | 非标准属性 |
 |------|-----------|
-| HBox / VBox | `sep-width` / `sep-height`（分隔条拖拽） |
+| HBox / VBox | `sep-width` / `sep-height`（分隔条拖拽**自身**尺寸） |
+| SplitLayout / HSplit / VSplit | `orientation`、`sep-size`、`sep-imm`、`sep-color`（拖**相邻子项**之间，见 [SplitLayout.md](SplitLayout.md)） |
 | LinearLayout | `sep-size`、`sep-imm` |
 | FlowLayout | `wrap`、`line-spacing`；`align` 仍作 `justify-content` 别名 |
 | TileLayout | `item-size`、`columns` |

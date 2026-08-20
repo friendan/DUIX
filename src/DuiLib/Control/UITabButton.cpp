@@ -435,7 +435,7 @@ namespace DuiLib
 		}
 		else {
 			pTempBits = new BYTE[pSrc->nX * pSrc->nY * 4];
-			BITMAPINFO bmi = { 0 };
+			BITMAPINFO bmi = {};
 			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 			bmi.bmiHeader.biWidth = pSrc->nX;
 			bmi.bmiHeader.biHeight = -pSrc->nY;
@@ -452,7 +452,7 @@ namespace DuiLib
 			pSrcBits = pTempBits;
 		}
 
-		BITMAPINFO bmiOut = { 0 };
+		BITMAPINFO bmiOut = {};
 		bmiOut.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmiOut.bmiHeader.biWidth = nSize;
 		bmiOut.bmiHeader.biHeight = -nSize;

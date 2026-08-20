@@ -425,9 +425,9 @@ namespace DuiLib {
 
 		if (event.Type == UIEVENT_SETCURSOR) {
 			if (IsEnabled())
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_CROSS)));
+				::SetCursor(::LoadCursor(NULL, IDC_CROSS));
 			else
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_ARROW)));
+				::SetCursor(::LoadCursor(NULL, IDC_ARROW));
 			return;
 		}
 

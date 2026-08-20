@@ -269,6 +269,8 @@ namespace DuiLib {
 		m_pEventClick(NULL),
 		m_pEventRClick(NULL),
 		m_pEventKey(NULL),
+		m_bBlankCtxMenu(false),
+		m_bBlankCtxMenuDeepest(true),
 		m_uTimerID(0x1000),
 		m_bFirstLayout(true),
 		m_bUpdateNeeded(false),
@@ -297,8 +299,6 @@ namespace DuiLib {
 		m_trh(0),
 		m_bDragDrop(false),
 		m_bDragMode(false),
-		m_bBlankCtxMenu(false),
-		m_bBlankCtxMenuDeepest(true),
 		m_hDragBitmap(NULL)
 	{
 		if (m_SharedResInfo.m_DefaultFontInfo.sFontName.IsEmpty())
@@ -488,11 +488,6 @@ namespace DuiLib {
 			m_hDcPaint = ::GetDC(hWnd);
 			m_aPreMessages.Add(this);
 		}
-	}
-
-	void CPaintManagerUI::DeletePtr(void* ptr)
-	{
-		if(ptr) {delete ptr; ptr = NULL;}
 	}
 
 	HINSTANCE CPaintManagerUI::GetInstance()
@@ -942,8 +937,7 @@ namespace DuiLib {
 
 			DWORD dwStyle = ::GetWindowLong(m_hWndPaint, GWL_EXSTYLE);
 			DWORD dwNewStyle = dwStyle;
-			if( nOpacity >= 0 && nOpacity < 256 ) dwNewStyle |= WS_EX_LAYERED;
-			else dwNewStyle &= ~WS_EX_LAYERED;
+			dwNewStyle |= WS_EX_LAYERED;
 			if(dwStyle != dwNewStyle) ::SetWindowLong(m_hWndPaint, GWL_EXSTYLE, dwNewStyle);
 			fSetLayeredWindowAttributes(m_hWndPaint, 0, nOpacity, LWA_ALPHA);
 		}
@@ -1581,7 +1575,7 @@ namespace DuiLib {
 				m_bAsyncNotifyPosted = false;
 
 				TNotifyUI* pMsg = NULL;
-				while( pMsg = static_cast<TNotifyUI*>(m_aAsyncNotify.GetAt(0)) ) {
+				while( (pMsg = static_cast<TNotifyUI*>(m_aAsyncNotify.GetAt(0))) ) {
 					m_aAsyncNotify.Remove(0);
 					if( pMsg->pSender != NULL ) {
 						if( pMsg->pSender->OnNotify ) pMsg->pSender->OnNotify(pMsg);
@@ -2182,7 +2176,7 @@ namespace DuiLib {
 					ptDrag.y = bmap.bmHeight / 2;
 					dragSrcHelper.InitializeFromBitmap(hBitmap, ptDrag, rc, pdobj); //will own the bmp
 					DWORD dwEffect;
-					HRESULT hr = ::DoDragDrop(pdobj, pdsrc, DROPEFFECT_COPY | DROPEFFECT_MOVE, &dwEffect);
+					::DoDragDrop(pdobj, pdsrc, DROPEFFECT_COPY | DROPEFFECT_MOVE, &dwEffect);
 					if(dwEffect ) pdsrc->Release();
 					else delete pdsrc;
 					pdobj->Release();
@@ -2448,7 +2442,6 @@ namespace DuiLib {
 								if( p->OnNotify ) { pDispatch = p; break; }
 							}
 							TNotifyUI Msg;
-							::ZeroMemory(&Msg, sizeof(Msg));
 							Msg.sType = DUI_MSGTYPE_MENU;
 							Msg.pSender = pTarget;   // 仍指向实际命中的最内层容器，便于回调知道点在哪个容器
 							Msg.wParam = wParam;
@@ -4938,7 +4931,6 @@ namespace DuiLib {
 					HDC hdc = GetDC(NULL);
 					if(hdc != NULL)
 					{
-						int i = ((BITMAPFILEHEADER *)lpbi)->bfOffBits;
 						hbm = CreateDIBitmap(hdc,(LPBITMAPINFOHEADER)lpbi,
 							(LONG)CBM_INIT,
 							(LPSTR)lpbi + lpbi->biSize + ColorTableSize(lpbi),

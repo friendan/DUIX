@@ -41,7 +41,6 @@ namespace DuiLib
 	{
 		UINT dpix = 96, dpiy = 96;
 		if (IsWindows8Point1OrGreater()) {
-			HRESULT  hr = E_FAIL;
 			HMODULE hModule =::LoadLibrary(_T("Shcore.dll"));
 			if(hModule != NULL) {
 				LPGetDpiForMonitor GetDpiForMonitor = (LPGetDpiForMonitor)GetProcAddress(hModule, "GetDpiForMonitor");

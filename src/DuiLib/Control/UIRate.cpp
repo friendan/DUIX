@@ -290,7 +290,7 @@ namespace DuiLib
 
 		if( IsEnabled() && !m_bReadOnly ) {
 			if( event.Type == UIEVENT_SETCURSOR ) {
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND)));
+				::SetCursor(::LoadCursor(NULL, IDC_HAND));
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSEMOVE || event.Type == UIEVENT_MOUSEENTER ) {

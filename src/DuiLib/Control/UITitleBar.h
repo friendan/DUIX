@@ -26,8 +26,8 @@ namespace DuiLib
 	public:
 		CTitleBarSysUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 		SIZE EstimateSize(SIZE szAvailable) override;
 	};
 
@@ -38,8 +38,8 @@ namespace DuiLib
 		CTitleBarUI();
 		~CTitleBarUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
 		void SetTitle(LPCTSTR pstrText);
 		CDuiString GetTitle() const;

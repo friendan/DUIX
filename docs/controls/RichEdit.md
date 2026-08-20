@@ -29,7 +29,17 @@
 | `transparent` / `rich` | 透明 / 富文本模式 | 部分接近 |
 | `placeholder-align` | 占位对齐 | 无 |
 
-文字缩进用 `padding`。
+文字缩进用 `padding`（盒模型内边距）。另可用 `text-padding` 再缩文字区；**不要**指望把 `padding` 写很大来代替——旧版曾把 `padding` 扣两遍导致矮控件文字区为空。
+
+**撑满剩余高度：** 不写 `height`（固定高为 0）时 `EstimateSize` 返回 0，由父 VBox/手风琴 `fill` 等分摊剩余空间；再配 `overflow-y` / `v-scrollbar` 即可内部滚动。
+
+**只读设全文：** `SetText` 走 `TxSetText`，`readonly` 下也可更新内容（勿依赖 `EM_REPLACESEL`）。
+
+**绘制：** 离屏用 `CreatePixelBuffer`（正高度 bottom-up，GDI/`TxDraw` 可靠）→ 修 alpha → **垂直翻转扫描行**（供 D2D top-down 上传）→ `DrawImage` → `DestroyPixelBuffer`（会清 D2D 缓存，避免 HBITMAP 句柄复用串到 SvgBox）。勿在 `GetOrCreateBitmap` 里对所有 bottom-up 图全局翻转。
 
 **`opacity`：** 内容贴图乘 `ScaleImageFade()`（默认含祖先；`opacity-isolate` 仅自身）。
+
+**右键菜单：** 默认开启（`menu` / `contextmenu` 默认为真）：全选 / 复制 / 粘贴。只读时粘贴灰掉；无选区时复制灰掉。`menu="false"` 关闭。
+
+**复制：** `Copy` 写 `CF_UNICODETEXT` 到系统剪贴板（不用 `WM_COPY` 的 OLE 延迟渲染）；析构前 `OleFlushClipboard`，避免关窗卡死。
 

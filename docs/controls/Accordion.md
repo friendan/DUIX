@@ -28,6 +28,7 @@
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
 | `mode` | — | 无 |
+| `fill` | `true`：撑满父级剩余高度；展开项再把剩余高度分给可伸缩子控件 | 近似 flex 子项 `flex:1` |
 | `header-height` | — | height |
 | `active` | — | 无标准等价 |
 | `content-padding` | 内容区内边距；与全局 `padding` 相同，**CSS** `top,right,bottom,left` | padding |
@@ -37,3 +38,5 @@
 | `header-background-color-active` | — | 无标准等价（控件皮肤/列表项专用） |
 
 接近 HTML `<details>`/`<summary>` 的交互模型，但属性名与皮肤字段均为自定义。
+
+**项间分割线：** 默认 `border-bottom-width=1`（主题跟 `border-color`）。分割线在子控件之后绘制，避免被 Header 盖住。

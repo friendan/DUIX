@@ -364,8 +364,6 @@ namespace DuiLib {
 			if( rx > w * 0.5f ) rx = w * 0.5f;
 			if( ry > h * 0.5f ) ry = h * 0.5f;
 
-			float cx = px;
-			float cy = py;
 			bool inCorner = false;
 			float dx = 0.0f, dy = 0.0f;
 

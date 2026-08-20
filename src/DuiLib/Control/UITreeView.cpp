@@ -167,7 +167,7 @@ namespace DuiLib
 				CControlUI* pParent = GetParent();
 				RECT rcTemp;
 				RECT rcParent;
-				while( pParent = pParent->GetParent() ) {
+				while( (pParent = pParent->GetParent()) ) {
 					rcTemp = invalidateRc;
 					rcParent = pParent->GetPos();
 					if( !::IntersectRect(&invalidateRc, &rcTemp, &rcParent) ) 
@@ -801,7 +801,7 @@ namespace DuiLib
 	// 参数信息: void
 	// 函数说明: 
 	//************************************
-	CTreeViewUI::CTreeViewUI( void ) : m_bVisibleFolderBtn(TRUE),m_bVisibleCheckBtn(FALSE),m_uItemMinWidth(0)
+	CTreeViewUI::CTreeViewUI( void ) : m_uItemMinWidth(0),m_bVisibleFolderBtn(TRUE),m_bVisibleCheckBtn(FALSE)
 	{
 		this->GetHeader()->SetVisible(FALSE);
 	}

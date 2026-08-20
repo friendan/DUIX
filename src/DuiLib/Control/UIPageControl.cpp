@@ -10,21 +10,21 @@ namespace DuiLib
 #define PAGE_OPT_GROUP _T("PAGE_OPT_GROUP")
 
         DuiLib::CPageControlUI::CPageControlUI()
-        : m_BtnPrevious(new CButtonUI)
+        : m_nFont(-1)
+        , m_nMaxPage(0)
+        , m_nSelPageNo(-1)
+        , m_dwSelTextColor(0x0D6EFDFF)
+        , m_dwSelectedBackgroundColor(0)
+        , m_dwNormalTextColor(0x000000E0)
+        , m_dwNormalBackgroundColor(0)
+        , m_dwHoverBackgroundColor(0x00000014)
+        , m_dwHoverColor(0x000000FF)
+        , m_BtnPrevious(new CButtonUI)
         , m_BtnNext(new CButtonUI)
         , m_BtnNextMore(new CButtonUI)
         , m_BtnGoto(new CButtonUI)
         , m_EdtPageNo(new CEditUI)
         , m_ConCurSel(nullptr)
-        , m_nMaxPage(0)
-        , m_nSelPageNo(-1)
-        , m_dwHoverBackgroundColor(0x00000014)
-        , m_dwSelTextColor(0x0D6EFDFF)
-        , m_dwNormalTextColor(0x000000E0)
-        , m_dwNormalBackgroundColor(0)
-        , m_dwHoverColor(0x000000FF)
-        , m_dwSelectedBackgroundColor(0)
-        , m_nFont(-1)
     {
         SetPageNoSize();
         SetGotoEditSize();
@@ -609,7 +609,6 @@ namespace DuiLib
             {
                 int iCurSelIndex = m_ConCurSel->GetTag();
                 int nFirstPageNo = GetPageNoByControl((COptionUI*)m_OptPageNoArr[0]);
-                int iPageIndex = ((COptionUI*)m_OptPageNoArr[0])->GetTag();
 
                 //第一个页码是1
                 if (nFirstPageNo == 1)
@@ -643,7 +642,6 @@ namespace DuiLib
             else if (notify->pSender == m_BtnNext ||
                 notify->pSender == m_BtnNextMore)
             {
-                int nCurSelPage = GetCurSel();
                 int nCurSelIdx = m_ConCurSel->GetTag();
 
                 //当前选中是倒数第二个之前的页

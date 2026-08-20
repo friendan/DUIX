@@ -55,7 +55,6 @@ namespace DuiLib {
 		int nAttributes = 0;
 		LPCTSTR pstrName = NULL;
 		LPCTSTR pstrValue = NULL;
-		LPTSTR pstr = NULL;
 
 		//加载图片资源
 		LPCTSTR pstrId = NULL;
@@ -175,7 +174,6 @@ namespace DuiLib {
 		int nAttributes = 0;
 		LPCTSTR pstrName = NULL;
 		LPCTSTR pstrValue = NULL;
-		LPTSTR pstr = NULL;
 
 		//加载图片资源
 		LPCTSTR pstrId = NULL;

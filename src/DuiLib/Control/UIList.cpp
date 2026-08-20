@@ -77,12 +77,12 @@ namespace DuiLib {
 	IMPLEMENT_DUICONTROL(CListUI)
 
 		CListUI::CListUI()
-		: m_pCallback(NULL)
-		, m_bScrollSelect(false)
-		, m_iCurSel(-1)
-		, m_iExpandedItem(-1)
+		: m_bScrollSelect(false)
 		, m_bMultiSel(false)
+		, m_iCurSel(-1)
 		, m_iFirstSel(-1)
+		, m_iExpandedItem(-1)
+		, m_pCallback(NULL)
 	{
 		m_pList = new CListBodyUI(this);
 		m_pHeader = new CListHeaderUI;
@@ -250,9 +250,9 @@ namespace DuiLib {
 		}
 
 		if (m_iCurSel >= iIndex) {
-			int idx = m_aSelItems.Find((LPVOID)m_iCurSel);
+			int idx = m_aSelItems.Find((LPVOID)(INT_PTR)m_iCurSel);
 			if (idx != -1) {
-				m_aSelItems.SetAt(idx, (LPVOID*)(m_iCurSel + 1));
+				m_aSelItems.SetAt(idx, (LPVOID)(INT_PTR)(m_iCurSel + 1));
 			}
 			m_iCurSel += 1;
 		}
@@ -289,7 +289,7 @@ namespace DuiLib {
 			int iSel = m_iCurSel;
 			m_iCurSel = -1;
 
-			int idx = m_aSelItems.Find((LPVOID)iSel);
+			int idx = m_aSelItems.Find((LPVOID)(INT_PTR)iSel);
 			if(idx != -1) {
 				m_aSelItems.Remove(idx);
 			}
@@ -300,9 +300,9 @@ namespace DuiLib {
 			m_iCurSel -= 1; 
 			for (int i = 0; i < m_aSelItems.GetSize(); ++i)
 			{
-				int sel = (int)m_aSelItems.GetAt(i);
+				int sel = (int)(INT_PTR)m_aSelItems.GetAt(i);
 				if (iIndex < sel)
-					m_aSelItems.SetAt(i, (LPVOID*)(sel - 1));
+					m_aSelItems.SetAt(i, (LPVOID)(INT_PTR)(sel - 1));
 			}
 		}
 
@@ -324,7 +324,7 @@ namespace DuiLib {
 			int iSel = m_iCurSel;
 			m_iCurSel = -1;
 
-			int idx = m_aSelItems.Find((LPVOID)iSel);
+			int idx = m_aSelItems.Find((LPVOID)(INT_PTR)iSel);
 			if(idx != -1) {
 				m_aSelItems.Remove(idx);
 			}
@@ -336,9 +336,9 @@ namespace DuiLib {
 
 			for (int i = 0; i < m_aSelItems.GetSize(); ++i)
 			{
-				int sel = (int)m_aSelItems.GetAt(i);
+				int sel = (int)(INT_PTR)m_aSelItems.GetAt(i);
 				if (iIndex < sel)
-					m_aSelItems.SetAt(i, (LPVOID*)(sel - 1));
+					m_aSelItems.SetAt(i, (LPVOID)(INT_PTR)(sel - 1));
 			}
 		}
 
@@ -436,7 +436,6 @@ namespace DuiLib {
 				CControlUI* pControl = static_cast<CControlUI*>(m_pHeader->GetItemAt(i));
 				if (!pControl->IsVisible()) continue;
 				if (pControl->IsAbsolute()) continue;
-				RECT rcPos = pControl->GetPos();
 				m_ListInfo.rcColumn[i] = pControl->GetPos();
 			}
 			if (!m_pHeader->IsVisible()) {
@@ -470,11 +469,11 @@ namespace DuiLib {
 	{
 		if (m_aSelItems.GetSize() <= 0)
 			return -1;
-		int min = (int)m_aSelItems.GetAt(0);
+		int min = (int)(INT_PTR)m_aSelItems.GetAt(0);
 		int index;
 		for (int i = 0; i < m_aSelItems.GetSize(); ++i)
 		{
-			index = (int)m_aSelItems.GetAt(i);
+			index = (int)(INT_PTR)m_aSelItems.GetAt(i);
 			if (min > index)
 				min = index;
 		}
@@ -485,11 +484,11 @@ namespace DuiLib {
 	{
 		if (m_aSelItems.GetSize() <= 0)
 			return -1;
-		int max = (int)m_aSelItems.GetAt(0);
+		int max = (int)(INT_PTR)m_aSelItems.GetAt(0);
 		int index;
 		for (int i = 0; i < m_aSelItems.GetSize(); ++i)
 		{
-			index = (int)m_aSelItems.GetAt(i);
+			index = (int)(INT_PTR)m_aSelItems.GetAt(i);
 			if (max < index)
 				max = index;
 		}
@@ -620,7 +619,7 @@ namespace DuiLib {
 			return -1;
 		}
 		else {
-			return (int)m_aSelItems.GetAt(0);
+			return (int)(INT_PTR)m_aSelItems.GetAt(0);
 		}
 
 		return -1;
@@ -635,7 +634,7 @@ namespace DuiLib {
 		// 判断是否合法列表项
 		if (iIndex < 0) return false;
 		// 已经选择
-		int aIndex = m_aSelItems.Find((LPVOID)iIndex);
+		int aIndex = m_aSelItems.Find((LPVOID)(INT_PTR)iIndex);
 		if (aIndex != -1) {
 			return true;
 		}
@@ -650,8 +649,8 @@ namespace DuiLib {
 		int iLastSel = m_iCurSel;
 		m_iCurSel = iIndex;
 		//如果已经选中了就无需要再重复加入by nakkler
-		if(m_aSelItems.Find((LPVOID)iIndex)==-1)
-            m_aSelItems.Add((LPVOID)iIndex);
+		if(m_aSelItems.Find((LPVOID)(INT_PTR)iIndex)==-1)
+            m_aSelItems.Add((LPVOID)(INT_PTR)iIndex);
 
         EnsureVisible(iIndex);
         if (bTakeFocus) pControl->SetFocus();
@@ -691,7 +690,7 @@ namespace DuiLib {
 
 		// 多选判断
 		if ((GetKeyState(VK_CONTROL) & 0x8000)) {
-			int aIndex = m_aSelItems.Find((LPVOID)iIndex);
+			int aIndex = m_aSelItems.Find((LPVOID)(INT_PTR)iIndex);
 			if (aIndex != -1) {
 				if (!pListItem->SelectMulti(false)) return false;
 				if (m_iCurSel == iIndex) m_iCurSel = -1;
@@ -704,7 +703,7 @@ namespace DuiLib {
 				if (!pListItem->SelectMulti(true)) return false;
 
 				m_iCurSel = iIndex;
-				m_aSelItems.Add((LPVOID)iIndex);
+				m_aSelItems.Add((LPVOID)(INT_PTR)iIndex);
 				EnsureVisible(iIndex);
 				if (bTakeFocus) pControl->SetFocus();
 				if (m_pManager != NULL) {
@@ -729,7 +728,7 @@ namespace DuiLib {
 				IListItemUI* pSelListItem = static_cast<IListItemUI*>(pSelControl->GetInterface(_T("ListItem")));
 				if (pSelListItem == NULL) continue;
 				if (!pSelListItem->SelectMulti(true)) continue;
-				m_aSelItems.Add((LPVOID)index);
+				m_aSelItems.Add((LPVOID)(INT_PTR)index);
 			}
 
 			m_iCurSel = iIndex;
@@ -743,7 +742,7 @@ namespace DuiLib {
 			if (!pListItem->SelectMulti(true)) return false;
 
 			m_iCurSel = iIndex;
-			m_aSelItems.Add((LPVOID)iIndex);
+			m_aSelItems.Add((LPVOID)(INT_PTR)iIndex);
 			EnsureVisible(iIndex);
 			if (bTakeFocus) pControl->SetFocus();
 			if (m_pManager != NULL) {
@@ -768,7 +767,7 @@ namespace DuiLib {
 	{
 		if (bOthers) {
 			for (int i = m_aSelItems.GetSize() - 1; i >= 0; --i) {
-				int iSelIndex = (int)m_aSelItems.GetAt(i);
+				int iSelIndex = (int)(INT_PTR)m_aSelItems.GetAt(i);
 				if (iSelIndex == iIndex) continue;
 				CControlUI* pControl = GetItemAt(iSelIndex);
 				if (pControl == NULL) continue;
@@ -792,7 +791,7 @@ namespace DuiLib {
 			if (!pControl->IsEnabled()) return false;
 			IListItemUI* pListItem = static_cast<IListItemUI*>(pControl->GetInterface(_T("ListItem")));
 			if (pListItem == NULL) return false;
-			int aIndex = m_aSelItems.Find((LPVOID)iIndex);
+			int aIndex = m_aSelItems.Find((LPVOID)(INT_PTR)iIndex);
 			if (aIndex < 0) return false;
 			if (!pListItem->SelectMulti(false)) return false;
 			if (m_iCurSel == iIndex) m_iCurSel = -1;
@@ -811,9 +810,9 @@ namespace DuiLib {
 			IListItemUI* pListItem = static_cast<IListItemUI*>(pControl->GetInterface(_T("ListItem")));
 			if (pListItem == NULL) continue;
 			if (!pListItem->SelectMulti(true)) continue;
-			int aIndex = m_aSelItems.Find((LPVOID)i);
+			int aIndex = m_aSelItems.Find((LPVOID)(INT_PTR)i);
 			if (aIndex < 0) {
-				m_aSelItems.Add((LPVOID)i);
+				m_aSelItems.Add((LPVOID)(INT_PTR)i);
 			}
 			m_iCurSel = i;
 		}
@@ -828,7 +827,7 @@ namespace DuiLib {
 	void CListUI::UnSelectAllItems()
 	{
 		for (int i = 0; i < m_aSelItems.GetSize(); ++i) {
-			int iSelIndex = (int)m_aSelItems.GetAt(i);
+			int iSelIndex = (int)(INT_PTR)m_aSelItems.GetAt(i);
 			CControlUI* pControl = GetItemAt(iSelIndex);
 			if (pControl == NULL) continue;
 			if (!pControl->IsEnabled()) continue;
@@ -851,13 +850,13 @@ namespace DuiLib {
 			return -1;
 
 		if (nItem < 0) {
-			return (int)m_aSelItems.GetAt(0);
+			return (int)(INT_PTR)m_aSelItems.GetAt(0);
 		}
-		int aIndex = m_aSelItems.Find((LPVOID)nItem);
+		int aIndex = m_aSelItems.Find((LPVOID)(INT_PTR)nItem);
 		if (aIndex < 0) return -1;
 		if (aIndex + 1 > m_aSelItems.GetSize() - 1)
 			return -1;
-		return (int)m_aSelItems.GetAt(aIndex + 1);
+		return (int)(INT_PTR)m_aSelItems.GetAt(aIndex + 1);
 	}
 
 	UINT CListUI::GetListType()
@@ -1175,7 +1174,6 @@ namespace DuiLib {
 		CScrollBarUI* pHorizontalScrollBar = m_pList->GetHorizontalScrollBar();
 		if (pHorizontalScrollBar && pHorizontalScrollBar->IsVisible()) rcList.bottom -= pHorizontalScrollBar->GetFixedHeight();
 
-		int iPos = m_pList->GetScrollPos().cy;
 		if (rcItem.top >= rcList.top && rcItem.bottom < rcList.bottom) return;
 		int dx = 0;
 		if (rcItem.top < rcList.top) dx = rcItem.top - rcList.top;
@@ -1478,7 +1476,6 @@ namespace DuiLib {
 			return FALSE;
 		m_pCompareFunc = pfnCompare;
 		m_compareData = dwData;
-		CControlUI **pData = (CControlUI **)m_items.GetData();
 		qsort_s(m_items.GetData(), m_items.GetSize(), sizeof(CControlUI*), CListBodyUI::ItemComareFunc, this);
 		IListItemUI *pItem = NULL;
 		for (int i = 0; i < m_items.GetSize(); ++i)
@@ -1623,7 +1620,6 @@ namespace DuiLib {
 			}
 			cyFixed += sz.cy + pControl->GetMargin().top + pControl->GetMargin().bottom;
 
-			RECT rcMargin = pControl->GetMargin();
 			sz.cx = MAX(sz.cx, 0);
 			if (sz.cx < pControl->GetMinWidth()) sz.cx = pControl->GetMinWidth();
 			if (sz.cx > pControl->GetMaxWidth()) sz.cx = pControl->GetMaxWidth();
@@ -1881,7 +1877,6 @@ namespace DuiLib {
 		cxFixed += (nEstimateNum - 1) * iGap;
 
 		int cxExpand = 0;
-		int cxNeeded = 0;
 		if (nAdjustables > 0) cxExpand = MAX(0, (szAvailable.cx - cxFixed) / nAdjustables);
 
 		// Position the elements（% / 固定宽相对整表头可用宽，勿用 szRemaining）
@@ -1936,10 +1931,8 @@ namespace DuiLib {
 			RECT rcCtrl = { iPosX + rcMargin.left, rc.top + rcMargin.top, iPosX + sz.cx + rcMargin.left + rcMargin.right, rc.top + rcMargin.top + sz.cy };
 			pControl->SetPos(rcCtrl);
 			iPosX += sz.cx + iGap + rcMargin.left + rcMargin.right;
-			cxNeeded += sz.cx + rcMargin.left + rcMargin.right;
 			szRemaining.cx -= sz.cx + iGap + rcMargin.right;
 		}
-		cxNeeded += (nEstimateNum - 1) * iGap;
 	}
 
 	void CListHeaderUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -2027,7 +2020,7 @@ namespace DuiLib {
 	IMPLEMENT_DUICONTROL(CListHeaderItemUI)
 
 		CListHeaderItemUI::CListHeaderItemUI() : m_bDragable(true), m_uButtonState(0), m_iSepWidth(4),
-		m_uTextStyle(DT_VCENTER | DT_CENTER | DT_SINGLELINE), m_dwColor(0), m_iFont(-1), m_bShowHtml(false), m_nScale(0)
+		m_dwColor(0), m_iFont(-1), m_uTextStyle(DT_VCENTER | DT_CENTER | DT_SINGLELINE), m_bShowHtml(false), m_nScale(0)
 	{
 		// CDuiBox(top,right,bottom,left)：只要左右留白，垂直交给 PaintText 整格居中
 		SetPadding(CDuiBox(0, 8, 0, 8));
@@ -2374,7 +2367,7 @@ namespace DuiLib {
 			else
 				rcSeparator.right += 4;
 			if (IsEnabled() && IsColumnResizeEnabled() && ::PtInRect(&rcSeparator, event.ptMouse)) {
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_SIZEWE)));
+				::SetCursor(::LoadCursor(NULL, IDC_SIZEWE));
 				return;
 			}
 		}
@@ -2564,9 +2557,9 @@ namespace DuiLib {
 	//
 	//
 	CListElementUI::CListElementUI() : m_iIndex(-1),
-		m_pOwner(NULL),
 		m_bSelected(false),
-		m_uButtonState(0)
+		m_uButtonState(0),
+		m_pOwner(NULL)
 	{
 	}
 
@@ -2658,7 +2651,7 @@ namespace DuiLib {
 				CControlUI* pParent = GetParent();
 				RECT rcTemp;
 				RECT rcParent;
-				while (pParent = pParent->GetParent())
+				while ( (pParent = pParent->GetParent()) )
 				{
 					rcTemp = invalidateRc;
 					rcParent = pParent->GetPos();
@@ -3269,7 +3262,7 @@ namespace DuiLib {
 		}
 		else {
 			pTempBits = new BYTE[pSrc->nX * pSrc->nY * 4];
-			BITMAPINFO bmi = { 0 };
+			BITMAPINFO bmi = {};
 			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 			bmi.bmiHeader.biWidth = pSrc->nX;
 			bmi.bmiHeader.biHeight = -pSrc->nY;
@@ -3286,7 +3279,7 @@ namespace DuiLib {
 			pSrcBits = pTempBits;
 		}
 
-		BITMAPINFO bmiOut = { 0 };
+		BITMAPINFO bmiOut = {};
 		bmiOut.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmiOut.bmiHeader.biWidth = nSize;
 		bmiOut.bmiHeader.biHeight = -nSize;
@@ -3763,7 +3756,7 @@ namespace DuiLib {
 		TListInfoUI* pInfo = m_pOwner->GetListInfo();
 		if( iIndex < 0 || iIndex >= pInfo->nColumns || m_aTextColors.GetSize() <= 0 ) return pInfo->dwColor;
 
-		DWORD dwColor = (DWORD)m_aTextColors.GetAt(iIndex);
+		DWORD dwColor = (DWORD)(UINT_PTR)m_aTextColors.GetAt(iIndex);
 		return dwColor;
 	}
 
@@ -3773,8 +3766,8 @@ namespace DuiLib {
 
 		TListInfoUI* pInfo = m_pOwner->GetListInfo();
 		if( iIndex < 0 || iIndex >= pInfo->nColumns ) return;
-		while( m_aTextColors.GetSize() < pInfo->nColumns ) { m_aTextColors.Add((LPVOID)pInfo->dwColor); }
-		m_aTextColors.SetAt(iIndex, (LPVOID)dwColor);
+		while( m_aTextColors.GetSize() < pInfo->nColumns ) { m_aTextColors.Add((LPVOID)(INT_PTR)pInfo->dwColor); }
+		m_aTextColors.SetAt(iIndex, (LPVOID)(UINT_PTR)dwColor);
 
 		Invalidate();
 	}
@@ -3803,7 +3796,7 @@ namespace DuiLib {
 		if (event.Type == UIEVENT_SETCURSOR) {
 			for (int i = 0; i < m_nLinks; i++) {
 				if (::PtInRect(&m_rcLinks[i], event.ptMouse)) {
-					::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND)));
+					::SetCursor(::LoadCursor(NULL, IDC_HAND));
 					return;
 				}
 			}
@@ -3922,9 +3915,9 @@ namespace DuiLib {
 
 	CListContainerElementUI::CListContainerElementUI() :
 	m_iIndex(-1),
-		m_pOwner(NULL),
 		m_bSelected(false),
-		m_uButtonState(0)
+		m_uButtonState(0),
+		m_pOwner(NULL)
 	{
 	}
 
@@ -4015,7 +4008,7 @@ namespace DuiLib {
 				CControlUI* pParent = GetParent();
 				RECT rcTemp;
 				RECT rcParent;
-				while (pParent = pParent->GetParent())
+				while ( (pParent = pParent->GetParent()) )
 				{
 					rcTemp = invalidateRc;
 					rcParent = pParent->GetPos();
@@ -4307,7 +4300,7 @@ namespace DuiLib {
 
 		if (m_sBackgroundImage.IsEmpty()) {
 			if (!pInfo->sBkImage.IsEmpty()) {
-				bool bDrawOk = DrawImage(ctx, pInfo->sBkImage.GetData());
+				DrawImage(ctx, pInfo->sBkImage.GetData());
 				if(!pInfo->sForegroundImage.IsEmpty()) {
 					DrawImage(ctx, pInfo->sForegroundImage.GetData());
 				}

@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "UIRichEdit.h"
+#include <ole2.h>
 
 #ifdef _USEIMM
 #include <imm.h>
@@ -10,13 +11,9 @@
 
 namespace DuiLib {
 
-#define ID_RICH_UNDO			101
-#define ID_RICH_CUT				102
 #define ID_RICH_COPY			103
 #define ID_RICH_PASTE			104
-#define ID_RICH_CLEAR			105
 #define ID_RICH_SELECTALL		106
-#define ID_RICH_REDO			107
 
 	const LONG cInitTextMax = (32 * 1024) - 1;
 
@@ -170,9 +167,6 @@ namespace DuiLib {
 		INT         iCaretLastHeight;
 		LONG		lSelBarWidth;			// Width of the selection bar
 		LONG  		cchTextMost;			// maximum text size
-		DWORD		dwEventMask;			// DoEvent mask to pass on to parent window
-		LONG		icf;
-		LONG		ipf;
 		RECT		rcClient;				// Client Rect for this control
 		SIZEL		sizelExtent;			// Extent array
 		CHARFORMAT2W cf;					// Default character format
@@ -265,7 +259,7 @@ namespace DuiLib {
 
 	CTxtWinHost::CTxtWinHost() : m_re(NULL)
 	{
-		::ZeroMemory(&cRefs, sizeof(CTxtWinHost) - offsetof(CTxtWinHost, cRefs));
+		::ZeroMemory(&cRefs, (size_t)((char*)this + sizeof(CTxtWinHost) - (char*)&cRefs));
 		cchTextMost = cInitTextMax;
 		laccelpos = -1;
 	}
@@ -289,11 +283,11 @@ namespace DuiLib {
 
 		// Create and cache CHARFORMAT for this control
 		if(FAILED(InitDefaultCharFormat(re, &cf, NULL)))
-			goto err;
+			return FALSE;
 
 		// Create and cache PARAFORMAT for this control
 		if(FAILED(InitDefaultParaFormat(re, &pf)))
-			goto err;
+			return FALSE;
 
 		// edit controls created without a window are multiline by default
 		// so that paragraph formats can be
@@ -334,7 +328,7 @@ namespace DuiLib {
 			TextServicesProc = (PCreateTextServices)GetProcAddress(hmod,"CreateTextServices");
 		}
 		if (TextServicesProc != NULL) {
-			HRESULT hr = TextServicesProc(NULL, this, &pUnk);
+			hr = TextServicesProc(NULL, this, &pUnk);
 		}
 
 		hr = pUnk->QueryInterface(IID_ITextServices,(void **)&pserv);
@@ -345,7 +339,7 @@ namespace DuiLib {
 
 		if(FAILED(hr))
 		{
-			goto err;
+			return FALSE;
 		}
 
 		// Set window text
@@ -353,7 +347,7 @@ namespace DuiLib {
 		{
 #ifdef _UNICODE		
 			if(FAILED(pserv->TxSetText((TCHAR *)pcs->lpszName)))
-				goto err;
+				return FALSE;
 #else
 			size_t iLen = _tcslen(pcs->lpszName);
 			LPWSTR lpText = new WCHAR[iLen + 1];
@@ -361,16 +355,13 @@ namespace DuiLib {
 			::MultiByteToWideChar(CP_ACP, 0, pcs->lpszName, -1, (LPWSTR)lpText, iLen) ;
 			if(FAILED(pserv->TxSetText((LPWSTR)lpText))) {
 				delete[] lpText;
-				goto err;
+				return FALSE;
 			}
 			delete[] lpText;
 #endif
 		}
 
 		return TRUE;
-
-err:
-		return FALSE;
 	}
 
 	/////////////////////////////////  IUnknown ////////////////////////////////
@@ -894,7 +885,7 @@ err:
 
 	void CTxtWinHost::SetAllowBeep(BOOL fAllowBeep)
 	{
-		fAllowBeep = fAllowBeep;
+		this->fAllowBeep = fAllowBeep;
 
 		pserv->OnTxPropertyBitsChange(TXTBIT_ALLOWBEEP, 
 			fAllowBeep ? TXTBIT_ALLOWBEEP : 0);
@@ -1111,10 +1102,15 @@ err:
 		m_fAccumulateDBC= false;
 #endif
 		::ZeroMemory(&m_rcTextPadding, sizeof(m_rcTextPadding));
+		// 默认右键：全选 / 复制 / 粘贴；menu="false" 可关
+		SetContextMenuUsed(true);
 	}
 
 	CRichEditUI::~CRichEditUI()
 	{
+		// 无窗口 RichEdit 的 WM_COPY/Ctrl+C 会把依赖本控件的 OLE 数据挂到剪贴板；
+		// 关窗释放 ITextServices 前若不 Flush，易卡死或整进程退出。
+		::OleFlushClipboard();
 		if( m_pTwh ) {
 			m_pTwh->Release();
 			m_pManager->RemoveMessageFilter(this);
@@ -1252,13 +1248,23 @@ err:
 
 	void CRichEditUI::SetFont(LPCTSTR pStrFontName, int nSize, bool bBold, bool bUnderline, bool bItalic)
 	{
+		if( pStrFontName == NULL || *pStrFontName == _T('\0') ) return;
+		// 优先进字体表：DoInit 前也能记住，Init 后按 m_iFont 应用
+		if( m_pManager != NULL ) {
+			int id = m_pManager->EnsureFont(pStrFontName, nSize, bBold, bUnderline, bItalic, false);
+			if( id >= 0 ) {
+				SetFont(id);
+				return;
+			}
+		}
 		if( m_pTwh ) {
 			LOGFONT lf = { 0 };
 			::GetObject(::GetStockObject(DEFAULT_GUI_FONT), sizeof(LOGFONT), &lf);
 			_tcsncpy(lf.lfFaceName, pStrFontName, LF_FACESIZE);
+			lf.lfFaceName[LF_FACESIZE - 1] = _T('\0');
 			lf.lfCharSet = DEFAULT_CHARSET;
 			lf.lfHeight = -nSize;
-			if( bBold ) lf.lfWeight += FW_BOLD;
+			if( bBold ) lf.lfWeight = FW_BOLD;
 			if( bUnderline ) lf.lfUnderline = TRUE;
 			if( bItalic ) lf.lfItalic = TRUE;
 			HFONT hFont = ::CreateFontIndirect(&lf);
@@ -1345,10 +1351,35 @@ err:
 
 	void CRichEditUI::SetText(LPCTSTR pstrText)
 	{
-		m_sText = pstrText;
+		m_sText = pstrText ? pstrText : _T("");
 		if( !m_pTwh ) return;
-		SetSel(0, -1);
-		ReplaceSel(pstrText, FALSE);
+		// TxSetText：只读时 EM_REPLACESEL 会失败；创建时也走这条路径
+#ifdef _UNICODE
+		m_pTwh->GetTextServices()->TxSetText(m_sText.GetData());
+#else
+		{
+			int iLen = MultiByteToWideChar(CP_ACP, 0, m_sText.GetData(), -1, NULL, 0);
+			if( iLen > 0 ) {
+				LPWSTR lpText = new WCHAR[iLen];
+				MultiByteToWideChar(CP_ACP, 0, m_sText.GetData(), -1, lpText, iLen);
+				m_pTwh->GetTextServices()->TxSetText(lpText);
+				delete[] lpText;
+			}
+			else {
+				m_pTwh->GetTextServices()->TxSetText(L"");
+			}
+		}
+#endif
+		// TxSetText 后按当前颜色刷新默认格式，避免只读/主题下仍用创建时的旧色
+		{
+			DWORD dwColor = m_dwColor;
+			if( dwColor == 0 && m_pManager != NULL )
+				dwColor = m_pManager->GetDefaultFontColor();
+			if( dwColor != 0 )
+				m_pTwh->SetColor(dwColor);
+		}
+		SetModify(false);
+		Invalidate();
 	}
 
 	bool CRichEditUI::IsModify() const
@@ -1499,7 +1530,7 @@ err:
 
 	CDuiString CRichEditUI::GetTextRange(long nStartChar, long nEndChar) const
 	{
-		TEXTRANGEW tr = { 0 };
+		TEXTRANGEW tr = {};
 		tr.chrg.cpMin = nStartChar;
 		tr.chrg.cpMax = nEndChar;
 		LPWSTR lpText = NULL;
@@ -1653,13 +1684,39 @@ err:
 	}
 
 	void CRichEditUI::Copy()
-	{ 
-		TxSendMessage(WM_COPY, 0, 0, 0); 
+	{
+		// 不用 WM_COPY：其 OLE 延迟渲染绑定 ITextServices，关窗会卡/崩。
+		CDuiString text = GetSelText();
+		if( text.IsEmpty() ) return;
+		HWND hWnd = (m_pManager != NULL) ? m_pManager->GetPaintWindow() : NULL;
+		if( !::OpenClipboard(hWnd) ) return;
+		::EmptyClipboard();
+		size_t nBytes = (size_t)(text.GetLength() + 1) * sizeof(TCHAR);
+		HGLOBAL hMem = ::GlobalAlloc(GMEM_MOVEABLE, nBytes);
+		if( hMem ) {
+			void* p = ::GlobalLock(hMem);
+			if( p ) {
+				::memcpy(p, text.GetData(), nBytes);
+				::GlobalUnlock(hMem);
+#ifdef _UNICODE
+				if( !::SetClipboardData(CF_UNICODETEXT, hMem) )
+					::GlobalFree(hMem);
+#else
+				if( !::SetClipboardData(CF_TEXT, hMem) )
+					::GlobalFree(hMem);
+#endif
+			}
+			else {
+				::GlobalFree(hMem);
+			}
+		}
+		::CloseClipboard();
 	}
 
 	void CRichEditUI::Cut()
-	{ 
-		TxSendMessage(WM_CUT, 0, 0, 0); 
+	{
+		Copy();
+		if( !IsReadOnly() ) Clear();
 	}
 
 	void CRichEditUI::Paste()
@@ -1800,9 +1857,22 @@ err:
 			m_pTwh->OnTxInPlaceActivate(NULL);
 			m_pManager->AddMessageFilter(this);
 			m_pManager->SetTimer(this, DEFAULT_TIMERID, ::GetCaretBlinkTime());
-			if (!m_bEnabled) {
+			// 属性可能在 DoInit 前已写入成员：补应用到 host
+			if( m_iFont >= 0 )
+				m_pTwh->SetFont(m_pManager->GetFont(m_iFont));
+			if( !m_bEnabled ) {
 				m_pTwh->SetColor(m_pManager->GetDefaultDisabledColor());
 			}
+			else if( m_dwColor != 0 ) {
+				m_pTwh->SetColor(m_dwColor);
+			}
+			else {
+				m_pTwh->SetColor(m_pManager->GetDefaultFontColor());
+			}
+			m_pTwh->SetWordWrap(m_bWordWrap);
+			m_pTwh->SetReadOnly(m_bReadOnly);
+			if( m_iLimitText > 0 )
+				m_pTwh->LimitText(m_iLimitText);
 		}
 
 		m_bInited= true;
@@ -2058,7 +2128,7 @@ err:
 					if( !::IntersectRect(&rcCaret, &rcTemp, &m_rcItem) ) return;
 					CControlUI* pParent = this;
 					RECT rcParent;
-					while( pParent = pParent->GetParent() ) {
+					while( (pParent = pParent->GetParent()) ) {
 						rcTemp = rcCaret;
 						rcParent = pParent->GetPos();
 						if( !::IntersectRect(&rcCaret, &rcTemp, &rcParent) ) {
@@ -2110,7 +2180,9 @@ err:
 
 	SIZE CRichEditUI::EstimateSize(SIZE szAvailable)
 	{
-		return CContainerUI::EstimateSize(szAvailable);
+		// 与 VBox/HBox 一致：未设宽高时返回 0，由父布局拉伸。
+		// 勿走 CContainerUI::EstimateSize（会按子项/空内容测固有尺寸，导致无法撑满剩余高度）。
+		return CControlUI::EstimateSize(szAvailable);
 	}
 
 	void CRichEditUI::SetPos(RECT rc, bool bNeedInvalidate)
@@ -2118,11 +2190,14 @@ err:
 		CControlUI::SetPos(rc, bNeedInvalidate);
 		rc = m_rcItem;
 
+		// padding 只扣一次：得到内容区；text-padding 再缩文字区。勿把 padding 算两遍（矮控件会变成空矩形，文字看不见）。
 		RECT rcPadding = GetPadding();
 		rc.left += rcPadding.left;
 		rc.top += rcPadding.top;
 		rc.right -= rcPadding.right;
 		rc.bottom -= rcPadding.bottom;
+		if( rc.right < rc.left ) rc.right = rc.left;
+		if( rc.bottom < rc.top ) rc.bottom = rc.top;
 
 		RECT rcScrollView = rc;
 		bool bVScrollBarVisiable = false;
@@ -2141,24 +2216,27 @@ err:
 			rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 			rcScrollView.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 		}
+		if( rcScrollView.right < rcScrollView.left ) rcScrollView.right = rcScrollView.left;
+		if( rcScrollView.bottom < rcScrollView.top ) rcScrollView.bottom = rcScrollView.top;
 
 		if( m_pTwh != NULL ) {
-			RECT rcPadding = GetPadding();
 			RECT rcTextPadding = GetTextPadding();
-			const int padL = rcPadding.left + rcTextPadding.left;
-			const int padR = rcPadding.right + rcTextPadding.right;
-			const int padT = rcPadding.top + rcTextPadding.top;
-			const int padB = rcPadding.bottom + rcTextPadding.bottom;
 			RECT rcScrollTextView = rcScrollView;
-			rcScrollTextView.left += padL;
-			rcScrollTextView.right -= padR;
-			rcScrollTextView.top += padT;
-			rcScrollTextView.bottom -= padB;
+			rcScrollTextView.left += rcTextPadding.left;
+			rcScrollTextView.right -= rcTextPadding.right;
+			rcScrollTextView.top += rcTextPadding.top;
+			rcScrollTextView.bottom -= rcTextPadding.bottom;
+			if( rcScrollTextView.right < rcScrollTextView.left ) rcScrollTextView.right = rcScrollTextView.left;
+			if( rcScrollTextView.bottom < rcScrollTextView.top ) rcScrollTextView.bottom = rcScrollTextView.top;
+
 			RECT rcText = rc;
-			rcText.left += padL;
-			rcText.right -= padR;
-			rcText.top += padT;
-			rcText.bottom -= padB;
+			rcText.left += rcTextPadding.left;
+			rcText.right -= rcTextPadding.right;
+			rcText.top += rcTextPadding.top;
+			rcText.bottom -= rcTextPadding.bottom;
+			if( rcText.right < rcText.left ) rcText.right = rcText.left;
+			if( rcText.bottom < rcText.top ) rcText.bottom = rcText.top;
+
 			m_pTwh->SetClientRect(&rcScrollTextView);
 
 			if( bVScrollBarVisiable && (!m_pVerticalScrollBar->IsVisible() || m_bVScrollBarFixing) ) {
@@ -2247,7 +2325,9 @@ err:
 			m_pTwh->GetControlRect(&rc);
 			const int nW = rc.right - rc.left;
 			const int nH = rc.bottom - rc.top;
-			// 勿对主 RT GetDC/Flush（会整窗黑屏）。离屏 GDI TxDraw 后再 StretchBlit 贴回。
+			// 勿对主 RT GetDC/Flush（会整窗黑屏）。离屏 GDI TxDraw 后再贴回。
+			// CreatePixelBuffer 为正高度 bottom-up（GDI/TxDraw 可靠）；D2D 直传 bmBits 按 top-down，
+			// 故 TxDraw 后需垂直翻转扫描行。勿在 GetOrCreateBitmap 里全局翻转（会误伤 SvgBox 等 top-down 图）。
 			if( nW > 0 && nH > 0 && m_pManager != NULL ) {
 				BYTE* pBits = NULL;
 				void* pNative = NULL;
@@ -2291,12 +2371,31 @@ err:
 					::SetWindowOrgEx(hMem, ptOrg.x, ptOrg.y, NULL);
 					::SelectObject(hMem, hOld);
 					::DeleteDC(hMem);
-					// 乘控件 opacity（含祖先）；勿用 StretchBlit（不带 fade）
+
+					// GDI/TxDraw 常把 alpha 写成 0 → alpha blit 有框无字
+					for( int i = 0; i < nPixels; ++i )
+						pBits[i * 4 + 3] = 0xFF;
+
+					// bottom-up → 内存顺序改成 top-down，供 D2D 上传
+					if( nH > 1 ) {
+						const int stride = nW * 4;
+						BYTE* pTmp = new BYTE[stride];
+						for( int y = 0; y < nH / 2; ++y ) {
+							BYTE* pTop = pBits + y * stride;
+							BYTE* pBot = pBits + (nH - 1 - y) * stride;
+							memcpy(pTmp, pTop, (size_t)stride);
+							memcpy(pTop, pBot, (size_t)stride);
+							memcpy(pBot, pTmp, (size_t)stride);
+						}
+						delete[] pTmp;
+					}
+
 					{
 						RECT rcBmpPart = { 0, 0, nW, nH };
 						RECT rcCorners = { 0, 0, 0, 0 };
 						ctx.DrawImage(hBmp, rc, m_rcPaint, rcBmpPart, rcCorners, true, ScaleImageFade());
 					}
+					// Destroy 前清 D2D 缓存，避免 HBITMAP 句柄复用把 RichEdit 图串到 SvgBox
 					pDev->DestroyPixelBuffer(pNative);
 				}
 			}
@@ -2779,87 +2878,51 @@ err:
 		}
 #endif
 		else if( uMsg == WM_CONTEXTMENU ) {
-			// RichEdit是否支持右键菜单，使用menu属性来控制
+			// 默认内置右键菜单；menu / contextmenu="false" 关闭
 			if(!IsContextMenuUsed()) {
 				bWasHandled = false;
 				return 0;
 			}
 			POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-			::ScreenToClient(GetManager()->GetPaintWindow(), &pt);
-			CControlUI* pHover = GetManager()->FindControl(pt);
-			if(pHover != this) {
-				bWasHandled = false;
-				return 0;
+			HWND hPaint = GetManager()->GetPaintWindow();
+			// Shift+F10 等键盘菜单：lParam 为 (-1,-1)，贴在控件中心
+			if( lParam == (LPARAM)-1 || (pt.x == -1 && pt.y == -1) ) {
+				RECT rc = m_rcItem;
+				pt.x = (rc.left + rc.right) / 2;
+				pt.y = (rc.top + rc.bottom) / 2;
 			}
-			//创建一个弹出式菜单
-			HMENU hPopMenu = CreatePopupMenu();
-			AppendMenu(hPopMenu, 0, ID_RICH_UNDO, _T("撤销(&U)"));
-			AppendMenu(hPopMenu, 0, ID_RICH_REDO, _T("重做(&R)"));
-			AppendMenu(hPopMenu, MF_SEPARATOR, 0, _T(""));
-			AppendMenu(hPopMenu, 0, ID_RICH_CUT, _T("剪切(&X)"));
-			AppendMenu(hPopMenu, 0, ID_RICH_COPY, _T("复制(&C)"));
-			AppendMenu(hPopMenu, 0, ID_RICH_PASTE, _T("粘帖(&V)"));
-			AppendMenu(hPopMenu, 0, ID_RICH_CLEAR, _T("清空(&L)"));
-			AppendMenu(hPopMenu, MF_SEPARATOR, 0, _T(""));
-			AppendMenu(hPopMenu, 0, ID_RICH_SELECTALL, _T("全选(&A)"));
+			else {
+				::ScreenToClient(hPaint, &pt);
+				CControlUI* pHover = GetManager()->FindControl(pt);
+				if(pHover != this) {
+					bWasHandled = false;
+					return 0;
+				}
+			}
+			HMENU hPopMenu = ::CreatePopupMenu();
+			::AppendMenu(hPopMenu, MF_STRING, ID_RICH_SELECTALL, _T("全选(&A)"));
+			::AppendMenu(hPopMenu, MF_STRING, ID_RICH_COPY, _T("复制(&C)"));
+			::AppendMenu(hPopMenu, MF_STRING, ID_RICH_PASTE, _T("粘贴(&V)"));
 
-			//初始化菜单项
-			UINT uUndo = (CanUndo() ? 0 : MF_GRAYED);
-			EnableMenuItem(hPopMenu, ID_RICH_UNDO, MF_BYCOMMAND | uUndo);
-			UINT uRedo = (CanRedo() ? 0 : MF_GRAYED);
-			EnableMenuItem(hPopMenu, ID_RICH_REDO, MF_BYCOMMAND | uRedo);
-			UINT uSel = ((GetSelectionType() != SEL_EMPTY) ? 0 : MF_GRAYED);
-			UINT uReadonly = IsReadOnly() ? MF_GRAYED : 0;
-			EnableMenuItem(hPopMenu, ID_RICH_CUT, MF_BYCOMMAND | uSel | uReadonly);
-			EnableMenuItem(hPopMenu, ID_RICH_COPY, MF_BYCOMMAND | uSel);
-			EnableMenuItem(hPopMenu, ID_RICH_CLEAR, MF_BYCOMMAND | uSel | uReadonly);
-			EnableMenuItem(hPopMenu, ID_RICH_PASTE, MF_BYCOMMAND | uReadonly);
-			::ClientToScreen(GetManager()->GetPaintWindow(), &pt);
-			TrackPopupMenu(hPopMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, GetManager()->GetPaintWindow(), NULL);
-			DestroyMenu(hPopMenu);
-		}
-		else if( uMsg == WM_COMMAND ) {
-			bHandled = FALSE;
-			if( !IsFocused() ) return 0;
-			UINT uCmd = (UINT)wParam;
-			switch(uCmd) {
-			case ID_RICH_UNDO:
-				{
-					Undo();
-					break;
-				}
-			case ID_RICH_REDO:
-				{
-					Redo();
-					break;
-				}
-			case ID_RICH_CUT:
-				{
-					Cut();
-					break;
-				}
-			case ID_RICH_COPY:
-				{
-					Copy();
-					break;
-				}
-			case ID_RICH_PASTE:
-				{
-					Paste();
-					break;
-				}
-			case ID_RICH_CLEAR:
-				{
-					Clear();
-					break;
-				}
-			case ID_RICH_SELECTALL:
-				{
-					SetSelAll();
-					break;
-				}
-			default:break;
+			UINT uSel = (GetSelectionType() != SEL_EMPTY) ? 0 : MF_GRAYED;
+			UINT uPaste = (!IsReadOnly() && CanPaste()) ? 0 : MF_GRAYED;
+			::EnableMenuItem(hPopMenu, ID_RICH_COPY, MF_BYCOMMAND | uSel);
+			::EnableMenuItem(hPopMenu, ID_RICH_PASTE, MF_BYCOMMAND | uPaste);
+
+			::ClientToScreen(hPaint, &pt);
+			// TPM_RETURNCMD：直接拿命令，避免 WM_COMMAND(lParam=0) 被 UIManager 丢掉
+			UINT uCmd = (UINT)::TrackPopupMenu(hPopMenu,
+				TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+				pt.x, pt.y, 0, hPaint, NULL);
+			::DestroyMenu(hPopMenu);
+			switch( uCmd ) {
+			case ID_RICH_SELECTALL: SetSelAll(); break;
+			case ID_RICH_COPY: Copy(); break;
+			case ID_RICH_PASTE: if( !IsReadOnly() ) Paste(); break;
+			default: break;
 			}
+			bHandled = true;
+			return 0;
 		}
 		else
 		{

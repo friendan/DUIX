@@ -38,7 +38,7 @@ namespace DuiLib {
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 
-	typedef enum EVENTTYPE_UI
+	enum EVENTTYPE_UI
 	{
 		UIEVENT__FIRST = 1,
 		UIEVENT__KEYBEGIN,
@@ -85,7 +85,7 @@ namespace DuiLib {
 #define DUILIB_IS_LIB_MSG(uMsg) \
 	((UINT)(uMsg) >= (UINT)WM_DUILIB_MSG_FIRST && (UINT)(uMsg) <= (UINT)WM_DUILIB_MSG_LAST)
 
-	typedef enum MSGTYPE_UI
+	enum MSGTYPE_UI
 	{
 		UIMSG_TRAYICON = WM_DUILIB_MSG_FIRST, // 托盘回调
 		UIMSG_SET_DPI,                        // DPI 已更新
@@ -439,8 +439,9 @@ namespace DuiLib {
 
 		bool IsForceUseSharedRes() const;
 		void SetForceUseSharedRes(bool bForce);
-		// 注意：只支持简单类型指针，因为只释放内存，不会调用类对象的析构函数
-		void DeletePtr(void* ptr);
+		/// 按具体类型 delete，会调用析构函数。不要传入 void*。
+		template<typename T>
+		void DeletePtr(T* ptr) { delete ptr; }
 
 		DWORD GetDefaultDisabledColor() const;
 		void SetDefaultDisabledColor(DWORD dwColor, bool bShared = false);

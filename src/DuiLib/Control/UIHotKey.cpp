@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "UIHotKey.h"
 namespace DuiLib{
 	CHotKeyWnd::CHotKeyWnd(void) : m_pOwner(NULL), m_hBkBrush(NULL), m_bInit(false)
@@ -257,8 +257,9 @@ namespace DuiLib{
 	//////////////////////////////////////////////////////////////////////////
 	IMPLEMENT_DUICONTROL(CHotKeyUI)
 
-	CHotKeyUI::CHotKeyUI() : m_pWindow(NULL), m_wVirtualKeyCode(0), m_wModifiers(0), m_uButtonState(0),
-		m_dwHotKeybkColor(0), m_bNativeBkColorCustom(false)
+	CHotKeyUI::CHotKeyUI() : m_pWindow(NULL), m_uButtonState(0),
+		m_dwHotKeybkColor(0), m_bNativeBkColorCustom(false),
+		m_wVirtualKeyCode(0), m_wModifiers(0)
 	{
 		SetTextPadding(CDuiRect(4, 3, 4, 3));
 		SetBackgroundColor(0xFFFFFFFF);
@@ -302,7 +303,7 @@ namespace DuiLib{
 
 		if( event.Type == UIEVENT_SETCURSOR && IsEnabled() )
 		{
-			::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_IBEAM)));
+			::SetCursor(::LoadCursor(NULL, IDC_IBEAM));
 			return;
 		}
 		if( event.Type == UIEVENT_WINDOWSIZE )
@@ -450,9 +451,9 @@ namespace DuiLib{
 		return GetBackgroundColor();
 	}
 
-	void CHotKeyUI::SetPos(RECT rc)
+	void CHotKeyUI::SetPos(RECT rc, bool bNeedInvalidate)
 	{
-		CControlUI::SetPos(rc);
+		CControlUI::SetPos(rc, bNeedInvalidate);
 		if( m_pWindow != NULL ) {
 			RECT rcPos = m_pWindow->CalPos();
 			::SetWindowPos(m_pWindow->GetHWND(), NULL, rcPos.left, rcPos.top, rcPos.right - rcPos.left, 

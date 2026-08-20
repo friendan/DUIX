@@ -30,7 +30,7 @@ namespace DuiLib
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
 		void PaintText(IRenderContext& ctx);
 		void DoEvent(TEventUI& event);
-		void SetPos(RECT rc);
+		void SetPos(RECT rc, bool bNeedInvalidate = true);
 		void SetText(LPCTSTR pstrText);
 		bool PreferClientHit() const;
 

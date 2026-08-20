@@ -23,7 +23,7 @@ namespace DuiLib
 				return;
 			}
 			if( event.Type == UIEVENT_SETCURSOR ) {
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND)));
+				::SetCursor(::LoadCursor(NULL, IDC_HAND));
 				return;
 			}
 			if( event.Type == UIEVENT_MOUSEENTER ) {
@@ -51,6 +51,7 @@ namespace DuiLib
 
 	CAccordionUI::CAccordionUI()
 		: m_bMultiple(false)
+		, m_bFill(false)
 		, m_nDefaultHeaderHeight(40)
 	{
 		// 不设默认底色：剩余区域由父容器 background-color 铺满；避免未撑满时露出离屏缓冲黑底
@@ -78,6 +79,25 @@ namespace DuiLib
 	{
 		if( nHeight < 1 ) nHeight = 1;
 		m_nDefaultHeaderHeight = nHeight;
+	}
+
+	void CAccordionUI::SetFill(bool bFill)
+	{
+		if( m_bFill == bFill ) return;
+		m_bFill = bFill;
+		RefreshItemHeights();
+		NeedUpdate();
+		if( m_pManager != NULL ) m_pManager->NeedUpdate();
+	}
+
+	void CAccordionUI::RefreshItemHeights()
+	{
+		for( int i = 0; i < GetCount(); ++i ) {
+			CControlUI* pControl = GetItemAt(i);
+			if( pControl == NULL ) continue;
+			CAccordionItemUI* pItem = static_cast<CAccordionItemUI*>(pControl->GetInterface(DUI_CTR_ACCORDIONITEM));
+			if( pItem != NULL ) pItem->UpdateFixedHeight();
+		}
 	}
 
 	bool CAccordionUI::Add(CControlUI* pControl)
@@ -130,6 +150,13 @@ namespace DuiLib
 		SIZE szFixed = GetFixedSize();
 		if( szFixed.cx > 0 && szFixed.cy > 0 ) return szFixed;
 
+		// fill：主轴高度 0 → 父 VBox 把剩余高度分给本控件
+		if( m_bFill && szFixed.cy <= 0 ) {
+			SIZE sz = { 0, 0 };
+			sz.cx = szFixed.cx > 0 ? szFixed.cx : (szAvailable.cx > 0 ? szAvailable.cx : 0);
+			return sz;
+		}
+
 		SIZE szContent = MeasureContent(szAvailable);
 		RECT rcPadding = GetPadding();
 		SIZE sz = { 0, 0 };
@@ -145,6 +172,9 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("header-height")) == 0 ) {
 			SetDefaultHeaderHeight(_ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("fill")) == 0 ) {
+			SetFill(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
 		}
 		else CVerticalLayoutUI::SetAttribute(pstrName, pstrValue);
 	}
@@ -323,6 +353,12 @@ namespace DuiLib
 			SetFixedHeight(m_nHeaderHeight);
 			return;
 		}
+		CAccordionUI* pAcc = GetOwnerAccordion();
+		if( pAcc != NULL && pAcc->IsFill() ) {
+			// fill：展开项高度 0，由 Accordion 分摊剩余空间，内容区可再把高度交给 RichEdit 等
+			SetFixedHeight(0);
+			return;
+		}
 		// 展开：用内容估高写成固定高度，避免父布局把 cy=0 当分摊伸缩后高度不足
 		SIZE szAvail = { GetFixedWidth() > 0 ? GetFixedWidth() : 400, 9999 };
 		if( m_pManager != NULL ) {
@@ -417,17 +453,19 @@ namespace DuiLib
 	static SIZE EstimateAccordionChild(CControlUI* pControl, SIZE szAvail)
 	{
 		SIZE sz = pControl->EstimateSize(szAvail);
-		if( sz.cy <= 0 ) {
-			CLinearLayoutUI* pLinear = static_cast<CLinearLayoutUI*>(pControl->GetInterface(_T("LinearLayout")));
-			if( pLinear != NULL ) {
-				SIZE szContent = pLinear->MeasureContent(szAvail);
-				if( szContent.cy > 0 ) sz.cy = szContent.cy;
-				if( sz.cx <= 0 && szContent.cx > 0 ) sz.cx = szContent.cx;
-			}
+		CLinearLayoutUI* pLinear = static_cast<CLinearLayoutUI*>(pControl->GetInterface(_T("LinearLayout")));
+		if( pLinear != NULL ) {
+			SIZE szContent = pLinear->MeasureContent(szAvail);
+			if( szContent.cy > sz.cy ) sz.cy = szContent.cy;
+			if( sz.cx <= 0 && szContent.cx > 0 ) sz.cx = szContent.cx;
 		}
 		if( sz.cy <= 0 ) {
 			int nMin = pControl->GetMinHeight();
 			sz.cy = nMin > 0 ? nMin : 22;
+		}
+		else {
+			int nMin = pControl->GetMinHeight();
+			if( nMin > 0 && sz.cy < nMin ) sz.cy = nMin;
 		}
 		return sz;
 	}
@@ -437,6 +475,12 @@ namespace DuiLib
 		SIZE szFixed = GetFixedSize();
 		if( !m_bActive ) {
 			SIZE sz = { szFixed.cx > 0 ? szFixed.cx : szAvailable.cx, m_nHeaderHeight };
+			return sz;
+		}
+
+		CAccordionUI* pAcc = GetOwnerAccordion();
+		if( pAcc != NULL && pAcc->IsFill() ) {
+			SIZE sz = { szFixed.cx > 0 ? szFixed.cx : szAvailable.cx, 0 };
 			return sz;
 		}
 
@@ -461,6 +505,39 @@ namespace DuiLib
 
 		SIZE szResult = { szFixed.cx > 0 ? szFixed.cx : szAvailable.cx, cy };
 		return szResult;
+	}
+
+	void CAccordionItemUI::SetPos(RECT rc, bool bNeedInvalidate)
+	{
+		const int oldW = m_rcItem.right - m_rcItem.left;
+		const int newW = rc.right - rc.left;
+		CVerticalLayoutUI::SetPos(rc, bNeedInvalidate);
+		// 宽度变化后按真实客户区宽度重测内容高度（尤其是 height=auto 的换行 Label）
+		if( m_bActive && newW > 0 && newW != oldW ) {
+			const int oldH = GetFixedHeight();
+			UpdateFixedHeight();
+			if( GetFixedHeight() != oldH )
+				RequestAncestorLayout();
+		}
+	}
+
+	bool CAccordionItemUI::DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
+	{
+		// 底边分割线必须在子控件（Header / 内容）之后画，否则会被盖住看起来像连成一片
+		RECT rcSave = m_rcBorderWidth;
+		m_rcBorderWidth.bottom = 0;
+		bool bRet = CVerticalLayoutUI::DoPaint(ctx, rcPaint, pStopControl);
+		m_rcBorderWidth = rcSave;
+
+		const int nBottom = GetBottomBorderWidth();
+		const DWORD dwBorder = GetPaintBorderColor();
+		if( nBottom > 0 && dwBorder != 0 ) {
+			RECT rcBorder = m_rcItem;
+			rcBorder.bottom -= 1;
+			rcBorder.top = rcBorder.bottom;
+			ctx.DrawLine(rcBorder, nBottom, GetAdjustColor(dwBorder), GetBorderStyle());
+		}
+		return bRet;
 	}
 
 	DWORD CAccordionItemUI::ParseColorValue(LPCTSTR pstrValue)

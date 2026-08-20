@@ -26,13 +26,13 @@ namespace DuiLib
 	DUI_END_MESSAGE_MAP()
 
 	WindowImplBase::WindowImplBase()
-		: m_bSyncOwnerMove(false)
+		: m_pDefaultTrayMenu(NULL)
+		, m_bTrayAutoCreated(false)
+		, m_bSyncOwnerMove(false)
 		, m_bSyncOwnerSize(false)
 		, m_bHaveOwnerOffset(false)
 		, m_bSyncingOwner(false)
 		, m_bForceClose(false)
-		, m_bTrayAutoCreated(false)
-		, m_pDefaultTrayMenu(NULL)
 	{
 		m_ptOwnerOffset.x = m_ptOwnerOffset.y = 0;
 		m_szOwnerDelta.cx = m_szOwnerDelta.cy = 0;
@@ -107,7 +107,7 @@ namespace DuiLib
 		szMax.cx = ::GetSystemMetrics(SM_CXMAXTRACK);
 		szMax.cy = ::GetSystemMetrics(SM_CYMAXTRACK);
 		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
-		MINMAXINFO mmi = { 0 };
+		MINMAXINFO mmi = {};
 		mmi.ptMinTrackSize.x = szMin.cx;
 		mmi.ptMinTrackSize.y = szMin.cy;
 		mmi.ptMaxTrackSize.x = szMax.cx;
@@ -801,7 +801,7 @@ namespace DuiLib
 			pRoot = builder.Create(xml, sSkinType.GetData(), this, &m_pm);
 		}
 		else {
-			pRoot = builder.Create(GetSkinFile().GetData(), (UINT)0, this, &m_pm);
+			pRoot = builder.Create(GetSkinFile().GetData(), NULL, this, &m_pm);
 		}
 
 		if (pRoot == NULL) {

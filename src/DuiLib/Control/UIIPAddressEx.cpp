@@ -162,23 +162,23 @@ namespace DuiLib
                 return;
             }
             // 删㽤਀            椀昀 ⠀⠀攀瘀攀渀琀⸀挀栀䬀攀礀 㴀㴀 嘀䬀开䐀䔀䰀䔀吀䔀⤀ 簀簀 ⠀攀瘀攀渀琀⸀挀栀䬀攀礀 㴀㴀 嘀䬀开䈀䄀䌀䬀⤀⤀ഀ਀            笀ഀ਀                猀眀椀琀挀栀 ⠀洀开渀䄀挀琀椀瘀攀匀攀挀琀椀漀渀⤀ഀ਀                笀ഀ਀                    挀愀猀攀 ㄀㨀ഀ਀                        洀开渀䘀椀爀猀琀 㴀 　㬀ഀ਀                        戀爀攀愀欀㬀ഀ਀                    挀愀猀攀 ㈀㨀ഀ਀                        洀开渀匀攀挀漀渀搀 㴀 　㬀ഀ਀                        戀爀攀愀欀㬀ഀ਀                    挀愀猀攀 ㌀㨀ഀ਀                        洀开渀吀栀椀爀搀 㴀 　㬀ഀ਀                        戀爀攀愀欀㬀ഀ਀                    挀愀猀攀 㐀㨀ഀ਀                        洀开渀䘀漀甀爀琀栀 㴀 　㬀ഀ਀                        戀爀攀愀欀㬀ഀ਀                    搀攀昀愀甀氀琀㨀ഀ਀                        戀爀攀愀欀㬀ഀ਀                紀ഀ਀ഀ਀                洀开猀琀爀一甀洀⸀䔀洀瀀琀礀⠀⤀㬀ഀ਀                唀瀀搀愀琀攀吀攀砀琀⠀⤀㬀ഀ਀            紀ഀ਀ഀ਀            ⼀⼀ 격ꯨ릐入字符
-            if ((m_nActiveSection == 1) && (event.chKey >= 0x30) && (event.chKey <= 0x39) ||
-                (m_nActiveSection == 1) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9))
+            if (((m_nActiveSection == 1) && (event.chKey >= 0x30) && (event.chKey <= 0x39)) ||
+                ((m_nActiveSection == 1) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9)))
             {
                 GetNumInput(event.chKey);
             }
-            else if ((m_nActiveSection == 2) && (event.chKey >= 0x30) && (event.chKey <= 0x39) ||
-                (m_nActiveSection == 2) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9))
+            else if (((m_nActiveSection == 2) && (event.chKey >= 0x30) && (event.chKey <= 0x39)) ||
+                ((m_nActiveSection == 2) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9)))
             {
                 GetNumInput(event.chKey);
             }
-            else if ((m_nActiveSection == 3) && (event.chKey >= 0x30) && (event.chKey <= 0x39) ||
-                (m_nActiveSection == 3) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9))
+            else if (((m_nActiveSection == 3) && (event.chKey >= 0x30) && (event.chKey <= 0x39)) ||
+                ((m_nActiveSection == 3) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9)))
             {
                 GetNumInput(event.chKey);
             }
-            else if ((m_nActiveSection == 4) && (event.chKey >= 0x30) && (event.chKey <= 0x39) ||
-                (m_nActiveSection == 4) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9))
+            else if (((m_nActiveSection == 4) && (event.chKey >= 0x30) && (event.chKey <= 0x39)) ||
+                ((m_nActiveSection == 4) && (event.chKey >= VK_NUMPAD0) && (event.chKey <= VK_NUMPAD9)))
             {
                 GetNumInput(event.chKey);
             }

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "BrowserWnd.h"
 
 DUI_BEGIN_MESSAGE_MAP(CBrowserWnd, WindowImplBase)

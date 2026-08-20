@@ -161,7 +161,7 @@ namespace DuiLib {
 		bool CopyBackendToPixels() override;
 		bool CopyPixelsToBackend() override;
 		// EndDraw 之后用 GetBitmap→DC RT 回写 GDI（不依赖 GdiInterop::GetDC）
-		bool CopyBackendToPixelsViaBitmap();
+		bool CopyBackendToPixelsViaBitmap() override;
 
 		bool PrepareLayeredComposition(HWND hWnd, int width, int height) override;
 		bool IsLayeredComposition() const override { return m_bCompDirectDraw; }

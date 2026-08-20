@@ -62,6 +62,7 @@ namespace DuiLib {
 	{
 	public:
 		CWindowWnd();
+		virtual ~CWindowWnd() {}
 
 		HWND GetHWND() const;
 		operator HWND() const;
@@ -81,7 +82,7 @@ namespace DuiLib {
 		UINT ShowModal();
     	void ShowModalFake();
 		void Close(UINT nRet = IDOK);
-		void CenterWindow();	// 居中，支持扩展屏幕
+		void CenterWindow();	// 居中：无 Owner 按鼠标所在屏；有 Owner 相对 Owner / 其屏
 		void SetIcon(UINT nRes);
 
 		LRESULT SendMessage(UINT uMsg, WPARAM wParam = 0, LPARAM lParam = 0L);

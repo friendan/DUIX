@@ -72,7 +72,6 @@ int32_t mz_stream_os_open(void *stream, const char *path, int32_t mode) {
     uint32_t desired_access = 0;
     uint32_t creation_disposition = 0;
     uint32_t share_mode = FILE_SHARE_READ;
-    uint32_t flags_attribs = FILE_ATTRIBUTE_NORMAL;
     wchar_t *path_wide = NULL;
 
     if (!path)
@@ -103,7 +102,7 @@ int32_t mz_stream_os_open(void *stream, const char *path, int32_t mode) {
 #if _WIN32_WINNT >= _WIN32_WINNT_WIN8
     win32->handle = CreateFile2(path_wide, desired_access, share_mode, creation_disposition, NULL);
 #else
-    win32->handle = CreateFileW(path_wide, desired_access, share_mode, NULL, creation_disposition, flags_attribs, NULL);
+    win32->handle = CreateFileW(path_wide, desired_access, share_mode, NULL, creation_disposition, FILE_ATTRIBUTE_NORMAL, NULL);
 #endif
 
     mz_os_unicode_string_delete(&path_wide);

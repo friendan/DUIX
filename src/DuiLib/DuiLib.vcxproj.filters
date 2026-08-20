@@ -101,6 +101,9 @@
     <ClCompile Include="Control\UIComboBox.cpp">
       <Filter>Source Files\Control</Filter>
     </ClCompile>
+    <ClCompile Include="Control\UILookupEdit.cpp">
+      <Filter>Source Files\Control</Filter>
+    </ClCompile>
     <ClCompile Include="Control\UIDateTime.cpp">
       <Filter>Source Files\Control</Filter>
     </ClCompile>
@@ -290,6 +293,9 @@
       <Filter>Header Files\Control</Filter>
     </ClInclude>
     <ClInclude Include="Control\UIComboBox.h">
+      <Filter>Header Files\Control</Filter>
+    </ClInclude>
+    <ClInclude Include="Control\UILookupEdit.h">
       <Filter>Header Files\Control</Filter>
     </ClInclude>
     <ClInclude Include="Control\UIDateTime.h">

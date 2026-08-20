@@ -16,13 +16,16 @@ namespace DuiLib
 		CAccordionUI();
 		~CAccordionUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
 		void SetMode(bool bMultiple);
 		bool IsMultipleMode() const { return m_bMultiple; }
 		void SetDefaultHeaderHeight(int nHeight);
 		int GetDefaultHeaderHeight() const { return m_nDefaultHeaderHeight; }
+		// fill=true：手风琴撑满父级剩余高度；展开项 FixedHeight=0 再分给可伸缩子控件（如带滚动的 RichEdit）
+		void SetFill(bool bFill);
+		bool IsFill() const { return m_bFill; }
 
 		void ToggleItem(CAccordionItemUI* pItem);
 		CAccordionItemUI* GetActiveItem();
@@ -33,7 +36,10 @@ namespace DuiLib
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 
 	protected:
+		void RefreshItemHeights();
+
 		bool m_bMultiple;
+		bool m_bFill;
 		int m_nDefaultHeaderHeight;
 	};
 
@@ -45,8 +51,8 @@ namespace DuiLib
 		CAccordionItemUI();
 		~CAccordionItemUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
 		void SetTitle(LPCTSTR pstrText);
 		CDuiString GetTitle() const;
@@ -61,6 +67,8 @@ namespace DuiLib
 		bool Add(CControlUI* pControl) override;
 		bool AddAt(CControlUI* pControl, int iIndex) override;
 		SIZE EstimateSize(SIZE szAvailable) override;
+		void SetPos(RECT rc, bool bNeedInvalidate = true) override;
+		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl) override;
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 		void DoInit() override;
 

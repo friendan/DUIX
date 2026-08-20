@@ -16,22 +16,22 @@
                 <Label theme="secondary" text="控件分类" height="28" padding="0,8,0,8" />
                 <Option name="nav_basic" group="demo_nav" text="基础" height="36"
                     kind="none" selected="true" text-align="left"
-                    padding="0,12,0,12" border-radius="6" />
+                    border-radius="6" />
                 <Option name="nav_form" group="demo_nav" text="表单" height="36"
                     kind="none" text-align="left"
-                    padding="0,12,0,12" border-radius="6" />
+                    border-radius="6" />
                 <Option name="nav_layout" group="demo_nav" text="布局" height="36"
                     kind="none" text-align="left"
-                    padding="0,12,0,12" border-radius="6" />
+                    border-radius="6" />
                 <Option name="nav_feedback" group="demo_nav" text="反馈" height="36"
                     kind="none" text-align="left"
-                    padding="0,12,0,12" border-radius="6" />
+                    border-radius="6" />
                 <Option name="nav_list" group="demo_nav" text="列表" height="36"
                     kind="none" text-align="left"
-                    padding="0,12,0,12" border-radius="6" />
+                    border-radius="6" />
                 <Option name="nav_misc" group="demo_nav" text="综合" height="36"
                     kind="none" text-align="left"
-                    padding="0,12,0,12" border-radius="6" />
+                    border-radius="6" />
                 <Spacer />
             </VBox>
 
@@ -426,6 +426,38 @@
                         <Label text="项用 ListLabelElement 的 lucide / icon / icon-tint（同 List）" theme="secondary" />
                       </VBox>
                     </AccordionItem>
+                    <AccordionItem title="LookupEdit" active="false" header-align="left">
+                      <VBox height="260" gap="10" padding="8,12,8,12">
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="零件" theme="secondary" width="70" />
+                          <LookupEdit name="lookup_part" width="280" height="32"
+                              drop-box-size="520,300" drop-position="bottom" item-height="28"
+                              placeholder="点击选择（1 万行回调）"
+                              padding="0,28,0,8" border="1px solid" border-radius="4">
+                            <LookupColumn name="code" text="编码" width="100" />
+                            <LookupColumn name="name" text="名称" width="200" />
+                            <LookupColumn name="spec" text="规格" width="120" />
+                          </LookupEdit>
+                          <Label name="lookup_status" text="未选" kind="link" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="弹出位置" theme="secondary" width="70" />
+                          <Segmented name="lookup_droppos" options="下:bottom|上:top|左:left|右:right|中:center"
+                              selected="0" width="320" height="32" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="弹出大小" theme="secondary" width="70" />
+                          <Segmented name="lookup_dropsize" options="小:400,240|中:520,300|大:720,420"
+                              selected="1" width="280" height="32" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="文字对齐" theme="secondary" width="70" />
+                          <Segmented name="lookup_textalign" options="左:left|中:center|右:right"
+                              selected="0" width="180" height="32" />
+                        </HBox>
+                        <Label text="对齐即闭合态 text-align；弹窗表体仍左对齐。Esc/取消关窗。" theme="secondary" />
+                      </VBox>
+                    </AccordionItem>
                     <AccordionItem title="RichEdit" active="false" header-align="left">
                       <VBox height="140" gap="10" padding="8,12,8,12">
                         <RichEdit name="richedit_demo" height="90" multiline="true"
@@ -468,6 +500,28 @@
                             tooltip="打开 layouttest.htm，改皮肤后重新打开即可测布局" />
                         <Label text="加载 skin/duidemo/layouttest.htm" theme="secondary" />
                       </HBox>
+                    </AccordionItem>
+                    <AccordionItem title="SplitLayout" active="false" header-align="left">
+                      <VBox height="280" gap="8" padding="8,12,8,12">
+                        <Label text="悬停分隔线变主色并加粗；拖条改栏宽。颜色默认同主题。" theme="secondary" height="22" />
+                        <HSplit name="split_demo" sep-size="6">
+                          <VBox width="160" min-width="80" theme="panel" padding="8,8,8,8">
+                            <Label text="左栏 160" />
+                            <Label text="min 80" theme="secondary" />
+                          </VBox>
+                          <VSplit min-width="120">
+                            <VBox height="90" min-height="48" theme="panel" padding="8,8,8,8">
+                              <Label text="上" />
+                            </VBox>
+                            <VBox min-height="48" theme="panel" padding="8,8,8,8">
+                              <Label text="下（弹性）" />
+                            </VBox>
+                          </VSplit>
+                          <VBox width="140" min-width="80" theme="panel" padding="8,8,8,8">
+                            <Label text="右栏 140" />
+                          </VBox>
+                        </HSplit>
+                      </VBox>
                     </AccordionItem>
                 					    <AccordionItem title="TabBar" active="false" header-align="left">
                 					      <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">

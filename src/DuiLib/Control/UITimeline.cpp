@@ -127,7 +127,6 @@ namespace DuiLib
 
 		CDuiString s = m_sItemsAttr;
 		int start = 0;
-		int index = 0;
 		while( start <= s.GetLength() ) {
 			int sep = s.Find(_T('|'), start);
 			CDuiString part;
@@ -157,7 +156,6 @@ namespace DuiLib
 			}
 			p->SetStatus(CTimelineItemUI::StatusFinish);
 			Add(p);
-			++index;
 		}
 		if( GetCount() > 0 ) {
 			CTimelineItemUI* pLast = static_cast<CTimelineItemUI*>(GetItemAt(GetCount() - 1)->GetInterface(DUI_CTR_TIMELINEITEM));

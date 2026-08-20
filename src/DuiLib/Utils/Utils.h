@@ -396,15 +396,15 @@ namespace DuiLib
 	inline bool DuiColorIsOpaque(DWORD c) { return DuiColorA(c) >= 0xFFu; }
 
 	// 通用“纯色”（RGBA 不透明，即 0xRRGGBBAA），任意控件/皮肤逻辑可按需复用；前缀 DuiColor_*
-	inline constexpr DWORD DuiColor_Black  = 0x000000FF;   // 纯黑
-	inline constexpr DWORD DuiColor_White  = 0xFFFFFFFF;   // 纯白
-	inline constexpr DWORD DuiColor_Red    = 0xFF0000FF;   // 纯红
-	inline constexpr DWORD DuiColor_Green  = 0x00FF00FF;   // 纯绿
-	inline constexpr DWORD DuiColor_Blue   = 0x0000FFFF;   // 纯蓝
-	inline constexpr DWORD DuiColor_Cyan   = 0x00FFFFFF;   // 纯青
-	inline constexpr DWORD DuiColor_Magenta= 0xFF00FFFF;   // 纯品红/紫（R=FF，仅每字节高位同 0xFF 才显黄，此色为红+蓝）
-	inline constexpr DWORD DuiColor_Yellow = 0xFFFF00FF;   // 纯黄
-	inline constexpr DWORD DuiColor_Orange = 0xFF8000FF;   // 纯橙
+	constexpr DWORD DuiColor_Black  = 0x000000FF;   // 纯黑
+	constexpr DWORD DuiColor_White  = 0xFFFFFFFF;   // 纯白
+	constexpr DWORD DuiColor_Red    = 0xFF0000FF;   // 纯红
+	constexpr DWORD DuiColor_Green  = 0x00FF00FF;   // 纯绿
+	constexpr DWORD DuiColor_Blue   = 0x0000FFFF;   // 纯蓝
+	constexpr DWORD DuiColor_Cyan   = 0x00FFFFFF;   // 纯青
+	constexpr DWORD DuiColor_Magenta= 0xFF00FFFF;   // 纯品红/紫（R=FF，仅每字节高位同 0xFF 才显黄，此色为红+蓝）
+	constexpr DWORD DuiColor_Yellow = 0xFFFF00FF;   // 纯黄
+	constexpr DWORD DuiColor_Orange = 0xFF8000FF;   // 纯橙
 
 	// 颜色：#RGB / #RRGGBB / #RRGGBBAA / #RGBA；0x 同序；rgb()/rgba()/hsl()/hsla()；命名色
 	UILIB_API bool ParseColorString(LPCTSTR pstrColor, DWORD& dwColor);

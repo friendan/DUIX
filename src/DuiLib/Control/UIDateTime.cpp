@@ -237,7 +237,6 @@ namespace DuiLib
 			if( unitW < Scale(40) ) unitW = Scale(40);
 			int x = rcTime.left + ((rcTime.right - rcTime.left) - (parts * unitW + (parts - 1) * colonW)) / 2;
 			int btnH = Scale(14);
-			int valH = rcTime.bottom - rcTime.top - btnH * 2;
 			for( int i = 0; i < 3; ++i ) {
 				::ZeroMemory(&m_rcTimeBtn[i][0], sizeof(RECT));
 				::ZeroMemory(&m_rcTimeBtn[i][1], sizeof(RECT));

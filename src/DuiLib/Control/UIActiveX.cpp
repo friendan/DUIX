@@ -54,11 +54,11 @@ namespace DuiLib {
 	class CActiveXEnum : public IEnumUnknown
 	{
 	public:
-		CActiveXEnum(IUnknown* pUnk) : m_pUnk(pUnk), m_dwRef(1), m_iPos(0)
+		CActiveXEnum(IUnknown* pUnk) : m_iPos(0), m_dwRef(1), m_pUnk(pUnk)
 		{
 			m_pUnk->AddRef();
 		}
-		~CActiveXEnum()
+		virtual ~CActiveXEnum()
 		{
 			m_pUnk->Release();
 		}
@@ -121,7 +121,7 @@ namespace DuiLib {
 		CActiveXFrameWnd(CActiveXUI* pOwner) : m_dwRef(1), m_pOwner(pOwner), m_pActiveObject(NULL)
 		{
 		}
-		~CActiveXFrameWnd()
+		virtual ~CActiveXFrameWnd()
 		{
 			if( m_pActiveObject != NULL ) m_pActiveObject->Release();
 		}
@@ -223,7 +223,7 @@ namespace DuiLib {
 		friend class CActiveXWnd;
 	public:
 		CActiveXCtrl();
-		~CActiveXCtrl();
+		virtual ~CActiveXCtrl();
 
 		// IUnknown
 		STDMETHOD_(ULONG,AddRef)();
@@ -321,9 +321,9 @@ namespace DuiLib {
 		m_bLocked(false), 
 		m_bFocused(false),
 		m_bCaptured(false),
-		m_bWindowless(true),
 		m_bUIActivated(false),
-		m_bInPlaceActive(false)
+		m_bInPlaceActive(false),
+		m_bWindowless(true)
 	{
 	}
 
@@ -923,7 +923,7 @@ namespace DuiLib {
 	//
 	IMPLEMENT_DUICONTROL(CActiveXUI)
 
-	CActiveXUI::CActiveXUI() : m_pUnk(NULL), m_pControl(NULL), m_hwndHost(NULL), m_bCreated(false), m_bDelayCreate(true), m_bMFC(false)
+	CActiveXUI::CActiveXUI() : m_bCreated(false), m_bDelayCreate(true), m_bMFC(false), m_pUnk(NULL), m_pControl(NULL), m_hwndHost(NULL)
 	{
 		m_clsid = IID_NULL;
 	}

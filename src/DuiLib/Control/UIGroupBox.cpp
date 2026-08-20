@@ -7,8 +7,8 @@ namespace DuiLib
 
 	//////////////////////////////////////////////////////////////////////////
 	//
-	CGroupBoxUI::CGroupBoxUI(): m_uTextStyle(DT_SINGLELINE | DT_VCENTER | DT_CENTER), m_dwColor(0), 
-		m_dwDisabledColor(0), m_iFont(-1)
+	CGroupBoxUI::CGroupBoxUI(): m_dwColor(0), 
+		m_dwDisabledColor(0), m_iFont(-1), m_uTextStyle(DT_SINGLELINE | DT_VCENTER | DT_CENTER)
 	{
 		SetPadding(CDuiBox(25, 20, 20, 20));
 	}

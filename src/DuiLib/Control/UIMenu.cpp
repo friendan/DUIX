@@ -137,11 +137,11 @@ namespace DuiLib {
 	//
 
 	CMenuWnd::CMenuWnd():
-	m_pOwner(NULL),
-		m_pLayout(),
+	isClosing(false),
+		m_bCaptured(false),
 		m_xml(_T("")),
-		isClosing(false),
-		m_bCaptured(false)
+		m_pOwner(NULL),
+		m_pLayout()
 	{
 		m_dwAlignment = eMenuAlignment_Left | eMenuAlignment_Top;
 	}
@@ -381,7 +381,7 @@ namespace DuiLib {
 				m_pm.GetDPIObj()->SetScale(pMainPm->GetDPIObj()->GetDPI());
 			CDialogBuilder builder;
 
-			CControlUI* pRoot = builder.Create(m_xml,UINT(0), this, &m_pm);
+			CControlUI* pRoot = builder.Create(m_xml, NULL, this, &m_pm);
 			if( pRoot == NULL ) {
 				bHandled = TRUE;
 				return -1;
@@ -524,8 +524,6 @@ namespace DuiLib {
 
 		bool bReachBottom = false;
 		bool bReachRight = false;
-		LONG chRightAlgin = 0;
-		LONG chBottomAlgin = 0;
 
 		RECT rcPreWindow = {0};
 		MenuObserverImpl::Iterator iterator(CMenuWnd::GetGlobalContextMenuObserver());
@@ -1358,7 +1356,7 @@ namespace DuiLib {
 		}
 		else {
 			pTempBits = new BYTE[pSrc->nX * pSrc->nY * 4];
-			BITMAPINFO bmi = { 0 };
+			BITMAPINFO bmi = {};
 			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 			bmi.bmiHeader.biWidth = pSrc->nX;
 			bmi.bmiHeader.biHeight = -pSrc->nY;
@@ -1375,7 +1373,7 @@ namespace DuiLib {
 			pSrcBits = pTempBits;
 		}
 
-		BITMAPINFO bmiOut = { 0 };
+		BITMAPINFO bmiOut = {};
 		bmiOut.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmiOut.bmiHeader.biWidth = nSize;
 		bmiOut.bmiHeader.biHeight = -nSize;

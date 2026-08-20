@@ -283,15 +283,12 @@ void CChartViewUI::DoPaintHistogram(HDC hDC, const RECT& rcPaint)
 
 	int i = 0;
 	double maxOfItem = 0.f;
-	double amountOfItem = 0.f;
 	for (i = 0; i < numOfItem; i++)
 	{
 		if (m_items[i].value > maxOfItem)
 		{
 			maxOfItem = m_items[i].value;
 		}
-
-		amountOfItem += m_items[i].value;
 	}
 
 	int drawWidth = m_rcItem.right - m_rcItem.left;	// 绘图宽度

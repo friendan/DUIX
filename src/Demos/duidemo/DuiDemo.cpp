@@ -92,8 +92,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*l
 	// COM
 	HRESULT Hr = ::CoInitialize(NULL);
 	if( FAILED(Hr) ) return 0;
-	// OLE
 	HRESULT hRes = ::OleInitialize(NULL);
+	if( FAILED(hRes) ) return 0;
 	// 初始化UI管理器
 	CPaintManagerUI::SetInstance(hInstance);
 	// 初始化资源

@@ -287,7 +287,7 @@ namespace DuiLib
 		if( event.Type == UIEVENT_SETCURSOR && IsEnabled() ) {
 			// 上下钮：手型；文本区交给 Edit（I 型）
 			if( HitButton(event.ptMouse) != 0 ) {
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND)));
+				::SetCursor(::LoadCursor(NULL, IDC_HAND));
 				return;
 			}
 		}

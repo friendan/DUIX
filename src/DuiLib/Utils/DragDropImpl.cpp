@@ -18,8 +18,8 @@ namespace DuiLib {
 	//////////////////////////////////////////////////////////////////////
 
 	CIDataObject::CIDataObject(CIDropSource* pDropSource)
-		:m_cRefCount(0)
-		,m_pDropSource(pDropSource)
+		:m_pDropSource(pDropSource)
+		,m_cRefCount(0)
 	{
 	}
 
@@ -32,6 +32,8 @@ namespace DuiLib {
 		}
 		for(int j = 0; j < m_ArrFormatEtc.size(); ++j)
 			delete m_ArrFormatEtc[j];
+		if( m_pDropSource != NULL )
+			m_pDropSource = NULL;
 	}
 
 	STDMETHODIMP CIDataObject::QueryInterface(/* [in] */ REFIID riid,

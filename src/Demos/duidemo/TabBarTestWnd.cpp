@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "TabBarTestWnd.h"
 
 DUI_BEGIN_MESSAGE_MAP(CTabBarTestWnd, WindowImplBase)

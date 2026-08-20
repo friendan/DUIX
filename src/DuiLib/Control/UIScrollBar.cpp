@@ -5,10 +5,10 @@ namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CScrollBarUI)
 
-	CScrollBarUI::CScrollBarUI() : m_bHorizontal(false), m_nRange(0), m_nScrollPos(0), m_nLineSize(8), 
+	CScrollBarUI::CScrollBarUI() : m_bShow(true), m_bHorizontal(false), m_nRange(0), m_nScrollPos(0), m_nLineSize(8), 
 		m_nThumbMinSize(DEFAULT_THUMB_MIN_SIZE),
-		m_pOwner(NULL), m_nLastScrollPos(0), m_nLastScrollOffset(0), m_nScrollRepeatDelay(0), m_uButtonPrevState(0), \
-		m_uButtonNextState(0), m_uThumbState(0), m_bShowButtonPrev(false), m_bShowButtonNext(false), m_bShow(true),
+		m_pOwner(NULL), m_nLastScrollPos(0), m_nLastScrollOffset(0), m_nScrollRepeatDelay(0),
+		m_bShowButtonPrev(false), m_uButtonPrevState(0), m_bShowButtonNext(false), m_uButtonNextState(0), m_uThumbState(0),
 		m_dwThumbColor(0), m_dwThumbHoverColor(0), m_dwThumbActiveColor(0), m_dwThumbDisabledColor(0)
 	{
 		m_cxyFixed.cx = DEFAULT_SCROLLBAR_SIZE;
@@ -50,7 +50,6 @@ namespace DuiLib
 	{
 		if( m_bVisible == bVisible ) return;
 
-		bool v = IsVisible();
 		m_bVisible = bVisible;
 		if( m_bFocused ) m_bFocused = false;
 

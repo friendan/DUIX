@@ -63,6 +63,17 @@ SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。
 | `selected-color` | 默认选中背景色（与 Option 的 `color-selected` / `background-color-selected` 不同） |
 | `show-dirty` / `gdiplus-text` / `text-rendering-hint` / `tooltip-hover-time` / `no-activate` | 调试 / 文本渲染 / Tooltip / 无激活 |
 
+### `CenterWindow`（C++）
+
+`CWindowWnd::CenterWindow()`：
+
+| 情况 | 行为 |
+|------|------|
+| 无 Owner | 在**鼠标所在显示器**工作区居中（`GetCursorPos` + `MonitorFromPoint`） |
+| 有 Owner | 相对 Owner 居中，并夹进 Owner 所在屏工作区 |
+
+主窗 `Create(..., 0,0,...)` 再 `CenterWindow()` 时不会再因窗口先落在主屏 `(0,0)` 而总居中到主屏。
+
 ### 壁纸透出（`wallpaper-bleed`）
 
 根控件设 `background-image`（或 **html/Window 上写 `background-image`**，Attach 后落到 root）后，中间面板不透明会挡住壁纸。窗口级：

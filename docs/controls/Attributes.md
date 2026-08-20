@@ -62,6 +62,7 @@
 | 基属性 | 改写为 |
 |--------|--------|
 | `background-color` | `background-color-hover` / `-active` / `-disabled` / `-focus` / `-selected` |
+| `sep-color` | `sep-color-hover` / `-active`（SplitLayout） |
 | `color` | `color-hover` / `-active` / `-disabled` / `-focus` / `-selected` |
 | `border-color` | `border-color-hover` / `-active` / `-disabled` / `-focus` |
 | `image` | `image-hover` / `-active` / `-disabled` / `-focus` / `-selected` |
@@ -126,10 +127,12 @@
 | [List.md](List.md) | List 族 |
 | [VirtualList.md](VirtualList.md) | VirtualList |
 | [Combo.md](Combo.md) | Combo |
+| [LookupEdit.md](LookupEdit.md) | LookupEdit |
 | [ScrollBar.md](ScrollBar.md) | ScrollBar |
 | [Progress.md](Progress.md) | Progress / Slider |
 | [SvgBox.md](SvgBox.md) | SvgBox |
 | [Accordion.md](Accordion.md) | Accordion |
+| [SplitLayout.md](SplitLayout.md) | SplitLayout / HSplit / VSplit |
 | [Carousel.md](Carousel.md) | Carousel |
 | [TreeView.md](TreeView.md) | TreeView |
 | [Menu.md](Menu.md) | Menu |

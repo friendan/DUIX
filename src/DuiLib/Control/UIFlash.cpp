@@ -11,9 +11,9 @@ namespace DuiLib
 	IMPLEMENT_DUICONTROL(CFlashUI)
 
 	CFlashUI::CFlashUI(void)
-		: m_dwRef(0)
+		: m_pFlash(NULL)
+		, m_dwRef(0)
 		, m_dwCookie(0)
-		, m_pFlash(NULL)
 		, m_pFlashEventHandler(NULL)
 	{
 		CDuiString strFlashCLSID=_T("{D27CDB6E-AE6D-11CF-96B8-444553540000}");

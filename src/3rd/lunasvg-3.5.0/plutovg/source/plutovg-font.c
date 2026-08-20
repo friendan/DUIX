@@ -4,9 +4,21 @@
 #include <stdio.h>
 #include <assert.h>
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4505)
+#endif
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "plutovg-stb-truetype.h"
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 static int plutovg_text_iterator_length(const void* data, plutovg_text_encoding_t encoding)
 {
@@ -267,10 +279,17 @@ static plutovg_glyph_t* plutovg_glyph_cache_get(plutovg_glyph_cache_t* cache, pl
 
 plutovg_font_face_t* plutovg_font_face_load_from_file(const char* filename, int ttcindex)
 {
+#ifdef _MSC_VER
+    FILE* fp = NULL;
+    if(fopen_s(&fp, filename, "rb") != 0 || fp == NULL) {
+        return NULL;
+    }
+#else
     FILE* fp = fopen(filename, "rb");
     if(fp == NULL) {
         return NULL;
     }
+#endif
 
     fseek(fp, 0, SEEK_END);
     long length = ftell(fp);

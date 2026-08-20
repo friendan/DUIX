@@ -10,17 +10,17 @@ namespace DuiLib {
 	{
 	public:
 		void Init(CComboUI* pOwner);
-		LPCTSTR GetWindowClassName() const;
-		void OnFinalMessage(HWND hWnd);
+		LPCTSTR GetWindowClassName() const override;
+		void OnFinalMessage(HWND hWnd) override;
 
-		LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+		LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 		void Notify(TNotifyUI& msg) override;
 
 		void EnsureVisible(int iIndex);
 		void Scroll(int dx, int dy);
 
 #if(_WIN32_WINNT >= 0x0501)
-		virtual UINT GetClassStyle() const;
+		UINT GetClassStyle() const override;
 #endif
 		bool IsHitItem(POINT ptMouse);
 	public:
@@ -249,7 +249,6 @@ namespace DuiLib {
 		RECT rcList = m_pLayout->GetPos();
 		CScrollBarUI* pHorizontalScrollBar = m_pLayout->GetHorizontalScrollBar();
 		if( pHorizontalScrollBar && pHorizontalScrollBar->IsVisible() ) rcList.bottom -= pHorizontalScrollBar->GetFixedHeight();
-		int iPos = m_pLayout->GetScrollPos().cy;
 		if( rcItem.top >= rcList.top && rcItem.bottom < rcList.bottom ) return;
 		int dx = 0;
 		if( rcItem.top < rcList.top ) dx = rcItem.top - rcList.top;
@@ -280,16 +279,16 @@ namespace DuiLib {
 	////////////////////////////////////////////////////////
 	IMPLEMENT_DUICONTROL(CComboUI)
 
-	CComboUI::CComboUI() : m_uTextStyle(DT_VCENTER | DT_SINGLELINE)
+	CComboUI::CComboUI() : m_pWindow(NULL)
+		, m_iCurSel(-1)
 		, m_dwColor(0)
 		, m_dwDisabledColor(0)
 		, m_iFont(-1)
+		, m_uTextStyle(DT_VCENTER | DT_SINGLELINE)
 		, m_bShowHtml(false)
-		, m_pWindow(NULL)
-		, m_iCurSel(-1)
+		, m_bShowShadow(false)
 		, m_uButtonState(0)
 		, m_bScrollSelect(true)
-		, m_bShowShadow(false)
 	{
 		m_szDropBox = CDuiSize(0, 150);
 		// 默认文字边距（闭合态＋下拉项）左右各 6，避免贴边（用户可再覆盖）

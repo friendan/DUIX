@@ -15,12 +15,12 @@ namespace DuiLib
 		m_bAutoDestroy(true),
 		m_bDelayedDestroy(true),
 		m_bMouseChildEnabled(true),
-		m_pVerticalScrollBar(NULL),
-		m_pHorizontalScrollBar(NULL),
 		m_nScrollStepSize(0),
 		m_bFixedScrollbar(false),
 		m_bShowScrollbar(true),
-		m_nUpdateLock(0)
+		m_nUpdateLock(0),
+		m_pVerticalScrollBar(NULL),
+		m_pHorizontalScrollBar(NULL)
 	{
 	}
 

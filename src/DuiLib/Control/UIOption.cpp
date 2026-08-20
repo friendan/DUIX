@@ -4,8 +4,10 @@
 namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(COptionUI)
-	COptionUI::COptionUI() : m_bSelected(false) ,m_iSelectedFont(-1), m_dwSelectedColor(0), m_dwSelectedBackgroundColor(0), m_nSelectedStateCount(0)
+	COptionUI::COptionUI() : m_bSelected(false) ,m_iSelectedFont(-1), m_dwSelectedBackgroundColor(0), m_dwSelectedColor(0), m_nSelectedStateCount(0)
 	{
+		// 左右内边距：左对齐文字不贴边；皮肤可用 padding="0" 关掉
+		SetPadding(CDuiBox(0, 12, 0, 12));
 	}
 
 	COptionUI::~COptionUI()
@@ -408,6 +410,8 @@ namespace DuiLib
 		m_dwSelectedColor = 0; // 原生样式下标签色不随选中变化
 		SetCursor(DUI_HAND);
 		SetAutoCalcWidth(true);
+		// 勾选框用 box-gap 与文字间距；不要继承 Option 的左右 padding
+		SetPadding(CDuiBox(0));
 	}
 
 	LPCTSTR CCheckBoxUI::GetClass() const
@@ -473,11 +477,12 @@ namespace DuiLib
 	RECT CCheckBoxUI::GetCheckBoxRect() const
 	{
 		SIZE sz = GetBoxSize();
+		RECT rcPad = GetPadding();
 		RECT rc = m_rcItem;
 		rc.top = m_rcItem.top + (m_rcItem.bottom - m_rcItem.top - sz.cy) / 2;
 		if( rc.top < m_rcItem.top ) rc.top = m_rcItem.top;
 		rc.bottom = rc.top + sz.cy;
-		rc.left = m_rcItem.left;
+		rc.left = m_rcItem.left + rcPad.left;
 		rc.right = rc.left + sz.cx;
 		return rc;
 	}
@@ -584,6 +589,8 @@ namespace DuiLib
 				RECT rcPad = GetTextPadding();
 				sz.cx += rcPad.left + rcPad.right;
 			}
+			RECT rcPadding = GetPadding();
+			sz.cx += rcPadding.left + rcPadding.right;
 		}
 		return sz;
 	}

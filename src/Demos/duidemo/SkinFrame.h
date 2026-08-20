@@ -80,7 +80,7 @@ public:
 
 		m_pm.Init(m_hWnd);
 		CDialogBuilder builder;
-		CControlUI* pRoot = builder.Create(_T("skin.html"), (UINT)0, NULL, &m_pm);
+		CControlUI* pRoot = builder.Create(_T("skin.html"), NULL, NULL, &m_pm);
 		ASSERT(pRoot && "Failed to parse XML");
 		m_pm.AttachDialog(pRoot);
 		m_pm.AddNotifier(this);

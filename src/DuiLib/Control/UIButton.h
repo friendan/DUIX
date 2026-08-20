@@ -14,17 +14,17 @@ namespace DuiLib
 
 	public:
 		CButtonUI();
-		~CButtonUI();
+		~CButtonUI() override;
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
-		UINT GetControlFlags() const;
-		bool PreferClientHit() const;
-		void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
+		UINT GetControlFlags() const override;
+		bool PreferClientHit() const override;
+		void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true) override;
 
-		bool Activate();
-		void SetEnabled(bool bEnable = true);
-		void DoEvent(TEventUI& event);
+		bool Activate() override;
+		void SetEnabled(bool bEnable = true) override;
+		void DoEvent(TEventUI& event) override;
 
 		virtual LPCTSTR GetImage();
 		virtual void SetImage(LPCTSTR pStrImage);
@@ -92,18 +92,18 @@ namespace DuiLib
 
 		SIZE EstimateSize(SIZE szAvailable) override;
 
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 
 		void SetKind(ControlKind kind) override;
 		void SetOutline(bool bOutline) override;
 
-		void PaintText(IRenderContext& ctx);
+		void PaintText(IRenderContext& ctx) override;
 
-		void PaintBackgroundColor(IRenderContext& ctx);
-		void PaintStatusImage(IRenderContext& ctx);
-		void PaintBorder(IRenderContext& ctx);
-		void PaintForegroundImage(IRenderContext& ctx);
-		void PaintBackgroundImage(IRenderContext& ctx);
+		void PaintBackgroundColor(IRenderContext& ctx) override;
+		void PaintStatusImage(IRenderContext& ctx) override;
+		void PaintBorder(IRenderContext& ctx) override;
+		void PaintForegroundImage(IRenderContext& ctx) override;
+		void PaintBackgroundImage(IRenderContext& ctx) override;
 
 	protected:
 		enum IconKind { IconNone = 0, IconSvg = 1, IconRaster = 2 };

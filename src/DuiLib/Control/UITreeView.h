@@ -31,6 +31,8 @@ namespace DuiLib
 		bool Add(CControlUI* _pTreeNodeUI);
 		bool AddAt(CControlUI* pControl, int iIndex);
 		bool Remove(CControlUI* pControl);
+		using CListContainerElementUI::RemoveAt;
+		bool RemoveAt(CTreeNodeUI* _pTreeNodeUI);
 
 		void SetVisibleTag(bool _IsVisible);
 		bool GetVisibleTag();
@@ -41,7 +43,6 @@ namespace DuiLib
 		bool IsHasChild() const;
 		long GetTreeLevel();
 		bool AddChildNode(CTreeNodeUI* _pTreeNodeUI);
-		bool RemoveAt(CTreeNodeUI* _pTreeNodeUI);
 		void SetParentNode(CTreeNodeUI* _pParentTreeNode);
 		CTreeNodeUI* GetParentNode();
 		long GetCountChild();
@@ -118,6 +119,9 @@ namespace DuiLib
 		virtual LPCTSTR GetClass() const;
 		virtual LPVOID	GetInterface(LPCTSTR pstrName);
 
+		using CListUI::Add;
+		using CListUI::AddAt;
+		using CListUI::Remove;
 		virtual UINT GetListType();
 		virtual bool Add(CTreeNodeUI* pControl );
 		virtual long AddAt(CTreeNodeUI* pControl, int iIndex );

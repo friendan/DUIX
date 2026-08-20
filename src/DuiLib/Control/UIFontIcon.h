@@ -20,11 +20,11 @@ namespace DuiLib
 
 		CFontIconUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
-		bool PreferClientHit() const;
-		void DoEvent(TEventUI& event);
-		UINT GetControlFlags() const;
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
+		bool PreferClientHit() const override;
+		void DoEvent(TEventUI& event) override;
+		UINT GetControlFlags() const override;
 
 		void SetShape(Shape eShape);
 		Shape GetShape() const;
@@ -32,11 +32,11 @@ namespace DuiLib
 		void SetKind(ControlKind kind) override;
 		void SetClickable(bool bClickable);
 
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-		void SetPos(RECT rc, bool bNeedInvalidate = true);
-		SIZE EstimateSize(SIZE szAvailable);
-		void PaintBackgroundColor(IRenderContext& ctx);
-		void PaintText(IRenderContext& ctx);
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
+		void SetPos(RECT rc, bool bNeedInvalidate = true) override;
+		SIZE EstimateSize(SIZE szAvailable) override;
+		void PaintBackgroundColor(IRenderContext& ctx) override;
+		void PaintText(IRenderContext& ctx) override;
 
 	protected:
 		void SyncShapeRadius();

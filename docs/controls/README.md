@@ -58,10 +58,12 @@
 | List 族 | [List.md](List.md) | `src/DuiLib/Control/UIList.*`、`UIListEx.*` |
 | VirtualList | [VirtualList.md](VirtualList.md) | `src/DuiLib/Control/UIVirtualList.*` |
 | Combo / ComboBox | [Combo.md](Combo.md) | `src/DuiLib/Control/UICombo.*` |
+| LookupEdit | [LookupEdit.md](LookupEdit.md) | `src/DuiLib/Control/UILookupEdit.*` |
 | ScrollBar | [ScrollBar.md](ScrollBar.md) | `src/DuiLib/Control/UIScrollBar.*` |
 | Progress / Slider | [Progress.md](Progress.md) | `UIProgress.*`、`UISlider.*` |
 | SvgBox | [SvgBox.md](SvgBox.md) | `src/DuiLib/Control/UISvgBox.*` |
 | Accordion | [Accordion.md](Accordion.md) | `src/DuiLib/Control/UIAccordion.*` |
+| SplitLayout | [SplitLayout.md](SplitLayout.md) | `src/DuiLib/Layout/UISplitLayout.*` |
 | Carousel | [Carousel.md](Carousel.md) | `src/DuiLib/Control/UICarousel.*` |
 | TreeView | [TreeView.md](TreeView.md) | `src/DuiLib/Control/UITreeView.*` |
 | Menu | [Menu.md](Menu.md) | `src/DuiLib/Control/UIMenu.*` |

@@ -15,6 +15,7 @@
 |------|------|
 | `group` | — |
 | `selected` / `checked` | 选中（`checked` 为 HTML 别名） |
+| `padding` | **默认** `0,12,0,12`（左右 12，逻辑像素）。左对齐文字不贴边；`padding="0"` 可关掉。CheckBox 默认仍为 `0`（用 `box-gap`） |
 
 ### 部分接近（命名或伪类形式）
 

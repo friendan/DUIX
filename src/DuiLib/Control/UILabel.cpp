@@ -6,7 +6,7 @@ namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CLabelUI)
 
-		CLabelUI::CLabelUI() : m_uTextStyle(DT_VCENTER | DT_SINGLELINE), m_dwColor(0), 
+		CLabelUI::CLabelUI() : m_dwColor(0), 
 		m_dwDisabledColor(0),
 		m_dwHoverColor(0),
 		m_dwActiveColor(0),
@@ -17,6 +17,7 @@ namespace DuiLib
 		m_bFontItalic(false),
 		m_bFontUnderline(false),
 		m_bFontStrikeout(false),
+		m_uTextStyle(DT_VCENTER | DT_SINGLELINE),
 		m_bShowHtml(false),
 		m_bClickable(false),
 		m_bLButtonDown(false),
@@ -281,7 +282,7 @@ namespace DuiLib
 				if (m_cxyFixedLast.cx == 0) {
 					if(GetAutoCalcWidth()) {
 						RECT rcText = { 0, 0, 9999, m_cxyFixedLast.cy };
-						UINT uStyle = DT_CALCRECT | m_uTextStyle & ~DT_RIGHT & ~DT_CENTER;
+						UINT uStyle = DT_CALCRECT | ((m_uTextStyle & ~DT_RIGHT) & ~DT_CENTER);
 						if( m_bShowHtml )
 							RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), 0, m_iFont, uStyle);
 						else
@@ -293,10 +294,14 @@ namespace DuiLib
 			// 自动计算高度
 			else if(m_cxyFixedLast.cy == 0) {
 				if(GetAutoCalcHeight()) {
-					RECT rcText = { 0, 0, m_cxyFixedLast.cx, 9999 };
+					int nTextWidth = m_cxyFixedLast.cx;
+					if( nTextWidth <= 0 ) nTextWidth = szAvailable.cx;
+					if( nTextWidth <= 0 ) nTextWidth = 9999;
+					RECT rcText = { 0, 0, nTextWidth, 9999 };
 					rcText.left += padL;
 					rcText.right -= padR;
-					UINT uStyle = DT_CALCRECT | m_uTextStyle & ~DT_RIGHT & ~DT_CENTER;
+					if( rcText.right < rcText.left ) rcText.right = rcText.left;
+					UINT uStyle = DT_CALCRECT | ((m_uTextStyle & ~DT_RIGHT) & ~DT_CENTER);
 					if( m_bShowHtml )
 						RenderMeasureHtmlText(m_pManager, rcText, sText.GetData(), 0, m_iFont, uStyle);
 					else

@@ -21,7 +21,7 @@ using namespace DuiLib;
 #endif
 
 
-#include "resource.h"
+#include "Resource.h"
 
 using namespace std;
 //

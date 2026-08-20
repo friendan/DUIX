@@ -64,6 +64,7 @@ namespace DuiLib {
 		public:
 			CDWriteSpacerInline(FLOAT width, FLOAT height)
 				: m_cRef(1), m_width(width), m_height(height) {}
+			virtual ~CDWriteSpacerInline() {}
 
 			IFACEMETHODIMP_(ULONG) AddRef() { return InterlockedIncrement(&m_cRef); }
 			IFACEMETHODIMP_(ULONG) Release()
@@ -83,14 +84,14 @@ namespace DuiLib {
 				*ppv = NULL;
 				return E_NOINTERFACE;
 			}
-			IFACEMETHODIMP Draw(void* clientDrawingContext, IDWriteTextRenderer*, FLOAT originX, FLOAT originY,
+			COM_DECLSPEC_NOTHROW STDMETHODIMP Draw(void* clientDrawingContext, IDWriteTextRenderer*, FLOAT originX, FLOAT originY,
 				BOOL isSideways, BOOL isRightToLeft, IUnknown* clientDrawingEffect)
 			{
 				(void)clientDrawingContext; (void)originX; (void)originY;
 				(void)isSideways; (void)isRightToLeft; (void)clientDrawingEffect;
 				return S_OK;
 			}
-			IFACEMETHODIMP GetMetrics(DWRITE_INLINE_OBJECT_METRICS* metrics)
+			COM_DECLSPEC_NOTHROW STDMETHODIMP GetMetrics(DWRITE_INLINE_OBJECT_METRICS* metrics)
 			{
 				if( metrics == NULL ) return E_POINTER;
 				metrics->width = m_width;
@@ -99,13 +100,13 @@ namespace DuiLib {
 				metrics->supportsSideways = FALSE;
 				return S_OK;
 			}
-			IFACEMETHODIMP GetOverhangMetrics(DWRITE_OVERHANG_METRICS* overhangs)
+			COM_DECLSPEC_NOTHROW STDMETHODIMP GetOverhangMetrics(DWRITE_OVERHANG_METRICS* overhangs)
 			{
 				if( overhangs == NULL ) return E_POINTER;
 				ZeroMemory(overhangs, sizeof(*overhangs));
 				return S_OK;
 			}
-			IFACEMETHODIMP GetBreakConditions(DWRITE_BREAK_CONDITION* breakConditionBefore, DWRITE_BREAK_CONDITION* breakConditionAfter)
+			COM_DECLSPEC_NOTHROW STDMETHODIMP GetBreakConditions(DWRITE_BREAK_CONDITION* breakConditionBefore, DWRITE_BREAK_CONDITION* breakConditionAfter)
 			{
 				if( breakConditionBefore ) *breakConditionBefore = DWRITE_BREAK_CONDITION_NEUTRAL;
 				if( breakConditionAfter ) *breakConditionAfter = DWRITE_BREAK_CONDITION_NEUTRAL;
@@ -126,7 +127,7 @@ namespace DuiLib {
 			{
 				if( m_pBitmap ) m_pBitmap->AddRef();
 			}
-			~CDWriteImageInline()
+			virtual ~CDWriteImageInline()
 			{
 				if( m_pBitmap ) m_pBitmap->Release();
 			}
@@ -149,7 +150,7 @@ namespace DuiLib {
 				*ppv = NULL;
 				return E_NOINTERFACE;
 			}
-			IFACEMETHODIMP Draw(void* clientDrawingContext, IDWriteTextRenderer*, FLOAT originX, FLOAT originY,
+			COM_DECLSPEC_NOTHROW STDMETHODIMP Draw(void* clientDrawingContext, IDWriteTextRenderer*, FLOAT originX, FLOAT originY,
 				BOOL isSideways, BOOL isRightToLeft, IUnknown* clientDrawingEffect)
 			{
 				(void)isSideways; (void)isRightToLeft; (void)clientDrawingEffect;
@@ -161,7 +162,7 @@ namespace DuiLib {
 					1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &m_rcSrc);
 				return S_OK;
 			}
-			IFACEMETHODIMP GetMetrics(DWRITE_INLINE_OBJECT_METRICS* metrics)
+			COM_DECLSPEC_NOTHROW STDMETHODIMP GetMetrics(DWRITE_INLINE_OBJECT_METRICS* metrics)
 			{
 				if( metrics == NULL ) return E_POINTER;
 				metrics->width = m_width;
@@ -170,13 +171,13 @@ namespace DuiLib {
 				metrics->supportsSideways = FALSE;
 				return S_OK;
 			}
-			IFACEMETHODIMP GetOverhangMetrics(DWRITE_OVERHANG_METRICS* overhangs)
+			COM_DECLSPEC_NOTHROW STDMETHODIMP GetOverhangMetrics(DWRITE_OVERHANG_METRICS* overhangs)
 			{
 				if( overhangs == NULL ) return E_POINTER;
 				ZeroMemory(overhangs, sizeof(*overhangs));
 				return S_OK;
 			}
-			IFACEMETHODIMP GetBreakConditions(DWRITE_BREAK_CONDITION* breakConditionBefore, DWRITE_BREAK_CONDITION* breakConditionAfter)
+			COM_DECLSPEC_NOTHROW STDMETHODIMP GetBreakConditions(DWRITE_BREAK_CONDITION* breakConditionBefore, DWRITE_BREAK_CONDITION* breakConditionAfter)
 			{
 				if( breakConditionBefore ) *breakConditionBefore = DWRITE_BREAK_CONDITION_NEUTRAL;
 				if( breakConditionAfter ) *breakConditionAfter = DWRITE_BREAK_CONDITION_NEUTRAL;
@@ -1767,7 +1768,7 @@ namespace DuiLib {
 			return NULL;
 		const int nX = bm.bmWidth;
 		const int nY = bm.bmHeight;
-		BITMAPINFO bmi = { 0 };
+		BITMAPINFO bmi = {};
 		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmi.bmiHeader.biWidth = nX;
 		bmi.bmiHeader.biHeight = -nY; // top-down
@@ -3063,6 +3064,9 @@ namespace DuiLib {
 
 	void CD2dRenderDevice::DestroyPixelBuffer(void* pNative)
 	{
+		// RichEdit 等每帧 Create/Destroy 临时位图：删 HBITMAP 前清 D2D 缓存，避免句柄复用串图与泄漏
+		if( pNative != NULL )
+			InvalidateBitmapCacheForImage(reinterpret_cast<HBITMAP>(pNative), NULL);
 		CGdiRenderDevice gdi;
 		gdi.DestroyPixelBuffer(pNative);
 	}
@@ -3157,7 +3161,7 @@ namespace DuiLib {
 			if( !::GetObject(hBitmap, sizeof(bm), &bm) || bm.bmWidth <= 0 || bm.bmHeight <= 0 ) return NULL;
 			nX = bm.bmWidth;
 			nY = bm.bmHeight;
-			BITMAPINFO bmi = { 0 };
+			BITMAPINFO bmi = {};
 			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 			bmi.bmiHeader.biWidth = nX;
 			bmi.bmiHeader.biHeight = -nY; // top-down

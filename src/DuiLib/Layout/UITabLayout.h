@@ -11,22 +11,22 @@ namespace DuiLib
 	public:
 		CTabLayoutUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
-		bool Add(CControlUI* pControl);
-		bool AddAt(CControlUI* pControl, int iIndex);
-		bool Remove(CControlUI* pControl);
-		void RemoveAll();
+		bool Add(CControlUI* pControl) override;
+		bool AddAt(CControlUI* pControl, int iIndex) override;
+		bool Remove(CControlUI* pControl) override;
+		void RemoveAll() override;
 		int GetCurSel() const;
 		virtual bool SelectItem(int iIndex);
 		virtual bool SelectItem(CControlUI* pControl);
 		bool MoveItem(int iFrom, int iTo);
 
-		void SetPos(RECT rc, bool bNeedInvalidate = true);
+		void SetPos(RECT rc, bool bNeedInvalidate = true) override;
 		SIZE EstimateSize(SIZE szAvailable) override;
 
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 
 	protected:
 		void RequestLayout();

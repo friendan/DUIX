@@ -998,6 +998,7 @@
     <ClCompile Include="Control\UIButton.cpp" />
     <ClCompile Include="Control\UICombo.cpp" />
     <ClCompile Include="Control\UIComboBox.cpp" />
+    <ClCompile Include="Control\UILookupEdit.cpp" />
     <ClCompile Include="Control\UIDateTime.cpp" />
     <ClCompile Include="Control\UIEdit.cpp" />
     <ClCompile Include="Control\UIFlash.cpp" />
@@ -1067,6 +1068,7 @@
     <ClInclude Include="Control\UIButton.h" />
     <ClInclude Include="Control\UICombo.h" />
     <ClInclude Include="Control\UIComboBox.h" />
+    <ClInclude Include="Control\UILookupEdit.h" />
     <ClInclude Include="Control\UIDateTime.h" />
     <ClInclude Include="Control\UIEdit.h" />
     <ClInclude Include="Control\UIFlash.h" />

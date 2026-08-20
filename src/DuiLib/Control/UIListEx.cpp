@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "UIListEx.h"
 
 namespace DuiLib {
@@ -167,8 +167,7 @@ namespace DuiLib {
 		}
 		else if (_tcsicmp(strName.GetData(), _T("ListEx_Combo")) == 0 && m_pComboBoxUI && m_nRow >= 0 && m_nColum >= 0)
 		{
-			int  iCurSel, iOldSel;
-			iCurSel = msg.wParam;
+			int iOldSel;
 			iOldSel = msg.lParam;
 
 			if(_tcsicmp(msg.sType.GetData(), DUI_MSGTYPE_SETFOCUS) == 0)
@@ -367,7 +366,7 @@ namespace DuiLib {
 	IMPLEMENT_DUICONTROL(CListContainerHeaderItemUI)
 
 	CListContainerHeaderItemUI::CListContainerHeaderItemUI() : m_bDragable(TRUE), m_uButtonState(0), m_iSepWidth(4),
-		m_uTextStyle(DT_VCENTER | DT_CENTER | DT_SINGLELINE), m_dwColor(0), m_iFont(-1), m_bShowHtml(FALSE),
+		m_dwColor(0), m_iFont(-1), m_uTextStyle(DT_VCENTER | DT_CENTER | DT_SINGLELINE), m_bShowHtml(FALSE),
 		m_bEditable(FALSE),m_bComboable(FALSE),m_bCheckBoxable(FALSE),m_uCheckBoxState(0),m_bChecked(FALSE),m_pOwner(NULL)
 	{
 		SetPadding(CDuiBox(0, 2, 0, 2));
@@ -404,7 +403,7 @@ namespace DuiLib {
 		return pList->IsHeaderShowColumnLine() ? TRUE : FALSE;
 	}
 
-	void CListContainerHeaderItemUI::SetEnabled(BOOL bEnable)
+	void CListContainerHeaderItemUI::SetEnabled(bool bEnable)
 	{
 		CContainerUI::SetEnabled(bEnable);
 		if( !IsEnabled() ) {
@@ -785,7 +784,7 @@ namespace DuiLib {
 			else
 				rcSeparator.right+=4;
 			if( IsEnabled() && IsColumnResizeEnabled() && ::PtInRect(&rcSeparator, event.ptMouse) ) {
-				::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_SIZEWE)));
+				::SetCursor(::LoadCursor(NULL, IDC_SIZEWE));
 				return;
 			}
 		}
@@ -1252,7 +1251,7 @@ Label_ForegroundImage:
 		if( event.Type == UIEVENT_SETCURSOR ) {
 			for( int i = 0; i < m_nLinks; i++ ) {
 				if( ::PtInRect(&m_rcLinks[i], event.ptMouse) ) {
-					::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_HAND)));
+					::SetCursor(::LoadCursor(NULL, IDC_HAND));
 					return;
 				}
 			}      

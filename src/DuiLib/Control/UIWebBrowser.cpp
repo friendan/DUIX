@@ -153,7 +153,7 @@ namespace DuiLib
 		if( ::IsRectEmpty(&rcDest) ) return false;
 		if( stride <= 0 ) stride = width * 4;
 
-		BITMAPINFO bmi = { 0 };
+		BITMAPINFO bmi = {};
 		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmi.bmiHeader.biWidth = width;
 		bmi.bmiHeader.biHeight = topDown ? -height : height; // 负高度 = 自上而下，匹配 CEF PET_VIEW

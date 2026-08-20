@@ -89,7 +89,7 @@ namespace DuiLib
 		if( pHeight ) *pHeight = 0;
 		if( pStride ) *pStride = 0;
 
-		DIBSECTION ds = { 0 };
+		DIBSECTION ds = {};
 		if( ::GetObject(hBitmap, sizeof(ds), &ds) < (int)sizeof(BITMAP) )
 			return false;
 		const int w = ds.dsBm.bmWidth;
@@ -116,7 +116,7 @@ namespace DuiLib
 			return true;
 		}
 
-		BITMAPINFO bmi = { 0 };
+		BITMAPINFO bmi = {};
 		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 		bmi.bmiHeader.biWidth = w;
 		bmi.bmiHeader.biHeight = -h;
