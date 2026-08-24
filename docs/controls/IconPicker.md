@@ -52,7 +52,7 @@ void OnIconPicked(TNotifyUI& msg) {
 | 尺寸 | **预设/自定义两态切换**：默认显示 宽/高 两个下拉（预设 16/24/32/48/64/96/128，仅列[`size-min`,`size-max`]内的）；点「自定义宽高」→ 同一位置换成 宽/高 两个输入框可输入任意值；切回则显示「预设宽高」 |
 | 尺寸校验 | 界于自定义 `size-min`~`size-max`（默认 8~256）；非法/过大自动钳制并回退 |
 | 图标网格 | `CFlowLayoutUI`，每格一个按钮，点选高亮；悬停显示图标名 tooltip |
-| 颜色 | 预设色块（无/绿/蓝/青/紫/橙/红）+「自定义」：点「自定义」展开折叠面板，内置 HSL 色板可拖选任意色，也可在 hex 输入框直接填 `#RRGGBB`（回车或点「应用」生效）；收起点「收起」。所选颜色实时作用于网格预览；默认**无**（用图标原色/主题默认）。`show-color="false"` 时整块颜色区隐藏，固定颜色 |
+| 颜色 | 预设色块（无/绿/蓝/青/紫/橙/红）+「自定义」：点「自定义」展开折叠面板，内置 HSL 色板可拖选任意色，也可在 hex 输入框直接填 `#RRGGBB`（回车或点「应用」生效）；收起点「收起」。所选颜色实时作用于网格预览；默认**无**（用图标原色/主题默认）。`show-color="false"` 时整块颜色区隐藏，固定颜色。预设色未配置时默认：`#52C41A` / `#1677FF` / `#13C2C2` / `#722ED1` / `#FA8C16` / `#F5222D` |
 | 状态栏 | 窗口底部状态栏（主题标题栏色）：当前库图标总数 / 匹配数 / 已选 |
 | 确定 / 取消 | 确定写回 `{库名, 图标名, 颜色}` 并发 `selectchanged` |
 
@@ -68,6 +68,8 @@ void OnIconPicked(TNotifyUI& msg) {
 | `size-max` | 尺寸上限；默认 `256`（单次硬上限 1024） |
 | `icon-tint-color` / `icon-color` | 图标颜色筛选（ARGB/`#RRGGBB`）；默认 `0` = 无 |
 | `icon-size` / `icon-width` / `icon-height` | 图标显示尺寸（像素）：`icon-size` 为正方形；`icon-width` / `icon-height` 可分别设宽/高。默认 18 |
+| `swatch-colors` / `preset-colors` | 批量设置 6 个预设色，逗号分隔，对应顺序：绿/蓝/青/紫/橙/红。未提供的尾项回落到内置默认值 |
+| `swatch-green` / `swatch-blue` / `swatch-cyan` / `swatch-purple` / `swatch-orange` / `swatch-red` | 单独覆写某个预设色；未设置仍用内置默认值 |
 | `modal` | 默认 `false`（非模态可对照主窗）；`true` 则 `ShowModal` 禁用主窗 |
 | `show-size` / `show-size-settings` | 选择窗是否显示“大小设置”区；默认 `true`；`false` 可固定宽高不给用户改 |
 | `show-color` / `show-color-settings` | 选择窗是否显示“颜色自定义”区；默认 `true`；`false` 可固定颜色不给用户改 |

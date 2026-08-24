@@ -35,7 +35,7 @@ namespace DuiLib {
 #define DUITRACEMSG DUI__TraceMsg
 #else
 #ifndef DUITRACE
-#define DUITRACE
+#define DUITRACE(...) ((void)0)
 #endif
 #define DUITRACEMSG _T("")
 #endif

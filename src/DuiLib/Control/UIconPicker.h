@@ -10,6 +10,7 @@ namespace DuiLib
 	{
 		DECLARE_DUICONTROL(CIconPickerUI)
 	public:
+		enum { ICONPICKER_SWATCH_COUNT = 6 };
 		CIconPickerUI();
 
 		LPCTSTR GetClass() const;
@@ -56,6 +57,9 @@ namespace DuiLib
 		/// 图标颜色筛选（ARGB）。默认 0 = 无（用图标原色/主题默认）。
 		void SetIconColor(DWORD dwColor);
 		DWORD GetIconColor() const;
+		/// 预设色块（绿/蓝/青/紫/橙/红）；未设置时使用内置默认值。
+		void SetPresetColor(int iIndex, DWORD dwColor);
+		DWORD GetPresetColor(int iIndex) const;
 
 		/// 打开选择窗（已开则前置）
 		void OpenPicker();
@@ -81,6 +85,7 @@ namespace DuiLib
 		int m_nIconW;               // 图标显示宽
 		int m_nIconH;               // 图标显示高
 		DWORD m_dwIconColor;        // 图标颜色筛选（0=无）
+		DWORD m_dwPresetColors[ICONPICKER_SWATCH_COUNT];
 	};
 
 	/// 图标选择窗（由 CIconPickerUI 打开）
@@ -157,6 +162,7 @@ namespace DuiLib
 		CLabelUI* m_pStatus;
 		bool m_bShowSize;
 		bool m_bShowColor;
+		DWORD m_dwPresetColors[CIconPickerUI::ICONPICKER_SWATCH_COUNT];
 		static CIconPickerWnd* s_pActive;
 	};
 }

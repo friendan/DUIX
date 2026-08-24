@@ -7,6 +7,82 @@ namespace DuiLib
 {
 
 namespace {
+	enum IconPickerSwatchIndex
+	{
+		IconPickerSwatchGreen = 0,
+		IconPickerSwatchBlue,
+		IconPickerSwatchCyan,
+		IconPickerSwatchPurple,
+		IconPickerSwatchOrange,
+		IconPickerSwatchRed,
+	};
+
+	struct IconPickerSwatchDef
+	{
+		LPCTSTR name;
+		DWORD color;
+	};
+
+	static const IconPickerSwatchDef kIconPickerSwatches[CIconPickerUI::ICONPICKER_SWATCH_COUNT] = {
+		{ _T("color_green"),  0x52C41AFF },
+		{ _T("color_blue"),   0x1677FFFF },
+		{ _T("color_cyan"),   0x13C2C2FF },
+		{ _T("color_purple"), 0x722ED1FF },
+		{ _T("color_orange"), 0xFA8C16FF },
+		{ _T("color_red"),    0xF5222DFF },
+	};
+
+	int GetSwatchIndexByName(LPCTSTR pstrName)
+	{
+		if( pstrName == NULL ) return -1;
+		for( int i = 0; i < CIconPickerUI::ICONPICKER_SWATCH_COUNT; ++i ) {
+			if( _tcsicmp(pstrName, kIconPickerSwatches[i].name) == 0 )
+				return i;
+		}
+		return -1;
+	}
+
+	int GetSwatchIndexByAttr(LPCTSTR pstrName)
+	{
+		if( pstrName == NULL ) return -1;
+		if( _tcsicmp(pstrName, _T("swatch-green")) == 0 ) return IconPickerSwatchGreen;
+		if( _tcsicmp(pstrName, _T("swatch-blue")) == 0 ) return IconPickerSwatchBlue;
+		if( _tcsicmp(pstrName, _T("swatch-cyan")) == 0 ) return IconPickerSwatchCyan;
+		if( _tcsicmp(pstrName, _T("swatch-purple")) == 0 ) return IconPickerSwatchPurple;
+		if( _tcsicmp(pstrName, _T("swatch-orange")) == 0 ) return IconPickerSwatchOrange;
+		if( _tcsicmp(pstrName, _T("swatch-red")) == 0 ) return IconPickerSwatchRed;
+		return -1;
+	}
+
+	void ResetPresetSwatches(DWORD (&colors)[CIconPickerUI::ICONPICKER_SWATCH_COUNT])
+	{
+		for( int i = 0; i < CIconPickerUI::ICONPICKER_SWATCH_COUNT; ++i )
+			colors[i] = kIconPickerSwatches[i].color;
+	}
+
+	void ParsePresetSwatchList(LPCTSTR pstrValue, DWORD (&colors)[CIconPickerUI::ICONPICKER_SWATCH_COUNT])
+	{
+		ResetPresetSwatches(colors);
+		if( pstrValue == NULL || *pstrValue == _T('\0') ) return;
+
+		CDuiString list = pstrValue;
+		int start = 0;
+		int index = 0;
+		while( index < CIconPickerUI::ICONPICKER_SWATCH_COUNT && start <= list.GetLength() ) {
+			int comma = list.Find(_T(','), start);
+			CDuiString part = (comma < 0) ? list.Mid(start) : list.Mid(start, comma - start);
+			part.TrimLeft();
+			part.TrimRight();
+			if( !part.IsEmpty() ) {
+				DWORD clr = 0;
+				if( ParseColorString(part.GetData(), clr) )
+					colors[index] = DuiColorSetA(clr, 0xFF);
+			}
+			++index;
+			if( comma < 0 ) break;
+			start = comma + 1;
+		}
+	}
 
 	/// 工程固定 UNICODE，只用宽字面量（见 StdAfx.h / AGENTS.md）。
 	/// 内嵌皮肤：使用者无需再附带 iconpicker_popup.html；以 '<' 开头，DialogBuilder 按内联 XML 加载。
@@ -112,6 +188,7 @@ CIconPickerUI::CIconPickerUI()
 	, m_nIconH(18)
 	, m_dwIconColor(0)
 {
+	ResetPresetSwatches(m_dwPresetColors);
 	// 默认：lucide 网格图标；无字，靠 tooltip 提示
 	SetText(_T(""));
 	SetKind(CONTROLKIND_NONE);
@@ -256,6 +333,18 @@ DWORD CIconPickerUI::GetIconColor() const
 	return m_dwIconColor;
 }
 
+void CIconPickerUI::SetPresetColor(int iIndex, DWORD dwColor)
+{
+	if( iIndex < 0 || iIndex >= ICONPICKER_SWATCH_COUNT ) return;
+	m_dwPresetColors[iIndex] = (dwColor == 0) ? kIconPickerSwatches[iIndex].color : DuiColorSetA(dwColor, 0xFF);
+}
+
+DWORD CIconPickerUI::GetPresetColor(int iIndex) const
+{
+	if( iIndex < 0 || iIndex >= ICONPICKER_SWATCH_COUNT ) return 0;
+	return m_dwPresetColors[iIndex];
+}
+
 void CIconPickerUI::SetIconSize(int nW, int nH)
 {
 	m_nIconW = nW;
@@ -355,6 +444,17 @@ void CIconPickerUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 			SetIconColor(clr);
 		return;
 	}
+	if( _tcsicmp(pstrName, _T("swatch-colors")) == 0 || _tcsicmp(pstrName, _T("preset-colors")) == 0 ) {
+		ParsePresetSwatchList(pstrValue, m_dwPresetColors);
+		return;
+	}
+	int iSwatchAttr = GetSwatchIndexByAttr(pstrName);
+	if( iSwatchAttr >= 0 ) {
+		DWORD clr = 0;
+		if( ParseColorString(pstrValue, clr) )
+			SetPresetColor(iSwatchAttr, clr);
+		return;
+	}
 	if( _tcsicmp(pstrName, _T("icon-width")) == 0 ) {
 		int v = _ttoi(pstrValue);
 		if( v > 0 ) SetIconSize(v, m_nIconH);
@@ -417,6 +517,7 @@ DUI_END_MESSAGE_MAP()
 	, m_bShowSize(true)
 	, m_bShowColor(true)
 {
+	ResetPresetSwatches(m_dwPresetColors);
 	if( m_nSizeMin < 1 ) m_nSizeMin = 1;
 	if( m_nSizeMax < m_nSizeMin ) m_nSizeMax = m_nSizeMin;
 	if( pOwner != NULL ) {
@@ -426,6 +527,8 @@ DUI_END_MESSAGE_MAP()
 		m_sSelectedName = pOwner->GetSelectedIcon();
 		m_bShowSize = pOwner->IsShowSizeSettings();
 		m_bShowColor = pOwner->IsShowColorSettings();
+		for( int i = 0; i < CIconPickerUI::ICONPICKER_SWATCH_COUNT; ++i )
+			m_dwPresetColors[i] = pOwner->GetPresetColor(i);
 		// 用 owner 已存的图标尺寸作为初始值（若没有特别设置则为 32 默认）
 		if( pOwner->GetIconWidth() > 0 ) m_nIconW = pOwner->GetIconWidth();
 		if( pOwner->GetIconHeight() > 0 ) m_nIconH = pOwner->GetIconHeight();
@@ -583,7 +686,9 @@ void CIconPickerWnd::SyncSizeCombos()
 			if( it == NULL ) continue;
 			if( _ttoi(it->GetText().GetData()) == vals[c] ) { best = i; break; }
 		}
-		pCombo->SelectItem(best >= 0 ? best : 0, false);
+		// 非预设值切勿 SelectItem(0)：Combo 会发 ITEMSELECT，把尺寸改成首项（如 24）
+		if( best >= 0 )
+			pCombo->SelectItem(best, false);
 	}
 }
 
@@ -711,19 +816,10 @@ static bool IsPresetSize(int v, int nMin, int nMax)
 // 把纯色板常量填到各色块的填充（单一数据源：改常量即改块面与选中值）
 void CIconPickerWnd::ApplySwatchColors()
 {
-	struct Sw { LPCTSTR name; DWORD color; };
-	static const Sw kSw[] = {
-		{ _T("color_green"),  DuiColor_Green },
-		{ _T("color_blue"),   DuiColor_Blue },
-		{ _T("color_cyan"),   DuiColor_Cyan },
-		{ _T("color_purple"), DuiColor_Magenta },
-		{ _T("color_orange"), DuiColor_Orange },
-		{ _T("color_red"),    DuiColor_Red },
-	};
-	for( int i = 0; i < (int)(sizeof(kSw) / sizeof(kSw[0])); ++i ) {
-		CButtonUI* pBtn = static_cast<CButtonUI*>(m_pm.FindControl(kSw[i].name));
+	for( int i = 0; i < CIconPickerUI::ICONPICKER_SWATCH_COUNT; ++i ) {
+		CButtonUI* pBtn = static_cast<CButtonUI*>(m_pm.FindControl(kIconPickerSwatches[i].name));
 		if( pBtn == NULL ) continue;
-		pBtn->SetBackgroundColor(kSw[i].color);
+		pBtn->SetBackgroundColor(m_dwPresetColors[i]);
 	}
 }
 
@@ -807,21 +903,11 @@ void CIconPickerWnd::CommitHexColor()
 // 高亮当前选中的颜色块/“自定义”/“无”
 void CIconPickerWnd::SyncColorSwatches()
 {
-	// 预设色到按钮名的映射（颜色取自纯色板常量）
-	struct Swatch { LPCTSTR name; DWORD color; };
-	static const Swatch kSw[] = {
-		{ _T("color_green"), DuiColor_Green },
-		{ _T("color_blue"), DuiColor_Blue },
-		{ _T("color_cyan"), DuiColor_Cyan },
-		{ _T("color_purple"), DuiColor_Magenta },
-		{ _T("color_orange"), DuiColor_Orange },
-		{ _T("color_red"), DuiColor_Red },
-	};
 	bool bCustom = m_bCustomActive;
-	for( int i = 0; i < (int)(sizeof(kSw) / sizeof(kSw[0])); ++i ) {
-		CButtonUI* pBtn = static_cast<CButtonUI*>(m_pm.FindControl(kSw[i].name));
+	for( int i = 0; i < CIconPickerUI::ICONPICKER_SWATCH_COUNT; ++i ) {
+		CButtonUI* pBtn = static_cast<CButtonUI*>(m_pm.FindControl(kIconPickerSwatches[i].name));
 		if( pBtn == NULL ) continue;
-		bool bSel = (bCustom ? false : (m_dwIconColor == kSw[i].color));
+		bool bSel = (bCustom ? false : (m_dwIconColor == m_dwPresetColors[i]));
 		// 色块：选中用粗边框高亮（kind=none 不会被主题填充覆盖）
 		pBtn->SetBorderWidth(bSel ? 2 : 1);
 		pBtn->SetBorderColor(bSel ? 0xFF1677FF : 0x44000000);
@@ -1066,7 +1152,7 @@ void CIconPickerWnd::OnClick(TNotifyUI& msg)
 		}
 		return;
 	}
-	// 颜色块：无 / 绿 / 蓝 / 青 / 紫 / 橙 / 红（值取自通用纯色常量）
+	// 颜色块：无 / 绿 / 蓝 / 青 / 紫 / 橙 / 红（支持属性覆写；未设时走内置默认）
 	// 选预设/“无”即退出自定义模式并收起自定义面板。
 	if( sName == _T("color_none")
 		|| sName == _T("color_green") || sName == _T("color_blue") || sName == _T("color_cyan")
@@ -1074,12 +1160,8 @@ void CIconPickerWnd::OnClick(TNotifyUI& msg)
 		m_bCustomActive = false;
 		SetCustomColorPanel(false);
 		DWORD c = 0;
-		if( sName == _T("color_green") ) c = DuiColor_Green;
-		else if( sName == _T("color_blue") ) c = DuiColor_Blue;
-		else if( sName == _T("color_cyan") ) c = DuiColor_Cyan;
-		else if( sName == _T("color_purple") ) c = DuiColor_Magenta;
-		else if( sName == _T("color_orange") ) c = DuiColor_Orange;
-		else if( sName == _T("color_red") ) c = DuiColor_Red;
+		int iSwatch = GetSwatchIndexByName(sName.GetData());
+		if( iSwatch >= 0 ) c = m_dwPresetColors[iSwatch];
 		SelectColor(c);
 		return;
 	}

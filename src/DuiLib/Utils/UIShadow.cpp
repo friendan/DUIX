@@ -344,6 +344,7 @@ void CShadowUI::Update(HWND hParent)
 	BLENDFUNCTION blendPixelFunction= { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 	MoveWindow(m_hWnd, ptDst.x, ptDst.y, nShadWndWid, nShadWndHei, FALSE);
 	BOOL bRet= ::UpdateLayeredWindow(m_hWnd, NULL, &ptDst, &WndSize, hMemDC, &ptSrc, 0, &blendPixelFunction, ULW_ALPHA);
+	(void)bRet;
 	_ASSERT(bRet); // something was wrong....
 	// Delete used resources
 	SelectObject(hMemDC, hOriBmp);
