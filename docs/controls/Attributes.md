@@ -151,7 +151,7 @@
 | [Loading.md](Loading.md) | Loading |
 | [ColorPalette.md](ColorPalette.md) | ColorPalette |
 | [PageControl.md](PageControl.md) | PageControl |
-| [Toast.md](Toast.md) / [Modal.md](Modal.md) | C++ API |
+| [Toast.md](Toast.md) / [Modal.md](Modal.md) | C++ API（含 MessageBox、InputBox） |
 | [Switch.md](Switch.md) | Switch |
 | [Spin.md](Spin.md) | Spin / Number |
 | [Segmented.md](Segmented.md) | Segmented |

@@ -8,6 +8,7 @@ namespace DuiLib {
 	//
 
 	class CComboWnd;
+	class CSvgBoxUI;
 
 	class UILIB_API CComboUI : public CContainerUI, public IListOwnerUI
 	{
@@ -15,15 +16,17 @@ namespace DuiLib {
 		friend class CComboWnd;
 	public:
 		CComboUI();
+		~CComboUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
 
-		void DoInit();
-		UINT GetControlFlags() const;
+		void DoInit() override;
+		void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true) override;
+		UINT GetControlFlags() const override;
 
-		CDuiString GetText() const;
-		void SetEnabled(bool bEnable = true);
+		CDuiString GetText() const override;
+		void SetEnabled(bool bEnable = true) override;
 
 		void SetTextStyle(UINT uStyle);
 		UINT GetTextStyle() const;
@@ -47,21 +50,21 @@ namespace DuiLib {
 		RECT GetDropBoxPadding() const;
 		void SetDropBoxPadding(RECT rcDropBoxPadding);
 
-		UINT GetListType();
-		TListInfoUI* GetListInfo();
-		int GetCurSel() const;  
-		bool SelectItem(int iIndex, bool bTakeFocus = false);
-		bool SelectMultiItem(int iIndex, bool bTakeFocus = false);
-		bool UnSelectItem(int iIndex, bool bOthers = false);
-		bool SetItemIndex(CControlUI* pControl, int iIndex);
+		UINT GetListType() override;
+		TListInfoUI* GetListInfo() override;
+		int GetCurSel() const override;
+		bool SelectItem(int iIndex, bool bTakeFocus = false) override;
+		bool SelectMultiItem(int iIndex, bool bTakeFocus = false) override;
+		bool UnSelectItem(int iIndex, bool bOthers = false) override;
+		bool SetItemIndex(CControlUI* pControl, int iIndex) override;
 
-		bool Add(CControlUI* pControl);
-		bool AddAt(CControlUI* pControl, int iIndex);
-		bool Remove(CControlUI* pControl);
-		bool RemoveAt(int iIndex);
-		void RemoveAll();
+		bool Add(CControlUI* pControl) override;
+		bool AddAt(CControlUI* pControl, int iIndex) override;
+		bool Remove(CControlUI* pControl) override;
+		bool RemoveAt(int iIndex) override;
+		void RemoveAll() override;
 
-		bool Activate();
+		bool Activate() override;
 		void SyncOpenDropShell();
 
 		LPCTSTR GetImage() const;
@@ -77,6 +80,13 @@ namespace DuiLib {
 
 		bool GetScrollSelect();
 		void SetScrollSelect(bool bScrollSelect);
+
+		/// 闭合态右侧倒三角（无自定义 image 时）；默认 true
+		bool IsShowArrow() const { return m_bShowArrow; }
+		void SetShowArrow(bool bShow);
+		/// 按最长项文字（含图标）自适应宽度；默认 false
+		bool IsAutoWidth() const { return m_bAutoWidth; }
+		void SetAutoWidth(bool bAuto);
 
 		void SetItemFont(int index);
 		void SetItemTextStyle(UINT uStyle);
@@ -115,21 +125,24 @@ namespace DuiLib {
 		bool IsItemShowHtml();
 		void SetItemShowHtml(bool bShowHtml = true);
 
-		SIZE EstimateSize(SIZE szAvailable);
-		void SetPos(RECT rc, bool bNeedInvalidate = true);
-		void Move(SIZE szOffset, bool bNeedInvalidate = true);
-		void DoEvent(TEventUI& event);
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		SIZE EstimateSize(SIZE szAvailable) override;
+		void SetPos(RECT rc, bool bNeedInvalidate = true) override;
+		void Move(SIZE szOffset, bool bNeedInvalidate = true) override;
+		void DoEvent(TEventUI& event) override;
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 
-		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
-		void PaintText(IRenderContext& ctx);
-		void PaintStatusImage(IRenderContext& ctx);
+		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl) override;
+		void PaintText(IRenderContext& ctx) override;
+		void PaintStatusImage(IRenderContext& ctx) override;
 
 	public:
 		void SortItems();
 		BOOL SortItems(PULVCompareFunc pfnCompare, UINT_PTR dwData);
 
 	protected:
+		int GetArrowReserve() const;
+		int CalcAutoWidth() const;
+		void EnsureArrowIcon();
 		static int __cdecl ItemComareFunc(void* pvlocale, const void* item1, const void* item2);
 		int __cdecl ItemComareFunc(const void* item1, const void* item2);
 
@@ -160,6 +173,9 @@ namespace DuiLib {
 		CDuiString m_sDisabledImage;
 
 		bool m_bScrollSelect;
+		bool m_bShowArrow;
+		bool m_bAutoWidth;
+		CSvgBoxUI* m_pArrowIcon;
 		TListInfoUI m_ListInfo;
 	};
 

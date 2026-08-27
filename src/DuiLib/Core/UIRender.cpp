@@ -2,6 +2,8 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "..\Utils\stb_image.h"
+#include <wincodec.h>
+#include <new>
 
 #ifdef USE_XIMAGE_EFFECT
 #	include "../../3rd/CxImage/ximage.h"
@@ -469,9 +471,47 @@ namespace DuiLib {
 		LPBYTE pImage = NULL;
 		int x = 0, y = 0, n = 0;
 		pImage = stbi_load_from_memory(pData, (int)dwSize, &x, &y, &n, 4);
-		if( !pImage ) {
-			return NULL;
+		bool bNeedFreeStbi = (pImage != NULL);
+		// stb 解不出（WebP / 部分 ICO 等）→ WIC 回退（Win10+ 常见已装 WebP 编解码）
+		if( pImage == NULL ) {
+			IWICImagingFactory* pFactory = NULL;
+			if( SUCCEEDED(::CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
+				IID_IWICImagingFactory, (void**)&pFactory)) && pFactory != NULL ) {
+				IWICStream* pStream = NULL;
+				IWICBitmapDecoder* pDecoder = NULL;
+				IWICBitmapFrameDecode* pFrame = NULL;
+				IWICFormatConverter* pConv = NULL;
+				do {
+					if( FAILED(pFactory->CreateStream(&pStream)) || pStream == NULL ) break;
+					if( FAILED(pStream->InitializeFromMemory(const_cast<BYTE*>(pData), dwSize)) ) break;
+					if( FAILED(pFactory->CreateDecoderFromStream(pStream, NULL, WICDecodeMetadataCacheOnDemand, &pDecoder))
+						|| pDecoder == NULL ) break;
+					if( FAILED(pDecoder->GetFrame(0, &pFrame)) || pFrame == NULL ) break;
+					UINT ww = 0, hh = 0;
+					if( FAILED(pFrame->GetSize(&ww, &hh)) || ww == 0 || hh == 0 ) break;
+					if( FAILED(pFactory->CreateFormatConverter(&pConv)) || pConv == NULL ) break;
+					if( FAILED(pConv->Initialize(pFrame, GUID_WICPixelFormat32bppRGBA,
+						WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom)) ) break;
+					x = (int)ww;
+					y = (int)hh;
+					pImage = new (std::nothrow) BYTE[(size_t)x * y * 4];
+					if( pImage == NULL ) break;
+					if( FAILED(pConv->CopyPixels(NULL, (UINT)x * 4, (UINT)x * y * 4, pImage)) ) {
+						delete[] pImage;
+						pImage = NULL;
+						break;
+					}
+					bNeedFreeStbi = false;
+				} while( 0 );
+				if( pConv ) pConv->Release();
+				if( pFrame ) pFrame->Release();
+				if( pDecoder ) pDecoder->Release();
+				if( pStream ) pStream->Release();
+				pFactory->Release();
+			}
 		}
+		if( !pImage )
+			return NULL;
 
 		BITMAPINFO bmi;
 		::ZeroMemory(&bmi, sizeof(BITMAPINFO));
@@ -487,7 +527,8 @@ namespace DuiLib {
 		LPBYTE pDest = NULL;
 		HBITMAP hBitmap = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&pDest, NULL, 0);
 		if( !hBitmap ) {
-			stbi_image_free(pImage);
+			if( bNeedFreeStbi ) stbi_image_free(pImage);
+			else delete[] pImage;
 			return NULL;
 		}
 
@@ -517,7 +558,8 @@ namespace DuiLib {
 			}
 		}
 
-		stbi_image_free(pImage);
+		if( bNeedFreeStbi ) stbi_image_free(pImage);
+		else delete[] pImage;
 
 		TImageInfo* data = new TImageInfo;
 		data->pBits = NULL;

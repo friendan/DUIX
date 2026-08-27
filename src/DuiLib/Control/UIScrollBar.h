@@ -11,6 +11,8 @@ namespace DuiLib
 	public:
 		CScrollBarUI();
 
+		~CScrollBarUI();
+
 		LPCTSTR GetClass() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
 		/// 可交互：不继承 html/父级 action=title 的 HTCAPTION，否则滑块无法拖
@@ -31,6 +33,7 @@ namespace DuiLib
 		void SetScrollPos(int nPos);
 		int GetLineSize() const;
 		void SetLineSize(int nSize);
+		RECT GetThumbRect() const;
 
 		bool GetShowButtonPrev();
 		void SetShowButtonPrev(bool bShow);
@@ -99,6 +102,8 @@ namespace DuiLib
 		void SetPos(RECT rc, bool bNeedInvalidate = true);
 		void DoEvent(TEventUI& event);
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		/// TimerQueue → UIMSG_SCROLLBAR_TICK
+		void OnScrollRepeatTick();
 
 		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 
@@ -166,7 +171,14 @@ namespace DuiLib
 		DWORD m_dwThumbHoverColor;
 		DWORD m_dwThumbActiveColor;
 		DWORD m_dwThumbDisabledColor;
+		HANDLE m_hQueueTimer;
+		static const UINT kScrollRepeatMs = 50;
+
+		void StartScrollRepeatTimer();
+		void StopScrollRepeatTimer();
 	};
+
+	void DuiLib_ScrollBarOnQueueTick(CScrollBarUI* pScrollBar);
 }
 
 #endif // __UISCROLLBAR_H__

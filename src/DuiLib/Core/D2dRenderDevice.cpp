@@ -10,9 +10,26 @@
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <dcomp.h>
+#include <dwmapi.h>
+#include <map>
 
 #ifndef WS_EX_NOREDIRECTIONBITMAP
 #define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
+#endif
+#ifndef DWMWA_FORCE_ICONIC_REPRESENTATION
+#define DWMWA_FORCE_ICONIC_REPRESENTATION 7
+#endif
+#ifndef DWMWA_HAS_ICONIC_BITMAP
+#define DWMWA_HAS_ICONIC_BITMAP 10
+#endif
+#ifndef DWMWA_DISALLOW_PEEK
+#define DWMWA_DISALLOW_PEEK 11
+#endif
+#ifndef DWMWA_TRANSITIONS_FORCEDISABLED
+#define DWMWA_TRANSITIONS_FORCEDISABLED 3
+#endif
+#ifndef DWMWA_FREEZE_REPRESENTATION
+#define DWMWA_FREEZE_REPRESENTATION 15
 #endif
 
 #pragma comment(lib, "d2d1.lib")
@@ -20,12 +37,25 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dcomp.lib")
+#pragma comment(lib, "dwmapi.lib")
 
 namespace DuiLib {
 
 	namespace {
 
 		const int kMaxD2dClips = 64;
+
+		// 非分层 Present 走 GDI BitBlt：RT 用软件实现。
+		// TYPE_DEFAULT 常落硬件 DXGI，任务栏悬停会整栏图标闪白。
+		D2D1_RENDER_TARGET_PROPERTIES GdiCompatRtProps()
+		{
+			return D2D1::RenderTargetProperties(
+				D2D1_RENDER_TARGET_TYPE_SOFTWARE,
+				D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+				0.0f, 0.0f,
+				D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
+				D2D1_FEATURE_LEVEL_DEFAULT);
+		}
 
 		D2D1_COLOR_F ToColorF(DWORD color)
 		{
@@ -387,12 +417,7 @@ namespace DuiLib {
 		if( m_pDCRT != NULL ) return true;
 		if( m_pFactory == NULL ) return false;
 
-		D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-			D2D1_RENDER_TARGET_TYPE_DEFAULT,
-			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			0.0f, 0.0f,
-			D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
-			D2D1_FEATURE_LEVEL_DEFAULT);
+		D2D1_RENDER_TARGET_PROPERTIES props = GdiCompatRtProps();
 		HRESULT hr = m_pFactory->CreateDCRenderTarget(&props, &m_pDCRT);
 		return SUCCEEDED(hr) && m_pDCRT != NULL;
 	}
@@ -1886,12 +1911,7 @@ namespace DuiLib {
 		if( m_pBitmapRT != NULL ) return true;
 		if( m_pFactory == NULL || !m_gdiFallback.IsValid() ) return false;
 
-		D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-			D2D1_RENDER_TARGET_TYPE_DEFAULT,
-			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			0.0f, 0.0f,
-			D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
-			D2D1_FEATURE_LEVEL_DEFAULT);
+		D2D1_RENDER_TARGET_PROPERTIES props = GdiCompatRtProps();
 
 		ID2D1DCRenderTarget* pTempDC = NULL;
 		HRESULT hr = m_pFactory->CreateDCRenderTarget(&props, &pTempDC);
@@ -1937,12 +1957,7 @@ namespace DuiLib {
 		DestroyHwndRT();
 		DestroyBitmapRT();
 
-		D2D1_RENDER_TARGET_PROPERTIES rtp = D2D1::RenderTargetProperties(
-			D2D1_RENDER_TARGET_TYPE_DEFAULT,
-			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			0.0f, 0.0f,
-			D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
-			D2D1_FEATURE_LEVEL_DEFAULT);
+		D2D1_RENDER_TARGET_PROPERTIES rtp = GdiCompatRtProps();
 		D2D1_HWND_RENDER_TARGET_PROPERTIES hrtp = D2D1::HwndRenderTargetProperties(
 			hWnd, D2D1::SizeU((UINT32)width, (UINT32)height), D2D1_PRESENT_OPTIONS_NONE);
 		HRESULT hr = m_pFactory->CreateHwndRenderTarget(&rtp, &hrtp, &m_pHwndRT);
@@ -2176,12 +2191,7 @@ namespace DuiLib {
 		HRESULT hr = m_pBitmapRT->GetBitmap(&pBitmap);
 		if( FAILED(hr) || pBitmap == NULL ) return false;
 
-		D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-			D2D1_RENDER_TARGET_TYPE_DEFAULT,
-			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			0.0f, 0.0f,
-			D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
-			D2D1_FEATURE_LEVEL_DEFAULT);
+		D2D1_RENDER_TARGET_PROPERTIES props = GdiCompatRtProps();
 		ID2D1DCRenderTarget* pDC = NULL;
 		hr = m_pFactory->CreateDCRenderTarget(&props, &pDC);
 		if( FAILED(hr) || pDC == NULL ) {
@@ -2352,12 +2362,7 @@ namespace DuiLib {
 		// EndDraw 后不能 GetDC；改为临时 DC RT 画到 GDI
 		pInterop->Release();
 
-		D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-			D2D1_RENDER_TARGET_TYPE_DEFAULT,
-			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			0.0f, 0.0f,
-			D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
-			D2D1_FEATURE_LEVEL_DEFAULT);
+		D2D1_RENDER_TARGET_PROPERTIES props = GdiCompatRtProps();
 		ID2D1DCRenderTarget* pDC = NULL;
 		hr = m_pFactory->CreateDCRenderTarget(&props, &pDC);
 		if( FAILED(hr) || pDC == NULL ) return false;
@@ -2511,12 +2516,7 @@ namespace DuiLib {
 	{
 		if( m_pCompTargetBmp == NULL || m_pFactory == NULL || !m_gdiFallback.IsValid() ) return false;
 
-		D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-			D2D1_RENDER_TARGET_TYPE_DEFAULT,
-			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			0.0f, 0.0f,
-			D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
-			D2D1_FEATURE_LEVEL_DEFAULT);
+		D2D1_RENDER_TARGET_PROPERTIES props = GdiCompatRtProps();
 		ID2D1DCRenderTarget* pDC = NULL;
 		HRESULT hr = m_pFactory->CreateDCRenderTarget(&props, &pDC);
 		if( FAILED(hr) || pDC == NULL ) return false;
@@ -2821,12 +2821,7 @@ namespace DuiLib {
 		if( m_pBitmapRT != NULL && m_pFactory != NULL && params.hWindowDC != NULL ) {
 			ID2D1Bitmap* pBitmap = NULL;
 			if( SUCCEEDED(m_pBitmapRT->GetBitmap(&pBitmap)) && pBitmap != NULL ) {
-				D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
-					D2D1_RENDER_TARGET_TYPE_DEFAULT,
-					D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-					0.0f, 0.0f,
-					D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE,
-					D2D1_FEATURE_LEVEL_DEFAULT);
+				D2D1_RENDER_TARGET_PROPERTIES props = GdiCompatRtProps();
 				ID2D1DCRenderTarget* pDC = NULL;
 				HRESULT hr = m_pFactory->CreateDCRenderTarget(&props, &pDC);
 				if( SUCCEEDED(hr) && pDC != NULL ) {
@@ -3201,14 +3196,48 @@ namespace DuiLib {
 		return pBitmap;
 	}
 
+	// 把当前 Gdiplus 像素灌进已有 D2D 位图（Loading/Gif 会改同一指针的像素，仅靠指针键会命中脏缓存）
+	static bool CopyGdiplusPixelsToD2dBitmap(ID2D1Bitmap* pBitmap, void* pGdiplusImage)
+	{
+		if( pBitmap == NULL || pGdiplusImage == NULL ) return false;
+		Gdiplus::Image* pImage = reinterpret_cast<Gdiplus::Image*>(pGdiplusImage);
+		UINT nX = pImage->GetWidth();
+		UINT nY = pImage->GetHeight();
+		if( nX == 0 || nY == 0 ) return false;
+		D2D1_SIZE_U sz = pBitmap->GetPixelSize();
+		if( sz.width != nX || sz.height != nY ) return false;
+
+		Gdiplus::Bitmap tmp((INT)nX, (INT)nY, PixelFormat32bppPARGB);
+		{
+			Gdiplus::Graphics g(&tmp);
+			g.SetCompositingMode(Gdiplus::CompositingModeSourceCopy);
+			g.DrawImage(pImage, 0, 0, (INT)nX, (INT)nY);
+		}
+		Gdiplus::BitmapData bd = { 0 };
+		Gdiplus::Rect lockRc(0, 0, (INT)nX, (INT)nY);
+		if( tmp.LockBits(&lockRc, Gdiplus::ImageLockModeRead, PixelFormat32bppPARGB, &bd) != Gdiplus::Ok )
+			return false;
+		HRESULT hr = pBitmap->CopyFromMemory(NULL, bd.Scan0, (UINT32)bd.Stride);
+		tmp.UnlockBits(&bd);
+		return SUCCEEDED(hr);
+	}
+
 	ID2D1Bitmap* CD2dRenderDevice::GetOrCreateBitmapFromGdiplus(ID2D1RenderTarget* pRT, void* pGdiplusImage)
 	{
 		if( pGdiplusImage == NULL || pRT == NULL ) return NULL;
 
 		for( int i = 0; i < m_aBitmapCache.GetSize(); ++i ) {
 			TD2dBitmapCache* pEntry = static_cast<TD2dBitmapCache*>(m_aBitmapCache.GetAt(i));
-			if( pEntry != NULL && pEntry->pRT == pRT && pEntry->pGdiplusKey == pGdiplusImage && pEntry->pBitmap != NULL )
+			if( pEntry != NULL && pEntry->pRT == pRT && pEntry->pGdiplusKey == pGdiplusImage && pEntry->pBitmap != NULL ) {
+				// 同指针的 Gdiplus 位图内容可能已变（Loading 烘焙角度 / Gif 换帧），必须回写 GPU
+				if( !CopyGdiplusPixelsToD2dBitmap(pEntry->pBitmap, pGdiplusImage) ) {
+					if( pEntry->pBitmap != NULL ) pEntry->pBitmap->Release();
+					delete pEntry;
+					m_aBitmapCache.Remove(i);
+					break;
+				}
 				return pEntry->pBitmap;
+			}
 		}
 
 		Gdiplus::Image* pImage = reinterpret_cast<Gdiplus::Image*>(pGdiplusImage);
@@ -3326,6 +3355,110 @@ namespace DuiLib {
 	void EnableGdiRenderDevice()
 	{
 		SetRenderDevice(NULL);
+	}
+
+	namespace {
+		struct TaskbarIconCache {
+			HBITMAP hbm;
+			int cx;
+			int cy;
+			TaskbarIconCache() : hbm(NULL), cx(0), cy(0) {}
+		};
+		std::map<HWND, TaskbarIconCache>& TaskbarIconCacheMap()
+		{
+			static std::map<HWND, TaskbarIconCache> s_map;
+			return s_map;
+		}
+		HICON GetWindowIconForTaskbar(HWND hWnd)
+		{
+			HICON hIcon = (HICON)::SendMessage(hWnd, WM_GETICON, ICON_BIG, 0);
+			if( hIcon == NULL )
+				hIcon = (HICON)::SendMessage(hWnd, WM_GETICON, ICON_SMALL, 0);
+			if( hIcon == NULL )
+				hIcon = (HICON)(ULONG_PTR)::GetClassLongPtr(hWnd, GCLP_HICON);
+			if( hIcon == NULL )
+				hIcon = (HICON)(ULONG_PTR)::GetClassLongPtr(hWnd, GCLP_HICONSM);
+			if( hIcon == NULL )
+				hIcon = ::LoadIcon(NULL, IDI_APPLICATION);
+			return hIcon;
+		}
+		HBITMAP CreateTaskbarIconBitmap(HWND hWnd, int cx, int cy)
+		{
+			if( cx < 1 ) cx = 1;
+			if( cy < 1 ) cy = 1;
+			BITMAPINFO bmi = {};
+			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bmi.bmiHeader.biWidth = cx;
+			bmi.bmiHeader.biHeight = -cy;
+			bmi.bmiHeader.biPlanes = 1;
+			bmi.bmiHeader.biBitCount = 32;
+			bmi.bmiHeader.biCompression = BI_RGB;
+			void* bits = NULL;
+			HBITMAP hbm = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &bits, NULL, 0);
+			if( hbm == NULL ) return NULL;
+			HDC hdc = ::CreateCompatibleDC(NULL);
+			HGDIOBJ old = ::SelectObject(hdc, hbm);
+			RECT rc = { 0, 0, cx, cy };
+			::FillRect(hdc, &rc, (HBRUSH)::GetStockObject(BLACK_BRUSH));
+			int side = (cx < cy) ? cx : cy;
+			if( side > 256 ) side = 256;
+			::DrawIconEx(hdc, (cx - side) / 2, (cy - side) / 2,
+				GetWindowIconForTaskbar(hWnd), side, side, 0, NULL, DI_NORMAL);
+			::SelectObject(hdc, old);
+			::DeleteDC(hdc);
+			return hbm;
+		}
+		HBITMAP EnsureTaskbarIconBitmap(HWND hWnd, int cx, int cy)
+		{
+			TaskbarIconCache& st = TaskbarIconCacheMap()[hWnd];
+			if( st.hbm != NULL && st.cx == cx && st.cy == cy )
+				return st.hbm;
+			if( st.hbm != NULL ) {
+				::DeleteObject(st.hbm);
+				st.hbm = NULL;
+			}
+			st.hbm = CreateTaskbarIconBitmap(hWnd, cx, cy);
+			st.cx = cx;
+			st.cy = cy;
+			return st.hbm;
+		}
+	}
+
+	void DisableTaskbarLivePreview(HWND hWnd)
+	{
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		BOOL bTrue = TRUE;
+		// 强制图标化：悬停/Peek 不再实时抓窗，任务栏只显示应用图标
+		::DwmSetWindowAttribute(hWnd, DWMWA_FORCE_ICONIC_REPRESENTATION, &bTrue, sizeof(bTrue));
+		::DwmSetWindowAttribute(hWnd, DWMWA_HAS_ICONIC_BITMAP, &bTrue, sizeof(bTrue));
+		::DwmSetWindowAttribute(hWnd, DWMWA_DISALLOW_PEEK, &bTrue, sizeof(bTrue));
+		::DwmSetWindowAttribute(hWnd, DWMWA_TRANSITIONS_FORCEDISABLED, &bTrue, sizeof(bTrue));
+		::DwmSetWindowAttribute(hWnd, DWMWA_FREEZE_REPRESENTATION, &bTrue, sizeof(bTrue));
+		TaskbarIconCacheMap()[hWnd] = TaskbarIconCache();
+	}
+
+	void HandleTaskbarIconicThumbnail(HWND hWnd, int cx, int cy)
+	{
+		HBITMAP hbm = EnsureTaskbarIconBitmap(hWnd, cx, cy);
+		if( hbm != NULL )
+			::DwmSetIconicThumbnail(hWnd, hbm, 0);
+	}
+
+	void HandleTaskbarIconicLivePreview(HWND hWnd)
+	{
+		HBITMAP hbm = EnsureTaskbarIconBitmap(hWnd, 256, 256);
+		if( hbm == NULL ) return;
+		POINT pt = { 0, 0 };
+		::DwmSetIconicLivePreviewBitmap(hWnd, hbm, &pt, 0);
+	}
+
+	void ClearTaskbarLivePreview(HWND hWnd)
+	{
+		std::map<HWND, TaskbarIconCache>::iterator it = TaskbarIconCacheMap().find(hWnd);
+		if( it == TaskbarIconCacheMap().end() ) return;
+		if( it->second.hbm != NULL )
+			::DeleteObject(it->second.hbm);
+		TaskbarIconCacheMap().erase(it);
 	}
 
 } // namespace DuiLib

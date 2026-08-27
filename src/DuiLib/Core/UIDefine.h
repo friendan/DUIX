@@ -107,6 +107,11 @@ namespace DuiLib
 #define DUI_MSGTYPE_MOUSELEAVE			   (_T("mouseleave"))
 
 #define DUI_MSGTYPE_TEXTCHANGED            (_T("textchanged"))
+#define DUI_MSGTYPE_HISTORYCHANGED         (_T("historychanged")) ///< EditBox 历史增删改；wParam=DUI_HISTORYCHANGE_*
+#define DUI_HISTORYCHANGE_ADD              1
+#define DUI_HISTORYCHANGE_REMOVE           2
+#define DUI_HISTORYCHANGE_CLEAR            3
+#define DUI_HISTORYCHANGE_SET              4
 #define DUI_MSGTYPE_HEADERCLICK            (_T("headerclick"))
 #define DUI_MSGTYPE_ITEMDBCLICK            (_T("itemdbclick"))
 #define DUI_MSGTYPE_SHOWACTIVEX            (_T("showactivex"))
@@ -134,6 +139,11 @@ namespace DuiLib
 #define DUI_MSGTYPE_LISTPAGECHANGED			(_T("listpagechanged"))
 
 #define DUI_MSGTYPE_PAGECHANED				(_T("page_selected_changed"))
+#define DUI_MSGTYPE_PAGECHANGED				(_T("pagechanged"))
+#define DUI_MSGTYPE_ITEMMOVED				(_T("itemmoved"))
+#define DUI_MSGTYPE_FILTERCHANGED			(_T("filterchanged"))
+#define DUI_MSGTYPE_DRAGBEGIN				(_T("dragbegin"))
+#define DUI_MSGTYPE_DRAGEND					(_T("dragend"))
 #define DUI_MSGTYPE_SLIDECHANGED			(_T("slidechanged"))
 #define DUI_MSGTYPE_SIDEPANELOPEN			(_T("sidepanelopen"))
 #define DUI_MSGTYPE_SIDEPANELCLOSE			(_T("sidepanelclose"))
@@ -282,6 +292,12 @@ protected:                                                                \
 #define  DUI_CTR_BOX							 (_T("Box")) //
 
 #define  DUI_CTR_EDIT                            (_T("Edit"))
+#define  DUI_CTR_EDITBOX                         (_T("EditBox"))
+#define  DUI_CTR_EDITBOXSLOT                     (_T("EditBoxSlot"))
+#define  DUI_CTR_EDITBOXLEFT                     (_T("EditBoxLeft"))
+#define  DUI_CTR_EDITBOXRIGHT                    (_T("EditBoxRight"))
+#define  DUI_CTR_EDITBOXPREFIX                   (_T("EditBoxPrefix"))
+#define  DUI_CTR_EDITBOXSUFFIX                   (_T("EditBoxSuffix"))
 #define  DUI_CTR_SPIN                            (_T("Spin"))
 #define  DUI_CTR_NUMBER                          (_T("Number"))
 #define  DUI_CTR_SEGMENTED                       (_T("Segmented"))
@@ -348,6 +364,8 @@ protected:                                                                \
 #define  DUI_CTR_IMAGE                           (_T("Img"))
 #define  DUI_CTR_AVATAR                          (_T("Avatar"))
 #define  DUI_CTR_FONTICON                        (_T("FontIcon"))
+#define  DUI_CTR_APPICON                         (_T("AppIcon"))
+#define  DUI_CTR_APPGRID                         (_T("AppGrid"))
 #define  DUI_CTR_COMBOBOX                        (_T("ComboBox"))
 #define  DUI_CTR_DATETIME                        (_T("DateTime"))
 #define  DUI_CTR_HOTKEY                          (_T("HotKey"))

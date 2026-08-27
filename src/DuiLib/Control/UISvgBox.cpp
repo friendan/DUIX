@@ -464,6 +464,7 @@
 	{
 		if( m_dwColor == dwColor ) return;
 		m_dwColor = dwColor;
+		ClearCache();
 		if( bInvalidate ) Invalidate();
 	}
 
@@ -476,6 +477,7 @@
 	{
 		if( m_dwHoverColor == dwColor ) return;
 		m_dwHoverColor = dwColor;
+		ClearCache();
 		EnsureInteractiveCursor();
 		if( bInvalidate ) Invalidate();
 	}
@@ -489,6 +491,7 @@
 	{
 		if( m_dwActiveColor == dwColor ) return;
 		m_dwActiveColor = dwColor;
+		ClearCache();
 		EnsureInteractiveCursor();
 		if( bInvalidate ) Invalidate();
 	}
@@ -502,12 +505,22 @@
 	{
 		if( m_dwDisabledColor == dwColor ) return;
 		m_dwDisabledColor = dwColor;
+		ClearCache();
 		if( bInvalidate ) Invalidate();
 	}
 
 	DWORD CSvgBoxUI::GetDisabledColor() const
 	{
 		return m_dwDisabledColor;
+	}
+
+	void CSvgBoxUI::ApplyParentButtonState(UINT uButtonState)
+	{
+		const UINT kMask = UISTATE_HOT | UISTATE_PUSHED | UISTATE_DISABLED | UISTATE_CAPTURED;
+		const UINT uNew = (m_uButtonState & ~kMask) | (uButtonState & kMask);
+		if( uNew == m_uButtonState ) return;
+		m_uButtonState = uNew;
+		SyncControlStateFromButton();
 	}
 
 	void CSvgBoxUI::SetEnabled(bool bEnable)

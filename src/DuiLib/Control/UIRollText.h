@@ -68,6 +68,10 @@ namespace DuiLib
 		void RestartRollIfNeeded();
 		void FinishRoll();
 		void ApplyPauseTimers();
+		void StartRollQueueTimer();
+		void StopRollQueueTimer();
+		void StartEndQueueTimer(UINT uElapse);
+		void StopEndQueueTimer();
 
 		int m_nStep;
 		int m_nScrollPos;
@@ -84,6 +88,8 @@ namespace DuiLib
 		int m_nLoopLimit;
 		int m_nLoopDone;
 		int m_nText_W_H;
+		HANDLE m_hRollQueueTimer;
+		HANDLE m_hEndQueueTimer;
 	};
 
 }	// namespace DuiLib

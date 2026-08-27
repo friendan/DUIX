@@ -31,26 +31,32 @@ class UILIB_API CLoadingUI : public CControlUI
 
 	enum TIMEID
 	{
-		kTimerLoadingId = 100,
+		kTimerLoadingId = 0x4C444731, // 'LDG1'（本地 ID；Win32 定时走 TimerQueue）
 	};
 public:
 	CLoadingUI();
 	virtual ~CLoadingUI();
 
-	LPCTSTR GetClass() const;
-	LPVOID GetInterface(LPCTSTR pstrName);
+	LPCTSTR GetClass() const override;
+	LPVOID GetInterface(LPCTSTR pstrName) override;
 
 	void SetLoadingType(LoadingType t);
 	LoadingType GetLoadingType() const;
-	void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+	void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 	void Start();
 	void Stop();
 	bool IsStopped() const;
+	/// TimerQueue → UIMSG_LOADING_TICK 回调（UIManager 派发）
+	void OnAnimTick();
+
+	void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true) override;
+	void SetVisible(bool bVisible = true) override;
+	void SetInternVisible(bool bVisible = true) override;
 
 protected:
-	virtual void PaintBackgroundImage(IRenderContext& ctx);
-	virtual void DoEvent(TEventUI& event);
-	virtual void Init();
+	void PaintBackgroundImage(IRenderContext& ctx) override;
+	void DoEvent(TEventUI& event) override;
+	void Init() override;
 
 	void EnsureSpokeData();
 	void ClearSpokeData();
@@ -78,6 +84,8 @@ protected:
 	int ResolveThick(int side) const;
 	void TickFrame();
 	void RestartTimer();
+	void StartQueueTimer();
+	void StopQueueTimer();
 
 	BYTE ColorA() const;
 	Gdiplus::Color MakeColor(BYTE a) const;
@@ -107,7 +115,11 @@ protected:
 	int m_nBmpH;
 	LoadingType m_eBmpType;
 	bool m_bMorphType; // dots/wave/bars/drop/drip/…：每帧重画
+	HANDLE m_hQueueTimer; // CreateTimerQueueTimer（绕开 Shadow 子类化下 WM_TIMER 丢失）
 };
+
+/// UIManager 处理 UIMSG_LOADING_TICK 时调用（避免 Core 依赖 Control 头文件）
+void DuiLib_LoadingOnQueueTick(CLoadingUI* pLoad);
 
 CControlUI* CreateLoadingControl(LPCTSTR pstrType);
 

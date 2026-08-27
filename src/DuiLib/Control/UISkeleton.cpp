@@ -1,6 +1,20 @@
 #include "StdAfx.h"
 #include "UISkeleton.h"
 
+namespace
+{
+	VOID CALLBACK SkeletonQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		DuiLib::CSkeletonUI* pSelf = static_cast<DuiLib::CSkeletonUI*>(lpParameter);
+		if( pSelf == NULL || !pSelf->IsActive() ) return;
+		DuiLib::CPaintManagerUI* pm = pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, DuiLib::UIMSG_SKELETON_TICK, (WPARAM)pSelf, 0);
+	}
+}
+
 namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CSkeletonUI)
@@ -15,6 +29,7 @@ namespace DuiLib
 		, m_nPhase(0)
 		, m_dwBlockColor(0x0000000F)
 		, m_dwHighlightColor(0xFFFFFFA0)
+		, m_hQueueTimer(NULL)
 	{
 		SetKind(CONTROLKIND_NONE);
 		SetMouseEnabled(false);
@@ -107,13 +122,41 @@ namespace DuiLib
 
 	void CSkeletonUI::StartAnim()
 	{
-		if( !m_bActive || m_pManager == NULL ) return;
-		m_pManager->SetTimer(this, TIMER_ID, 40);
+		if( !m_bActive || m_pManager == NULL || !IsVisible() ) return;
+		StartQueueTimer();
 	}
 
 	void CSkeletonUI::StopAnim()
 	{
-		if( m_pManager ) m_pManager->KillTimer(this, TIMER_ID);
+		StopQueueTimer();
+	}
+
+	void CSkeletonUI::StopQueueTimer()
+	{
+		if( m_hQueueTimer != NULL ) {
+			::DeleteTimerQueueTimer(NULL, m_hQueueTimer, INVALID_HANDLE_VALUE);
+			m_hQueueTimer = NULL;
+		}
+	}
+
+	void CSkeletonUI::StartQueueTimer()
+	{
+		StopQueueTimer();
+		if( !m_bActive || m_pManager == NULL || !IsVisible() ) return;
+		HANDLE hTimer = NULL;
+		if( ::CreateTimerQueueTimer(&hTimer, NULL, SkeletonQueueTimerProc,
+			reinterpret_cast<PVOID>(this),
+			kSkeletonTickMs, kSkeletonTickMs, WT_EXECUTEDEFAULT) ) {
+			m_hQueueTimer = hTimer;
+		}
+	}
+
+	void CSkeletonUI::OnAnimTick()
+	{
+		if( !m_bActive || !IsVisible() ) return;
+		m_nPhase += 4;
+		if( m_nPhase > 100 ) m_nPhase = 0;
+		Invalidate();
 	}
 
 	void CSkeletonUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit)
@@ -291,12 +334,6 @@ namespace DuiLib
 
 	void CSkeletonUI::DoEvent(TEventUI& event)
 	{
-		if( event.Type == UIEVENT_TIMER && event.wParam == TIMER_ID ) {
-			m_nPhase += 4;
-			if( m_nPhase > 100 ) m_nPhase = 0;
-			Invalidate();
-			return;
-		}
 		CControlUI::DoEvent(event);
 	}
 
@@ -333,5 +370,11 @@ namespace DuiLib
 		else {
 			CControlUI::SetAttribute(pstrName, pstrValue);
 		}
+	}
+
+	void DuiLib_SkeletonOnQueueTick(CSkeletonUI* pSkeleton)
+	{
+		if( pSkeleton != NULL )
+			pSkeleton->OnAnimTick();
 	}
 }

@@ -27,13 +27,16 @@ namespace DuiLib
 		virtual void SetInternVisible(bool bVisible = true);
 		virtual bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 		virtual void DoEvent(TEventUI& event);
-	public:
 		void StartAnim();
 		void StopAnim();
+		/// TimerQueue → UIMSG_GIFANIMEX_TICK
+		void OnAnimTick();
 	protected:
 		struct Imp;
 		Imp* m_pImp;
 	};
+
+	void DuiLib_GifAnimExOnQueueTick(CGifAnimExUI* pGif);
 }
 #endif //USE_XIMAGE_EFFECT
 #endif // GifAnimUIEx_h__

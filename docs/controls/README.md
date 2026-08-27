@@ -30,8 +30,8 @@
 | [Attributes.md](Attributes.md) | 盒模型、伪类、已对齐清单、索引 |
 | [Control.md](Control.md) | 基类 `CControlUI` |
 | [Container.md](Container.md) | 容器与布局 |
-| [Window.md](Window.md) | 窗口 / `html` 根 |
-| [Messages.md](Messages.md) | HWND 自定义消息号段（库 / 业务） |
+| [Window.md](Window.md) | 窗口 / `html` 根；**Per-Monitor DPI**；**任务栏悬停整栏闪白**排障 |
+| [Messages.md](Messages.md) | HWND 自定义消息号段（库 / 业务）；**Shadow 下动画定时器硬约束** |
 
 ## 控件索引
 
@@ -51,9 +51,12 @@
 | Skeleton | [Skeleton.md](Skeleton.md) | `src/DuiLib/Control/UISkeleton.*` |
 | Image / Avatar | [Image.md](Image.md) | `src/DuiLib/Control/UIImage.*` |
 | FontIcon | [FontIcon.md](FontIcon.md) | `src/DuiLib/Control/UIFontIcon.*` |
+| AppIcon | [AppIcon.md](AppIcon.md) | `src/DuiLib/Control/UIAppIcon.*` |
+| AppGrid | [AppGrid.md](AppGrid.md) | `src/DuiLib/Control/UIAppGrid.*` |
 | Steps | [Steps.md](Steps.md) | `src/DuiLib/Control/UISteps.*` |
 | Timeline | [Timeline.md](Timeline.md) | `src/DuiLib/Control/UITimeline.*` |
 | Edit | [Edit.md](Edit.md) | `src/DuiLib/Control/UIEdit.*` |
+| EditBox | [EditBox.md](EditBox.md) | `src/DuiLib/Control/UIEditBox.*`（左右 addon / clearable） |
 | RichEdit | [RichEdit.md](RichEdit.md) | `src/DuiLib/Control/UIRichEdit.*` |
 | List 族 | [List.md](List.md) | `src/DuiLib/Control/UIList.*`、`UIListEx.*` |
 | VirtualList | [VirtualList.md](VirtualList.md) | `src/DuiLib/Control/UIVirtualList.*` |
@@ -69,7 +72,7 @@
 | Menu | [Menu.md](Menu.md) | `src/DuiLib/Control/UIMenu.*` |
 | TabBar / TabButton | [TabBar.md](TabBar.md) | `UITabBar.*`、`UITabButton.*` |
 | TitleBar | [TitleBar.md](TitleBar.md) | `src/DuiLib/Control/UITitleBar.*` |
-| HotKey | [HotKey.md](HotKey.md) | `src/DuiLib/Control/UIHotKey.*` |
+| HotKey | [HotKey.md](HotKey.md) | `src/DuiLib/Control/UIHotKey.*`；绑定见同页 `CHotKeyBinder` |
 | GroupBox | [GroupBox.md](GroupBox.md) | `src/DuiLib/Control/UIGroupBox.*` |
 | Ring | [Ring.md](Ring.md) | `src/DuiLib/Control/UIRing.*` |
 | FadeButton | [FadeButton.md](FadeButton.md) | `src/DuiLib/Control/UIFadeButton.*` |
@@ -85,7 +88,7 @@
 | Theme（全局） | [Theme.md](Theme.md) | `src/DuiLib/Core/UITheme.*` |
 | PageControl | [PageControl.md](PageControl.md) | `src/DuiLib/Control/UIPageControl.*` |
 | Toast | [Toast.md](Toast.md) | `src/DuiLib/Control/UIToast.*` |
-| Modal / MessageBox | [Modal.md](Modal.md) | `UIModal.*`、`UIMessageBox.*` |
+| Modal / MessageBox / InputBox | [Modal.md](Modal.md) | `UIModal.*`、`UIMessageBox.*`、`UIInputBox.*` |
 | SidePanel | [SidePanel.md](SidePanel.md) | `src/DuiLib/Control/UISidePanel.*` |
 
 后续新控件：在此表追加一行，并新增同名 md（用法）或并入对应符合度页。

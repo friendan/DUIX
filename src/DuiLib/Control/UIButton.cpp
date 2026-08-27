@@ -2,9 +2,68 @@
 #include "UIButton.h"
 #include "UISvgBox.h"
 #include "UILoading.h"
+#include "UIMenu.h"
+#include "UIInputBox.h"
+#include "UIHotKeyBox.h"
+#include "UIHotKey.h"
+#include <new>
+#include <vector>
 
 namespace DuiLib
 {
+	/////////////////////////////////////////////////////////////////////////////////////
+	// 右键「修改文本」菜单点击：临时挂到 PaintManager，避免每个 Button 常驻 MessageFilter
+
+	class CButtonEditTextMenuFilter : public IMessageFilterUI
+	{
+	public:
+		static CButtonEditTextMenuFilter& Instance()
+		{
+			static CButtonEditTextMenuFilter s;
+			return s;
+		}
+
+		void Arm(CButtonUI* pOwner)
+		{
+			Disarm();
+			if( pOwner == NULL || pOwner->GetManager() == NULL ) return;
+			m_pOwner = pOwner;
+			m_pManager = pOwner->GetManager();
+			m_pManager->AddMessageFilter(this);
+		}
+
+		void Disarm()
+		{
+			if( m_pManager != NULL )
+				m_pManager->RemoveMessageFilter(this);
+			m_pOwner = NULL;
+			m_pManager = NULL;
+		}
+
+		void DisarmIf(CButtonUI* pOwner)
+		{
+			if( m_pOwner == pOwner )
+				Disarm();
+		}
+
+		LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& bHandled) override
+		{
+			bHandled = false;
+			if( uMsg != WM_MENUCLICK || m_pOwner == NULL ) return 0;
+			CButtonUI* p = m_pOwner;
+			if( p->HandleEditTextMenuClick(wParam) ) {
+				bHandled = true;
+				Disarm();
+			}
+			return 0;
+		}
+
+	private:
+		CButtonEditTextMenuFilter() : m_pOwner(NULL), m_pManager(NULL) {}
+		CButtonUI* m_pOwner;
+		CPaintManagerUI* m_pManager;
+	};
+
 	IMPLEMENT_DUICONTROL(CButtonUI)
 
 	CButtonUI::CButtonUI()
@@ -19,6 +78,9 @@ namespace DuiLib
 		, m_pRasterIcon(NULL)
 		, m_pLoading(NULL)
 		, m_eIconKind(IconNone)
+		, m_bRasterMemKey(false)
+		, m_pPendingIconData(NULL)
+		, m_dwPendingIconSize(0)
 		, m_hRasterTint(NULL)
 		, m_dwRasterTintColor(0)
 		, m_nRasterTintW(0)
@@ -37,6 +99,15 @@ namespace DuiLib
 		, m_dwIconTintFocus(0)
 		, m_bIconTint(false)
 		, m_bIconTintAuto(false)
+		, m_bEditText(false)
+		, m_bEditHotKey(false)
+		, m_bEditTextMenuPending(false)
+		, m_dwSubColor(0)
+		, m_iSubFont(-1)
+		, m_nSubGap(2)
+		, m_wShortcutVk(0)
+		, m_wShortcutMod(0)
+		, m_nShortcutScope(HOTKEYBOX_SCOPE_APP)
 	{
 		m_uTextStyle = DT_SINGLELINE | DT_VCENTER | DT_CENTER;
 		SetKind(CONTROLKIND_DEFAULT);
@@ -46,6 +117,9 @@ namespace DuiLib
 
 	CButtonUI::~CButtonUI()
 	{
+		CButtonEditTextMenuFilter::Instance().DisarmIf(this);
+		ClearPendingIconMemory();
+		ReleaseMemIcon();
 		if( m_pIcon != NULL ) {
 			delete m_pIcon;
 			m_pIcon = NULL;
@@ -97,6 +171,14 @@ namespace DuiLib
 			m_pRasterIcon->SetManager(pManager, this, bInit);
 		if( m_pLoading != NULL )
 			m_pLoading->SetManager(pManager, this, bInit);
+		if( m_pManager != NULL && m_pPendingIconData != NULL && m_dwPendingIconSize > 0 ) {
+			BYTE* p = m_pPendingIconData;
+			DWORD n = m_dwPendingIconSize;
+			m_pPendingIconData = NULL;
+			m_dwPendingIconSize = 0;
+			ApplyIconFromMemory(p, n);
+			delete[] p;
+		}
 	}
 
 	void CButtonUI::SyncControlStateFromButton()
@@ -163,6 +245,10 @@ namespace DuiLib
 		}
 		if( event.Type == UIEVENT_CONTEXTMENU )
 		{
+			if( (m_bEditText || m_bEditHotKey) && IsEnabled() && m_pManager != NULL ) {
+				ShowEditTextMenu(event.ptMouse);
+				return;
+			}
 			if( IsContextMenuUsed() ) {
 				m_pManager->SendNotify(this, DUI_MSGTYPE_MENU, event.wParam, event.lParam);
 			}
@@ -198,6 +284,199 @@ namespace DuiLib
 		{
 			m_pManager->SendNotify(this, DUI_MSGTYPE_CLICK);
 			BindTriggerTabSel();
+		}
+		return true;
+	}
+
+	void CButtonUI::SetEditTextEnabled(bool bEnable)
+	{
+		m_bEditText = bEnable;
+		if( !m_bEditText && !m_bEditHotKey ) {
+			m_bEditTextMenuPending = false;
+			CButtonEditTextMenuFilter::Instance().DisarmIf(this);
+		}
+	}
+
+	void CButtonUI::SetEditHotKeyEnabled(bool bEnable)
+	{
+		m_bEditHotKey = bEnable;
+		if( !m_bEditText && !m_bEditHotKey ) {
+			m_bEditTextMenuPending = false;
+			CButtonEditTextMenuFilter::Instance().DisarmIf(this);
+		}
+	}
+
+	void CButtonUI::SetSubText(LPCTSTR pstrText)
+	{
+		CDuiString s = pstrText ? pstrText : _T("");
+		if( m_sSubText == s ) return;
+		m_sSubText = s;
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::SetSubColor(DWORD dwColor)
+	{
+		if( m_dwSubColor == dwColor ) return;
+		m_dwSubColor = dwColor;
+		Invalidate();
+	}
+
+	void CButtonUI::SetSubFont(int index)
+	{
+		if( m_iSubFont == index ) return;
+		m_iSubFont = index;
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::SetSubGap(int nGap)
+	{
+		if( nGap < 0 ) nGap = 0;
+		if( m_nSubGap == nGap ) return;
+		m_nSubGap = nGap;
+		m_bNeedEstimateSize = true;
+		Invalidate();
+	}
+
+	void CButtonUI::SetShortcutKey(WORD wVirtualKeyCode, WORD wModifiers, int scope)
+	{
+		m_wShortcutVk = wVirtualKeyCode;
+		m_wShortcutMod = wModifiers;
+		m_nShortcutScope = (scope == HOTKEYBOX_SCOPE_GLOBAL) ? HOTKEYBOX_SCOPE_GLOBAL : HOTKEYBOX_SCOPE_APP;
+		if( wVirtualKeyCode == 0 && wModifiers == 0 ) {
+			m_nShortcutScope = HOTKEYBOX_SCOPE_APP;
+			SetSubText(_T(""));
+		}
+		else
+			SetSubText(CHotKeyUI::FormatHotKeyName(wVirtualKeyCode, wModifiers).GetData());
+	}
+
+	void CButtonUI::GetShortcutKey(WORD& wVirtualKeyCode, WORD& wModifiers) const
+	{
+		wVirtualKeyCode = m_wShortcutVk;
+		wModifiers = m_wShortcutMod;
+	}
+
+	void CButtonUI::GetShortcutKey(WORD& wVirtualKeyCode, WORD& wModifiers, int& scope) const
+	{
+		wVirtualKeyCode = m_wShortcutVk;
+		wModifiers = m_wShortcutMod;
+		scope = m_nShortcutScope;
+	}
+
+	void CButtonUI::ClearShortcutKey()
+	{
+		SetShortcutKey(0, 0, HOTKEYBOX_SCOPE_APP);
+	}
+
+	void CButtonUI::ShowEditTextMenu(POINT ptClient)
+	{
+		if( m_pManager == NULL ) return;
+		if( !m_bEditText && !m_bEditHotKey ) return;
+
+		// 根必须是 Window：Builder 只解析根的子节点
+		static LPCTSTR sBuiltinMenuShell =
+			_T("<Window>")
+			_T("<Menu border-width=\"1\" border-radius=\"4,4\" ")
+			_T("padding=\"4,4,4,4\" item-padding=\"0,14,0,32\" />")
+			_T("</Window>");
+
+		POINT ptScreen = ptClient;
+		::ClientToScreen(m_pManager->GetPaintWindow(), &ptScreen);
+
+		CMenuWnd* pMenuWnd = CMenuWnd::CreateMenu(NULL, STRINGorID(sBuiltinMenuShell), ptScreen, m_pManager, NULL,
+			eMenuAlignment_Left | eMenuAlignment_Top);
+		if( pMenuWnd == NULL ) return;
+
+		CMenuUI* pMenu = pMenuWnd->GetMenuUI();
+		if( pMenu == NULL ) {
+			pMenuWnd->Close();
+			return;
+		}
+
+		pMenu->RemoveAll();
+		auto addItem = [&](LPCTSTR name, LPCTSTR text, LPCTSTR lucide) {
+			CMenuElementUI* pItem = new CMenuElementUI;
+			pItem->SetName(name);
+			pItem->SetText(text);
+			pItem->SetFixedHeight(30);
+			pItem->SetAttribute(_T("lucide"), lucide);
+			pItem->SetAttribute(_T("icon-size"), _T("16"));
+			pItem->SetAttribute(_T("icon-tint"), _T("auto"));
+			pMenu->Add(pItem);
+		};
+
+		if( m_bEditText )
+			addItem(_T("button_edit_text"), _T("修改文本"), _T("pencil"));
+		if( m_bEditHotKey ) {
+			addItem(_T("button_edit_hotkey"), _T("设置快捷键"), _T("keyboard"));
+			addItem(_T("button_clear_hotkey"), _T("清除快捷键"), _T("x"));
+		}
+
+		if( pMenu->GetCount() == 0 ) {
+			pMenuWnd->Close();
+			return;
+		}
+
+		pMenuWnd->ResizeMenu();
+		m_bEditTextMenuPending = true;
+		CButtonEditTextMenuFilter::Instance().Arm(this);
+	}
+
+	bool CButtonUI::HandleEditTextMenuClick(WPARAM wParam)
+	{
+		if( !m_bEditTextMenuPending ) return false;
+		MenuCmd* pMenuCmd = (MenuCmd*)wParam;
+		if( pMenuCmd == NULL ) return false;
+
+		CDuiString sName = pMenuCmd->szName;
+		const bool bEditText = m_bEditText && (sName.CompareNoCase(_T("button_edit_text")) == 0);
+		const bool bEditHotKey = m_bEditHotKey && (sName.CompareNoCase(_T("button_edit_hotkey")) == 0);
+		const bool bClearHotKey = m_bEditHotKey && (sName.CompareNoCase(_T("button_clear_hotkey")) == 0);
+		if( !bEditText && !bEditHotKey && !bClearHotKey ) return false;
+
+		if( m_pManager != NULL )
+			m_pManager->DeletePtr(pMenuCmd);
+		else
+			delete pMenuCmd;
+
+		m_bEditTextMenuPending = false;
+
+		HWND hOwner = (m_pManager != NULL) ? m_pManager->GetPaintWindow() : NULL;
+		if( bClearHotKey ) {
+			ClearShortcutKey();
+			return true;
+		}
+		if( bEditHotKey ) {
+			WORD vk = m_wShortcutVk;
+			WORD mod = m_wShortcutMod;
+			int nScope = m_nShortcutScope;
+			CDuiString sDisp;
+			if( HOTKEYBOX_OK == CHotKeyBox::Show(hOwner,
+					CHotKeyBoxOptions()
+						.Title(_T("设置快捷键"))
+						.Prompt(_T("请按下快捷键组合："))
+						.HotKey(vk, mod)
+						.Scope(nScope)
+						.ConflictManager(m_pManager)
+						.ExcludeControl(this),
+					vk, mod, &sDisp, &nScope) ) {
+				SetShortcutKey(vk, mod, nScope);
+			}
+			return true;
+		}
+
+		CDuiString sText = GetText();
+		if( INPUTBOX_OK == CInputBox::Show(hOwner,
+				CInputBoxOptions()
+					.Title(_T("修改文本"))
+					.Prompt(_T("请输入按钮文字："))
+					.Value(sText.GetData()),
+				sText) ) {
+			SetText(sText.GetData());
+			if( m_pManager != NULL )
+				m_pManager->SendNotify(this, DUI_MSGTYPE_TEXTCHANGED);
 		}
 		return true;
 	}
@@ -474,6 +753,32 @@ namespace DuiLib
 			SetLoadingDisable(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0
 				|| _tcsicmp(pstrValue, _T("yes")) == 0);
 		}
+		else if( _tcsicmp(pstrName, _T("edit-text")) == 0 ) {
+			SetEditTextEnabled(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0
+				|| _tcsicmp(pstrValue, _T("yes")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("edit-hotkey")) == 0
+			|| _tcsicmp(pstrName, _T("edit-shortcut")) == 0 ) {
+			SetEditHotKeyEnabled(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0
+				|| _tcsicmp(pstrValue, _T("yes")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("sub-text")) == 0
+			|| _tcsicmp(pstrName, _T("subtitle")) == 0 ) {
+			SetSubText(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("sub-color")) == 0
+			|| _tcsicmp(pstrName, _T("subtitle-color")) == 0 ) {
+			DWORD clr = 0;
+			if( ParseColorString(pstrValue, clr) ) SetSubColor(clr);
+		}
+		else if( _tcsicmp(pstrName, _T("sub-font")) == 0
+			|| _tcsicmp(pstrName, _T("subtitle-font")) == 0 ) {
+			SetSubFont(_ttoi(pstrValue));
+		}
+		else if( _tcsicmp(pstrName, _T("sub-gap")) == 0
+			|| _tcsicmp(pstrName, _T("subtitle-gap")) == 0 ) {
+			SetSubGap(_ttoi(pstrValue));
+		}
 		else if( IsIconAttr(pstrName) ) {
 			if( pstrValue == NULL || *pstrValue == _T('\0') ) {
 				ClearIcon();
@@ -497,8 +802,11 @@ namespace DuiLib
 
 		if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
 		if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
-		
+
 		CDuiString sText = GetText();
+		const bool bHasSub = HasSubText();
+		// 纯图标按钮（无主/副文案）仍须绘制图标
+		if( sText.IsEmpty() && !bHasSub && !HasIcon() && !IsLoading() ) return;
 
 		RECT rcPadding = GetPadding();
 		RECT rcTextPadding = GetTextPadding();
@@ -523,16 +831,12 @@ namespace DuiLib
 				}
 				else if( m_pIcon != NULL && m_pIcon->IsVisible() ) {
 					m_pIcon->SetPos(rcIcon, false);
-					// 只贴图标位图，避免 SvgBox 完整 DoPaint；脏区一律由本按钮负责
 					m_pIcon->PaintIcon(ctx, m_rcPaint);
 				}
 			}
 		}
 
-		if( sText.IsEmpty() ) return;
-
-		DWORD clrColor = IsEnabled()?m_dwColor:m_dwDisabledColor;
-		
+		DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
 		if( ((m_uButtonState & UISTATE_PUSHED) != 0) && (GetActiveColor() != 0) )
 			clrColor = GetActiveColor();
 		else if( ((m_uButtonState & UISTATE_HOT) != 0) && (GetHoverColor() != 0) )
@@ -540,33 +844,71 @@ namespace DuiLib
 		else if( ((m_uButtonState & UISTATE_FOCUSED) != 0) && (GetFocusedColor() != 0) )
 			clrColor = GetFocusedColor();
 
-		int iFont = GetFont();
-		if( ((m_uButtonState & UISTATE_PUSHED) != 0) && (GetActiveFont() != -1) )
-			iFont = GetActiveFont();
-		else if( ((m_uButtonState & UISTATE_HOT) != 0) && (GetHoverFont() != -1) )
-			iFont = GetHoverFont();
-		else if( ((m_uButtonState & UISTATE_FOCUSED) != 0) && (GetFocusedFont() != -1) )
-			iFont = GetFocusedFont();
-
-		int nLinks = 0;
-		UINT uStyle = m_uTextStyle;
+		int iFont = ResolvePaintMainFont();
+		// DT_LEFT 值为 0，不能用 (style & LEFT) 判断；无 CENTER/RIGHT 即左对齐
+		UINT uHAlign = DT_LEFT;
+		if( (m_uTextStyle & DT_CENTER) != 0 ) uHAlign = DT_CENTER;
+		else if( (m_uTextStyle & DT_RIGHT) != 0 ) uHAlign = DT_RIGHT;
 		if( HasIcon() ) {
-			// 图标+文字已作为一组居中；左右排布文字左对齐，上下排布文字水平居中
-			uStyle &= ~(DT_CENTER | DT_RIGHT | DT_LEFT);
 			const bool bVertical = (m_sIconPos.CompareNoCase(_T("top")) == 0
 				|| m_sIconPos.CompareNoCase(_T("bottom")) == 0);
-			if( bVertical )
-				uStyle |= DT_CENTER;
-			else
-				uStyle |= DT_LEFT;
-			if( (uStyle & (DT_VCENTER | DT_BOTTOM | DT_TOP)) == 0 )
-				uStyle |= DT_VCENTER;
+			uHAlign = bVertical ? DT_CENTER : DT_LEFT;
 		}
 
-		if( m_bShowHtml )
-			ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, iFont, uStyle);
-		else
-			ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(clrColor), iFont, uStyle);
+		if( !bHasSub ) {
+			if( sText.IsEmpty() ) return;
+			UINT uStyle = (m_uTextStyle & ~(DT_CENTER | DT_RIGHT | DT_LEFT)) | uHAlign;
+			if( (uStyle & (DT_VCENTER | DT_BOTTOM | DT_TOP)) == 0 )
+				uStyle |= DT_VCENTER;
+			int nLinks = 0;
+			if( m_bShowHtml )
+				ctx.DrawHtmlText(rcText, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, iFont, uStyle);
+			else
+				ctx.DrawText(rcText, sText.GetData(), GetAdjustColor(clrColor), iFont, uStyle);
+			return;
+		}
+
+		const int iSubFont = ResolvePaintSubFont(iFont);
+		SIZE szBlock = MeasureTitleBlock(iFont);
+		int nGap = m_nSubGap;
+		if( m_pManager != NULL )
+			nGap = m_pManager->GetDPIObj()->Scale(m_nSubGap);
+
+		SIZE szMain = { 0, 0 };
+		SIZE szSub = { 0, 0 };
+		if( m_pManager != NULL ) {
+			UINT uMeas = DT_SINGLELINE | DT_LEFT | DT_TOP | DT_CALCRECT;
+			if( !sText.IsEmpty() )
+				szMain = RenderMeasureTextSize(m_pManager, sText.GetData(), iFont, uMeas);
+			szSub = RenderMeasureTextSize(m_pManager, m_sSubText.GetData(), iSubFont, uMeas);
+		}
+		if( szMain.cy < 0 ) szMain.cy = 0;
+		if( szSub.cy < 0 ) szSub.cy = 0;
+
+		const int ch = rcText.bottom - rcText.top;
+		int y = rcText.top;
+		if( szBlock.cy < ch )
+			y = rcText.top + (ch - szBlock.cy) / 2;
+
+		UINT uLine = DT_SINGLELINE | DT_TOP | uHAlign;
+		if( !sText.IsEmpty() ) {
+			RECT rcMain = { rcText.left, y, rcText.right, y + szMain.cy };
+			if( rcMain.bottom > rcText.bottom ) rcMain.bottom = rcText.bottom;
+			int nLinks = 0;
+			if( m_bShowHtml )
+				ctx.DrawHtmlText(rcMain, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, iFont, uLine);
+			else
+				ctx.DrawText(rcMain, sText.GetData(), GetAdjustColor(clrColor), iFont, uLine);
+			y = rcMain.bottom + nGap;
+		}
+
+		RECT rcSub = { rcText.left, y, rcText.right, y + szSub.cy };
+		if( rcSub.bottom > rcText.bottom ) rcSub.bottom = rcText.bottom;
+		if( rcSub.top > rcSub.bottom ) rcSub.top = rcSub.bottom;
+		DWORD clrSub = ResolveSubTextColor(clrColor);
+		if( !IsEnabled() )
+			clrSub = DuiColorSetA(m_dwDisabledColor != 0 ? m_dwDisabledColor : clrSub, 0x99);
+		ctx.DrawText(rcSub, m_sSubText.GetData(), GetAdjustColor(clrSub), iSubFont, uLine);
 	}
 
 	void CButtonUI::PaintBackgroundColor(IRenderContext& ctx)
@@ -632,8 +974,11 @@ namespace DuiLib
 		else m_uButtonState &= ~ UISTATE_FOCUSED;
 		if( !IsEnabled() ) m_uButtonState |= UISTATE_DISABLED;
 		else m_uButtonState &= ~ UISTATE_DISABLED;
-		if(!::IsWindowEnabled(m_pManager->GetPaintWindow())) {
-			m_uButtonState &= UISTATE_DISABLED;
+		// 窗口禁用时叠加 DISABLED；切勿 &=（会清掉 HOT，导致悬停底色有、图标着色无）
+		if( m_pManager != NULL ) {
+			HWND hPaint = m_pManager->GetPaintWindow();
+			if( hPaint != NULL && !::IsWindowEnabled(hPaint) )
+				m_uButtonState |= UISTATE_DISABLED;
 		}
 		SyncControlStateFromButton();
 		if( (m_uButtonState & UISTATE_DISABLED) != 0 ) {
@@ -816,18 +1161,26 @@ namespace DuiLib
 		return _tcsncmp(pExt, _T(".bmp"), 4) == 0
 			|| _tcsncmp(pExt, _T(".png"), 4) == 0
 			|| _tcsncmp(pExt, _T(".jpg"), 4) == 0
-			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0;
+			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0
+			|| _tcsncmp(pExt, _T(".gif"), 4) == 0
+			|| _tcsncmp(pExt, _T(".webp"), 5) == 0;
 	}
 
 	void CButtonUI::RefreshRasterIconImage()
 	{
 		if( m_pRasterIcon == NULL || m_sRasterPath.IsEmpty() ) return;
 		if( !m_pRasterIcon->IsVisible() ) return;
-		int nSize = m_nIconSize;
-		if( m_pManager != NULL )
-			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+		// dest 用逻辑尺寸，由 TDrawInfo::Parse 做一次 DPI Scale（勿预 Scale，否则会二次放大发糊）
+		const int nSize = m_nIconSize > 0 ? m_nIconSize : 16;
 		CDuiString sImg = m_sRasterPath;
-		if( sImg.Find(_T("file=")) < 0 && sImg.Find(_T("res=")) < 0
+		if( m_bRasterMemKey ) {
+			// 必须用 file='key'：裸 key + dest= 时 TDrawInfo::Parse 会把整串当成图片名，
+			// GetImage 找不到 AddImage 注册的 mem key → EXE/外壳图标空白（JPG file= 路径正常）。
+			CDuiString sFmt;
+			sFmt.Format(_T("file='%s' dest='0,0,%d,%d'"), m_sRasterPath.GetData(), nSize, nSize);
+			sImg = sFmt;
+		}
+		else if( sImg.Find(_T("file=")) < 0 && sImg.Find(_T("res=")) < 0
 			&& sImg.Find(_T("url(")) < 0 ) {
 			CDuiString sFmt;
 			sFmt.Format(_T("file='%s' dest='0,0,%d,%d'"), m_sRasterPath.GetData(), nSize, nSize);
@@ -840,6 +1193,336 @@ namespace DuiLib
 		}
 		m_pRasterIcon->SetBackgroundImage(sImg.GetData());
 		ClearRasterTintCache();
+	}
+
+	void CButtonUI::ReleaseMemIcon()
+	{
+		if( !m_sMemIconKey.IsEmpty() && m_pManager != NULL )
+			m_pManager->RemoveImage(m_sMemIconKey.GetData(), false);
+		m_sMemIconKey.Empty();
+		m_bRasterMemKey = false;
+	}
+
+	namespace {
+		bool RasterizeHIconToPremul(HICON hIcon, int w, int h, BYTE* pOut)
+		{
+			if( hIcon == NULL || w < 1 || h < 1 || pOut == NULL ) return false;
+
+			BITMAPINFO bmi = {};
+			bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bmi.bmiHeader.biWidth = w;
+			bmi.bmiHeader.biHeight = -h;
+			bmi.bmiHeader.biPlanes = 1;
+			bmi.bmiHeader.biBitCount = 32;
+			bmi.bmiHeader.biCompression = BI_RGB;
+
+			void* pBlackBits = NULL;
+			void* pWhiteBits = NULL;
+			HBITMAP hbmBlack = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBlackBits, NULL, 0);
+			HBITMAP hbmWhite = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pWhiteBits, NULL, 0);
+			if( hbmBlack == NULL || hbmWhite == NULL || pBlackBits == NULL || pWhiteBits == NULL ) {
+				if( hbmBlack != NULL ) ::DeleteObject(hbmBlack);
+				if( hbmWhite != NULL ) ::DeleteObject(hbmWhite);
+				return false;
+			}
+
+			HDC hdc = ::CreateCompatibleDC(NULL);
+			if( hdc == NULL ) {
+				::DeleteObject(hbmBlack);
+				::DeleteObject(hbmWhite);
+				return false;
+			}
+			HGDIOBJ hOld = ::SelectObject(hdc, hbmBlack);
+			::PatBlt(hdc, 0, 0, w, h, BLACKNESS);
+			::DrawIconEx(hdc, 0, 0, hIcon, w, h, 0, NULL, DI_NORMAL);
+			::SelectObject(hdc, hbmWhite);
+			::PatBlt(hdc, 0, 0, w, h, WHITENESS);
+			::DrawIconEx(hdc, 0, 0, hIcon, w, h, 0, NULL, DI_NORMAL);
+			::SelectObject(hdc, hOld);
+			::DeleteDC(hdc);
+
+			BYTE* pB = static_cast<BYTE*>(pBlackBits);
+			const BYTE* pW = static_cast<const BYTE*>(pWhiteBits);
+			const int nPix = w * h;
+			bool bHasAlpha = false;
+			for( int i = 0; i < nPix; ++i ) {
+				if( pB[i * 4 + 3] != 0 ) { bHasAlpha = true; break; }
+			}
+			if( !bHasAlpha ) {
+				for( int i = 0; i < nPix; ++i ) {
+					BYTE* d = pB + i * 4;
+					const BYTE* s = pW + i * 4;
+					int ar = 255 - ((int)s[2] - (int)d[2]);
+					int ag = 255 - ((int)s[1] - (int)d[1]);
+					int ab = 255 - ((int)s[0] - (int)d[0]);
+					int a = (ar + ag + ab) / 3;
+					if( a < 0 ) a = 0;
+					if( a > 255 ) a = 255;
+					d[3] = (BYTE)a;
+				}
+			}
+			::DeleteObject(hbmWhite);
+
+			for( int i = 0; i < nPix; ++i ) {
+				BYTE* d = pB + i * 4;
+				const BYTE a = d[3];
+				if( a == 0 ) {
+					d[0] = d[1] = d[2] = 0;
+				}
+				else if( a < 255 && (d[0] > a || d[1] > a || d[2] > a) ) {
+					d[0] = (BYTE)((int)d[0] * a / 255);
+					d[1] = (BYTE)((int)d[1] * a / 255);
+					d[2] = (BYTE)((int)d[2] * a / 255);
+				}
+			}
+			::CopyMemory(pOut, pB, (SIZE_T)nPix * 4);
+			::DeleteObject(hbmBlack);
+			return true;
+		}
+
+		bool HqScalePremul(const BYTE* pSrc, int srcW, int srcH,
+			BYTE* pDst, int dstW, int dstH)
+		{
+			if( pSrc == NULL || pDst == NULL || srcW < 1 || srcH < 1 || dstW < 1 || dstH < 1 )
+				return false;
+			if( srcW == dstW && srcH == dstH ) {
+				::CopyMemory(pDst, pSrc, (SIZE_T)dstW * dstH * 4);
+				return true;
+			}
+			Gdiplus::Bitmap src(srcW, srcH, srcW * 4, PixelFormat32bppPARGB, (BYTE*)pSrc);
+			if( src.GetLastStatus() != Gdiplus::Ok ) return false;
+			Gdiplus::Bitmap dst(dstW, dstH, PixelFormat32bppPARGB);
+			if( dst.GetLastStatus() != Gdiplus::Ok ) return false;
+			{
+				Gdiplus::Graphics g(&dst);
+				g.SetCompositingMode(Gdiplus::CompositingModeSourceCopy);
+				g.Clear(Gdiplus::Color(0, 0, 0, 0));
+				g.SetCompositingMode(Gdiplus::CompositingModeSourceOver);
+				g.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+				g.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);
+				g.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+				g.DrawImage(&src, 0, 0, dstW, dstH);
+			}
+			Gdiplus::BitmapData bd = {};
+			Gdiplus::Rect lockRc(0, 0, dstW, dstH);
+			if( dst.LockBits(&lockRc, Gdiplus::ImageLockModeRead, PixelFormat32bppPARGB, &bd) != Gdiplus::Ok )
+				return false;
+			BYTE* pOut = pDst;
+			const BYTE* pIn = static_cast<const BYTE*>(bd.Scan0);
+			for( int y = 0; y < dstH; ++y )
+				::CopyMemory(pOut + y * dstW * 4, pIn + y * bd.Stride, (SIZE_T)dstW * 4);
+			dst.UnlockBits(&bd);
+			return true;
+		}
+	}
+
+	HBITMAP CButtonUI::CreateBitmapFromHIcon(HICON hIcon, int cx, int cy)
+	{
+		if( hIcon == NULL || cx < 1 || cy < 1 ) return NULL;
+
+		// 先按 HICON 固有尺寸栅格化，再用 Gdiplus 高品质缩到目标 —— DrawIconEx 直接缩 256→56 会发糊。
+		int work = cx > cy ? cx : cy;
+		ICONINFO ii = {};
+		if( ::GetIconInfo(hIcon, &ii) ) {
+			BITMAP bm = {};
+			HBITMAP hbm = ii.hbmColor != NULL ? ii.hbmColor : ii.hbmMask;
+			if( hbm != NULL && ::GetObject(hbm, sizeof(bm), &bm) && bm.bmWidth > 0 ) {
+				int iw = bm.bmWidth;
+				int ih = bm.bmHeight;
+				if( ii.hbmColor == NULL ) ih /= 2;
+				const int side = iw > ih ? iw : ih;
+				if( side > work ) work = side;
+			}
+			if( ii.hbmColor != NULL ) ::DeleteObject(ii.hbmColor);
+			if( ii.hbmMask != NULL ) ::DeleteObject(ii.hbmMask);
+		}
+		if( work > 512 ) work = 512;
+
+		std::vector<BYTE> workBits((size_t)work * (size_t)work * 4);
+		if( !RasterizeHIconToPremul(hIcon, work, work, workBits.data()) )
+			return NULL;
+
+		// 透明边裁剪（文本类型图标留白多）；EXE 图标几乎铺满则跳过，避免无谓重采样
+		const BYTE kTrim = 12;
+		int minX = work, minY = work, maxX = -1, maxY = -1;
+		for( int y = 0; y < work; ++y ) {
+			for( int x = 0; x < work; ++x ) {
+				if( workBits[(size_t)(y * work + x) * 4 + 3] > kTrim ) {
+					if( x < minX ) minX = x;
+					if( y < minY ) minY = y;
+					if( x > maxX ) maxX = x;
+					if( y > maxY ) maxY = y;
+				}
+			}
+		}
+		int srcX = 0, srcY = 0, srcW = work, srcH = work;
+		if( maxX >= minX && maxY >= minY ) {
+			const int bw = maxX - minX + 1;
+			const int bh = maxY - minY + 1;
+			if( bw * 10 < work * 9 || bh * 10 < work * 9 ) {
+				srcX = minX; srcY = minY; srcW = bw; srcH = bh;
+			}
+		}
+
+		std::vector<BYTE> cropBits;
+		const BYTE* pScaleSrc = workBits.data();
+		int scaleW = work, scaleH = work;
+		if( srcX != 0 || srcY != 0 || srcW != work || srcH != work ) {
+			cropBits.resize((size_t)srcW * (size_t)srcH * 4);
+			for( int y = 0; y < srcH; ++y ) {
+				::CopyMemory(cropBits.data() + (size_t)y * srcW * 4,
+					workBits.data() + ((size_t)(srcY + y) * work + srcX) * 4,
+					(SIZE_T)srcW * 4);
+			}
+			pScaleSrc = cropBits.data();
+			scaleW = srcW;
+			scaleH = srcH;
+		}
+
+		BITMAPINFO bmi = {};
+		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.bmiHeader.biWidth = cx;
+		bmi.bmiHeader.biHeight = -cy;
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 32;
+		bmi.bmiHeader.biCompression = BI_RGB;
+		void* pBits = NULL;
+		HBITMAP hbm = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0);
+		if( hbm == NULL || pBits == NULL ) {
+			if( hbm != NULL ) ::DeleteObject(hbm);
+			return NULL;
+		}
+		::ZeroMemory(pBits, (SIZE_T)cx * cy * 4);
+
+		// 等比放入目标格（contain）
+		float sx = (float)cx / (float)scaleW;
+		float sy = (float)cy / (float)scaleH;
+		float scale = (sx < sy) ? sx : sy;
+		int dw = (int)((float)scaleW * scale + 0.5f);
+		int dh = (int)((float)scaleH * scale + 0.5f);
+		if( dw < 1 ) dw = 1;
+		if( dh < 1 ) dh = 1;
+		if( dw > cx ) dw = cx;
+		if( dh > cy ) dh = cy;
+		const int ox = (cx - dw) / 2;
+		const int oy = (cy - dh) / 2;
+
+		if( dw == cx && dh == cy && scaleW == cx && scaleH == cy ) {
+			::CopyMemory(pBits, pScaleSrc, (SIZE_T)cx * cy * 4);
+			return hbm;
+		}
+
+		std::vector<BYTE> scaled((size_t)dw * (size_t)dh * 4);
+		if( !HqScalePremul(pScaleSrc, scaleW, scaleH, scaled.data(), dw, dh) ) {
+			::DeleteObject(hbm);
+			return NULL;
+		}
+		BYTE* pDst = static_cast<BYTE*>(pBits);
+		for( int y = 0; y < dh; ++y ) {
+			::CopyMemory(pDst + ((size_t)(oy + y) * cx + ox) * 4,
+				scaled.data() + (size_t)y * dw * 4, (SIZE_T)dw * 4);
+		}
+		return hbm;
+	}
+
+	void CButtonUI::ClearPendingIconMemory()
+	{
+		if( m_pPendingIconData != NULL ) {
+			delete[] m_pPendingIconData;
+			m_pPendingIconData = NULL;
+		}
+		m_dwPendingIconSize = 0;
+	}
+
+	namespace {
+		bool LooksLikeSvgMemory(const BYTE* pData, DWORD dwSize)
+		{
+			if( pData == NULL || dwSize < 4 ) return false;
+			DWORD i = 0;
+			if( dwSize >= 3 && pData[0] == 0xEF && pData[1] == 0xBB && pData[2] == 0xBF ) i = 3;
+			while( i < dwSize && (pData[i] == ' ' || pData[i] == '\t' || pData[i] == '\r' || pData[i] == '\n') )
+				++i;
+			if( i + 4 <= dwSize && _strnicmp((const char*)pData + i, "<svg", 4) == 0 ) return true;
+			if( i + 5 <= dwSize && _strnicmp((const char*)pData + i, "<?xml", 5) == 0 ) return true;
+			return false;
+		}
+
+		HBITMAP HIconToAlphaBitmap(HICON hIcon, int cx, int cy)
+		{
+			return CButtonUI::CreateBitmapFromHIcon(hIcon, cx, cy);
+		}
+
+		HICON CreateIconFromIcoMemory(const BYTE* pData, DWORD dwSize, int cx, int cy)
+		{
+			if( pData == NULL || dwSize < 6 ) return NULL;
+			if( pData[0] != 0 || pData[1] != 0 || pData[2] != 1 || pData[3] != 0 )
+				return NULL;
+			int offset = ::LookupIconIdFromDirectoryEx((PBYTE)pData, TRUE, cx, cy, LR_DEFAULTCOLOR);
+			if( offset == 0 ) return NULL;
+			if( (DWORD)offset >= dwSize ) return NULL;
+			return ::CreateIconFromResourceEx((PBYTE)pData + offset, dwSize - (DWORD)offset,
+				TRUE, 0x00030000, cx, cy, LR_DEFAULTCOLOR);
+		}
+	}
+
+	bool CButtonUI::ApplyIconFromMemory(const BYTE* pData, DWORD dwSize)
+	{
+		if( pData == NULL || dwSize == 0 || m_pManager == NULL ) return false;
+
+		if( LooksLikeSvgMemory(pData, dwSize) ) {
+			ReleaseMemIcon();
+			EnsureIcon();
+			char* psz = new (std::nothrow) char[(size_t)dwSize + 1];
+			if( psz == NULL ) return false;
+			::CopyMemory(psz, pData, dwSize);
+			psz[dwSize] = '\0';
+			m_pIcon->LoadFromUtf8Data(psz);
+			delete[] psz;
+			ShowSvgIcon();
+			m_bNeedEstimateSize = true;
+			Invalidate();
+			return true;
+		}
+
+		TImageInfo* pInfo = CRenderEngine::LoadImageFromMemory(pData, dwSize, 0);
+		if( pInfo != NULL && pInfo->hBitmap != NULL ) {
+			HBITMAP hBmp = pInfo->hBitmap;
+			int w = pInfo->nX;
+			int h = pInfo->nY;
+			bool bA = pInfo->bAlpha;
+			pInfo->hBitmap = NULL;
+			CRenderEngine::FreeImage(pInfo);
+			return SetIconBitmap(hBmp, w, h, bA);
+		}
+		if( pInfo != NULL ) CRenderEngine::FreeImage(pInfo);
+
+		int cx = m_nIconSize;
+		if( m_pManager != NULL )
+			cx = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+		if( cx < 16 ) cx = 16;
+		HICON hIcon = CreateIconFromIcoMemory(pData, dwSize, cx, cx);
+		if( hIcon == NULL ) return false;
+		HBITMAP hbm = HIconToAlphaBitmap(hIcon, cx, cx);
+		::DestroyIcon(hIcon);
+		if( hbm == NULL ) return false;
+		return SetIconBitmap(hbm, cx, cx, true);
+	}
+
+	bool CButtonUI::SetIconFromMemory(const BYTE* pData, DWORD dwSize)
+	{
+		ClearPendingIconMemory();
+		if( pData == NULL || dwSize == 0 ) {
+			ClearIcon();
+			return false;
+		}
+		if( m_pManager == NULL ) {
+			m_pPendingIconData = new (std::nothrow) BYTE[dwSize];
+			if( m_pPendingIconData == NULL ) return false;
+			::CopyMemory(m_pPendingIconData, pData, dwSize);
+			m_dwPendingIconSize = dwSize;
+			return true;
+		}
+		return ApplyIconFromMemory(pData, dwSize);
 	}
 
 	void CButtonUI::ClearRasterTintCache()
@@ -1021,6 +1704,7 @@ namespace DuiLib
 		EnsureRasterIcon();
 		if( m_pIcon != NULL )
 			m_pIcon->SetVisible(false);
+		ReleaseMemIcon();
 		m_sRasterPath = pstrPath ? pstrPath : _T("");
 		m_eIconKind = IconRaster;
 		if( m_pRasterIcon != NULL ) {
@@ -1028,6 +1712,43 @@ namespace DuiLib
 			if( !m_bLoading )
 				RefreshRasterIconImage();
 		}
+	}
+
+	bool CButtonUI::SetIconBitmap(HBITMAP hBitmap, int nWidth, int nHeight, bool bAlpha)
+	{
+		if( hBitmap == NULL || nWidth <= 0 || nHeight <= 0 ) {
+			if( hBitmap != NULL ) ::DeleteObject(hBitmap);
+			return false;
+		}
+		if( m_pManager == NULL ) {
+			::DeleteObject(hBitmap);
+			return false;
+		}
+
+		ReleaseMemIcon();
+		static volatile LONG s_nMemIconSeq = 0;
+		LONG nSeq = ::InterlockedIncrement(&s_nMemIconSeq);
+		m_sMemIconKey.Format(_T("_dui_btn_icon_%p_%ld"), this, nSeq);
+		if( m_pManager->AddImage(m_sMemIconKey.GetData(), hBitmap, nWidth, nHeight, bAlpha, false) == NULL ) {
+			::DeleteObject(hBitmap);
+			m_sMemIconKey.Empty();
+			return false;
+		}
+
+		EnsureRasterIcon();
+		if( m_pIcon != NULL )
+			m_pIcon->SetVisible(false);
+		m_bRasterMemKey = true;
+		m_sRasterPath = m_sMemIconKey;
+		m_eIconKind = IconRaster;
+		if( m_pRasterIcon != NULL ) {
+			m_pRasterIcon->SetVisible(!m_bLoading);
+			if( !m_bLoading )
+				RefreshRasterIconImage();
+		}
+		m_bNeedEstimateSize = true;
+		Invalidate();
+		return true;
 	}
 
 	void CButtonUI::SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName)
@@ -1038,6 +1759,7 @@ namespace DuiLib
 			ClearIcon();
 			return;
 		}
+		ReleaseMemIcon();
 		EnsureIcon();
 		m_pIcon->SetAttribute(pstrLib, pstrName);
 		ShowSvgIcon();
@@ -1051,6 +1773,7 @@ namespace DuiLib
 			ClearIcon();
 			return;
 		}
+		ReleaseMemIcon();
 		if( IsRasterImagePath(pstrPath) ) {
 			ShowRasterIcon(pstrPath);
 		}
@@ -1065,6 +1788,8 @@ namespace DuiLib
 
 	void CButtonUI::ClearIcon()
 	{
+		ClearPendingIconMemory();
+		ReleaseMemIcon();
 		m_eIconKind = IconNone;
 		m_sRasterPath.Empty();
 		ClearRasterTintCache();
@@ -1293,26 +2018,32 @@ namespace DuiLib
 	{
 		if( m_pIcon == NULL || m_eIconKind != IconSvg ) return;
 		m_pIcon->SetEnabled(IsEnabled());
-		DWORD paint = ResolvePaintIconColor();
-		// 绘制路径内勿 Invalidate：父 Button 已整控件刷新；只脏图标矩形会在圆角按钮上露出白角
-		m_pIcon->SetColor(paint, false);
+
+		// 嵌套 SvgBox 为 mouse=false，自身不会进 HOT。按父按钮当前态把绘制色直接写入
+		//（与 PaintRasterIcon 用 ResolvePaintIconColor 同一路径），勿依赖 SvgBox 悬停态。
+		const DWORD paint = ResolvePaintIconColor();
 		m_pIcon->SetHoverColor(0, false);
 		m_pIcon->SetActiveColor(0, false);
 		m_pIcon->SetDisabledColor(0, false);
+		m_pIcon->ApplyParentButtonState(0);
+		m_pIcon->SetColor(paint, false);
 	}
 
 	SIZE CButtonUI::EstimateSize(SIZE szAvailable)
 	{
 		SIZE sz = CLabelUI::EstimateSize(szAvailable);
-		if( !HasIcon() ) return sz;
+		const bool bSub = HasSubText();
+		if( !HasIcon() && !bSub ) return sz;
 		// 宽高都写死时不改
 		if( m_cxyFixed.cx > 0 && m_cxyFixed.cy > 0 ) return sz;
 
 		int nSize = m_nIconSize;
 		int nGap = m_nIconGap;
+		int nSubGap = m_nSubGap;
 		if( m_pManager != NULL ) {
 			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
 			nGap = m_pManager->GetDPIObj()->Scale(m_nIconGap);
+			nSubGap = m_pManager->GetDPIObj()->Scale(m_nSubGap);
 		}
 
 		RECT rcTextPadding = GetTextPadding();
@@ -1322,20 +2053,49 @@ namespace DuiLib
 		const int padT = rcPadding.top + rcTextPadding.top;
 		const int padB = rcPadding.bottom + rcTextPadding.bottom;
 
-		const bool bHasText = !GetText().IsEmpty();
+		const bool bHasText = !GetText().IsEmpty() || bSub;
 		const bool bVertical = (m_sIconPos.CompareNoCase(_T("top")) == 0
 			|| m_sIconPos.CompareNoCase(_T("bottom")) == 0);
+
+		SIZE szBlock = { 0, 0 };
+		if( bSub || HasIcon() )
+			szBlock = MeasureTitleBlock(ResolvePaintMainFont());
+
+		if( bSub && m_cxyFixed.cy == 0 ) {
+			// Label 已按单行估高；补上副行
+			int subH = 0;
+			if( m_pManager != NULL ) {
+				SIZE szSub = RenderMeasureTextSize(m_pManager, m_sSubText.GetData(),
+					ResolvePaintSubFont(ResolvePaintMainFont()), DT_SINGLELINE | DT_LEFT | DT_TOP | DT_CALCRECT);
+				subH = szSub.cy;
+			}
+			if( subH > 0 )
+				sz.cy += nSubGap + subH;
+			if( m_cxyFixed.cx == 0 && GetAutoCalcWidth() && szBlock.cx > 0 ) {
+				const int want = szBlock.cx + padL + padR;
+				if( sz.cx < want ) sz.cx = want;
+			}
+		}
+
+		if( !HasIcon() ) {
+			m_cxyFixedLast = sz;
+			return sz;
+		}
 
 		if( m_cxyFixed.cx == 0 ) {
 			if( !bHasText ) {
 				sz.cx = nSize + padL + padR;
 			}
 			else if( bVertical ) {
-				const int minW = nSize + padL + padR;
+				const int minW = (szBlock.cx > nSize ? szBlock.cx : nSize) + padL + padR;
 				if( sz.cx < minW ) sz.cx = minW;
 			}
 			else {
 				sz.cx += nSize + nGap;
+				if( szBlock.cx > 0 && GetAutoCalcWidth() ) {
+					const int want = nSize + nGap + szBlock.cx + padL + padR;
+					if( sz.cx < want ) sz.cx = want;
+				}
 			}
 		}
 		if( m_cxyFixed.cy == 0 ) {
@@ -1346,12 +2106,77 @@ namespace DuiLib
 				sz.cy += nSize + nGap;
 			}
 			else {
-				const int minH = nSize + padT + padB;
+				const int minH = (szBlock.cy > nSize ? szBlock.cy : nSize) + padT + padB;
 				if( sz.cy < minH ) sz.cy = minH;
 			}
 		}
 
 		m_cxyFixedLast = sz;
+		return sz;
+	}
+
+	int CButtonUI::ResolvePaintMainFont() const
+	{
+		int iFont = GetFont();
+		if( ((m_uButtonState & UISTATE_PUSHED) != 0) && (GetActiveFont() != -1) )
+			iFont = GetActiveFont();
+		else if( ((m_uButtonState & UISTATE_HOT) != 0) && (GetHoverFont() != -1) )
+			iFont = GetHoverFont();
+		else if( ((m_uButtonState & UISTATE_FOCUSED) != 0) && (GetFocusedFont() != -1) )
+			iFont = GetFocusedFont();
+		return iFont;
+	}
+
+	int CButtonUI::ResolvePaintSubFont(int iMainFont) const
+	{
+		return (m_iSubFont >= 0) ? m_iSubFont : iMainFont;
+	}
+
+	DWORD CButtonUI::ResolveSubTextColor(DWORD clrMain) const
+	{
+		if( m_dwSubColor != 0 )
+			return m_dwSubColor;
+
+		const ControlKind kind = GetKind();
+		const bool bSolidKind = (kind != CONTROLKIND_NONE && kind != CONTROLKIND_DEFAULT
+			&& kind != CONTROLKIND_LINK && kind != CONTROLKIND_LIGHT
+			&& !IsOutline());
+		if( bSolidKind )
+			return DuiColorSetA(clrMain, 0xB3);
+
+		CThemeManager* pTm = CThemeManager::GetInstance();
+		if( pTm != NULL && pTm->IsEnabled() ) {
+			DWORD sec = pTm->GetColor(_T("color-text-secondary"), 0);
+			if( sec != 0 ) return sec;
+		}
+		return DuiColorSetA(clrMain != 0 ? clrMain : 0x000000FF, 0x99);
+	}
+
+	SIZE CButtonUI::MeasureTitleBlock(int iMainFont) const
+	{
+		SIZE sz = { 0, 0 };
+		if( m_pManager == NULL ) return sz;
+		const int iSubFont = ResolvePaintSubFont(iMainFont);
+		UINT uMeas = DT_SINGLELINE | DT_LEFT | DT_TOP | DT_CALCRECT;
+		CDuiString sText = GetText();
+		SIZE szMain = { 0, 0 };
+		SIZE szSub = { 0, 0 };
+		if( !sText.IsEmpty() )
+			szMain = RenderMeasureTextSize(const_cast<CPaintManagerUI*>(m_pManager),
+				sText.GetData(), iMainFont, uMeas);
+		if( HasSubText() )
+			szSub = RenderMeasureTextSize(const_cast<CPaintManagerUI*>(m_pManager),
+				m_sSubText.GetData(), iSubFont, uMeas);
+		sz.cx = szMain.cx > szSub.cx ? szMain.cx : szSub.cx;
+		sz.cy = szMain.cy;
+		if( HasSubText() ) {
+			int nGap = m_pManager->GetDPIObj()->Scale(m_nSubGap);
+			if( szMain.cy > 0 && szSub.cy > 0 )
+				sz.cy += nGap;
+			sz.cy += szSub.cy;
+		}
+		if( sz.cx < 0 ) sz.cx = 0;
+		if( sz.cy < 0 ) sz.cy = 0;
 		return sz;
 	}
 
@@ -1372,14 +2197,13 @@ namespace DuiLib
 		if( cw <= 0 || ch <= 0 ) return false;
 		if( nSize > cw ) nSize = cw;
 
-		const bool bHasText = !GetText().IsEmpty();
+		const bool bHasText = !GetText().IsEmpty() || HasSubText();
 		const bool bTop = (m_sIconPos.CompareNoCase(_T("top")) == 0);
 		const bool bBottom = (m_sIconPos.CompareNoCase(_T("bottom")) == 0);
 		const bool bRight = (m_sIconPos.CompareNoCase(_T("right")) == 0);
 
 		if( !bHasText ) {
 			if( nSize > ch ) nSize = ch;
-			// 纯图标：居中
 			rcIcon.left = rcContent.left + (cw - nSize) / 2;
 			rcIcon.top = rcContent.top + (ch - nSize) / 2;
 			rcIcon.right = rcIcon.left + nSize;
@@ -1388,27 +2212,9 @@ namespace DuiLib
 			return true;
 		}
 
-		// 测量文字，使「图标 + gap + 文字」整体在内容区居中
-		int iFont = GetFont();
-		if( ((m_uButtonState & UISTATE_PUSHED) != 0) && (GetActiveFont() != -1) )
-			iFont = GetActiveFont();
-		else if( ((m_uButtonState & UISTATE_HOT) != 0) && (GetHoverFont() != -1) )
-			iFont = GetHoverFont();
-		else if( ((m_uButtonState & UISTATE_FOCUSED) != 0) && (GetFocusedFont() != -1) )
-			iFont = GetFocusedFont();
-
-		SIZE szText = { 0, 0 };
-		if( m_pManager != NULL ) {
-			CDuiString sText = GetText();
-			UINT uMeas = DT_SINGLELINE | DT_LEFT | DT_TOP | DT_CALCRECT;
-			szText = RenderMeasureTextSize(const_cast<CPaintManagerUI*>(m_pManager),
-				sText.GetData(), iFont, uMeas);
-		}
-		if( szText.cx < 0 ) szText.cx = 0;
-		if( szText.cy < 0 ) szText.cy = 0;
+		SIZE szText = MeasureTitleBlock(ResolvePaintMainFont());
 
 		if( bTop || bBottom ) {
-			// 给文字留高度，避免图标占满导致文字被裁
 			const int nTextReserve = szText.cy + nGap;
 			if( nSize > ch - nTextReserve && ch > nTextReserve )
 				nSize = ch - nTextReserve;
@@ -1424,7 +2230,6 @@ namespace DuiLib
 			rcText.left = rcContent.left;
 			rcText.right = rcContent.right;
 			if( bBottom ) {
-				// 文字在上、图标在下
 				rcText.top = y;
 				rcText.bottom = y + szText.cy;
 				if( rcText.bottom > yEnd ) rcText.bottom = yEnd;
@@ -1438,7 +2243,6 @@ namespace DuiLib
 				}
 			}
 			else {
-				// 图标在上、文字在下
 				rcIcon.top = y;
 				rcIcon.bottom = rcIcon.top + nSize;
 				rcText.top = rcIcon.bottom + nGap;
@@ -1452,7 +2256,6 @@ namespace DuiLib
 
 		int blockW = nSize + nGap + szText.cx;
 		if( blockW > cw ) {
-			// 内容过宽：贴边排布，文字吃剩余空间
 			if( bRight ) {
 				rcIcon.right = rcContent.right;
 				rcIcon.left = rcIcon.right - nSize;

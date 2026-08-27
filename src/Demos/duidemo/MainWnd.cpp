@@ -110,6 +110,7 @@ CMainWnd::CMainWnd()
 
 CMainWnd::~CMainWnd()
 {
+	m_hotKeys.Detach();
 	CMenuWnd::DestroyMenu();
 	if(m_pMenu != NULL) {
 		delete m_pMenu;
@@ -157,6 +158,59 @@ void CMainWnd::InitWindow()
 		: NULL;
 	if( pLookup != NULL )
 		pLookup->SetCallback(&m_lookupCallback);
+
+	// EditBox 历史 Demo：预填几条，点输入框即可弹出
+	CControlUI* pHistCtrl = m_pm.FindControl(_T("editbox_history"));
+	CEditBoxUI* pHist = pHistCtrl
+		? static_cast<CEditBoxUI*>(pHistCtrl->GetInterface(DUI_CTR_EDITBOX))
+		: NULL;
+	if( pHist != NULL ) {
+		pHist->SetHistoryEnabled(true);
+		pHist->SetHistoryMaxCount(10);
+		pHist->ClearHistory();
+		pHist->AddHistory(_T("DuiLib Ultimate"));
+		pHist->AddHistory(_T("历史搜索记录"));
+		pHist->AddHistory(_T("Hello EditBox"));
+	}
+
+	// Demo：占用 Ctrl+S / Ctrl+O，便于 HotKeyBox / edit-hotkey 测冲突检测
+	CButtonUI* pSave = static_cast<CButtonUI*>(m_pm.FindControl(_T("btn_shortcut_save")));
+	if( pSave != NULL )
+		pSave->SetShortcutKey('S', HOTKEYF_CONTROL);
+	CButtonUI* pOpen = static_cast<CButtonUI*>(m_pm.FindControl(_T("btn_shortcut_open")));
+	if( pOpen != NULL )
+		pOpen->SetShortcutKey('O', HOTKEYF_CONTROL);
+
+	// 程序内响应：scope 由 Bind / Button 决定（此处均为 APP）
+	m_hotKeys.SetHandler(&CMainWnd::OnAppHotKey, this);
+	m_hotKeys.Attach(&m_pm);
+	if( pSave != NULL ) m_hotKeys.BindButton(pSave, 1001);
+	if( pOpen != NULL ) m_hotKeys.BindButton(pOpen, 1002);
+
+	// AppIcon：内存图标 Demo（模拟网站 favicon 下载后 SetIconFromMemory）
+	CControlUI* pMemCtrl = m_pm.FindControl(_T("appicon_mem"));
+	CAppIconUI* pMemIcon = pMemCtrl
+		? static_cast<CAppIconUI*>(pMemCtrl->GetInterface(DUI_CTR_APPICON))
+		: NULL;
+	if( pMemIcon != NULL ) {
+		BYTE* pData = NULL;
+		DWORD dwSize = 0;
+		if( CPaintManagerUI::LoadResourceData(_T("img/demo_favicon.png"), &pData, &dwSize)
+			&& pData != NULL && dwSize > 0 ) {
+			pMemIcon->SetIconFromMemory(pData, dwSize);
+			delete[] pData;
+		}
+	}
+}
+
+void CALLBACK CMainWnd::OnAppHotKey(int id, WORD vk, WORD mod, int scope, LPVOID pUser)
+{
+	CDuiString tip;
+	tip.Format(_T("快捷键触发 id=%d %s [%s]"), id,
+		CHotKeyUI::FormatHotKeyName(vk, mod).GetData(),
+		scope == HOTKEYBOX_SCOPE_GLOBAL ? _T("全局") : _T("程序"));
+	CToast::ShowInfo(tip.GetData(), 2000);
+	(void)pUser;
 }
 
 BOOL CMainWnd::Receive(SkinChangedParam param)
@@ -329,6 +383,55 @@ LPCTSTR CMainWnd::QueryControlText(LPCTSTR lpstrId, LPCTSTR lpstrType)
 
 void CMainWnd::Notify(TNotifyUI& msg)
 {
+	if( msg.sType == DUI_MSGTYPE_ITEMMOVED
+		&& msg.pSender != NULL
+		&& (msg.pSender->GetName() == _T("demo_appgrid")
+			|| msg.pSender->GetName() == _T("demo_appgrid_scroll")) )
+	{
+		CDuiString tip;
+		tip.Format(_T("AppGrid itemmoved: %d ↔ %d"), (int)msg.wParam, (int)msg.lParam);
+		CToast::ShowInfo(tip.GetData(), 1500);
+		return;
+	}
+	if( (msg.sType == DUI_MSGTYPE_ITEMCLICK || msg.sType == DUI_MSGTYPE_ITEMRCLICK
+		|| msg.sType == DUI_MSGTYPE_ITEMDBCLICK)
+		&& msg.pSender != NULL
+		&& (msg.pSender->GetName() == _T("demo_appgrid")
+			|| msg.pSender->GetName() == _T("demo_appgrid_scroll")) )
+	{
+		CControlUI* pItem = (CControlUI*)msg.lParam;
+		LPCTSTR label = (pItem != NULL && !pItem->GetText().IsEmpty())
+			? pItem->GetText().GetData()
+			: (pItem != NULL ? pItem->GetName().GetData() : _T("?"));
+		LPCTSTR kind = _T("itemclick");
+		if( msg.sType == DUI_MSGTYPE_ITEMRCLICK ) kind = _T("itemrclick");
+		else if( msg.sType == DUI_MSGTYPE_ITEMDBCLICK ) kind = _T("itemdbclick");
+		CDuiString tip;
+		tip.Format(_T("AppGrid %s: [%d] %s"), kind, (int)msg.wParam, label);
+		CToast::ShowInfo(tip.GetData(), 1200);
+		return;
+	}
+	if( msg.sType == DUI_MSGTYPE_FILTERCHANGED
+		&& msg.pSender != NULL
+		&& msg.pSender->GetName() == _T("demo_appgrid") )
+	{
+		CLabelUI* pTip = static_cast<CLabelUI*>(m_pm.FindControl(_T("demo_appgrid_filter_tip")));
+		if( pTip != NULL ) {
+			CDuiString tip;
+			tip.Format(_T("可见 %d / %d"), (int)msg.wParam, (int)msg.lParam);
+			pTip->SetText(tip.GetData());
+		}
+		return;
+	}
+	if( msg.sType == DUI_MSGTYPE_PAGECHANGED
+		&& msg.pSender != NULL
+		&& msg.pSender->GetName() == _T("demo_appgrid") )
+	{
+		CDuiString tip;
+		tip.Format(_T("AppGrid page: %d → %d"), (int)msg.lParam, (int)msg.wParam);
+		CToast::ShowInfo(tip.GetData(), 1200);
+		return;
+	}
 	CDuiString name = msg.pSender ? msg.pSender->GetName() : CDuiString();
 	if(msg.sType == _T("windowinit")) {
 	}
@@ -342,6 +445,22 @@ void CMainWnd::Notify(TNotifyUI& msg)
 				pBtn->SetLoading(false);
 				pBtn->SetText(_T("提交"));
 			}
+			return;
+		}
+	}
+	else if( msg.sType == DUI_MSGTYPE_TEXTCHANGED )
+	{
+		if( msg.pSender != NULL && msg.pSender->GetName() == _T("demo_appgrid_search") ) {
+			CAppGridUI* pGrid = static_cast<CAppGridUI*>(m_pm.FindControl(_T("demo_appgrid")));
+			if( pGrid != NULL )
+				pGrid->SetFilterText(msg.pSender->GetText().GetData());
+			// 可见数由 filterchanged 刷新
+			return;
+		}
+		if( msg.pSender != NULL && msg.pSender->GetName() == _T("btn_edit_text_demo") ) {
+			CDuiString tip;
+			tip.Format(_T("已改字：%s"), msg.pSender->GetText().GetData());
+			CToast::ShowSuccess(tip.GetData(), 2500);
 			return;
 		}
 	}
@@ -586,6 +705,76 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 		|| sName.CompareNoCase(_T("fonticon_click2")) == 0)
 	{
 		CToast::ShowInfo(_T("FontIcon click"), 2000);
+		return;
+	}
+	// AppGrid 内样例 / ag_* / ags_* 由网格 itemclick 统一提示，避免与子控件 click 叠两层 Toast
+	if( sName.Find(_T("ag_")) == 0 || sName.Find(_T("ags_")) == 0
+		|| sName.Find(_T("appicon_")) == 0 )
+		return;
+	if(sName.CompareNoCase(_T("editbox_engine_go")) == 0)
+	{
+		CDuiString sEngine = _T("百度");
+		CDuiString sKeyword;
+		CControlUI* pComboCtrl = m_pm.FindControl(_T("editbox_engine_sel"));
+		CComboUI* pCombo = pComboCtrl
+			? static_cast<CComboUI*>(pComboCtrl->GetInterface(DUI_CTR_COMBO))
+			: NULL;
+		if( pCombo != NULL && !pCombo->GetText().IsEmpty() )
+			sEngine = pCombo->GetText();
+		CControlUI* pBoxCtrl = m_pm.FindControl(_T("editbox_engine"));
+		CEditBoxUI* pBox = pBoxCtrl
+			? static_cast<CEditBoxUI*>(pBoxCtrl->GetInterface(DUI_CTR_EDITBOX))
+			: NULL;
+		if( pBox != NULL )
+			sKeyword = pBox->GetText();
+		CDuiString tip;
+		tip.Format(_T("用%s搜索：%s"), sEngine.GetData(),
+			sKeyword.IsEmpty() ? _T("(空)") : sKeyword.GetData());
+		CToast::ShowInfo(tip.GetData(), 2500);
+		return;
+	}
+	if(sName.CompareNoCase(_T("editbox_history_go")) == 0)
+	{
+		CControlUI* pBoxCtrl = m_pm.FindControl(_T("editbox_history"));
+		CEditBoxUI* pBox = pBoxCtrl
+			? static_cast<CEditBoxUI*>(pBoxCtrl->GetInterface(DUI_CTR_EDITBOX))
+			: NULL;
+		if( pBox != NULL ) {
+			CDuiString s = pBox->GetText();
+			if( !pBox->AddHistory(s.GetData()) ) {
+				CToast::ShowWarning(_T("请先输入内容，再点「加入」或回车"), 2500);
+			}
+			else {
+				CDuiString tip;
+				tip.Format(_T("已加入历史（共 %d 条）"), pBox->GetHistoryCount());
+				CToast::ShowSuccess(tip.GetData(), 2500);
+			}
+		}
+		return;
+	}
+	if(sName.CompareNoCase(_T("editbox_history_clear")) == 0)
+	{
+		CControlUI* pBoxCtrl = m_pm.FindControl(_T("editbox_history"));
+		CEditBoxUI* pBox = pBoxCtrl
+			? static_cast<CEditBoxUI*>(pBoxCtrl->GetInterface(DUI_CTR_EDITBOX))
+			: NULL;
+		if( pBox != NULL ) {
+			pBox->ClearHistory();
+			CToast::ShowInfo(_T("历史已清空"), 2000);
+		}
+		return;
+	}
+	if(sName.CompareNoCase(_T("editbox_ico_attach")) == 0
+		|| sName.CompareNoCase(_T("editbox_ico_emoji")) == 0
+		|| sName.CompareNoCase(_T("editbox_ico_mic")) == 0
+		|| sName.CompareNoCase(_T("editbox_ico_send")) == 0)
+	{
+		LPCTSTR tip = _T("功能图标");
+		if( sName.CompareNoCase(_T("editbox_ico_attach")) == 0 ) tip = _T("附件");
+		else if( sName.CompareNoCase(_T("editbox_ico_emoji")) == 0 ) tip = _T("表情");
+		else if( sName.CompareNoCase(_T("editbox_ico_mic")) == 0 ) tip = _T("语音");
+		else if( sName.CompareNoCase(_T("editbox_ico_send")) == 0 ) tip = _T("发送");
+		CToast::ShowInfo(tip, 2000);
 		return;
 	}
 	if(sName.CompareNoCase(_T("homepage_btn")) == 0)
@@ -982,6 +1171,86 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 				.Owner(m_hWnd)
 				.SyncOwnerMove(false)
 				.OnResult(OnModalResult));
+	}
+	else if(sName.CompareNoCase(_T("btn_inputbox")) == 0)
+	{
+		CDuiString sText = _T("Hello InputBox");
+		if( INPUTBOX_OK == CInputBox::Show(m_hWnd, _T("修改文本"), _T("请输入内容："),
+				sText.GetData(), sText) ) {
+			CDuiString tip;
+			tip.Format(_T("确定：%s"), sText.GetData());
+			CToast::ShowSuccess(tip.GetData(), 3000);
+		}
+		else {
+			CToast::ShowInfo(_T("已取消输入"), 2000);
+		}
+	}
+	else if(sName.CompareNoCase(_T("btn_inputbox_pwd")) == 0)
+	{
+		CDuiString pwd;
+		if( INPUTBOX_OK == CInputBox::Show(m_hWnd,
+				CInputBoxOptions()
+					.Title(_T("请输入密码"))
+					.Prompt(_T("密码将用于演示，不会上传"))
+					.Placeholder(_T("至少 6 位"))
+					.Password(true)
+					.MaxLength(32)
+					.OkText(_T("确定"))
+					.CancelText(_T("取消")),
+				pwd) ) {
+			CDuiString tip;
+			tip.Format(_T("密码长度：%d"), pwd.GetLength());
+			CToast::ShowSuccess(tip.GetData(), 3000);
+		}
+		else {
+			CToast::ShowInfo(_T("已取消输入"), 2000);
+		}
+	}
+	else if(sName.CompareNoCase(_T("btn_inputbox_num")) == 0)
+	{
+		CDuiString num = _T("100");
+		if( INPUTBOX_OK == CInputBox::Show(m_hWnd,
+				CInputBoxOptions()
+					.Title(_T("请输入数量"))
+					.Prompt(_T("仅允许 0–9（不含小数点/负号）"))
+					.Value(num.GetData())
+					.Number(true)
+					.MaxLength(9)
+					.Placeholder(_T("整数")),
+				num) ) {
+			CDuiString tip;
+			tip.Format(_T("输入：%s"), num.GetData());
+			CToast::ShowSuccess(tip.GetData(), 3000);
+		}
+		else {
+			CToast::ShowInfo(_T("已取消输入"), 2000);
+		}
+	}
+	else if(sName.CompareNoCase(_T("btn_hotkeybox")) == 0)
+	{
+		WORD vk = 0, mod = 0;
+		int nScope = HOTKEYBOX_SCOPE_APP;
+		CDuiString sDisp;
+		if( HOTKEYBOX_OK == CHotKeyBox::Show(m_hWnd,
+				CHotKeyBoxOptions()
+					.Title(_T("设置快捷键"))
+					.Prompt(_T("请按下快捷键组合："))
+					.ConflictManager(&m_pm)
+					.AddReserved(VK_F4, HOTKEYF_ALT, _T("关闭窗口")),
+				vk, mod, &sDisp, &nScope) ) {
+			if( sDisp.IsEmpty() )
+				CToast::ShowInfo(_T("已清除快捷键"), 2000);
+			else {
+				CDuiString tip;
+				tip.Format(_T("%s：%s"),
+					nScope == HOTKEYBOX_SCOPE_GLOBAL ? _T("全局快捷键") : _T("程序快捷键"),
+					sDisp.GetData());
+				CToast::ShowSuccess(tip.GetData(), 3000);
+			}
+		}
+		else {
+			CToast::ShowInfo(_T("已取消"), 2000);
+		}
 	}
 	else if(sName.CompareNoCase(_T("btn_settings_sync")) == 0)
 	{

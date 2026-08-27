@@ -47,6 +47,8 @@
 | `image` | 状态皮肤图（DuiLib file='…' 串） | background-image / <img> |
 | `image-focus` | — | :focus { background-image } |
 | `scroll-select` | — | 无 |
+| `show-arrow` | 闭合态右侧箭头（内置 lucide `chevron-down`；无自定义 `image` 时） | 默认 true |
+| `auto-width` | 按最长项文字（含图标）自适应宽度 | 默认 false |
 | `drop-box` | 下拉面板属性串 | 无 |
 | `drop-box-size` | — | 无 |
 | `drop-box-padding` | 下拉面板内边距（CSS 顺序） | padding |
@@ -69,7 +71,7 @@
 | `item-show-html` | — | 无 |
 | `arrow-image` | — | 无 |
 
-> **默认边距**：闭合态选中文字与下拉项默认左右各 `6px`（对应 `padding`/`item-padding` 的 `0,6,0,6`），开箱即用不贴边；需要更贴或更大间距再覆盖 `padding` / `item-padding`。
+> **默认**：闭合态文字 **居中**；右侧用内置 `lucide` `chevron-down`（`show-arrow`，无自定义 `image` 时）；悬停手型光标；文字边距左右各 `6px`，倒三角另占约 `14px`。下拉项默认左右各 `6px`。可用 `text-align` / `show-arrow="false"` / `padding` / `item-padding` 覆盖。
 
 ### 下拉项图标（ListLabelElement）
 

@@ -2747,6 +2747,11 @@ namespace DuiLib {
 				return;
 			}
 		}
+		// SETCURSOR 须在本项处理；勿转给 Owner（Menu/List 不会套项上的 cursor）
+		if (event.Type == UIEVENT_SETCURSOR) {
+			CControlUI::DoEvent(event);
+			return;
+		}
 		// An important twist: The list-item will send the event not to its immediate
 		// parent but to the "attached" list. A list may actually embed several components
 		// in its path to the item, but key-presses etc. needs to go to the actual list.
@@ -3175,16 +3180,17 @@ namespace DuiLib {
 		return _tcsncmp(pExt, _T(".bmp"), 4) == 0
 			|| _tcsncmp(pExt, _T(".png"), 4) == 0
 			|| _tcsncmp(pExt, _T(".jpg"), 4) == 0
-			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0;
+			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0
+			|| _tcsncmp(pExt, _T(".gif"), 4) == 0
+			|| _tcsncmp(pExt, _T(".webp"), 5) == 0;
 	}
 
 	void CListLabelElementUI::RefreshRasterIconImage()
 	{
 		if( m_pRasterIcon == NULL || m_sRasterPath.IsEmpty() ) return;
 		if( !m_pRasterIcon->IsVisible() ) return;
-		int nSize = m_nIconSize;
-		if( m_pManager != NULL )
-			nSize = m_pManager->GetDPIObj()->Scale(m_nIconSize);
+		// dest 用逻辑尺寸，由 TDrawInfo::Parse 做一次 DPI Scale（勿预 Scale，否则二次放大）
+		const int nSize = m_nIconSize > 0 ? m_nIconSize : 16;
 		CDuiString sImg = m_sRasterPath;
 		if( sImg.Find(_T("file=")) < 0 && sImg.Find(_T("res=")) < 0
 			&& sImg.Find(_T("url(")) < 0 ) {
@@ -4174,6 +4180,11 @@ namespace DuiLib {
 				m_pManager->SendNotify(this, DUI_MSGTYPE_MENU, event.wParam, event.lParam);
 				return;
 			}
+		}
+		// SETCURSOR 须在本项处理（GetCursor / cursor 属性）；勿转给 Owner，否则手型等无效
+		if (event.Type == UIEVENT_SETCURSOR) {
+			CControlUI::DoEvent(event);
+			return;
 		}
 		// An important twist: The list-item will send the event not to its immediate
 		// parent but to the "attached" list. A list may actually embed several components

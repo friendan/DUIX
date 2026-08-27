@@ -928,6 +928,7 @@
     <ClCompile Include="Control\UIGifAnimEx.cpp" />
     <ClCompile Include="Control\UIGroupBox.cpp" />
     <ClCompile Include="Control\UIHotKey.cpp" />
+    <ClCompile Include="Control\UIHotKeyBinder.cpp" />
     <ClCompile Include="Control\UIIPAddress.cpp" />
     <ClCompile Include="Control\UIListEx.cpp" />
     <ClCompile Include="Control\UIMenu.cpp" />
@@ -1001,6 +1002,7 @@
     <ClCompile Include="Control\UILookupEdit.cpp" />
     <ClCompile Include="Control\UIDateTime.cpp" />
     <ClCompile Include="Control\UIEdit.cpp" />
+    <ClCompile Include="Control\UIEditBox.cpp" />
     <ClCompile Include="Control\UIFlash.cpp" />
     <ClCompile Include="Control\UILabel.cpp" />
     <ClCompile Include="Control\UIList.cpp" />
@@ -1026,6 +1028,7 @@
     <ClInclude Include="Control\UIGifAnimEx.h" />
     <ClInclude Include="Control\UIGroupBox.h" />
     <ClInclude Include="Control\UIHotKey.h" />
+    <ClInclude Include="Control\UIHotKeyBinder.h" />
     <ClInclude Include="Control\UIIPAddress.h" />
     <ClInclude Include="Control\UIListEx.h" />
     <ClInclude Include="Control\UIMenu.h" />
@@ -1071,6 +1074,7 @@
     <ClInclude Include="Control\UILookupEdit.h" />
     <ClInclude Include="Control\UIDateTime.h" />
     <ClInclude Include="Control\UIEdit.h" />
+    <ClInclude Include="Control\UIEditBox.h" />
     <ClInclude Include="Control\UIFlash.h" />
     <ClInclude Include="Control\UILabel.h" />
     <ClInclude Include="Control\UIList.h" />

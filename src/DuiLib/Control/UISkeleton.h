@@ -46,11 +46,15 @@ namespace DuiLib
 		SIZE EstimateSize(SIZE szAvailable);
 		bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 		void DoEvent(TEventUI& event);
+		/// TimerQueue → UIMSG_SKELETON_TICK
+		void OnAnimTick();
 
 	protected:
 		int ScaleValue(int v) const;
 		void StartAnim();
 		void StopAnim();
+		void StartQueueTimer();
+		void StopQueueTimer();
 		void PaintBlock(IRenderContext& ctx, const RECT& rc);
 		void PaintDefault(IRenderContext& ctx);
 		void PaintAvatarOnly(IRenderContext& ctx);
@@ -68,8 +72,11 @@ namespace DuiLib
 		int m_nPhase; // 0..100 扫光进度
 		DWORD m_dwBlockColor;
 		DWORD m_dwHighlightColor;
-		static const UINT TIMER_ID = 0x534B01; // 'SK'
+		HANDLE m_hQueueTimer;
+		static const UINT kSkeletonTickMs = 40;
 	};
+
+	void DuiLib_SkeletonOnQueueTick(CSkeletonUI* pSkeleton);
 }
 
 #endif // __UISKELETON_H__

@@ -1,6 +1,20 @@
 #include "StdAfx.h"
 #include "UICarousel.h"
 
+namespace
+{
+	VOID CALLBACK CarouselQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		DuiLib::CCarouselUI* pSelf = static_cast<DuiLib::CCarouselUI*>(lpParameter);
+		if( pSelf == NULL ) return;
+		DuiLib::CPaintManagerUI* pm = pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, DuiLib::UIMSG_CAROUSEL_TICK, (WPARAM)pSelf, 0);
+	}
+}
+
 namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CCarouselUI)
@@ -27,6 +41,7 @@ namespace DuiLib
 		, m_pGapBeforeLast(NULL)
 		, m_dwIndicatorColor(0x808080FF)
 		, m_dwIndicatorActiveColor(0xFFFFFFFF)
+		, m_hQueueTimer(NULL)
 	{
 		SetBackgroundColor(0xC8C8C8FF);
 		EnsureControlBar();
@@ -296,19 +311,34 @@ namespace DuiLib
 		StopTimer();
 	}
 
+	void CCarouselUI::StopTimer()
+	{
+		if( m_hQueueTimer != NULL ) {
+			::DeleteTimerQueueTimer(NULL, m_hQueueTimer, INVALID_HANDLE_VALUE);
+			m_hQueueTimer = NULL;
+		}
+		m_bTimerActive = false;
+	}
+
 	void CCarouselUI::StartTimer()
 	{
 		if( m_nInterval <= 0 || m_pManager == NULL ) return;
 		StopTimer();
-		if( SetTimer(TIMER_ID, (UINT)m_nInterval) )
+		HANDLE hTimer = NULL;
+		if( ::CreateTimerQueueTimer(&hTimer, NULL, CarouselQueueTimerProc,
+			reinterpret_cast<PVOID>(this),
+			(UINT)m_nInterval, (UINT)m_nInterval, WT_EXECUTEDEFAULT) ) {
+			m_hQueueTimer = hTimer;
 			m_bTimerActive = true;
+		}
 	}
 
-	void CCarouselUI::StopTimer()
+	void CCarouselUI::OnAnimTick()
 	{
-		if( m_pManager != NULL )
-			KillTimer(TIMER_ID);
-		m_bTimerActive = false;
+		if( !m_bTimerActive || !IsVisible() ) return;
+		if( m_bPauseOnHover && IsCursorInside() )
+			return;
+		Next();
 	}
 
 	bool CCarouselUI::IsCursorInside() const
@@ -330,12 +360,6 @@ namespace DuiLib
 
 	void CCarouselUI::DoEvent(TEventUI& event)
 	{
-		if( event.Type == UIEVENT_TIMER && event.wParam == TIMER_ID ) {
-			if( m_bPauseOnHover && IsCursorInside() )
-				return;
-			Next();
-			return;
-		}
 		CVerticalLayoutUI::DoEvent(event);
 	}
 
@@ -592,5 +616,11 @@ namespace DuiLib
 		if( m_pCaptionTitle ) m_pCaptionTitle->SetColor(dwTitleColor);
 		if( m_pCaptionText ) m_pCaptionText->SetColor(dwTextColor);
 		m_pCaptionBar->Invalidate();
+	}
+
+	void DuiLib_CarouselOnQueueTick(CCarouselUI* pCarousel)
+	{
+		if( pCarousel != NULL )
+			pCarousel->OnAnimTick();
 	}
 }

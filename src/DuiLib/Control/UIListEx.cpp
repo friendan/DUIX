@@ -1435,7 +1435,7 @@ Label_ForegroundImage:
 					uColStyle &= ~(DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM);
 					uColStyle |= (uHdr & (DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM));
 					if( (uColStyle & (DT_TOP | DT_VCENTER | DT_BOTTOM)) == 0 ) uColStyle |= DT_VCENTER;
-					if( (uColStyle & (DT_LEFT | DT_CENTER | DT_RIGHT)) == 0 ) uColStyle |= DT_CENTER;
+					// DT_LEFT==0：无 CENTER/RIGHT 即左对齐，勿再强制居中
 					uColStyle |= DT_SINGLELINE;
 				}
 				else {
@@ -1446,7 +1446,6 @@ Label_ForegroundImage:
 						uColStyle &= ~(DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM);
 						uColStyle |= (uHdr & (DT_LEFT | DT_CENTER | DT_RIGHT | DT_TOP | DT_VCENTER | DT_BOTTOM));
 						if( (uColStyle & (DT_TOP | DT_VCENTER | DT_BOTTOM)) == 0 ) uColStyle |= DT_VCENTER;
-						if( (uColStyle & (DT_LEFT | DT_CENTER | DT_RIGHT)) == 0 ) uColStyle |= DT_CENTER;
 						uColStyle |= DT_SINGLELINE;
 					}
 				}

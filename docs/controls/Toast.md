@@ -74,7 +74,7 @@ CToast::Show(_T("订单已支付"), _T("点击查看详情"),
 | `MinWidth` / `MaxWidth` | 350 / 600 | 按正文测量自动加宽，夹在此区间；超 `MaxWidth` 则换行增高 |
 | `Gap` | 16 | 边距 |
 | `Height` | 0 | `0`=自动（单行 44 / 双行 68；换行时增高） |
-| `PauseOnHover` | true | 鼠标悬停暂停倒计时 |
+| `PauseOnHover` | true | 鼠标在窗内暂停倒计时；每拍用 `PtInRect` 校对，离开后继续 |
 | `OnClick(fn, user)` | null | 正文 Label `clickable`；点文字回调，空白区仍可拖 |
 | `OnDismiss(fn, user)` | null | 关闭回调；`Timeout` / `Manual` / `Evicted` |
 | `UserData` | | 传给 OnClick / OnDismiss 的字符串 |
@@ -107,7 +107,8 @@ CToast::Show(_T("订单已支付"), _T("点击查看详情"),
 - 根布局 `action="title"` 可拖动；有 `OnClick` 时正文 Label `clickable`（手形），点文字跳详情，空白区仍可拖
 - `SetMaxCount(n)`：每个 Align 组最多 n 条（Window* 另按 Owner）；超出顶掉该组最旧；`0` 不限制
 - `OnDismiss`：关闭时回调原因（超时 / 手动含×与 Dismiss / 被顶掉）
-- 悬停默认暂停倒计时；× 仍只关闭
+- 倒计时：`CreateTimerQueueTimer` → `PostMessage`（不依赖 `WM_TIMER`）；详见 [Messages.md](Messages.md)#shadow-子类化与控件动画定时器硬约束
+- Toast 默认关阴影（避免 Shadow 子类化宿主 WndProc）
 - 同屏多条按对齐方向堆叠；关闭后同组重排填补空位
 - 用户拖走过的 Toast 脱离堆叠，之后重排/主窗跟随不再吸回原位
 - `Window*` 对齐：主窗移动/缩放时 Toast 跟随（`SetWindowSubclass`）；已拖离的不跟随堆叠重排

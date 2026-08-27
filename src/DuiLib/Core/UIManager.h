@@ -91,7 +91,17 @@ namespace DuiLib {
 		UIMSG_SET_DPI,                        // DPI 已更新
 		UIMSG_MENUCLICK,                      // 菜单项点击
 		UIMSG_ASYNC_NOTIFY,                   // 异步 Notify / DelayedCleanup
-		UIMSG__LIB_LAST = UIMSG_ASYNC_NOTIFY, // 库消息上限（追加时改此）
+		UIMSG_LOADING_TICK,                   // Loading 动画（TimerQueue→PostMessage）
+		UIMSG_RING_TICK,                      // Ring 旋转（TimerQueue→PostMessage）
+		UIMSG_SKELETON_TICK,                  // Skeleton 扫光
+		UIMSG_GIFANIM_TICK,                   // GifAnim 帧切换
+		UIMSG_GIFANIMEX_TICK,                 // GifAnimEx 帧切换（USE_XIMAGE_EFFECT）
+		UIMSG_SCROLLBAR_TICK,                 // ScrollBar 长按/拖滑重复滚动
+		UIMSG_CAROUSEL_TICK,                  // Carousel 自动轮播
+		UIMSG_ANIMATION_TICK,                 // CUIAnimation  mixin（SidePanel 等）
+		UIMSG_ROLLTEXT_TICK,                  // RollText 滚动 / 超时
+		UIMSG_RICHEDIT_TICK,                  // RichEdit 插入符 / TxSetTimer
+		UIMSG__LIB_LAST = UIMSG_RICHEDIT_TICK, // 库消息上限（追加时改此）
 
 		UIMSG_USER = WM_DUILIB_USER,          // 同 WM_DUILIB_USER
 	};

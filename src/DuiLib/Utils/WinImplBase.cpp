@@ -393,10 +393,12 @@ namespace DuiLib
 			m_pDefaultTrayMenu = NULL;
 		}
 		static const TCHAR kXml[] =
+			_T("<Window>")
 			_T("<Menu border-width=\"1\" border-radius=\"4,4\" padding=\"4,4,4,4\" item-padding=\"0,14,0,32\">")
 			_T("<MenuElement name=\"tray_show\" text=\"显示主窗口\"/>")
 			_T("<MenuElement name=\"tray_exit\" text=\"退出\"/>")
-			_T("</Menu>");
+			_T("</Menu>")
+			_T("</Window>");
 		m_pDefaultTrayMenu = new CMenuWnd();
 		m_pDefaultTrayMenu->Init(NULL, kXml, pt, &m_pm);
 		m_pDefaultTrayMenu->ResizeMenu();
@@ -466,6 +468,9 @@ namespace DuiLib
 
 	LRESULT WindowImplBase::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
+#if defined(WIN32) && !defined(UNDER_CE)
+		ClearTaskbarLivePreview(m_hWnd);
+#endif
 		bHandled = FALSE;
 		return 0;
 	}
@@ -789,6 +794,12 @@ namespace DuiLib
 
 		// 关联UI管理器
 		m_pm.Init(m_hWnd, GetManagerName());
+		// 按窗口所在显示器 DPI 建字体/布局（须在加载皮肤前）
+		{
+			int nDpi = CDPI::GetDpiForHwnd(m_hWnd);
+			if( nDpi > 0 )
+				m_pm.SetDPI(nDpi, false);
+		}
 		// 注册PreMessage回调
 		m_pm.AddPreMessageFilter(this);
 
@@ -814,6 +825,8 @@ namespace DuiLib
 		m_pm.AttachDialog(pRoot);
 		// 添加Notify事件接口
 		m_pm.AddNotifier(this);
+		// OnCreate 开头 SetDPI 时根尚未就绪，未发 UIMSG_SET_DPI；根挂上后补一次供应用同步 DPI UI
+		::PostMessage(m_hWnd, UIMSG_SET_DPI, 0, 0);
 		// 皮肤 size 属性：创建后按 InitSize 调整客户区（未设置则保持 Create 尺寸）
 		{
 			SIZE szInit = m_pm.GetInitSize();
@@ -822,6 +835,10 @@ namespace DuiLib
 		}
 		// 窗口初始化完毕
 		InitWindow();
+#if defined(WIN32) && !defined(UNDER_CE)
+		::UpdateWindow(m_hWnd);
+		DisableTaskbarLivePreview(m_hWnd);
+#endif
 		// min-to-tray / close-to-tray：若应用未自行 Create 托盘则自动创建 + 默认菜单
 		EnsureAutoTray();
 		return 0;
@@ -908,8 +925,9 @@ namespace DuiLib
 				SWP_NOZORDER | SWP_NOACTIVATE);
 			m_bSyncingOwner = false;
 		}
-		if( m_pm.GetRoot() != NULL )
-			m_pm.GetRoot()->NeedUpdate();
+		if( m_pm.GetRootPtr() != NULL )
+			m_pm.GetRootPtr()->NeedUpdate();
+		m_pm.Invalidate();
 
 		// 跨屏 DPI：本窗已落在新物理矩形上，按原偏移把 Owner 一起带过去，再重抓差
 		if( m_bHaveOwnerOffset )
@@ -955,6 +973,18 @@ namespace DuiLib
 		case WM_NCCALCSIZE:		lRes = OnNcCalcSize(uMsg, wParam, lParam, bHandled); break;
 		case WM_NCPAINT:		lRes = OnNcPaint(uMsg, wParam, lParam, bHandled); break;
 		case WM_NCHITTEST:		lRes = OnNcHitTest(uMsg, wParam, lParam, bHandled); break;
+#ifndef WM_DWMSENDICONICTHUMBNAIL
+#define WM_DWMSENDICONICTHUMBNAIL 0x0323
+#endif
+#ifndef WM_DWMSENDICONICLIVEPREVIEWBITMAP
+#define WM_DWMSENDICONICLIVEPREVIEWBITMAP 0x0326
+#endif
+		case WM_DWMSENDICONICTHUMBNAIL:
+			HandleTaskbarIconicThumbnail(m_hWnd, (int)LOWORD(lParam), (int)HIWORD(lParam));
+			return 0;
+		case WM_DWMSENDICONICLIVEPREVIEWBITMAP:
+			HandleTaskbarIconicLivePreview(m_hWnd);
+			return 0;
 		case WM_NCLBUTTONDOWN:
 		case WM_NCLBUTTONUP:
 		case WM_NCLBUTTONDBLCLK: {
@@ -1042,6 +1072,16 @@ namespace DuiLib
 
 		if( ProcessAutoTrayMessage(uMsg, wParam, lParam, lRes) )
 			return lRes;
+
+		// WM_MENUCLICK：先走 MessageFilter（Button edit-text、TabBar 等），再 HandleCustomMessage。
+		// 否则 demo/应用若在 Custom 里 catch-all 弹「提示」框，会吞掉内置菜单项。
+		if( uMsg == WM_MENUCLICK ) {
+			if( m_pm.MessageHandler(uMsg, wParam, lParam, lRes) )
+				return lRes;
+			lRes = HandleCustomMessage(uMsg, wParam, lParam, bHandled);
+			if( bHandled ) return lRes;
+			return CWindowWnd::HandleMessage(uMsg, wParam, lParam);
+		}
 
 		lRes = HandleCustomMessage(uMsg, wParam, lParam, bHandled);
 		if (bHandled) return lRes;

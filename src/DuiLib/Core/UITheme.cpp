@@ -272,11 +272,13 @@ namespace DuiLib {
 			_T("border-width=\"1\" color=\"#%08X\" background-color-disabled=\"#%08X\""),
 			ctrlBg, ctrlBd, ctrlFocus, text, disBg);
 		pManager->AddDefaultAttributeList(_T("Edit"), sForm.GetData(), true);
+		pManager->AddDefaultAttributeList(_T("EditBox"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("RichEdit"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("Spin"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("Number"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("Combo"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("ComboBox"), sForm.GetData(), true);
+		pManager->AddDefaultAttributeList(_T("LookupEdit"), sForm.GetData(), true);
 		pManager->AddDefaultAttributeList(_T("DateTime"), sForm.GetData(), true);
 
 		CDuiString sList;
@@ -751,7 +753,18 @@ namespace DuiLib {
 			DWORD skeletonHi = pUse->GetToken(_T("color-skeleton-highlight"), DuiColorSetA(0xFFFFFFFF, 0xA0));
 			(void)success; (void)warning;
 
-			const bool bForm = (pControl->GetInterface(DUI_CTR_EDIT) != NULL
+			const bool bEditBox = (pControl->GetInterface(DUI_CTR_EDITBOX) != NULL);
+			bool bEditInsideEditBox = false;
+			if( !bEditBox && pControl->GetInterface(DUI_CTR_EDIT) != NULL ) {
+				for( CControlUI* pAnc = pControl->GetParent(); pAnc != NULL; pAnc = pAnc->GetParent() ) {
+					if( pAnc->GetInterface(DUI_CTR_EDITBOX) != NULL ) {
+						bEditInsideEditBox = true;
+						break;
+					}
+				}
+			}
+			const bool bForm = ((!bEditInsideEditBox && pControl->GetInterface(DUI_CTR_EDIT) != NULL)
+				|| pControl->GetInterface(DUI_CTR_EDITBOX) != NULL
 				|| pControl->GetInterface(DUI_CTR_RICHEDIT) != NULL
 				|| pControl->GetInterface(DUI_CTR_SPIN) != NULL
 				|| pControl->GetInterface(DUI_CTR_NUMBER) != NULL
@@ -764,7 +777,7 @@ namespace DuiLib {
 			const bool bCombo = (pControl->GetInterface(DUI_CTR_COMBO) != NULL
 				|| pControl->GetInterface(DUI_CTR_COMBOBOX) != NULL);
 			const bool bDateTime = (pControl->GetInterface(DUI_CTR_DATETIME) != NULL);
-			const bool bEdit = (pControl->GetInterface(DUI_CTR_EDIT) != NULL);
+			const bool bEdit = (pControl->GetInterface(DUI_CTR_EDIT) != NULL) && !bEditInsideEditBox;
 			const bool bRichEdit = (pControl->GetInterface(DUI_CTR_RICHEDIT) != NULL);
 			const bool bHotKey = (pControl->GetInterface(DUI_CTR_HOTKEY) != NULL);
 			const bool bIPAddress = (pControl->GetInterface(DUI_CTR_IPADDRESS) != NULL);
@@ -795,6 +808,7 @@ namespace DuiLib {
 			const bool bSidePanel = (pControl->GetInterface(DUI_CTR_SIDEPANEL) != NULL);
 			const bool bAvatar = (pControl->GetInterface(DUI_CTR_AVATAR) != NULL);
 			const bool bFontIcon = (pControl->GetInterface(DUI_CTR_FONTICON) != NULL);
+			const bool bAppIcon = (pControl->GetInterface(DUI_CTR_APPICON) != NULL);
 			const bool bButton = (pControl->GetInterface(DUI_CTR_BUTTON) != NULL);
 			const bool bPlainTextLabel = (pControl->GetInterface(DUI_CTR_LABEL) != NULL
 				&& !bForm && !bOption && !bSwitch && !bCheckBox && !bProgress && !bSlider
@@ -873,6 +887,16 @@ namespace DuiLib {
 						ThemeSetColorAttr(pControl, _T("placeholder-color"), textSec);
 						CEditUI* pEdit = static_cast<CEditUI*>(pControl->GetInterface(DUI_CTR_EDIT));
 						if (pEdit != NULL) pEdit->SyncNativeEditColors();
+					}
+					if (bEditBox) {
+						CEditBoxUI* pBox = static_cast<CEditBoxUI*>(pControl->GetInterface(DUI_CTR_EDITBOX));
+						if (pBox != NULL) {
+							if (pBox->GetEdit() != NULL) {
+								ThemeSetColorAttr(pBox->GetEdit(), _T("placeholder-color"), textSec);
+								ThemeSetColorAttr(pBox->GetEdit(), _T("color"), text);
+							}
+							pBox->SyncInnerEditChrome();
+						}
 					}
 					if (bRichEdit) {
 						ThemeSetColorAttr(pControl, _T("placeholder-color"), textSec);
@@ -1046,13 +1070,12 @@ namespace DuiLib {
 					}
 					ThemeSetColorAttr(pControl, _T("background-color"), ctrlBg);
 					ThemeSetColorAttr(pControl, _T("border-color"), ctrlBd);
-					// Menu 分隔线用 MenuElement::line-color，不走 List item-line
+					// Menu 分隔线 / 图标槽竖线：line-color 跟 color-border；项在 ListBody 内，勿走 IContainer
 					if (bMenu) {
-						IContainerUI* pMenuItems = static_cast<IContainerUI*>(
-							pControl->GetInterface(_T("IContainer")));
-						if (pMenuItems != NULL) {
-							for (int mi = 0; mi < pMenuItems->GetCount(); ++mi) {
-								CControlUI* pItem = pMenuItems->GetItemAt(mi);
+						CListUI* pList = static_cast<CListUI*>(pControl->GetInterface(DUI_CTR_LIST));
+						if (pList != NULL) {
+							for (int mi = 0; mi < pList->GetCount(); ++mi) {
+								CControlUI* pItem = pList->GetItemAt(mi);
 								if (pItem == NULL) continue;
 								CMenuElementUI* pEl = static_cast<CMenuElementUI*>(
 									pItem->GetInterface(_T("MenuElement")));
@@ -1110,6 +1133,18 @@ namespace DuiLib {
 					if (pTag != NULL) pTag->ApplyStatusColors();
 				}
 				else if (bBadge) {
+					ThemeSetColorAttr(pControl, _T("badge-color"), danger);
+					ThemeSetColorAttr(pControl, _T("badge-text-color"), primaryOn);
+				}
+				else if (bAppIcon) {
+					ThemeSetColorAttr(pControl, _T("color"), text);
+					ThemeSetColorAttr(pControl, _T("color-disabled"), textSec);
+					if (pControl->GetKind() == CONTROLKIND_NONE) {
+						DWORD bgHoverMed = pUse->GetToken(_T("color-bg-hover-medium"), bgHover);
+						DWORD bgHoverPri = pUse->GetToken(_T("color-bg-hover-primary"), bgHoverMed);
+						ThemeSetColorAttr(pControl, _T("background-color-hover"), bgHoverMed);
+						ThemeSetColorAttr(pControl, _T("background-color-active"), bgHoverPri);
+					}
 					ThemeSetColorAttr(pControl, _T("badge-color"), danger);
 					ThemeSetColorAttr(pControl, _T("badge-text-color"), primaryOn);
 				}
@@ -1413,7 +1448,9 @@ void CThemeManager::ApplyManagerDefaults(CPaintManagerUI* pManager)
 		for (int i = 0; i < pManagers->GetSize(); ++i) {
 			CPaintManagerUI* pManager = static_cast<CPaintManagerUI*>((*pManagers)[i]);
 			if (pManager == NULL) continue;
-			SyncThemeSwitchersRecursive(pManager->GetRoot());
+			CControlUI* pRoot = pManager->GetRootPtr();
+			if (pRoot == NULL) continue;
+			SyncThemeSwitchersRecursive(pRoot);
 		}
 	}
 

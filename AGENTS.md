@@ -38,6 +38,13 @@ docs/controls/ 控件用法知识库（按控件一篇，勿堆本文件）
 - Agent / 编辑器新建或改写任何文本文件时，必须保持或写出 CRLF；不得因「规范化」批量改换行。
 - 根目录 `.editorconfig` 已约定 `end_of_line = crlf`；改文件后若 diff 只剩 `^M`/换行差异，应还原为 CRLF，勿提交纯换行变更。
 
+## 调试日志（硬约束）
+
+- 临时排查用日志**只写文件**（建议 `bin/<topic>_debug.log`，与 exe 同目录），方便用户直接打开/粘贴。
+- **禁止**用 `OutputDebugString` / DebugView 作为排查日志通道（不便查看与收集）。
+- 日志需带时间戳与关键上下文；高频路径（Tick/Paint）应抽样，避免刷爆文件。
+- 问题定位完成后应及时拆除或关断临时日志，勿长期留在主干。
+
 ## 首次生成工程
 
 默认使用 **Debug**：
@@ -118,10 +125,14 @@ build_clang_ninja_release.bat
    RichEdit、子窗 `WM_PRINT`、未知 Html 等会 Flush 或借 GdiInterop DC。改裁剪栈 / `PushLayer` / Interop 顺序极易空白或花屏；优先定点修，勿动总路径「少 Flush」。
 5. **经典 `ID2D1Bitmap` 绑定创建它的 RT**  
    不能把一张 bitmap 挂到 `TImageInfo::pBackend` 给所有 RT 共用；Device 级按 RT 键控缓存是正确做法。
+6. **非分层 + 原生 `WC_EDIT` 插入符**  
+   Present `BitBlt` 会盖住子窗 XOR 光标（能输入、`hwndCaret` 有值但看不见）。现行：Present 前 `ExcludeClipRect` Edit 子窗；Present 后焦点在 Edit 且**未组字**时再 `RedrawWindow`。细节与禁改项见 [docs/controls/Edit.md](docs/controls/Edit.md#聚焦原生-wc_edit插入符与中文输入法排障)。
+7. **任务栏悬停整栏图标闪白**  
+   GDI 兼容 RT 必须 `TYPE_SOFTWARE`（`GdiCompatRtProps`）；`WindowImplBase` 创建后 `DisableTaskbarLivePreview`（图标化 + 缓存响应 `WM_DWMSENDICONIC*`）。勿把 GDI 兼容 RT 改回 `TYPE_DEFAULT`、勿每帧 `FREEZE`、勿 `ExtendFrame(-1)`。阴影勿在 `NCACTIVATE`/`ACTIVATEAPP` 里 `SetWindowPos`。排障全文见 [docs/controls/Window.md](docs/controls/Window.md#任务栏悬停整栏图标闪白排障)。
 
 ### 改动后冒烟清单
 
-改 Present / Flush / GetDC / 裁剪 / 分层 / 图缓存后，至少手工过一遍（Debug：`bin\*_mtd.exe`）：
+改 Present / Flush / GetDC / 裁剪 / 分层 / 图缓存 / 阴影 / DWM 任务栏属性后，至少手工过一遍（Debug：`bin\*_mtd.exe`）：
 
 | # | 程序 | 检查项 |
 |---|------|--------|
@@ -129,7 +140,10 @@ build_clang_ninja_release.bat
 | 2 | `duidemo_mtd.exe` | 含 Html 文本、图片按钮的页面；悬停/按下态图正常 |
 | 3 | `HiDPITest_mtd.exe` | 启动有内容（非大块空白）；改 DPI/缩放后控件与文字不错位、不整区空白 |
 | 4 | （若有）ColorPalette 相关页 | 色板/滑条绘制正常（走 D2D `StretchBlit`，勿再整帧 Flush） |
+| 5 | `duidemo_mtd.exe` 表单 Edit / EditBox | 点击后系统闪烁光标可见；EditBox 中文候选在输入框附近（勿无条件 Present 后 Redraw 冲掉 IME） |
+| 6 | `duidemo_mtd.exe` 任务栏 | 启动后快速在本应用任务栏按钮上划动：整栏图标不闪白；悬停预览为图标（非实时抓窗）属预期 |
 
-**失败信号**：整窗黑色、客户区大块空白、分层变不透明黑块、悬停图不刷新、HiDPI 裁剪后空白 → 先怀疑 EndFrame sync / Present / GetDC Interop / RoundClip，而不是单个控件逻辑。
-
-建议顺序：先 1（最快暴露黑屏），再 3，最后 2/4。
+**失败信号**：整窗黑色、客户区大块空白、分层变不透明黑块、悬停图不刷新、HiDPI 裁剪后空白 → 先怀疑 EndFrame sync / Present / GetDC Interop / RoundClip，而不是单个控件逻辑。  
+Edit **能输入但无光标** → 先查 Present 子窗 ExcludeClip / 未组字 RedrawWindow（见 Edit.md），勿先上自绘 caret。  
+任务栏**整栏图标闪白** → 先查 SOFTWARE RT + `DisableTaskbarLivePreview` + 阴影勿 thrash Z 序（见 Window.md），勿先关阴影 / 切整窗 GDI。
+建议顺序：先 1（最快暴露黑屏），再 6（任务栏），再 3，最后 2/4。

@@ -339,34 +339,14 @@ namespace DuiLib
 		if( (m_uButtonState & UISTATE_SELECTED) != 0 )
 		{
 			DWORD oldTextColor = m_dwColor;
+			int iOldFont = GetFont();
 			if( m_dwSelectedColor != 0 ) m_dwColor = m_dwSelectedColor;
-
-			if( m_dwColor == 0 ) m_dwColor = m_pManager->GetDefaultFontColor();
-			if( m_dwDisabledColor == 0 ) m_dwDisabledColor = m_pManager->GetDefaultDisabledColor();
-
-			int iFont = GetFont();
-			if(GetSelectedFont() != -1) {
-				iFont = GetSelectedFont();
-			}
-			CDuiString sText = GetText();
-			if( sText.IsEmpty() ) return;
-			int nLinks = 0;
-			RECT rc = m_rcItem;
-			RECT rcPadding = GetPadding();
-			RECT rcTextPadding = GetTextPadding();
-			rc.left += rcPadding.left + rcTextPadding.left;
-			rc.right -= rcPadding.right + rcTextPadding.right;
-			rc.top += rcPadding.top + rcTextPadding.top;
-			rc.bottom -= rcPadding.bottom + rcTextPadding.bottom;
-
-			DWORD clrColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
-			
-			if( m_bShowHtml )
-				ctx.DrawHtmlText(rc, sText.GetData(), GetAdjustColor(clrColor), NULL, NULL, nLinks, iFont, m_uTextStyle);
-			else
-				ctx.DrawText(rc, sText.GetData(), GetAdjustColor(clrColor), iFont, m_uTextStyle);
-
+			if( GetSelectedFont() != -1 )
+				SetFont(GetSelectedFont());
+			// 与未选中共用 Button 绘制，避免选中/未选中对齐不一致
+			CButtonUI::PaintText(ctx);
 			m_dwColor = oldTextColor;
+			SetFont(iOldFont);
 		}
 		else
 			CButtonUI::PaintText(ctx);

@@ -9,13 +9,21 @@ namespace DuiLib {
 	namespace {
 
 		enum {
-			kToastTimerId = 1,
-			kToastTickMs = 1000,
+			WM_TOAST_TICK = WM_APP + 0x54A0,
+			kToastTickMs = 200,
 			kToastSingleHeight = 44,
 			kToastDualHeight = 68,
 			kToastIconSize = 20,
 			kToastOwnerSubclassId = 0x544F4153, // 'TOAS'
 		};
+
+		// 线程池定时器回调；只 PostMessage 回 UI 线程（不依赖 HWND WM_TIMER）
+		VOID CALLBACK ToastQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+		{
+			HWND hWnd = reinterpret_cast<HWND>(lpParameter);
+			if( hWnd != NULL && ::IsWindow(hWnd) )
+				::PostMessage(hWnd, WM_TOAST_TICK, 0, 0);
+		}
 
 		std::vector<HWND> g_activeToasts;
 		int g_nMaxCount = 0;
@@ -149,7 +157,6 @@ namespace DuiLib {
 	private:
 		LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-		LRESULT OnTimer(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		LRESULT OnClose(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		LRESULT OnNcHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
@@ -167,6 +174,8 @@ namespace DuiLib {
 		void StopTimer();
 		void SetPaused(bool paused);
 		void UpdateTimerLabel();
+		void OnTimerTick();
+		bool IsCursorOverWindow() const;
 		void FireClick();
 		void FireDismiss(ToastDismissReason reason);
 		void SetupClickableLabel(CLabelUI* pLabel);
@@ -191,6 +200,9 @@ namespace DuiLib {
 		int m_nLayoutW;
 		int m_nLayoutH;
 		int m_nRemaining;
+		DWORD m_dwExpireTick;
+		DWORD m_dwPauseStart;
+		HANDLE m_hQueueTimer;
 		bool m_bDismissed;
 		bool m_bTimerActive;
 		bool m_bPaused;
@@ -210,6 +222,9 @@ namespace DuiLib {
 		, m_nLayoutW(0)
 		, m_nLayoutH(0)
 		, m_nRemaining(0)
+		, m_dwExpireTick(0)
+		, m_dwPauseStart(0)
+		, m_hQueueTimer(NULL)
 		, m_bDismissed(false)
 		, m_bTimerActive(false)
 		, m_bPaused(false)
@@ -379,8 +394,8 @@ namespace DuiLib {
 		StartTimer();
 
 		if( hRef && ::IsWindow(hRef) ) {
-			::RedrawWindow(hRef, NULL, NULL,
-				RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_FRAME);
+			// 勿同步 RedrawWindow：itemmoved 等 notify 路径中会重入绘制（AppGrid 拖拽还原竞态）
+			::InvalidateRect(hRef, NULL, FALSE);
 		}
 		return m_hWnd;
 	}
@@ -538,6 +553,9 @@ namespace DuiLib {
 			pRoot->Add(m_pCloseBtn);
 		}
 
+		// 默认关阴影：AttachDialog→Shadow::Create 会 SetWindowLongPtr 子类化宿主，
+		// 在部分环境下会干扰本窗定时器投递；Toast 用圆角 RGN 即可。
+		m_pm.GetShadow()->ShowShadow(false);
 		m_pm.AttachDialog(pRoot);
 		// AttachDialog→ApplyToManager 会写窗口底；kind 根已在 SetWindowBackgroundColor 中跳过，
 		// 这里再 SetKind 一次，避免以后路径改动再次盖掉底色。
@@ -794,31 +812,58 @@ namespace DuiLib {
 
 	void CToastWnd::StartTimer()
 	{
+		StopTimer();
 		m_nRemaining = m_opts.m_nDuration;
 		m_bPaused = false;
+		m_bMouseTracking = false;
+		m_dwPauseStart = 0;
 		if( m_nRemaining <= 0 ) {
 			if( m_pTimerLabel ) m_pTimerLabel->SetVisible(false);
 			return;
 		}
+		m_dwExpireTick = ::GetTickCount() + (DWORD)m_nRemaining;
 		UpdateTimerLabel();
-		::SetTimer(m_hWnd, kToastTimerId, kToastTickMs, NULL);
-		m_bTimerActive = true;
+		// CreateTimerQueueTimer → PostMessage：与宿主 WM_TIMER / Shadow 子类化解耦
+		if( m_hWnd != NULL && ::IsWindow(m_hWnd) ) {
+			HANDLE hTimer = NULL;
+			if( ::CreateTimerQueueTimer(&hTimer, NULL, ToastQueueTimerProc,
+				reinterpret_cast<PVOID>(m_hWnd),
+				kToastTickMs, kToastTickMs, WT_EXECUTEDEFAULT) ) {
+				m_hQueueTimer = hTimer;
+				m_bTimerActive = true;
+			}
+		}
 	}
 
 	void CToastWnd::StopTimer()
 	{
-		if( m_bTimerActive && m_hWnd && ::IsWindow(m_hWnd) ) {
-			::KillTimer(m_hWnd, kToastTimerId);
+		if( m_hQueueTimer != NULL ) {
+			// INVALID_HANDLE_VALUE：等回调退出后再删，避免 PostMessage 踩已毁窗
+			::DeleteTimerQueueTimer(NULL, m_hQueueTimer, INVALID_HANDLE_VALUE);
+			m_hQueueTimer = NULL;
 		}
 		m_bTimerActive = false;
 		m_bPaused = false;
+		m_bMouseTracking = false;
 	}
 
 	void CToastWnd::SetPaused(bool paused)
 	{
 		if( !m_opts.m_bPauseOnHover || m_opts.m_nDuration <= 0 ) return;
 		if( m_bPaused == paused ) return;
-		m_bPaused = paused;
+		DWORD now = ::GetTickCount();
+		if( paused ) {
+			m_bPaused = true;
+			m_dwPauseStart = now;
+		}
+		else {
+			if( m_bPaused && m_dwPauseStart != 0 )
+				m_dwExpireTick += (now - m_dwPauseStart);
+			m_bPaused = false;
+			m_dwPauseStart = 0;
+			OnTimerTick();
+			return;
+		}
 		UpdateTimerLabel();
 		m_pm.Invalidate();
 	}
@@ -826,7 +871,7 @@ namespace DuiLib {
 	void CToastWnd::UpdateTimerLabel()
 	{
 		if( !m_pTimerLabel ) return;
-		int sec = (m_nRemaining + 500) / 1000;
+		int sec = (m_nRemaining + 999) / 1000; // 向上取整：2.0s→2，1.01s→2，1.0s→1
 		if( sec <= 0 ) {
 			m_pTimerLabel->SetVisible(false);
 			return;
@@ -835,6 +880,51 @@ namespace DuiLib {
 		TCHAR buf[16];
 		_stprintf_s(buf, 16, _T("%ds"), sec);
 		m_pTimerLabel->SetText(buf);
+		m_pTimerLabel->Invalidate();
+	}
+
+	void CToastWnd::OnTimerTick()
+	{
+		if( m_bDismissed || !m_bTimerActive ) return;
+
+		DWORD now = ::GetTickCount();
+		if( m_opts.m_bPauseOnHover ) {
+			const bool over = IsCursorOverWindow();
+			if( over ) {
+				if( !m_bPaused ) {
+					m_bPaused = true;
+					m_dwPauseStart = now;
+				}
+				return;
+			}
+			if( m_bPaused ) {
+				if( m_dwPauseStart != 0 )
+					m_dwExpireTick += (now - m_dwPauseStart);
+				m_bPaused = false;
+				m_dwPauseStart = 0;
+				m_bMouseTracking = false;
+			}
+		}
+
+		int left = (int)(m_dwExpireTick - now);
+		if( left <= 0 ) {
+			m_nRemaining = 0;
+			Dismiss(ToastDismiss_Timeout);
+			return;
+		}
+		m_nRemaining = left;
+		UpdateTimerLabel();
+		m_pm.Invalidate();
+	}
+
+	bool CToastWnd::IsCursorOverWindow() const
+	{
+		if( m_hWnd == NULL || !::IsWindow(m_hWnd) ) return false;
+		POINT pt = { 0, 0 };
+		if( !::GetCursorPos(&pt) ) return false;
+		RECT rc = { 0 };
+		::GetWindowRect(m_hWnd, &rc);
+		return ::PtInRect(&rc, pt) != FALSE;
 	}
 
 	void CToastWnd::SetupClickableLabel(CLabelUI* pLabel)
@@ -955,26 +1045,6 @@ namespace DuiLib {
 		return 0;
 	}
 
-	LRESULT CToastWnd::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
-	{
-		if( wParam != kToastTimerId ) {
-			bHandled = FALSE;
-			return 0;
-		}
-		if( m_bDismissed ) return 0;
-		if( m_bPaused ) return 0;
-
-		m_nRemaining -= kToastTickMs;
-		if( m_nRemaining <= 0 ) {
-			Dismiss(ToastDismiss_Timeout);
-		}
-		else {
-			UpdateTimerLabel();
-			m_pm.Invalidate();
-		}
-		return 0;
-	}
-
 	LRESULT CToastWnd::OnClose(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
 		if( !m_bDismissed ) {
@@ -1024,9 +1094,9 @@ namespace DuiLib {
 		case WM_SIZE:
 			lRes = OnSize(uMsg, wParam, lParam, bHandled);
 			break;
-		case WM_TIMER:
-			lRes = OnTimer(uMsg, wParam, lParam, bHandled);
-			break;
+		case WM_TOAST_TICK:
+			OnTimerTick();
+			return 0;
 		case WM_CLOSE:
 			lRes = OnClose(uMsg, wParam, lParam, bHandled);
 			break;
@@ -1053,18 +1123,16 @@ namespace DuiLib {
 				TRACKMOUSEEVENT tme;
 				::ZeroMemory(&tme, sizeof(tme));
 				tme.cbSize = sizeof(tme);
-				tme.dwFlags = (uMsg == WM_NCMOUSEMOVE) ? (TME_LEAVE | TME_NONCLIENT) : TME_LEAVE;
+				tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
 				tme.hwndTrack = m_hWnd;
 				::TrackMouseEvent(&tme);
 				m_bMouseTracking = true;
-				SetPaused(true);
 			}
 			bHandled = FALSE;
 			break;
 		case WM_MOUSELEAVE:
 		case WM_NCMOUSELEAVE:
 			m_bMouseTracking = false;
-			SetPaused(false);
 			bHandled = FALSE;
 			break;
 		default:

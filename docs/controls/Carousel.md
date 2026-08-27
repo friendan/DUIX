@@ -70,6 +70,6 @@
 ## 行为摘要
 
 - 同时仅一项 `CarouselItem` 可见；Item 占满除控制栏外高度
-- 自动播放用 `SetTimer`；光标在控件内且 `pause` 时本 tick 不翻页
+- 自动播放：`CreateTimerQueueTimer` → `UIMSG_CAROUSEL_TICK`（**非** `SetTimer`，见 [Messages.md](Messages.md)）；光标在控件内且 `pause` 时本 tick 不翻页
 - 手动切换会重启定时器计时
 - 首版无横向滑动动画（可后续接 AnimationTabLayout 思路）

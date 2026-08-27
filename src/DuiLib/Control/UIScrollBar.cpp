@@ -1,6 +1,20 @@
 #include "StdAfx.h"
 #include "UIScrollBar.h"
 
+namespace
+{
+	VOID CALLBACK ScrollBarQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		DuiLib::CScrollBarUI* pSelf = static_cast<DuiLib::CScrollBarUI*>(lpParameter);
+		if( pSelf == NULL ) return;
+		DuiLib::CPaintManagerUI* pm = pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, DuiLib::UIMSG_SCROLLBAR_TICK, (WPARAM)pSelf, 0);
+	}
+}
+
 namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CScrollBarUI)
@@ -9,7 +23,8 @@ namespace DuiLib
 		m_nThumbMinSize(DEFAULT_THUMB_MIN_SIZE),
 		m_pOwner(NULL), m_nLastScrollPos(0), m_nLastScrollOffset(0), m_nScrollRepeatDelay(0),
 		m_bShowButtonPrev(false), m_uButtonPrevState(0), m_bShowButtonNext(false), m_uButtonNextState(0), m_uThumbState(0),
-		m_dwThumbColor(0), m_dwThumbHoverColor(0), m_dwThumbActiveColor(0), m_dwThumbDisabledColor(0)
+		m_dwThumbColor(0), m_dwThumbHoverColor(0), m_dwThumbActiveColor(0), m_dwThumbDisabledColor(0),
+		m_hQueueTimer(NULL)
 	{
 		m_cxyFixed.cx = DEFAULT_SCROLLBAR_SIZE;
 		m_ptLastMouse.x = m_ptLastMouse.y = 0;
@@ -18,6 +33,99 @@ namespace DuiLib
 		::ZeroMemory(&m_rcButtonNext, sizeof(m_rcButtonNext));
 		// 浅灰轨道；无图时配合实心圆角滑块
 		SetBackgroundColor(0xEDEDF0FF);
+	}
+
+	CScrollBarUI::~CScrollBarUI()
+	{
+		StopScrollRepeatTimer();
+	}
+
+	void CScrollBarUI::StopScrollRepeatTimer()
+	{
+		if( m_hQueueTimer != NULL ) {
+			::DeleteTimerQueueTimer(NULL, m_hQueueTimer, INVALID_HANDLE_VALUE);
+			m_hQueueTimer = NULL;
+		}
+	}
+
+	void CScrollBarUI::StartScrollRepeatTimer()
+	{
+		StopScrollRepeatTimer();
+		if( m_pManager == NULL ) return;
+		HANDLE hTimer = NULL;
+		if( ::CreateTimerQueueTimer(&hTimer, NULL, ScrollBarQueueTimerProc,
+			reinterpret_cast<PVOID>(this),
+			kScrollRepeatMs, kScrollRepeatMs, WT_EXECUTEDEFAULT) ) {
+			m_hQueueTimer = hTimer;
+		}
+	}
+
+	void CScrollBarUI::OnScrollRepeatTick()
+	{
+		if( m_pManager == NULL ) return;
+		++m_nScrollRepeatDelay;
+		if( (m_uThumbState & UISTATE_CAPTURED) != 0 ) {
+			if( !m_bHorizontal ) {
+				if( m_pOwner != NULL ) m_pOwner->SetScrollPos(CDuiSize(m_pOwner->GetScrollPos().cx, \
+					m_nLastScrollPos + m_nLastScrollOffset)); 
+				else SetScrollPos(m_nLastScrollPos + m_nLastScrollOffset);
+			}
+			else {
+				if( m_pOwner != NULL ) m_pOwner->SetScrollPos(CDuiSize(m_nLastScrollPos + m_nLastScrollOffset, \
+					m_pOwner->GetScrollPos().cy)); 
+				else SetScrollPos(m_nLastScrollPos + m_nLastScrollOffset);
+			}
+			Invalidate();
+		}
+		else if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) {
+			if( m_nScrollRepeatDelay <= 5 ) return;
+			if( !m_bHorizontal ) {
+				if( m_pOwner != NULL ) m_pOwner->LineUp(); 
+				else SetScrollPos(m_nScrollPos - m_nLineSize);
+			}
+			else {
+				if( m_pOwner != NULL ) m_pOwner->LineLeft(); 
+				else SetScrollPos(m_nScrollPos - m_nLineSize);
+			}
+		}
+		else if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) {
+			if( m_nScrollRepeatDelay <= 5 ) return;
+			if( !m_bHorizontal ) {
+				if( m_pOwner != NULL ) m_pOwner->LineDown(); 
+				else SetScrollPos(m_nScrollPos + m_nLineSize);
+			}
+			else {
+				if( m_pOwner != NULL ) m_pOwner->LineRight(); 
+				else SetScrollPos(m_nScrollPos + m_nLineSize);
+			}
+		}
+		else {
+			if( m_nScrollRepeatDelay <= 5 ) return;
+			POINT pt = { 0 };
+			::GetCursorPos(&pt);
+			::ScreenToClient(m_pManager->GetPaintWindow(), &pt);
+			if( !m_bHorizontal ) {
+				if( pt.y < m_rcThumb.top ) {
+					if( m_pOwner != NULL ) m_pOwner->PageUp(); 
+					else SetScrollPos(m_nScrollPos + m_rcItem.top - m_rcItem.bottom);
+				}
+				else if ( pt.y > m_rcThumb.bottom ){
+					if( m_pOwner != NULL ) m_pOwner->PageDown(); 
+					else SetScrollPos(m_nScrollPos - m_rcItem.top + m_rcItem.bottom);                    
+				}
+			}
+			else {
+				if( pt.x < m_rcThumb.left ) {
+					if( m_pOwner != NULL ) m_pOwner->PageLeft(); 
+					else SetScrollPos(m_nScrollPos + m_rcItem.left - m_rcItem.right);
+				}
+				else if ( pt.x > m_rcThumb.right ){
+					if( m_pOwner != NULL ) m_pOwner->PageRight(); 
+					else SetScrollPos(m_nScrollPos - m_rcItem.left + m_rcItem.right);                    
+				}
+			}
+		}
+		m_pManager->SendNotify(this, DUI_MSGTYPE_SCROLL);
 	}
 
 	LPCTSTR CScrollBarUI::GetClass() const
@@ -115,6 +223,11 @@ namespace DuiLib
 	int CScrollBarUI::GetScrollPos() const
 	{
 		return m_nScrollPos;
+	}
+
+	RECT CScrollBarUI::GetThumbRect() const
+	{
+		return m_rcThumb;
 	}
 
 	void CScrollBarUI::SetScrollPos(int nPos)
@@ -664,8 +777,6 @@ namespace DuiLib
 				m_uThumbState |= UISTATE_CAPTURED | UISTATE_PUSHED;
 				m_ptLastMouse = event.ptMouse;
 				m_nLastScrollPos = m_nScrollPos;
-				
-				m_pManager->SetTimer(this, DEFAULT_TIMERID, 50U);
 			}
 			else {
 				if( !m_bHorizontal ) {
@@ -689,6 +800,7 @@ namespace DuiLib
 					}
 				}
 			}
+			StartScrollRepeatTimer();
 			if( m_pManager != NULL) m_pManager->SendNotify(this, DUI_MSGTYPE_SCROLL);
 			return;
 		}
@@ -696,7 +808,7 @@ namespace DuiLib
 		{
 			m_nScrollRepeatDelay = 0;
 			m_nLastScrollOffset = 0;
-			m_pManager->KillTimer(this, DEFAULT_TIMERID);
+			StopScrollRepeatTimer();
 
 			if( (m_uThumbState & UISTATE_CAPTURED) != 0 ) {
 				m_uThumbState &= ~( UISTATE_CAPTURED | UISTATE_PUSHED );
@@ -753,73 +865,6 @@ namespace DuiLib
 		}
 		if( event.Type == UIEVENT_CONTEXTMENU )
 		{
-			return;
-		}
-		if( event.Type == UIEVENT_TIMER && event.wParam == DEFAULT_TIMERID )
-		{
-			++m_nScrollRepeatDelay;
-			if( (m_uThumbState & UISTATE_CAPTURED) != 0 ) {
-				if( !m_bHorizontal ) {
-					if( m_pOwner != NULL ) m_pOwner->SetScrollPos(CDuiSize(m_pOwner->GetScrollPos().cx, \
-						m_nLastScrollPos + m_nLastScrollOffset)); 
-					else SetScrollPos(m_nLastScrollPos + m_nLastScrollOffset);
-				}
-				else {
-					if( m_pOwner != NULL ) m_pOwner->SetScrollPos(CDuiSize(m_nLastScrollPos + m_nLastScrollOffset, \
-						m_pOwner->GetScrollPos().cy)); 
-					else SetScrollPos(m_nLastScrollPos + m_nLastScrollOffset);
-				}
-				Invalidate();
-			}
-			else if( (m_uButtonPrevState & UISTATE_PUSHED) != 0 ) {
-				if( m_nScrollRepeatDelay <= 5 ) return;
-				if( !m_bHorizontal ) {
-					if( m_pOwner != NULL ) m_pOwner->LineUp(); 
-					else SetScrollPos(m_nScrollPos - m_nLineSize);
-				}
-				else {
-					if( m_pOwner != NULL ) m_pOwner->LineLeft(); 
-					else SetScrollPos(m_nScrollPos - m_nLineSize);
-				}
-			}
-			else if( (m_uButtonNextState & UISTATE_PUSHED) != 0 ) {
-				if( m_nScrollRepeatDelay <= 5 ) return;
-				if( !m_bHorizontal ) {
-					if( m_pOwner != NULL ) m_pOwner->LineDown(); 
-					else SetScrollPos(m_nScrollPos + m_nLineSize);
-				}
-				else {
-					if( m_pOwner != NULL ) m_pOwner->LineRight(); 
-					else SetScrollPos(m_nScrollPos + m_nLineSize);
-				}
-			}
-			else {
-				if( m_nScrollRepeatDelay <= 5 ) return;
-				POINT pt = { 0 };
-				::GetCursorPos(&pt);
-				::ScreenToClient(m_pManager->GetPaintWindow(), &pt);
-				if( !m_bHorizontal ) {
-					if( pt.y < m_rcThumb.top ) {
-						if( m_pOwner != NULL ) m_pOwner->PageUp(); 
-						else SetScrollPos(m_nScrollPos + m_rcItem.top - m_rcItem.bottom);
-					}
-					else if ( pt.y > m_rcThumb.bottom ){
-						if( m_pOwner != NULL ) m_pOwner->PageDown(); 
-						else SetScrollPos(m_nScrollPos - m_rcItem.top + m_rcItem.bottom);                    
-					}
-				}
-				else {
-					if( pt.x < m_rcThumb.left ) {
-						if( m_pOwner != NULL ) m_pOwner->PageLeft(); 
-						else SetScrollPos(m_nScrollPos + m_rcItem.left - m_rcItem.right);
-					}
-					else if ( pt.x > m_rcThumb.right ){
-						if( m_pOwner != NULL ) m_pOwner->PageRight(); 
-						else SetScrollPos(m_nScrollPos - m_rcItem.left + m_rcItem.right);                    
-					}
-				}
-			}
-			if( m_pManager != NULL ) m_pManager->SendNotify(this, DUI_MSGTYPE_SCROLL);
 			return;
 		}
 		if( event.Type == UIEVENT_MOUSEENTER )
@@ -1139,5 +1184,11 @@ namespace DuiLib
 			if( !DrawImage(ctx, m_sRailNormalImage.GetData(), m_sImageModify.GetData()) ) {}
 			else return;
 		}
+	}
+
+	void DuiLib_ScrollBarOnQueueTick(CScrollBarUI* pScrollBar)
+	{
+		if( pScrollBar != NULL )
+			pScrollBar->OnScrollRepeatTick();
 	}
 }

@@ -129,7 +129,7 @@ duidemo 同时演示了 A+B：`DuiDemo.cpp` 里 `REGIST_DUICONTROL(CCircleProgre
 |------|----------|
 | XML 自定义属性 | `SetAttribute`：识别后处理，否则 `基类::SetAttribute` |
 | 自绘外观 | `DoPaint`，或更细的 `PaintBackground*` / `PaintFore*` / `PaintText` / `PaintBorder` |
-| 鼠标键盘 | `DoEvent`；需要定时器用 `m_pManager->SetTimer` / `KillTimer` |
+| 鼠标键盘 | `DoEvent`；**周期动画**见 [Messages.md](Messages.md)#shadow-子类化与控件动画定时器硬约束（开 Shadow 的主窗勿用 `SetTimer` 驱动每帧） |
 | 布局尺寸 | `EstimateSize`；容器则继承 `CContainerUI` / 布局类并管子控件 |
 | 通知业务 | `m_pManager->SendNotify(this, …)`（与现有 Button/List 同一套） |
 

@@ -296,6 +296,8 @@ namespace DuiLib {
 
 		// 一些重要的属性
 		virtual bool IsVisible() const;
+		/// 仅自身 visible 标志（不含父级 InternVisible）
+		bool IsSelfVisible() const { return m_bVisible; }
 		virtual void SetVisible(bool bVisible = true);
 		virtual void SetInternVisible(bool bVisible = true); // 仅供内部调用，有些UI拥有窗口句柄，需要重写此函数
 		virtual bool IsEnabled() const;
@@ -319,6 +321,8 @@ namespace DuiLib {
 
 		virtual void Init();
 		virtual void DoInit();
+		/// DPI / RemoveAllImages 后重建依赖内存图的资源（默认空；AppIcon 等重写）
+		virtual void OnResetDpiAssets();
 
 		virtual void Event(TEventUI& event);
 		virtual void DoCaptureEvent(TEventUI& event);

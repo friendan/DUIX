@@ -1,6 +1,31 @@
 #include "StdAfx.h"
 #include "UIRollText.h"
 
+namespace
+{
+	VOID CALLBACK RollTextRollQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		DuiLib::CRollTextUI* pSelf = static_cast<DuiLib::CRollTextUI*>(lpParameter);
+		if( pSelf == NULL ) return;
+		DuiLib::CPaintManagerUI* pm = pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, DuiLib::UIMSG_ROLLTEXT_TICK, (WPARAM)pSelf, ROLLTEXT_TIMERID);
+	}
+
+	VOID CALLBACK RollTextEndQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		DuiLib::CRollTextUI* pSelf = static_cast<DuiLib::CRollTextUI*>(lpParameter);
+		if( pSelf == NULL ) return;
+		DuiLib::CPaintManagerUI* pm = pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, DuiLib::UIMSG_ROLLTEXT_TICK, (WPARAM)pSelf, ROLLTEXT_ROLL_END);
+	}
+}
+
 namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CRollTextUI)
@@ -21,6 +46,8 @@ namespace DuiLib
 		, m_nLoopLimit(0)
 		, m_nLoopDone(0)
 		, m_nText_W_H(0)
+		, m_hRollQueueTimer(NULL)
+		, m_hEndQueueTimer(NULL)
 	{
 	}
 
@@ -154,21 +181,60 @@ namespace DuiLib
 		ApplyPauseTimers();
 	}
 
+	void CRollTextUI::StopRollQueueTimer()
+	{
+		if( m_hRollQueueTimer != NULL ) {
+			::DeleteTimerQueueTimer(NULL, m_hRollQueueTimer, INVALID_HANDLE_VALUE);
+			m_hRollQueueTimer = NULL;
+		}
+	}
+
+	void CRollTextUI::StopEndQueueTimer()
+	{
+		if( m_hEndQueueTimer != NULL ) {
+			::DeleteTimerQueueTimer(NULL, m_hEndQueueTimer, INVALID_HANDLE_VALUE);
+			m_hEndQueueTimer = NULL;
+		}
+	}
+
+	void CRollTextUI::StartRollQueueTimer()
+	{
+		StopRollQueueTimer();
+		if( m_pManager == NULL || !m_bUseRoll || m_lTimeSpan < 1 ) return;
+		HANDLE hTimer = NULL;
+		if( ::CreateTimerQueueTimer(&hTimer, NULL, RollTextRollQueueTimerProc,
+			reinterpret_cast<PVOID>(this),
+			(UINT)m_lTimeSpan, (UINT)m_lTimeSpan, WT_EXECUTEDEFAULT) ) {
+			m_hRollQueueTimer = hTimer;
+		}
+	}
+
+	void CRollTextUI::StartEndQueueTimer(UINT uElapse)
+	{
+		StopEndQueueTimer();
+		if( m_pManager == NULL || uElapse == 0 ) return;
+		HANDLE hTimer = NULL;
+		if( ::CreateTimerQueueTimer(&hTimer, NULL, RollTextEndQueueTimerProc,
+			reinterpret_cast<PVOID>(this), uElapse, 0, WT_EXECUTEONLYONCE) ) {
+			m_hEndQueueTimer = hTimer;
+		}
+	}
+
 	void CRollTextUI::ApplyPauseTimers()
 	{
 		if( m_pManager == NULL || !m_bUseRoll ) return;
 		const bool bPause = m_bPaused || m_bHoverPaused;
-		m_pManager->KillTimer(this, ROLLTEXT_TIMERID);
-		m_pManager->KillTimer(this, ROLLTEXT_ROLL_END);
+		StopRollQueueTimer();
+		StopEndQueueTimer();
 		if( bPause ) return;
-		m_pManager->SetTimer(this, ROLLTEXT_TIMERID, (UINT)m_lTimeSpan);
+		StartRollQueueTimer();
 		if( m_lMaxTimeLimited > 0 && m_dwDurationDeadline != 0 ) {
 			const DWORD now = ::GetTickCount();
 			const DWORD remain = m_dwDurationDeadline - now;
 			if( remain == 0 || remain > (DWORD)(m_lMaxTimeLimited * 1000) )
 				m_bPendingRollEnd = true;
 			else
-				m_pManager->SetTimer(this, ROLLTEXT_ROLL_END, remain);
+				StartEndQueueTimer(remain);
 		}
 	}
 
@@ -201,22 +267,20 @@ namespace DuiLib
 		m_bPaused = false;
 		m_dwDurationDeadline = 0;
 
-		m_pManager->SetTimer(this, ROLLTEXT_TIMERID, (UINT)m_lTimeSpan);
+		m_bUseRoll = TRUE;
+		StartRollQueueTimer();
 		if( m_lMaxTimeLimited > 0 ) {
 			m_dwDurationDeadline = ::GetTickCount() + (DWORD)(m_lMaxTimeLimited * 1000);
-			m_pManager->SetTimer(this, ROLLTEXT_ROLL_END, (UINT)(m_lMaxTimeLimited * 1000));
+			StartEndQueueTimer((UINT)(m_lMaxTimeLimited * 1000));
 		}
 
-		m_bUseRoll = TRUE;
 		Invalidate();
 	}
 
 	void CRollTextUI::EndRoll()
 	{
-		if( m_pManager != NULL ) {
-			m_pManager->KillTimer(this, ROLLTEXT_ROLL_END);
-			m_pManager->KillTimer(this, ROLLTEXT_TIMERID);
-		}
+		StopEndQueueTimer();
+		StopRollQueueTimer();
 		if( !m_bUseRoll ) return;
 		m_bUseRoll = FALSE;
 		m_bPendingRollEnd = false;

@@ -2,6 +2,17 @@
 #include "UIShadow.h"
 #include "math.h"
 #include "crtdbg.h"
+#include <dwmapi.h>
+#include <shobjidl.h>
+
+#ifndef DWMWA_EXCLUDED_FROM_PEEK
+#define DWMWA_EXCLUDED_FROM_PEEK 12
+#endif
+#ifndef DWMWA_DISALLOW_PEEK
+#define DWMWA_DISALLOW_PEEK 11
+#endif
+
+#pragma comment(lib, "dwmapi.lib")
 
 namespace DuiLib
 {
@@ -53,7 +64,8 @@ bool CShadowUI::Initialize(HINSTANCE hInstance)
 	wcex.hInstance		= hInstance;
 	wcex.hIcon			= NULL;
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+	// 勿用 COLOR_WINDOW：阴影窗若被任务栏/缩略图捕获会闪白块
+	wcex.hbrBackground	= (HBRUSH)::GetStockObject(NULL_BRUSH);
 	wcex.lpszMenuName	= NULL;
 	wcex.lpszClassName	= strWndClassName;
 	wcex.hIconSm		= NULL;
@@ -82,10 +94,15 @@ void CShadowUI::Create(CPaintManagerUI* pPaintManager)
 	LONG lParentStyle = GetWindowLongPtr(hParentWnd, GWL_STYLE);
 
 	// Create the shadow window
-	LONG styleValue = lParentStyle & WS_CAPTION;
-	m_hWnd = CreateWindowEx(WS_EX_LAYERED | WS_EX_TRANSPARENT, strWndClassName, NULL,
-		/*WS_VISIBLE | */styleValue | WS_POPUPWINDOW,
-		CW_USEDEFAULT, 0, 0, 0, hParentWnd, NULL, CPaintManagerUI::GetInstance(), NULL);
+	// 关键 owner：owned 分层窗会被任务栏 Live Preview 扫进同组，悬停时整栏图标闪白。
+	// TOOLWINDOW+NOACTIVATE：不进任务栏 / Alt+Tab。
+	m_hWnd = CreateWindowEx(
+		WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+		strWndClassName, NULL,
+		WS_POPUP,
+		CW_USEDEFAULT, 0, 0, 0, NULL, NULL, CPaintManagerUI::GetInstance(), NULL);
+
+	if( m_hWnd == NULL ) return;
 
 	if(!(WS_VISIBLE & lParentStyle))	// Parent invisible
 		m_Status = SS_ENABLED;
@@ -96,6 +113,26 @@ void CShadowUI::Create(CPaintManagerUI* pPaintManager)
 		m_Status = SS_ENABLED | SS_VISABLE | SS_PARENTVISIBLE;
 		::ShowWindow(m_hWnd, SW_SHOWNOACTIVATE);
 		Update(hParentWnd);
+		// 无 owner 后需手动把阴影放到主窗后面一次（勿在 NCACTIVATE 里反复做）
+		::SetWindowPos(m_hWnd, hParentWnd, 0, 0, 0, 0,
+			SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOREDRAW);
+	}
+
+	// 从任务栏 / Peek 排除阴影；主窗禁 Peek，避免 Live Preview 反复抓窗导致整栏闪
+	{
+		ITaskbarList* pTaskbar = NULL;
+		if( SUCCEEDED(::CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
+			IID_ITaskbarList, (void**)&pTaskbar)) && pTaskbar != NULL )
+		{
+			if( SUCCEEDED(pTaskbar->HrInit()) )
+				pTaskbar->DeleteTab(m_hWnd);
+			pTaskbar->Release();
+		}
+		BOOL bTrue = TRUE;
+		::DwmSetWindowAttribute(m_hWnd, DWMWA_EXCLUDED_FROM_PEEK, &bTrue, sizeof(bTrue));
+		::DwmSetWindowAttribute(hParentWnd, DWMWA_EXCLUDED_FROM_PEEK, &bTrue, sizeof(bTrue));
+		::DwmSetWindowAttribute(m_hWnd, DWMWA_DISALLOW_PEEK, &bTrue, sizeof(bTrue));
+		::DwmSetWindowAttribute(hParentWnd, DWMWA_DISALLOW_PEEK, &bTrue, sizeof(bTrue));
 	}
 
 	// Replace the original WndProc of parent window to steal messages
@@ -124,59 +161,69 @@ LRESULT CALLBACK CShadowUI::ParentProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 
 	switch(uMsg)
 	{
-	case WM_ACTIVATEAPP:
-		{
-			if(!IsWindowEnabled(hwnd)) break;
-			::SetWindowPos(pThis->m_hWnd, hwnd, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOREDRAW);
-			break;
-		}
-	case WM_NCACTIVATE:
-		{
-			if(!IsWindowEnabled(hwnd)) break;
-			::SetWindowPos(pThis->m_hWnd, hwnd, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOREDRAW);
-			break;
-		}
+	// 勿在 NCACTIVATE / ACTIVATEAPP 里 SetWindowPos（任务栏悬停会刷爆 DWM）。
+	// WINDOWPOSCHANGED：仅父窗真移动/改尺寸时才挪阴影；纯 Z 序/激活变化一律忽略。
 	case WM_WINDOWPOSCHANGED:
 		{
-			RECT WndRect;
-			LPWINDOWPOS pWndPos;
-			pWndPos = (LPWINDOWPOS)lParam;
-			GetWindowRect(hwnd, &WndRect);
-			if (pThis->m_bIsImageMode) {
-				SetWindowPos(pThis->m_hWnd, hwnd, WndRect.left - pThis->m_nSize, WndRect.top - pThis->m_nSize, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
-			}
-			else {
-				SetWindowPos(pThis->m_hWnd, hwnd, WndRect.left + pThis->m_nxOffset - pThis->m_nSize, WndRect.top + pThis->m_nyOffset - pThis->m_nSize, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
-			}
+			LPWINDOWPOS pWndPos = (LPWINDOWPOS)lParam;
+			if( pWndPos == NULL ) break;
 
-			if (pWndPos->flags & SWP_SHOWWINDOW) {
-				if (pThis->m_Status & SS_ENABLED && !(pThis->m_Status & SS_PARENTVISIBLE))
-				{
+			if( pWndPos->flags & SWP_SHOWWINDOW ) {
+				if( pThis->m_Status & SS_ENABLED && !(pThis->m_Status & SS_PARENTVISIBLE) ) {
 					pThis->m_bUpdate = true;
 					::ShowWindow(pThis->m_hWnd, SW_SHOWNOACTIVATE);
 					pThis->m_Status |= SS_VISABLE | SS_PARENTVISIBLE;
 				}
 			}
-			else if (pWndPos->flags & SWP_HIDEWINDOW) {
-				if (pThis->m_Status & SS_ENABLED)
-				{
+			else if( pWndPos->flags & SWP_HIDEWINDOW ) {
+				if( pThis->m_Status & SS_ENABLED ) {
 					::ShowWindow(pThis->m_hWnd, SW_HIDE);
 					pThis->m_Status &= ~(SS_VISABLE | SS_PARENTVISIBLE);
 				}
 			}
+
+			const bool bMoved = (pWndPos->flags & SWP_NOMOVE) == 0;
+			const bool bSized = (pWndPos->flags & SWP_NOSIZE) == 0;
+			if( !bMoved && !bSized ) break;
+			if( !(pThis->m_Status & SS_VISABLE) ) break;
+
+			RECT WndRect = { 0 };
+			::GetWindowRect(hwnd, &WndRect);
+			int x = 0, y = 0;
+			if( pThis->m_bIsImageMode ) {
+				x = WndRect.left - pThis->m_nSize;
+				y = WndRect.top - pThis->m_nSize;
+			}
+			else {
+				x = WndRect.left + pThis->m_nxOffset - pThis->m_nSize;
+				y = WndRect.top + pThis->m_nyOffset - pThis->m_nSize;
+			}
+			RECT rcShadow = { 0 };
+			::GetWindowRect(pThis->m_hWnd, &rcShadow);
+			if( rcShadow.left == x && rcShadow.top == y ) break;
+			::SetWindowPos(pThis->m_hWnd, NULL, x, y, 0, 0,
+				SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW);
 			break;
 		}
 		
 	case WM_MOVE:
-		if(pThis->m_Status & SS_VISABLE) {
-			RECT WndRect;
-			GetWindowRect(hwnd, &WndRect);
-			if (pThis->m_bIsImageMode) {
-				SetWindowPos(pThis->m_hWnd, hwnd, WndRect.left - pThis->m_nSize, WndRect.top - pThis->m_nSize, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+		if( pThis->m_Status & SS_VISABLE ) {
+			RECT WndRect = { 0 };
+			::GetWindowRect(hwnd, &WndRect);
+			int x = 0, y = 0;
+			if( pThis->m_bIsImageMode ) {
+				x = WndRect.left - pThis->m_nSize;
+				y = WndRect.top - pThis->m_nSize;
 			}
 			else {
-				SetWindowPos(pThis->m_hWnd, hwnd, WndRect.left + pThis->m_nxOffset - pThis->m_nSize, WndRect.top + pThis->m_nyOffset - pThis->m_nSize, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+				x = WndRect.left + pThis->m_nxOffset - pThis->m_nSize;
+				y = WndRect.top + pThis->m_nyOffset - pThis->m_nSize;
 			}
+			RECT rcShadow = { 0 };
+			::GetWindowRect(pThis->m_hWnd, &rcShadow);
+			if( rcShadow.left == x && rcShadow.top == y ) break;
+			::SetWindowPos(pThis->m_hWnd, NULL, x, y, 0, 0,
+				SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW);
 		}
 		break;
 

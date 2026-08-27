@@ -15,22 +15,22 @@
                 padding="8,8,8,8" gap="4">
                 <Label theme="secondary" text="控件分类" height="28" padding="0,8,0,8" />
                 <Option name="nav_basic" group="demo_nav" text="基础" height="36"
-                    kind="none" selected="true" text-align="left"
+                    kind="none" selected="true" text-align="center"
                     border-radius="6" />
                 <Option name="nav_form" group="demo_nav" text="表单" height="36"
-                    kind="none" text-align="left"
+                    kind="none" text-align="center"
                     border-radius="6" />
                 <Option name="nav_layout" group="demo_nav" text="布局" height="36"
-                    kind="none" text-align="left"
+                    kind="none" text-align="center"
                     border-radius="6" />
                 <Option name="nav_feedback" group="demo_nav" text="反馈" height="36"
-                    kind="none" text-align="left"
+                    kind="none" text-align="center"
                     border-radius="6" />
                 <Option name="nav_list" group="demo_nav" text="列表" height="36"
-                    kind="none" text-align="left"
+                    kind="none" text-align="center"
                     border-radius="6" />
                 <Option name="nav_misc" group="demo_nav" text="综合" height="36"
-                    kind="none" text-align="left"
+                    kind="none" text-align="center"
                     border-radius="6" />
                 <Spacer />
             </VBox>
@@ -48,6 +48,21 @@
                         <Button text="Danger" kind="danger" width="100" height="36" tooltip="危险按钮 kind=danger" />
                         <Button text="Warning" kind="warning" width="100" height="36" tooltip="警告按钮 kind=warning" />
                         <Button text="Link" kind="link" width="100" height="36" tooltip="链接样式按钮 kind=link" />
+                      </HBox>
+                      <HBox height="56" gap="8" padding="0,8,0,8" align-items="vcenter">
+                        <Button name="btn_edit_text_demo" text="右键改字" kind="primary" edit-text="true"
+                            width="110" height="36" tooltip="edit-text：仅「修改文本」" />
+                        <Button text="右键快捷键" kind="success" edit-hotkey="true"
+                            width="120" height="48" tooltip="edit-hotkey：设置/清除快捷键 → sub-text" />
+                        <Button text="两项都开" kind="info" edit-text="true" edit-hotkey="true"
+                            width="110" height="48" tooltip="edit-text + edit-hotkey" />
+                      </HBox>
+                      <HBox height="56" gap="8" padding="0,8,0,8" align-items="vcenter">
+                        <Button name="btn_shortcut_save" text="保存" sub-text="Ctrl+S" kind="primary" width="100" height="48"
+                            tooltip="sub-text：主行功能 + 副行快捷键（默认副色）；已 SetShortcutKey 供冲突检测" />
+                        <Button name="btn_shortcut_open" text="打开" sub-text="Ctrl+O" kind="default" lucide="folder-open" icon-size="16"
+                            width="120" height="48" tooltip="sub-text + 图标；已 SetShortcutKey 供冲突检测" />
+                        <Label text="sub-text 双行按钮" theme="secondary" />
                       </HBox>
                       <HBox height="40" gap="8" padding="0,8,0,8" align-items="vcenter">
                         <Button text="图标左" kind="primary" lucide="chevron-left" icon-position="left" icon-size="16" width="100" height="36" tooltip="icon-position=left（默认），图标+文字整体居中" />
@@ -140,6 +155,195 @@
                           <FontIcon name="fonticon_click2" text="GO" size="40" shape="rounded" clickable="true" kind="success" />
                           <Label text="← clickable 手型光标，点击出 Toast" theme="secondary" />
                         </HBox>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="AppIcon / AppGrid" active="false" header-align="left">
+                      <VBox height="320" padding="4,8,4,8" gap="8">
+                        <HBox height="28" gap="8" align-items="vcenter">
+                          <Edit name="demo_appgrid_search" placeholder="搜索：记事本 / 邮件 / 应用…" width="220" height="26" />
+                          <Label name="demo_appgrid_filter_tip" height="22" text="前排为 AppIcon 样例；其后 100 项可翻页" theme="secondary" />
+                        </HBox>
+                        <AppGrid name="demo_appgrid" item-size="72,72" gap="6"
+                          dot-size-min="6" dot-size-max="14"
+                          border-color="#D9D9D9FF" border-size="1" border-radius="8" padding="4,4,4,4"
+                          bkcolor="#FAFAFAFF">
+                          <!-- AppIcon 功能样例（搜索 text 可定位） -->
+                          <AppIcon name="appicon_mail" text="邮件" lucide="mail" tooltip="默认 AppIcon" />
+                          <AppIcon name="appicon_msg" text="消息" lucide="message-circle" badge-count="3" tooltip="badge-count=3" />
+                          <AppIcon name="appicon_bell" text="通知" lucide="bell" badge-dot="true" tooltip="badge-dot" />
+                          <AppIcon name="appicon_set" text="设置" iconpark="setting" badge-count="100" badge-overflow="99"
+                            tooltip="badge-overflow=99" />
+                          <AppIcon name="appicon_txt_mail" text="文字邮件" />
+                          <AppIcon name="appicon_txt_cloud" text="云盘" background-color="#722ED1FF" />
+                          <AppIcon name="appicon_txt_long" text="长标题应用" kind="success" />
+                          <AppIcon name="appicon_only_search" lucide="search" tooltip="纯图标" />
+                          <AppIcon name="appicon_only_plus" lucide="plus" badge-count="2" tooltip="纯图标+角标" />
+                          <AppIcon text="记事本" file="C:/Windows/System32/notepad.exe" tooltip="file= EXE" />
+                          <AppIcon text="画图" exe="C:/Windows/System32/mspaint.exe" tooltip="exe=" />
+                          <AppIcon text="壁纸" file="C:/Windows/Web/Wallpaper/Windows/img0.jpg" tooltip="file= JPG" />
+                          <AppIcon text="文本" file="C:/Windows/System32/drivers/etc/hosts" tooltip="file= 外壳图标" />
+                          <AppIcon text="SVG" file="svg/check.svg" tooltip="file= SVG" />
+                          <AppIcon text="WebP" file="img/demo.webp" tooltip="file= WebP" />
+                          <AppIcon text="缺文件" file="C:/DuiLib_NoSuch_AppIcon_Demo.exe" tooltip="缺失静默回退" />
+                          <AppIcon name="appicon_mem" text="内存" tooltip="SetIconFromMemory favicon" />
+                          <AppIcon name="ag_001" text="应用1" lucide="mail" />
+                          <AppIcon name="ag_002" text="应用2" lucide="message-circle" />
+                          <AppIcon name="ag_003" text="应用3" lucide="bell" />
+                          <AppIcon name="ag_004" text="应用4" lucide="cloud" />
+                          <AppIcon name="ag_005" text="应用5" lucide="image" />
+                          <AppIcon name="ag_006" text="应用6" lucide="music" />
+                          <AppIcon name="ag_007" text="应用7" lucide="video" />
+                          <AppIcon name="ag_008" text="应用8" lucide="map" />
+                          <AppIcon name="ag_009" text="应用9" lucide="calendar" />
+                          <AppIcon name="ag_010" text="应用10" lucide="shopping-bag" />
+                          <AppIcon name="ag_011" text="应用11" lucide="gamepad-2" />
+                          <AppIcon name="ag_012" text="应用12" lucide="book-open" />
+                          <AppIcon name="ag_013" text="应用13" lucide="camera" />
+                          <AppIcon name="ag_014" text="应用14" lucide="phone" />
+                          <AppIcon name="ag_015" text="应用15" lucide="inbox" />
+                          <AppIcon name="ag_016" text="应用16" lucide="clock" />
+                          <AppIcon name="ag_017" text="应用17" lucide="folder" badge-count="3" />
+                          <AppIcon name="ag_018" text="应用18" lucide="search" />
+                          <AppIcon name="ag_019" text="应用19" lucide="heart" />
+                          <AppIcon name="ag_020" text="应用20" lucide="star" />
+                          <AppIcon name="ag_021" text="应用21" lucide="house" />
+                          <AppIcon name="ag_022" text="应用22" lucide="settings" />
+                          <AppIcon name="ag_023" text="应用23" lucide="user" badge-dot="true" />
+                          <AppIcon name="ag_024" text="应用24" lucide="file" />
+                          <AppIcon name="ag_025" text="应用25" lucide="download" />
+                          <AppIcon name="ag_026" text="应用26" lucide="upload" />
+                          <AppIcon name="ag_027" text="应用27" lucide="share" />
+                          <AppIcon name="ag_028" text="应用28" lucide="bookmark" />
+                          <AppIcon name="ag_029" text="应用29" lucide="tag" />
+                          <AppIcon name="ag_030" text="应用30" lucide="zap" />
+                          <AppIcon name="ag_031" text="应用31" lucide="mail" />
+                          <AppIcon name="ag_032" text="应用32" lucide="message-circle" />
+                          <AppIcon name="ag_033" text="应用33" lucide="bell" />
+                          <AppIcon name="ag_034" text="应用34" lucide="cloud" badge-count="3" />
+                          <AppIcon name="ag_035" text="应用35" lucide="image" />
+                          <AppIcon name="ag_036" text="应用36" lucide="music" />
+                          <AppIcon name="ag_037" text="应用37" lucide="video" />
+                          <AppIcon name="ag_038" text="应用38" lucide="map" />
+                          <AppIcon name="ag_039" text="应用39" lucide="calendar" />
+                          <AppIcon name="ag_040" text="应用40" lucide="shopping-bag" />
+                          <AppIcon name="ag_041" text="应用41" lucide="gamepad-2" />
+                          <AppIcon name="ag_042" text="应用42" lucide="book-open" />
+                          <AppIcon name="ag_043" text="应用43" lucide="camera" />
+                          <AppIcon name="ag_044" text="应用44" lucide="phone" />
+                          <AppIcon name="ag_045" text="应用45" lucide="inbox" />
+                          <AppIcon name="ag_046" text="应用46" lucide="clock" badge-dot="true" />
+                          <AppIcon name="ag_047" text="应用47" lucide="folder" />
+                          <AppIcon name="ag_048" text="应用48" lucide="search" />
+                          <AppIcon name="ag_049" text="应用49" lucide="heart" />
+                          <AppIcon name="ag_050" text="应用50" lucide="star" />
+                          <AppIcon name="ag_051" text="应用51" lucide="house" badge-count="3" />
+                          <AppIcon name="ag_052" text="应用52" lucide="settings" />
+                          <AppIcon name="ag_053" text="应用53" lucide="user" />
+                          <AppIcon name="ag_054" text="应用54" lucide="file" />
+                          <AppIcon name="ag_055" text="应用55" lucide="download" />
+                          <AppIcon name="ag_056" text="应用56" lucide="upload" />
+                          <AppIcon name="ag_057" text="应用57" lucide="share" />
+                          <AppIcon name="ag_058" text="应用58" lucide="bookmark" />
+                          <AppIcon name="ag_059" text="应用59" lucide="tag" />
+                          <AppIcon name="ag_060" text="应用60" lucide="zap" />
+                          <AppIcon name="ag_061" text="应用61" lucide="mail" />
+                          <AppIcon name="ag_062" text="应用62" lucide="message-circle" />
+                          <AppIcon name="ag_063" text="应用63" lucide="bell" />
+                          <AppIcon name="ag_064" text="应用64" lucide="cloud" />
+                          <AppIcon name="ag_065" text="应用65" lucide="image" />
+                          <AppIcon name="ag_066" text="应用66" lucide="music" />
+                          <AppIcon name="ag_067" text="应用67" lucide="video" />
+                          <AppIcon name="ag_068" text="应用68" lucide="map" badge-count="3" />
+                          <AppIcon name="ag_069" text="应用69" lucide="calendar" badge-dot="true" />
+                          <AppIcon name="ag_070" text="应用70" lucide="shopping-bag" />
+                          <AppIcon name="ag_071" text="应用71" lucide="gamepad-2" />
+                          <AppIcon name="ag_072" text="应用72" lucide="book-open" />
+                          <AppIcon name="ag_073" text="应用73" lucide="camera" />
+                          <AppIcon name="ag_074" text="应用74" lucide="phone" />
+                          <AppIcon name="ag_075" text="应用75" lucide="inbox" />
+                          <AppIcon name="ag_076" text="应用76" lucide="clock" />
+                          <AppIcon name="ag_077" text="应用77" lucide="folder" />
+                          <AppIcon name="ag_078" text="应用78" lucide="search" />
+                          <AppIcon name="ag_079" text="应用79" lucide="heart" />
+                          <AppIcon name="ag_080" text="应用80" lucide="star" />
+                          <AppIcon name="ag_081" text="应用81" lucide="house" />
+                          <AppIcon name="ag_082" text="应用82" lucide="settings" />
+                          <AppIcon name="ag_083" text="应用83" lucide="user" />
+                          <AppIcon name="ag_084" text="应用84" lucide="file" />
+                          <AppIcon name="ag_085" text="应用85" lucide="download" badge-count="3" />
+                          <AppIcon name="ag_086" text="应用86" lucide="upload" />
+                          <AppIcon name="ag_087" text="应用87" lucide="share" />
+                          <AppIcon name="ag_088" text="应用88" lucide="bookmark" />
+                          <AppIcon name="ag_089" text="应用89" lucide="tag" />
+                          <AppIcon name="ag_090" text="应用90" lucide="zap" />
+                          <AppIcon name="ag_091" text="应用91" lucide="mail" />
+                          <AppIcon name="ag_092" text="应用92" lucide="message-circle" badge-dot="true" />
+                          <AppIcon name="ag_093" text="应用93" lucide="bell" />
+                          <AppIcon name="ag_094" text="应用94" lucide="cloud" />
+                          <AppIcon name="ag_095" text="应用95" lucide="image" />
+                          <AppIcon name="ag_096" text="应用96" lucide="music" />
+                          <AppIcon name="ag_097" text="应用97" lucide="video" />
+                          <AppIcon name="ag_098" text="应用98" lucide="map" />
+                          <AppIcon name="ag_099" text="应用99" lucide="calendar" />
+                          <AppIcon name="ag_100" text="应用100" lucide="shopping-bag" />
+                        </AppGrid>
+                      </VBox>
+                    </AccordionItem>
+                    <AccordionItem title="AppGrid·滚动" active="false" header-align="left">
+                      <VBox height="200" padding="4,8,4,8" gap="8">
+                        <Label height="22" text="scroll=true：矮容器强制溢出，应出现竖滚动条" theme="secondary" />
+                        <AppGrid name="demo_appgrid_scroll" scroll="true" item-size="72,72" gap="6"
+                          border-color="#D9D9D9FF" border-size="1" border-radius="8" padding="4,4,4,4"
+                          bkcolor="#FAFAFAFF">
+                          <AppIcon name="ags_001" text="滚动1" lucide="mail" />
+                          <AppIcon name="ags_002" text="滚动2" lucide="message-circle" />
+                          <AppIcon name="ags_003" text="滚动3" lucide="bell" />
+                          <AppIcon name="ags_004" text="滚动4" lucide="cloud" />
+                          <AppIcon name="ags_005" text="滚动5" lucide="image" />
+                          <AppIcon name="ags_006" text="滚动6" lucide="music" />
+                          <AppIcon name="ags_007" text="滚动7" lucide="video" />
+                          <AppIcon name="ags_008" text="滚动8" lucide="map" />
+                          <AppIcon name="ags_009" text="滚动9" lucide="calendar" />
+                          <AppIcon name="ags_010" text="滚动10" lucide="shopping-bag" />
+                          <AppIcon name="ags_011" text="滚动11" lucide="gamepad-2" />
+                          <AppIcon name="ags_012" text="滚动12" lucide="book-open" />
+                          <AppIcon name="ags_013" text="滚动13" lucide="camera" />
+                          <AppIcon name="ags_014" text="滚动14" lucide="phone" />
+                          <AppIcon name="ags_015" text="滚动15" lucide="inbox" />
+                          <AppIcon name="ags_016" text="滚动16" lucide="clock" />
+                          <AppIcon name="ags_017" text="滚动17" lucide="folder" />
+                          <AppIcon name="ags_018" text="滚动18" lucide="search" />
+                          <AppIcon name="ags_019" text="滚动19" lucide="heart" />
+                          <AppIcon name="ags_020" text="滚动20" lucide="star" />
+                          <AppIcon name="ags_021" text="滚动21" lucide="house" />
+                          <AppIcon name="ags_022" text="滚动22" lucide="settings" />
+                          <AppIcon name="ags_023" text="滚动23" lucide="user" />
+                          <AppIcon name="ags_024" text="滚动24" lucide="file" />
+                          <AppIcon name="ags_025" text="滚动25" lucide="download" />
+                          <AppIcon name="ags_026" text="滚动26" lucide="upload" />
+                          <AppIcon name="ags_027" text="滚动27" lucide="share" />
+                          <AppIcon name="ags_028" text="滚动28" lucide="bookmark" />
+                          <AppIcon name="ags_029" text="滚动29" lucide="tag" />
+                          <AppIcon name="ags_030" text="滚动30" lucide="zap" />
+                          <AppIcon name="ags_031" text="滚动31" lucide="mail" />
+                          <AppIcon name="ags_032" text="滚动32" lucide="message-circle" />
+                          <AppIcon name="ags_033" text="滚动33" lucide="bell" />
+                          <AppIcon name="ags_034" text="滚动34" lucide="cloud" />
+                          <AppIcon name="ags_035" text="滚动35" lucide="image" />
+                          <AppIcon name="ags_036" text="滚动36" lucide="music" />
+                          <AppIcon name="ags_037" text="滚动37" lucide="video" />
+                          <AppIcon name="ags_038" text="滚动38" lucide="map" />
+                          <AppIcon name="ags_039" text="滚动39" lucide="calendar" />
+                          <AppIcon name="ags_040" text="滚动40" lucide="shopping-bag" />
+                          <AppIcon name="ags_041" text="滚动41" lucide="gamepad-2" />
+                          <AppIcon name="ags_042" text="滚动42" lucide="book-open" />
+                          <AppIcon name="ags_043" text="滚动43" lucide="camera" />
+                          <AppIcon name="ags_044" text="滚动44" lucide="phone" />
+                          <AppIcon name="ags_045" text="滚动45" lucide="inbox" />
+                          <AppIcon name="ags_046" text="滚动46" lucide="clock" />
+                          <AppIcon name="ags_047" text="滚动47" lucide="folder" />
+                          <AppIcon name="ags_048" text="滚动48" lucide="search" />
+                        </AppGrid>
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="SvgBox" active="false" header-align="left">
@@ -312,7 +516,7 @@
                 <!-- 1 表单 -->
                 <Accordion mode="single" header-height="40">
                     <AccordionItem title="Edit" active="true" header-align="left">
-                      <VBox height="220" gap="10" padding="8,12,8,12">
+                      <VBox height="440" gap="10" padding="8,12,8,12">
                         <HBox height="36" gap="12" align-items="vcenter">
                           <Label text="普通" theme="secondary" width="70" />
                           <Edit name="edit_demo" text="点此聚焦" width="200" height="32"
@@ -340,7 +544,75 @@
                           <Edit name="edit_maxlen" placeholder="最多 8 字" maxlength="8" width="140" height="32"
                               border="1px solid" border-radius="4" padding="0,8,0,8" />
                         </HBox>
-                        <Label text="聚焦原生 WC_EDIT 底色跟 background-color（换主题后点进去看）；步进/小数请用 Spin·Number" theme="secondary" />
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="EditBox" theme="secondary" width="70" />
+                          <EditBox name="editbox_search" width="240" height="32" placeholder="搜索…"
+                              clearable="true" left-gap="2"
+                              border="1px solid" border-radius="4">
+                            <Button lucide="search" icon-size="14" width="28" height="28" kind="none"
+                                background-color="#00000000" mouse="false" />
+                          </EditBox>
+                          <EditBox name="editbox_pwd" width="200" height="32" type="password"
+                              password-toggle="true" placeholder="密码显隐"
+                              border="1px solid" border-radius="4" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="搜引擎" theme="secondary" width="70" />
+                          <EditBox name="editbox_engine" width="380" height="32" placeholder="输入关键词…"
+                              clearable="true" submit-button="editbox_engine_go"
+                              border="1px solid" border-radius="4">
+                            <EditBoxLeft>
+                              <Combo name="editbox_engine_sel" auto-width="true" height="28"
+                                  drop-box-size="90,100" padding="0,2,0,4"
+                                  border="0" background-color="#00000000"
+                                  item-padding="0,10,0,10">
+                                <ListLabelElement text="百度" height="28" selected="true" />
+                                <ListLabelElement text="必应" height="28" />
+                                <ListLabelElement text="谷歌" height="28" />
+                              </Combo>
+                            </EditBoxLeft>
+                            <EditBoxRight>
+                              <Button name="editbox_engine_go" text="搜索" width="52" height="28" kind="primary" />
+                            </EditBoxRight>
+                          </EditBox>
+                          <Label text="Left=引擎 · Right=搜索 · 回车提交" theme="secondary" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="历史" theme="secondary" width="70" />
+                          <EditBox name="editbox_history" width="280" height="32"
+                              placeholder="先输入 · 回车/加入写入 · 再点看历史"
+                              clearable="true" history="true" history-max="10"
+                              submit-button="editbox_history_go"
+                              border="1px solid" border-radius="4" />
+                          <Button name="editbox_history_go" text="加入" width="52" height="28" kind="primary" />
+                          <Button name="editbox_history_clear" text="清空历史" width="72" height="28" kind="secondary" />
+                          <Label text="空内容点加入会提示；写入后点输入框弹出" theme="secondary" />
+                        </HBox>
+                        <HBox height="36" gap="12" align-items="vcenter">
+                          <Label text="双图标" theme="secondary" width="70" />
+                          <EditBox name="editbox_dual_icons" width="320" height="32"
+                              placeholder="左右各两个功能图标…"
+                              border="1px solid" border-radius="4">
+                            <EditBoxLeft gap="0">
+                              <Button name="editbox_ico_attach" lucide="paperclip" icon-size="14"
+                                  width="28" height="28" kind="none" background-color="#00000000"
+                                  tooltip="附件" />
+                              <Button name="editbox_ico_emoji" lucide="smile" icon-size="14"
+                                  width="28" height="28" kind="none" background-color="#00000000"
+                                  tooltip="表情" />
+                            </EditBoxLeft>
+                            <EditBoxRight gap="0">
+                              <Button name="editbox_ico_mic" lucide="mic" icon-size="14"
+                                  width="28" height="28" kind="none" background-color="#00000000"
+                                  tooltip="语音" />
+                              <Button name="editbox_ico_send" lucide="send" icon-size="14"
+                                  width="28" height="28" kind="none" background-color="#00000000"
+                                  tooltip="发送" />
+                            </EditBoxRight>
+                          </EditBox>
+                          <Label text="Left×2 · Right×2" theme="secondary" />
+                        </HBox>
+                        <Label text="聚焦原生 WC_EDIT 底色跟 background-color（换主题后点进去看）；步进/小数请用 Spin·Number；左右图标用 EditBox" theme="secondary" />
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Spin / Number" active="false" header-align="left">
@@ -414,7 +686,7 @@
                               padding="0,28,0,8"
                               border="1px solid" border-radius="4"
                               item-padding="0,10,0,10">
-                            <ListLabelElement text="主页" lucide="home" icon-size="16" height="28" selected="true" />
+                            <ListLabelElement text="主页" lucide="house" icon-size="16" height="28" selected="true" />
                             <ListLabelElement text="设置" lucide="settings" icon-size="16" height="28" />
                             <ListLabelElement text="搜索" tabler-outline="search" icon-size="16" height="28" />
                             <ListLabelElement text="PNG 原图" icon="menu/icon.png" icon-size="16" height="28" />
@@ -593,7 +865,7 @@
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Modal" active="false" header-align="left">
-                      <VBox height="200" gap="4" padding="4,8,4,8">
+                      <VBox height="240" gap="4" padding="4,8,4,8">
                         <HBox height="40" gap="8" align-items="vcenter">
                           <Label text="快捷" width="70" theme="secondary" />
                           <Button name="btn_modal_info" text="Info" kind="info" width="90" height="32" tooltip="仅确定" />
@@ -611,6 +883,14 @@
                           <Label text="遮罩" width="70" theme="secondary" />
                           <Button name="btn_modal_nobackdrop" text="点遮罩不关" kind="warning" width="120" height="32" tooltip="ClickBackdropToClose(false)" />
                           <Button name="btn_modal_nosync" text="拖动不同步主窗" kind="secondary" width="140" height="32" tooltip="CModal SyncOwnerMove(false)" />
+                        </HBox>
+                        <HBox height="40" gap="8" align-items="vcenter">
+                          <Label text="输入" width="70" theme="secondary" />
+                          <Button name="btn_inputbox" text="InputBox 改文本" kind="primary" width="140" height="32" tooltip="CInputBox::Show 同步输入框" />
+                          <Button name="btn_inputbox_pwd" text="密码输入" kind="secondary" width="100" height="32" tooltip="Password(true)" />
+                          <Button name="btn_inputbox_num" text="仅数字" kind="secondary" width="88" height="32" tooltip="Number(true)" />
+                          <Button name="btn_hotkeybox" text="HotKeyBox" kind="info" width="100" height="32" tooltip="CHotKeyBox::Show 同步快捷键对话框" />
+                          <Label text="← 同步阻塞对话框" theme="secondary" />
                         </HBox>
                         <HBox height="40" gap="8" align-items="vcenter">
                           <Label text="业务窗" width="70" theme="secondary" />
@@ -788,7 +1068,7 @@
                             item-show-row-line="true"
                             item-padding="0,12,0,12"
                             border="1px solid" border-radius="4">
-                          <ListLabelElement text="主页" lucide="home" icon-size="16" height="32" />
+                          <ListLabelElement text="主页" lucide="house" icon-size="16" height="32" />
                           <ListLabelElement text="设置" lucide="settings" icon-size="16" icon-position="right" height="32" />
                           <ListLabelElement text="搜索" tabler-outline="search" icon-size="16" height="32" />
                           <ListLabelElement text="上传" lucide="upload" icon-size="18" icon-position="top" height="56" />

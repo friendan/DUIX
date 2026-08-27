@@ -1,5 +1,8 @@
 #include "StdAfx.h"
 #include "UIEdit.h"
+#include "UIEditBox.h"
+#include <Imm.h>
+#pragma comment(lib, "Imm32.lib")
 
 namespace DuiLib
 {
@@ -61,6 +64,16 @@ namespace DuiLib
 		else if(uTextStyle & DT_RIGHT) uStyle |= ES_RIGHT;
 		if( m_pOwner->IsPasswordMode() ) uStyle |= ES_PASSWORD;
 		Create(m_pOwner->GetManager()->GetPaintWindow(), NULL, uStyle, 0, rcPos);
+		// 关掉视觉样式，避免主题重绘盖住系统插入符（同 IPAddress）
+		{
+			typedef HRESULT (WINAPI *PFNSetWindowTheme)(HWND, LPCWSTR, LPCWSTR);
+			HMODULE hUx = ::GetModuleHandle(_T("uxtheme.dll"));
+			if( hUx == NULL ) hUx = ::LoadLibrary(_T("uxtheme.dll"));
+			if( hUx != NULL ) {
+				PFNSetWindowTheme pfn = (PFNSetWindowTheme)::GetProcAddress(hUx, "SetWindowTheme");
+				if( pfn != NULL ) pfn(m_hWnd, L"", L"");
+			}
+		}
 		HFONT hFont=NULL;
 		int iFontIndex=m_pOwner->GetFont();
 		if (iFontIndex!=-1)
@@ -209,8 +222,38 @@ namespace DuiLib
 			if( m_pOwner != NULL && m_pOwner->GetManager() != NULL )
 				m_pOwner->GetManager()->SetNextTabControl(::GetKeyState(VK_SHIFT) >= 0);
 		}
+		else if( uMsg == WM_IME_STARTCOMPOSITION || uMsg == WM_IME_COMPOSITION ) {
+			// 把候选/拼写窗钉在光标旁。EditBox 内嵌 Edit 在外壳 Invalidate 后，
+			// 系统默认位置常飘到错误处或看不见；与 RichEdit 同样显式设置。
+			HIMC hImc = ::ImmGetContext(m_hWnd);
+			if( hImc != NULL ) {
+				POINT pt = {};
+				::GetCaretPos(&pt);
+				COMPOSITIONFORM cf = {};
+				cf.dwStyle = CFS_POINT;
+				cf.ptCurrentPos = pt;
+				::ImmSetCompositionWindow(hImc, &cf);
+				CANDIDATEFORM cand = {};
+				cand.dwIndex = 0;
+				cand.dwStyle = CFS_CANDIDATEPOS;
+				cand.ptCurrentPos = pt;
+				::ImmSetCandidateWindow(hImc, &cand);
+				if( m_pOwner != NULL && m_pOwner->GetManager() != NULL ) {
+					HFONT hFont = m_pOwner->GetManager()->GetFont(m_pOwner->GetFont());
+					if( hFont == NULL )
+						hFont = m_pOwner->GetManager()->GetDefaultFontInfo()->hFont;
+					if( hFont != NULL ) {
+						LOGFONT lf = {};
+						if( ::GetObject(hFont, sizeof(lf), &lf) != 0 )
+							::ImmSetCompositionFont(hImc, &lf);
+					}
+				}
+				::ImmReleaseContext(m_hWnd, hImc);
+			}
+			bHandled = FALSE; // 仍交 Edit 默认处理组字
+		}
 		else if( uMsg == OCM__BASE + WM_CTLCOLOREDIT  || uMsg == OCM__BASE + WM_CTLCOLORSTATIC ) {
-			::SetBkMode((HDC)wParam, TRANSPARENT);
+			::SetBkMode((HDC)wParam, OPAQUE);
 			DWORD dwColor = m_pOwner->GetAdjustColor(m_pOwner->GetNativeEditColor());
 			::SetTextColor((HDC)wParam, DuiColorToCOLORREF(dwColor));
 			DWORD clrColor = m_pOwner->GetNativeEditBackgroundColor();
@@ -224,9 +267,11 @@ namespace DuiLib
 				HBITMAP hBmpEditBk = CRenderEngine::GenerateBitmap(m_pOwner->GetManager(), rcWnd, m_pOwner, clrColor);
 				m_hBkBrush = ::CreatePatternBrush(hBmpEditBk);
 				::DeleteObject(hBmpEditBk);
+				::SetBkColor((HDC)wParam, DuiColorToCOLORREF(m_pOwner->GetAdjustColor(clrColor)));
 			}
 			else {
 				DWORD adj = m_pOwner->GetAdjustColor(clrColor);
+				::SetBkColor((HDC)wParam, DuiColorToCOLORREF(adj));
 				if( m_hBkBrush == NULL || m_dwBrushColor != adj ) {
 					if( m_hBkBrush != NULL ) ::DeleteObject(m_hBkBrush);
 					m_hBkBrush = ::CreateSolidBrush(DuiColorToCOLORREF(adj));
@@ -250,6 +295,20 @@ namespace DuiLib
 				return 0;
 			}
 			bHandled = FALSE;
+		}
+		else if( uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONDBLCLK ) {
+			lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
+			// 已有焦点时再点输入框不会走 Dui SETFOCUS/BUTTONDOWN，在此通知 EditBox 弹历史
+			if( m_pOwner != NULL ) {
+				for( CControlUI* p = m_pOwner; p != NULL; p = p->GetParent() ) {
+					CEditBoxUI* pBox = static_cast<CEditBoxUI*>(p->GetInterface(DUI_CTR_EDITBOX));
+					if( pBox != NULL ) {
+						pBox->OnInnerEditNativeClick();
+						break;
+					}
+				}
+			}
+			return lRes;
 		}
 		else bHandled = FALSE;
 

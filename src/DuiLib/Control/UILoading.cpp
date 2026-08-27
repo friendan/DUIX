@@ -13,6 +13,19 @@ using namespace Gdiplus;
 
 namespace
 {
+	// AttachDialog→Shadow::Create 子类化宿主后，部分环境 HWND WM_TIMER 到不了 PaintManager；
+	// 与 UIToast 相同：TimerQueue 回调里 PostMessage(UIMSG_LOADING_TICK)。
+	VOID CALLBACK LoadingQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		CLoadingUI* pSelf = static_cast<CLoadingUI*>(lpParameter);
+		if( pSelf == NULL || pSelf->IsStopped() ) return;
+		CPaintManagerUI* pm = pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, UIMSG_LOADING_TICK, (WPARAM)pSelf, 0);
+	}
+
 	const double kPi = 3.14159265358979323846;
 
 	void DrawSpokeLine(Graphics* g, PointF a, PointF b, Color c, int thickness)
@@ -108,6 +121,7 @@ CLoadingUI::CLoadingUI()
 	, m_nBmpH(0)
 	, m_eBmpType(LoadingSpoke)
 	, m_bMorphType(false)
+	, m_hQueueTimer(NULL)
 {
 	m_CenterPoint = PointF(0, 0);
 	// 默认跟当前主题 primary；无主题时中性灰，避免首帧钉死 #1677FF
@@ -255,7 +269,7 @@ void CLoadingUI::BuildGapBmp(Bitmap* bmp, int w, int h, float sweep)
 	Pen pen(MakeColor(ColorA()), (REAL)thick);
 	pen.SetStartCap(LineCapRound);
 	pen.SetEndCap(LineCapRound);
-	// 固定画一段弧；缺口位置靠整图旋转改变
+	// 静态缺口弧；旋转交给 DrawGdiplusImageRotated（与 Ring 相同）
 	g.DrawArc(&pen, x, y, size, size, -90.0f, sweep);
 }
 
@@ -270,6 +284,7 @@ void CLoadingUI::BuildFadeBmp(Bitmap* bmp, int w, int h)
 	const int segs = 48;
 	const float totalSweep = 300.0f;
 	const float segSweep = totalSweep / (float)segs;
+	// 静态渐隐弧；旋转交给 DrawGdiplusImageRotated
 	const float base = -90.0f - totalSweep;
 	for( int i = 0; i < segs; ++i ) {
 		float t = (float)(i + 1) / (float)segs;
@@ -298,10 +313,12 @@ void CLoadingUI::BuildSpokeBmp(Bitmap* bmp, int w, int h)
 	int thick = ResolveThick(side);
 	if( thick > (outer - inner) ) thick = outer - inner;
 	if( thick < 2 ) thick = 2;
+	// 静态辐条色阶；旋转交给 DrawGdiplusImageRotated
 	for( int i = 0; i < m_NumberOfSpoke; ++i ) {
+		double ang = m_Angles[i];
 		DrawSpokeLine(&g,
-			Polar(center, inner, m_Angles[i]),
-			Polar(center, outer, m_Angles[i]),
+			Polar(center, inner, ang),
+			Polar(center, outer, ang),
 			m_Colors[i], thick);
 	}
 }
@@ -842,77 +859,89 @@ void CLoadingUI::BuildChaseFrame(Bitmap* bmp, int w, int h)
 void CLoadingUI::EnsureSpinBmps(int w, int h)
 {
 	m_bMorphType = IsMorphType(m_eType);
-	bool needRebuild = (m_pSpinBmp == NULL || m_nBmpW != w || m_nBmpH != h || m_eBmpType != m_eType);
-	if( needRebuild ) {
+	bool needNew = (m_pSpinBmp == NULL || m_nBmpW != w || m_nBmpH != h || m_eBmpType != m_eType);
+	if( needNew ) {
 		DestroySpinBmps();
 		m_pSpinBmp = new Bitmap(w, h, PixelFormat32bppPARGB);
 		m_nBmpW = w;
 		m_nBmpH = h;
 		m_eBmpType = m_eType;
-
-		switch( m_eType ) {
-		case LoadingCss:
+		if( m_eType == LoadingCss ) {
 			m_pTrackBmp = new Bitmap(w, h, PixelFormat32bppPARGB);
 			BuildCssTrackBmp(m_pTrackBmp, w, h);
-			BuildCssHeadBmp(m_pSpinBmp, w, h);
-			break;
-		case LoadingGap:
-			BuildGapBmp(m_pSpinBmp, w, h, 270.0f);
-			break;
-		case LoadingFade:
-			BuildFadeBmp(m_pSpinBmp, w, h);
-			break;
-		case LoadingArc:
-			BuildGapBmp(m_pSpinBmp, w, h, 90.0f);
-			break;
-		case LoadingDots:
-		case LoadingWave:
-		case LoadingBars:
-		case LoadingDrop:
-		case LoadingDrip:
-		case LoadingStars:
-		case LoadingStar:
-		case LoadingDog:
-		case LoadingFish:
-		case LoadingPulse:
-		case LoadingChase:
-			// 占位，每帧重画
-			break;
-		default:
-			if( m_eType == LoadingSpoke || m_Angles == NULL )
-				EnsureSpokeData();
-			BuildSpokeBmp(m_pSpinBmp, w, h);
-			break;
+		}
+		// 旋转类：静态图画一次，每帧只改角度（同 Ring）
+		if( !m_bMorphType && m_pSpinBmp != NULL ) {
+			switch( m_eType ) {
+			case LoadingCss:
+				BuildCssHeadBmp(m_pSpinBmp, w, h);
+				break;
+			case LoadingGap:
+				BuildGapBmp(m_pSpinBmp, w, h, 270.0f);
+				break;
+			case LoadingFade:
+				BuildFadeBmp(m_pSpinBmp, w, h);
+				break;
+			case LoadingArc:
+				BuildGapBmp(m_pSpinBmp, w, h, 90.0f);
+				break;
+			default:
+				if( m_eType == LoadingSpoke || m_Angles == NULL )
+					EnsureSpokeData();
+				BuildSpokeBmp(m_pSpinBmp, w, h);
+				break;
+			}
 		}
 	}
 
-	if( m_bMorphType && m_pSpinBmp ) {
-		switch( m_eType ) {
-		case LoadingDots: BuildDotsFrame(m_pSpinBmp, w, h); break;
-		case LoadingWave: BuildWaveFrame(m_pSpinBmp, w, h); break;
-		case LoadingBars: BuildBarsFrame(m_pSpinBmp, w, h); break;
-		case LoadingDrop: BuildDropFrame(m_pSpinBmp, w, h); break;
-		case LoadingDrip: BuildDripFrame(m_pSpinBmp, w, h); break;
-		case LoadingStars: BuildStarsFrame(m_pSpinBmp, w, h); break;
-		case LoadingStar: BuildStarFrame(m_pSpinBmp, w, h); break;
-		case LoadingDog: BuildDogFrame(m_pSpinBmp, w, h); break;
-		case LoadingFish: BuildFishFrame(m_pSpinBmp, w, h); break;
-		case LoadingPulse: BuildPulseFrame(m_pSpinBmp, w, h); break;
-		case LoadingChase: BuildChaseFrame(m_pSpinBmp, w, h); break;
-		default: break;
-		}
-		// 内容变了但指针不变：必须清 D2D 缓存，否则一直显示第一帧
-		IRenderDevice* pDev = GetRenderDevice();
-		if( pDev && pDev->GetBackendKind() == DUILIB_RENDER_D2D )
-			static_cast<CD2dRenderDevice*>(pDev)->InvalidateBitmapCacheForImage(NULL, m_pSpinBmp);
+	if( m_pSpinBmp == NULL ) return;
+	if( !m_bMorphType ) return;
+
+	// 变形类：每帧按相位重画，并踢掉 D2D 同指针缓存
+	switch( m_eType ) {
+	case LoadingDots: BuildDotsFrame(m_pSpinBmp, w, h); break;
+	case LoadingWave: BuildWaveFrame(m_pSpinBmp, w, h); break;
+	case LoadingBars: BuildBarsFrame(m_pSpinBmp, w, h); break;
+	case LoadingDrop: BuildDropFrame(m_pSpinBmp, w, h); break;
+	case LoadingDrip: BuildDripFrame(m_pSpinBmp, w, h); break;
+	case LoadingStars: BuildStarsFrame(m_pSpinBmp, w, h); break;
+	case LoadingStar: BuildStarFrame(m_pSpinBmp, w, h); break;
+	case LoadingDog: BuildDogFrame(m_pSpinBmp, w, h); break;
+	case LoadingFish: BuildFishFrame(m_pSpinBmp, w, h); break;
+	case LoadingPulse: BuildPulseFrame(m_pSpinBmp, w, h); break;
+	case LoadingChase: BuildChaseFrame(m_pSpinBmp, w, h); break;
+	default: break;
+	}
+
+	IRenderDevice* pDev = GetRenderDevice();
+	if( pDev && pDev->GetBackendKind() == DUILIB_RENDER_D2D )
+		static_cast<CD2dRenderDevice*>(pDev)->InvalidateBitmapCacheForImage(NULL, m_pSpinBmp);
+}
+
+void CLoadingUI::StopQueueTimer()
+{
+	if( m_hQueueTimer != NULL ) {
+		::DeleteTimerQueueTimer(NULL, m_hQueueTimer, INVALID_HANDLE_VALUE);
+		m_hQueueTimer = NULL;
+	}
+}
+
+void CLoadingUI::StartQueueTimer()
+{
+	StopQueueTimer();
+	if( m_bStop || m_nTime <= 0 || m_pManager == NULL ) return;
+	HANDLE hTimer = NULL;
+	if( ::CreateTimerQueueTimer(&hTimer, NULL, LoadingQueueTimerProc,
+		reinterpret_cast<PVOID>(this),
+		(DWORD)m_nTime, (DWORD)m_nTime, WT_EXECUTEDEFAULT) ) {
+		m_hQueueTimer = hTimer;
 	}
 }
 
 void CLoadingUI::RestartTimer()
 {
 	if( m_bStop || !m_pManager || m_nTime <= 0 ) return;
-	m_pManager->KillTimer(this, kTimerLoadingId);
-	m_pManager->SetTimer(this, kTimerLoadingId, (UINT)m_nTime);
+	StartQueueTimer();
 }
 
 void CLoadingUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -1027,46 +1056,67 @@ void CLoadingUI::PaintBackgroundImage(IRenderContext& ctx)
 {
 	int w = GetWidth();
 	int h = GetHeight();
-	if( w <= 0 || h <= 0 ) return;
+	if( w <= 0 || h <= 0 )
+		return;
 
 	EnsureSpinBmps(w, h);
-	if( m_pSpinBmp == NULL ) return;
+	if( m_pSpinBmp == NULL )
+		return;
 
 	if( m_eType == LoadingCss && m_pTrackBmp )
 		ctx.DrawGdiplusImage(m_pTrackBmp, (INT)m_rcItem.left, (INT)m_rcItem.top, w, h);
 
-	if( m_bMorphType ) {
-		// 形态变化型：已按角度重画，直接贴图
+	if( m_bMorphType )
 		ctx.DrawGdiplusImage(m_pSpinBmp, (INT)m_rcItem.left, (INT)m_rcItem.top, w, h);
-	}
-	else {
-		// 圆环 / 辐条：固定图画一次，只旋转缺口位置
+	else
 		ctx.DrawGdiplusImageRotated(m_pSpinBmp, m_rcItem, m_fAngle);
-	}
 }
 
 void CLoadingUI::TickFrame()
 {
+	if( m_bStop ) return;
 	if( m_nDuration < 200 ) m_nDuration = 200;
 	float delta = 360.0f * (float)m_nTime / (float)m_nDuration;
 	m_fAngle = WrapDeg(m_fAngle + delta);
-	// 与 Ring 一致：刷新父级脏区，保证旋转可见
-	NeedParentUpdate();
+	Invalidate();
+}
+
+void CLoadingUI::OnAnimTick()
+{
+	TickFrame();
 }
 
 void CLoadingUI::Start()
 {
-	if( m_nTime > 0 && m_pManager && m_bStop ) {
-		m_pManager->SetTimer(this, kTimerLoadingId, (UINT)m_nTime);
-	}
 	m_bStop = false;
+	StartQueueTimer();
 }
 
 void CLoadingUI::Stop()
 {
 	m_bStop = true;
-	if( m_pManager )
-		m_pManager->KillTimer(this, kTimerLoadingId);
+	StopQueueTimer();
+}
+
+void CLoadingUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit)
+{
+	CControlUI::SetManager(pManager, pParent, bInit);
+	if( bInit && IsVisible() )
+		Start();
+}
+
+void CLoadingUI::SetVisible(bool bVisible)
+{
+	CControlUI::SetVisible(bVisible);
+	if( bVisible ) Start();
+	else Stop();
+}
+
+void CLoadingUI::SetInternVisible(bool bVisible)
+{
+	CControlUI::SetInternVisible(bVisible);
+	if( bVisible && IsVisible() ) Start();
+	else if( !bVisible ) Stop();
 }
 
 void CLoadingUI::Init()
@@ -1075,16 +1125,21 @@ void CLoadingUI::Init()
 	m_bMorphType = IsMorphType(m_eType);
 	if( m_eType == LoadingSpoke )
 		EnsureSpokeData();
-	Start();
+	if( IsVisible() )
+		Start();
 }
 
 void CLoadingUI::DoEvent(TEventUI& event)
 {
-	if( event.Type == UIEVENT_TIMER && event.wParam == kTimerLoadingId ) {
-		TickFrame();
-		return;
-	}
 	CControlUI::DoEvent(event);
+}
+
+namespace DuiLib {
+
+void DuiLib_LoadingOnQueueTick(CLoadingUI* pLoad)
+{
+	if( pLoad != NULL && !pLoad->IsStopped() )
+		pLoad->OnAnimTick();
 }
 
 CControlUI* CreateLoadingControl(LPCTSTR pstrType)
@@ -1093,3 +1148,5 @@ CControlUI* CreateLoadingControl(LPCTSTR pstrType)
 		return new CLoadingUI();
 	return NULL;
 }
+
+} // namespace DuiLib

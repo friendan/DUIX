@@ -47,7 +47,7 @@
             <HorizontalLayout height="30" >
               <Text text="您的电脑已经" margin="5,0,0,2" width="auto" height="23" color="#000000ff" font-family="微软雅黑" font-size="13" background-color="#eeeeeeff"/>
               <Text text="40" margin="0,0,0,2" width="auto" height="27" color="#ffffffff" font-family="微软雅黑" font-size="12" background-color="#ee0000ff"/>
-              <Text text="天没有体检，建议立即体检�? margin="5,0,0,2" width="auto" height="23" color="#00ff00ff" font-family="微软雅黑" font-size="13" background-color="#0000eeff"/>
+              <Text text="天没有体检，建议立即体检。" margin="5,0,0,2" width="auto" height="23" color="#00ff00ff" font-family="微软雅黑" font-size="13" background-color="#0000eeff"/>
               <Label name="LabelUI15"  text="Available disk space:" visible="true"  width="auto" height="18" color="#5a5e68ff" color-disabled="#A7A6AAFF" background-color="#eeeeffff"/>
               <Label name="Wizard_UsableSpaceLab4Page2" text="17G" visible="true" width="auto"  height="18" color="#5a5e68ff" color-disabled="#A7A6AAFF" background-color="#ffeeeeff"/>
             </HorizontalLayout>

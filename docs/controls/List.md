@@ -66,7 +66,7 @@
 |------|------|
 | `bsicon` / `lucide` / `tabler-outline` / `tabler-filled` / `iconpark` / `remixicon` / `twicon` | SVG 图标库 |
 | `icon` / `icon-src` | SVG 文件或 PNG/BMP/JPG |
-| `icon-size` / `icon-gap` | 图标边长、与文字间距（逻辑像素） |
+| `icon-size` / `icon-gap` | 图标边长、与文字间距（逻辑像素；光栅 `dest` 亦写逻辑边长，由 `TDrawInfo::Parse` 做一次 DPI Scale） |
 | `icon-position` / `icon-pos` | `left`（默认）/ `right` / `top` / `bottom`；上下排布时文字水平居中，未写死 `height` 时 `EstimateSize` 会计入图标高度 |
 | `icon-tint` / `icon-color` | **SVG**：未设则跟 `item-color*`（悬停/选中/禁用）。**光栅**：默认原图；`#色` 强制；`auto` 跟文字色；`none`/`original` 原图。亦用于 [Combo](Combo.md) 下拉项；闭合态会复用选中项图标 |
 | `icon-tint-hover` / `-selected`（`-active` 同 selected）/ `-disabled` | 状态覆盖 |

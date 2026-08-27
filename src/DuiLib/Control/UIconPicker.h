@@ -28,6 +28,7 @@ namespace DuiLib
 		LPCTSTR GetDefaultLibrary() const;
 
 		/// 图标显示尺寸（宽/高）；确定后写回并刷新触发按钮图标
+		using CButtonUI::SetIconSize;
 		void SetIconSize(int nW, int nH);
 		int GetIconWidth() const;
 		int GetIconHeight() const;

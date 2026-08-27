@@ -38,6 +38,8 @@
 		DWORD GetHoverColor() const;
 		void SetActiveColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetActiveColor() const;
+		/// 由父 Button 同步 HOT/PUSHED/DISABLED，供嵌套图标走悬停着色
+		void ApplyParentButtonState(UINT uButtonState);
 		void SetDisabledColor(DWORD dwColor, bool bInvalidate = true);
 		DWORD GetDisabledColor() const;
 

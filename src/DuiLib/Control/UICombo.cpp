@@ -284,16 +284,20 @@ namespace DuiLib {
 		, m_dwColor(0)
 		, m_dwDisabledColor(0)
 		, m_iFont(-1)
-		, m_uTextStyle(DT_VCENTER | DT_SINGLELINE)
+		, m_uTextStyle(DT_CENTER | DT_VCENTER | DT_SINGLELINE)
 		, m_bShowHtml(false)
 		, m_bShowShadow(false)
 		, m_uButtonState(0)
 		, m_bScrollSelect(true)
+		, m_bShowArrow(true)
+		, m_bAutoWidth(false)
+		, m_pArrowIcon(NULL)
 	{
 		m_szDropBox = CDuiSize(0, 150);
-		// 默认文字边距（闭合态＋下拉项）左右各 6，避免贴边（用户可再覆盖）
+		// 默认文字边距左右对称；倒三角另占 GetArrowReserve()
 		m_rcTextPadding = { 6, 0, 6, 0 };     // RECT: left, top, right, bottom
 		::ZeroMemory(&m_rcDropBoxPadding, sizeof(m_rcDropBoxPadding));
+		SetCursor(DUI_HAND);
 
 		m_ListInfo.nColumns = 0;
 		m_ListInfo.nFont = -1;
@@ -318,6 +322,14 @@ namespace DuiLib {
 		m_compareData = NULL;
 	}
 
+	CComboUI::~CComboUI()
+	{
+		if( m_pArrowIcon != NULL ) {
+			delete m_pArrowIcon;
+			m_pArrowIcon = NULL;
+		}
+	}
+
 	LPCTSTR CComboUI::GetClass() const
 	{
 		return _T("ComboUI");
@@ -337,6 +349,23 @@ namespace DuiLib {
 
 	void CComboUI::DoInit()
 	{
+	}
+
+	void CComboUI::SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit)
+	{
+		CContainerUI::SetManager(pManager, pParent, bInit);
+		if( m_pArrowIcon != NULL )
+			m_pArrowIcon->SetManager(pManager, this, bInit);
+	}
+
+	void CComboUI::EnsureArrowIcon()
+	{
+		if( m_pArrowIcon != NULL ) return;
+		m_pArrowIcon = new CSvgBoxUI;
+		m_pArrowIcon->SetMouseEnabled(false);
+		m_pArrowIcon->SetAttribute(_T("lucide"), _T("chevron-down"));
+		if( m_pManager != NULL )
+			m_pArrowIcon->SetManager(m_pManager, this, false);
 	}
 
 	UINT CComboUI::GetListType()
@@ -377,6 +406,7 @@ namespace DuiLib {
 		pListItem->Select(true);
 		if( m_pManager != NULL ) m_pManager->SendNotify(this, DUI_MSGTYPE_ITEMSELECT, m_iCurSel, iOldSel);
 		Invalidate();
+		if( m_bAutoWidth ) NeedParentUpdate();
 
 		return true;
 	}
@@ -422,7 +452,9 @@ namespace DuiLib {
 			pListItem->SetOwner(this);
 			pListItem->SetIndex(m_items.GetSize());
 		}
-		return CContainerUI::Add(pControl);
+		const bool ok = CContainerUI::Add(pControl);
+		if( ok && m_bAutoWidth ) NeedParentUpdate();
+		return ok;
 	}
 
 	bool CComboUI::AddAt(CControlUI* pControl, int iIndex)
@@ -595,8 +627,65 @@ namespace DuiLib {
 
 	SIZE CComboUI::EstimateSize(SIZE szAvailable)
 	{
-		if( m_cxyFixed.cy == 0 ) return CDuiSize(m_cxyFixed.cx, m_pManager->GetDefaultFontInfo()->tm.tmHeight + 12);
-		return CControlUI::EstimateSize(szAvailable);
+		SIZE sz = CControlUI::EstimateSize(szAvailable);
+		if( m_cxyFixed.cy == 0 && m_pManager != NULL )
+			sz.cy = m_pManager->GetDefaultFontInfo()->tm.tmHeight + 12;
+		if( m_bAutoWidth )
+			sz.cx = CalcAutoWidth();
+		return sz;
+	}
+
+	int CComboUI::GetArrowReserve() const
+	{
+		if( !m_bShowArrow ) return 0;
+		if( !m_sImage.IsEmpty() ) return 0;
+		int n = 14;
+		if( m_pManager != NULL ) n = m_pManager->GetDPIObj()->Scale(n);
+		return n;
+	}
+
+	int CComboUI::CalcAutoWidth() const
+	{
+		int maxW = 0;
+		if( m_pManager != NULL ) {
+			for( int i = 0; i < m_items.GetSize(); ++i ) {
+				CControlUI* pControl = static_cast<CControlUI*>(m_items[i]);
+				if( pControl == NULL || !pControl->IsVisible() ) continue;
+				CDuiString sText = pControl->GetText();
+				SIZE szText = RenderMeasureTextSize(const_cast<CPaintManagerUI*>(m_pManager),
+					sText.GetData(), m_iFont, DT_SINGLELINE | DT_CALCRECT);
+				int w = szText.cx;
+				CListLabelElementUI* pLabel = static_cast<CListLabelElementUI*>(
+					pControl->GetInterface(DUI_CTR_LISTLABELELEMENT));
+				if( pLabel != NULL && pLabel->HasIcon() ) {
+					int icon = pLabel->GetIconSize();
+					if( icon <= 0 ) icon = 16;
+					icon = m_pManager->GetDPIObj()->Scale(icon);
+					w += icon + m_pManager->GetDPIObj()->Scale(6);
+				}
+				if( w > maxW ) maxW = w;
+			}
+		}
+		RECT rcPad = GetPadding();
+		RECT rcTextPad = GetTextPadding();
+		int nExtra = m_pManager != NULL ? m_pManager->GetDPIObj()->Scale(4) : 4;
+		return maxW + rcPad.left + rcPad.right + rcTextPad.left + rcTextPad.right
+			+ GetArrowReserve() + nExtra;
+	}
+
+	void CComboUI::SetShowArrow(bool bShow)
+	{
+		if( m_bShowArrow == bShow ) return;
+		m_bShowArrow = bShow;
+		Invalidate();
+		if( m_bAutoWidth ) NeedParentUpdate();
+	}
+
+	void CComboUI::SetAutoWidth(bool bAuto)
+	{
+		if( m_bAutoWidth == bAuto ) return;
+		m_bAutoWidth = bAuto;
+		NeedParentUpdate();
 	}
 
 	bool CComboUI::Activate()
@@ -1111,6 +1200,8 @@ namespace DuiLib {
 		else if( _tcsicmp(pstrName, _T("image-focus")) == 0 ) SetFocusImage(pstrValue);
 		else if( _tcsicmp(pstrName, _T("image-disabled")) == 0 ) SetDisabledImage(pstrValue);
 		else if( _tcsicmp(pstrName, _T("scroll-select")) == 0 ) SetScrollSelect(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("show-arrow")) == 0 ) SetShowArrow(_tcsicmp(pstrValue, _T("true")) == 0);
+		else if( _tcsicmp(pstrName, _T("auto-width")) == 0 ) SetAutoWidth(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("drop-box")) == 0 ) SetDropBoxAttributeList(pstrValue);
 		else if( _tcsicmp(pstrName, _T("drop-box-size")) == 0)
 		{
@@ -1291,6 +1382,40 @@ namespace DuiLib {
 			if( !DrawImage(ctx, m_sImage.GetData()) ) {}
 			else return;
 		}
+
+		// 无自定义状态图时用内置 lucide chevron-down
+		if( m_bShowArrow ) {
+			RECT rcPad = GetPadding();
+			int aw = GetArrowReserve();
+			if( aw <= 0 ) aw = (m_pManager != NULL) ? m_pManager->GetDPIObj()->Scale(14) : 14;
+			RECT rcArrow = m_rcItem;
+			rcArrow.right -= rcPad.right;
+			rcArrow.left = rcArrow.right - aw;
+			if( rcArrow.left < m_rcItem.left + rcPad.left )
+				rcArrow.left = m_rcItem.left + rcPad.left;
+			// 图标略小于热区，垂直居中
+			int icon = (m_pManager != NULL) ? m_pManager->GetDPIObj()->Scale(12) : 12;
+			if( icon > aw ) icon = aw;
+			int ix = (rcArrow.left + rcArrow.right - icon) / 2;
+			int iy = (rcArrow.top + rcArrow.bottom - icon) / 2;
+			RECT rcIcon = { ix, iy, ix + icon, iy + icon };
+
+			DWORD dwColor = IsEnabled() ? m_dwColor : m_dwDisabledColor;
+			if( dwColor == 0 && m_pManager != NULL )
+				dwColor = IsEnabled() ? m_pManager->GetDefaultFontColor()
+					: m_pManager->GetDefaultDisabledColor();
+
+			EnsureArrowIcon();
+			if( m_pArrowIcon != NULL ) {
+				m_pArrowIcon->SetEnabled(IsEnabled());
+				m_pArrowIcon->SetColor(GetAdjustColor(dwColor), false);
+				m_pArrowIcon->SetHoverColor(0, false);
+				m_pArrowIcon->SetActiveColor(0, false);
+				m_pArrowIcon->SetDisabledColor(0, false);
+				m_pArrowIcon->SetPos(rcIcon, false);
+				m_pArrowIcon->PaintIcon(ctx, m_rcPaint);
+			}
+		}
 	}
 
 	void CComboUI::PaintText(IRenderContext& ctx)
@@ -1302,7 +1427,7 @@ namespace DuiLib {
 		RECT rcPad = GetPadding();
 		RECT rcTextPad = GetTextPadding();
 		rc.left += rcPad.left + rcTextPad.left;
-		rc.right -= rcPad.right + rcTextPad.right;
+		rc.right -= rcPad.right + rcTextPad.right + GetArrowReserve();
 		rc.top += rcPad.top + rcTextPad.top;
 		rc.bottom -= rcPad.bottom + rcTextPad.bottom;
 

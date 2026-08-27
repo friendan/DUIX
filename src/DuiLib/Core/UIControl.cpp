@@ -1723,7 +1723,11 @@ namespace DuiLib {
 
 	void CControlUI::DoInit()
 	{
+		
+	}
 
+	void CControlUI::OnResetDpiAssets()
+	{
 	}
 
 	void CControlUI::Event(TEventUI& event)

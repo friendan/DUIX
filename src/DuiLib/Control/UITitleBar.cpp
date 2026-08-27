@@ -344,7 +344,8 @@ namespace DuiLib
 
 	void CTitleBarUI::SyncSysButtonMetrics()
 	{
-		const int h = GetFixedHeight() > 0 ? GetFixedHeight() : 40;
+		// SetFixed* 存逻辑像素；GetFixedHeight() 会再 Scale，此处勿用以免高 DPI 二次放大裁切图标
+		const int h = m_cxyFixed.cy > 0 ? m_cxyFixed.cy : 40;
 		const int w = m_nBtnWidth > 0 ? m_nBtnWidth : 46;
 		CButtonUI* btns[] = { m_pMinBtn, m_pMaxBtn, m_pRestoreBtn, m_pCloseBtn };
 		for( int i = 0; i < 4; ++i ) {
@@ -545,7 +546,10 @@ namespace DuiLib
 
 		// 全部用户子控件进入左侧
 		if( m_pLeft == NULL ) return false;
-		return m_pLeft->Add(pControl);
+		bool bOk = m_pLeft->Add(pControl);
+		// 子控件（lucide 图标钮）加入后再同步着色
+		if( bOk ) SyncSysButtonChrome();
+		return bOk;
 	}
 
 	bool CTitleBarUI::AddAt(CControlUI* pControl, int iIndex)
@@ -556,7 +560,9 @@ namespace DuiLib
 			return CHorizontalLayoutUI::AddAt(pControl, iIndex);
 
 		if( m_pLeft == NULL ) return false;
-		return m_pLeft->AddAt(pControl, iIndex);
+		bool bOk = m_pLeft->AddAt(pControl, iIndex);
+		if( bOk ) SyncSysButtonChrome();
+		return bOk;
 	}
 
 	void CTitleBarUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)

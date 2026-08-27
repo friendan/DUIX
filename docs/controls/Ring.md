@@ -7,7 +7,7 @@
 | 源码 | `src/DuiLib/Control/UIRing.*` |
 | 继承属性 | 见 [Label.md](Label.md) |
 
-旋转环 / 加载图：用 GDI+ 对 `background-image` 按角度旋转绘制。首次绘制成功加载图片后启动 100ms 定时器，每帧角度 `+36°`（约 10 FPS 转一圈）。
+旋转环 / 加载图：用 GDI+ 对 `background-image` 按角度旋转绘制。首次绘制成功加载图片后启动 **100ms** 队列定时器，每帧角度 `+36°`（约 1s 转一圈）。
 
 更现代的自绘加载指示见 [Loading.md](Loading.md)；本控件依赖一张可旋转的位图资源。
 
@@ -31,8 +31,10 @@ duidemo → 反馈 → Loading 旁有示例（资源 `skin/duidemo/loading_ring.
 
 | 项 | 说明 |
 |------|------|
-| 定时器 | `RING_TIMERID=100`，间隔 100ms |
+| 定时 | `CreateTimerQueueTimer` → `PostMessage(UIMSG_RING_TICK)`（**非** `SetTimer` / `WM_TIMER`，见 [Messages.md](Messages.md)） |
+| 间隔 | 100ms；每帧 `m_fCurAngle += 36°` |
 | 绘制 | `DrawGdiplusImageRotated`，角度 `m_fCurAngle` |
-| 析构 | 杀定时器并释放 GDI+ 图 |
+| 可见性 | `SetVisible` / `SetInternVisible`：隐藏停表，再显示且已有位图则重启 |
+| 析构 | `DeleteTimerQueueTimer` + 释放 GDI+ 图 |
 
-无独立起停 XML 属性；隐藏控件不会自动停表（随控件生命周期）。需要更细控制时用 Loading 或自行改代码。
+无独立起停 XML 属性；需要 API 级控制时用 [Loading](Loading.md) 或自行改代码。

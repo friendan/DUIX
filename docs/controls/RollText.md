@@ -86,3 +86,7 @@ p->EndRoll();
 | 类型 | 说明 |
 |------|------|
 | `textrollend`（`DUI_MSGTYPE_TEXTROLLEND`） | `roll-loop` 滚完 N 圈，或 `roll-duration` 到期时发出，并停止滚动 |
+
+### 定时器
+
+滚动帧与 `roll-duration` 超时均经 `CreateTimerQueueTimer` → `UIMSG_ROLLTEXT_TICK`（**非** `SetTimer` / `WM_TIMER`；开 Shadow 主窗下后者会丢）。详见 [Messages.md](Messages.md)。

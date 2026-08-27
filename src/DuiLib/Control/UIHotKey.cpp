@@ -217,40 +217,10 @@ namespace DuiLib{
 	CDuiString CHotKeyWnd::GetHotKeyName()
 	{
 		ASSERT(::IsWindow(m_hWnd));
-
-		CDuiString strKeyName;
 		WORD wCode = 0;
 		WORD wModifiers = 0;
-		const TCHAR szPlus[] = _T(" + ");
-
 		GetHotKey(wCode, wModifiers);
-		if (wCode != 0 || wModifiers != 0)
-		{
-			if (wModifiers & HOTKEYF_CONTROL)
-			{
-				strKeyName += GetKeyName(VK_CONTROL, FALSE);
-				strKeyName += szPlus;
-			}
-
-
-			if (wModifiers & HOTKEYF_SHIFT)
-			{
-				strKeyName += GetKeyName(VK_SHIFT, FALSE);
-				strKeyName += szPlus;
-			}
-
-
-			if (wModifiers & HOTKEYF_ALT)
-			{
-				strKeyName += GetKeyName(VK_MENU, FALSE);
-				strKeyName += szPlus;
-			}
-
-
-			strKeyName += GetKeyName(wCode, wModifiers & HOTKEYF_EXT);
-		}
-
-		return strKeyName;
+		return CHotKeyUI::FormatHotKeyName(wCode, wModifiers);
 	}
 
 
@@ -258,7 +228,7 @@ namespace DuiLib{
 	IMPLEMENT_DUICONTROL(CHotKeyUI)
 
 	CHotKeyUI::CHotKeyUI() : m_pWindow(NULL), m_uButtonState(0),
-		m_dwHotKeybkColor(0), m_bNativeBkColorCustom(false),
+		m_dwHotKeybkColor(0), m_bNativeBkColorCustom(false), m_bReadOnly(false),
 		m_wVirtualKeyCode(0), m_wModifiers(0)
 	{
 		SetTextPadding(CDuiRect(4, 3, 4, 3));
@@ -290,8 +260,20 @@ namespace DuiLib{
 	UINT CHotKeyUI::GetControlFlags() const
 	{
 		if( !IsEnabled() ) return CControlUI::GetControlFlags();
-
+		if( m_bReadOnly ) return UIFLAG_SETCURSOR;
 		return UIFLAG_SETCURSOR | UIFLAG_TABSTOP;
+	}
+
+	void CHotKeyUI::SetReadOnly(bool bReadOnly)
+	{
+		if( m_bReadOnly == bReadOnly ) return;
+		m_bReadOnly = bReadOnly;
+		if( m_bReadOnly && m_pWindow != NULL ) {
+			CHotKeyWnd* pWnd = m_pWindow;
+			m_pWindow = NULL;
+			pWnd->CloseAndDetach();
+		}
+		Invalidate();
 	}
 
 	void CHotKeyUI::DoEvent(TEventUI& event)
@@ -303,7 +285,7 @@ namespace DuiLib{
 
 		if( event.Type == UIEVENT_SETCURSOR && IsEnabled() )
 		{
-			::SetCursor(::LoadCursor(NULL, IDC_IBEAM));
+			::SetCursor(::LoadCursor(NULL, m_bReadOnly ? IDC_ARROW : IDC_IBEAM));
 			return;
 		}
 		if( event.Type == UIEVENT_WINDOWSIZE )
@@ -316,6 +298,10 @@ namespace DuiLib{
 		}
 		if( event.Type == UIEVENT_SETFOCUS && IsEnabled() ) 
 		{
+			if( m_bReadOnly ) {
+				Invalidate();
+				return;
+			}
 			if( m_pWindow ) return;
 			if( m_pParent == NULL || m_pManager == NULL || m_pManager->GetFocus() != this ) {
 				Invalidate();
@@ -334,7 +320,7 @@ namespace DuiLib{
 
 		if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK || event.Type == UIEVENT_RBUTTONDOWN) 
 		{
-			if( IsEnabled() ) {
+			if( IsEnabled() && !m_bReadOnly ) {
 				GetManager()->ReleaseCapture();
 				if( IsFocused() && m_pWindow == NULL ) {
 					m_pWindow = new CHotKeyWnd();
@@ -484,6 +470,10 @@ namespace DuiLib{
 		else if( _tcscmp(pstrName, _T("image-hover")) == 0 ) SetHoverImage(pstrValue);
 		else if( _tcscmp(pstrName, _T("image-focus")) == 0 ) SetFocusImage(pstrValue);
 		else if( _tcscmp(pstrName, _T("image-disabled")) == 0 ) SetDisabledImage(pstrValue);
+		else if( _tcscmp(pstrName, _T("readonly")) == 0 || _tcscmp(pstrName, _T("read-only")) == 0 ) {
+			SetReadOnly(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0
+				|| _tcsicmp(pstrValue, _T("yes")) == 0);
+		}
 		else if( _tcscmp(pstrName, _T("native-background-color")) == 0 ) {
 			DWORD clrColor = 0;
 			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
@@ -556,12 +546,188 @@ namespace DuiLib{
 	{
 		m_wVirtualKeyCode = wVirtualKeyCode;
 		m_wModifiers = wModifiers;
-
-		if( m_pWindow ) return;
-		m_pWindow = new CHotKeyWnd();
-		ASSERT(m_pWindow);
-		m_pWindow->Init(this);
+		m_sText = FormatHotKeyName(wVirtualKeyCode, wModifiers);
+		if( m_sText.IsEmpty() )
+			m_sText = _T("无");
+		if( m_pWindow != NULL )
+			m_pWindow->SetHotKey(wVirtualKeyCode, wModifiers);
 		Invalidate();
+	}
+
+	CDuiString CHotKeyUI::FormatHotKeyName(WORD wVirtualKeyCode, WORD wModifiers)
+	{
+		auto keyName = [](UINT vk, BOOL fExtended) -> CDuiString {
+			UINT nScanCode = ::MapVirtualKeyEx(vk, 0, ::GetKeyboardLayout(0));
+			switch( vk ) {
+			case VK_INSERT:
+			case VK_DELETE:
+			case VK_HOME:
+			case VK_END:
+			case VK_NEXT:
+			case VK_PRIOR:
+			case VK_LEFT:
+			case VK_RIGHT:
+			case VK_UP:
+			case VK_DOWN:
+				nScanCode |= 0x100;
+				break;
+			}
+			if( fExtended )
+				nScanCode |= 0x01000000L;
+			TCHAR szStr[MAX_PATH] = { 0 };
+			::GetKeyNameText(nScanCode << 16, szStr, MAX_PATH);
+			return CDuiString(szStr);
+		};
+
+		CDuiString strKeyName;
+		if( wVirtualKeyCode == 0 && wModifiers == 0 )
+			return strKeyName;
+
+		const TCHAR szPlus[] = _T(" + ");
+		if( wModifiers & HOTKEYF_WIN ) {
+			strKeyName += _T("Win");
+			strKeyName += szPlus;
+		}
+		if( wModifiers & HOTKEYF_CONTROL ) {
+			strKeyName += keyName(VK_CONTROL, FALSE);
+			strKeyName += szPlus;
+		}
+		if( wModifiers & HOTKEYF_SHIFT ) {
+			strKeyName += keyName(VK_SHIFT, FALSE);
+			strKeyName += szPlus;
+		}
+		if( wModifiers & HOTKEYF_ALT ) {
+			strKeyName += keyName(VK_MENU, FALSE);
+			strKeyName += szPlus;
+		}
+		if( wVirtualKeyCode != 0 )
+			strKeyName += keyName(wVirtualKeyCode, (wModifiers & HOTKEYF_EXT) != 0);
+		return strKeyName;
+	}
+
+	UINT CHotKeyUI::HotKeyToRegisterMods(WORD wHotKeyModifiers, bool bNoRepeat)
+	{
+		// HOTKEYF_* 与 MOD_* 位图不同，不可直接强转
+		UINT mods = 0;
+		if( wHotKeyModifiers & HOTKEYF_ALT )     mods |= MOD_ALT;
+		if( wHotKeyModifiers & HOTKEYF_CONTROL ) mods |= MOD_CONTROL;
+		if( wHotKeyModifiers & HOTKEYF_SHIFT )   mods |= MOD_SHIFT;
+		if( wHotKeyModifiers & HOTKEYF_WIN )     mods |= MOD_WIN;
+		if( bNoRepeat ) mods |= MOD_NOREPEAT;
+		return mods;
+	}
+
+	WORD CHotKeyUI::RegisterModsToHotKey(UINT uRegisterMods)
+	{
+		WORD mods = 0;
+		if( uRegisterMods & MOD_ALT )     mods |= HOTKEYF_ALT;
+		if( uRegisterMods & MOD_CONTROL ) mods |= HOTKEYF_CONTROL;
+		if( uRegisterMods & MOD_SHIFT )   mods |= HOTKEYF_SHIFT;
+		if( uRegisterMods & MOD_WIN )     mods |= HOTKEYF_WIN;
+		return mods;
+	}
+
+	WORD CHotKeyUI::HotKeyCompareMask(WORD wModifiers)
+	{
+		return (WORD)(wModifiers & (HOTKEYF_SHIFT | HOTKEYF_CONTROL | HOTKEYF_ALT | HOTKEYF_WIN));
+	}
+
+	bool CHotKeyUI::IsSameHotKey(WORD vk1, WORD mod1, WORD vk2, WORD mod2)
+	{
+		return vk1 == vk2 && HotKeyCompareMask(mod1) == HotKeyCompareMask(mod2);
+	}
+
+	bool CHotKeyUI::IsLetterOrDigitKey(WORD vk)
+	{
+		if( vk >= '0' && vk <= '9' ) return true;
+		if( vk >= 'A' && vk <= 'Z' ) return true;
+		if( vk >= 'a' && vk <= 'z' ) return true;
+		if( vk >= VK_NUMPAD0 && vk <= VK_NUMPAD9 ) return true;
+		return false;
+	}
+
+	bool CHotKeyUI::IsBareLetterOrDigit(WORD vk, WORD mod)
+	{
+		return HotKeyCompareMask(mod) == 0 && IsLetterOrDigitKey(vk);
+	}
+
+	namespace {
+
+		struct HotKeyConflictFindCtx
+		{
+			WORD vk;
+			WORD mod;
+			CControlUI* pExclude;
+		};
+
+		static WORD NormalizeVkLetter(WORD vk)
+		{
+			if( vk >= 'a' && vk <= 'z' )
+				return (WORD)(vk - 'a' + 'A');
+			return vk;
+		}
+
+		static bool ConflictsWithAltShortcut(WORD vk, WORD mod, TCHAR ch)
+		{
+			if( ch == 0 ) return false;
+			if( CHotKeyUI::HotKeyCompareMask(mod) != HOTKEYF_ALT ) return false;
+			TCHAR up = ch;
+			if( up >= _T('a') && up <= _T('z') )
+				up = (TCHAR)(up - _T('a') + _T('A'));
+			return NormalizeVkLetter(vk) == (WORD)up;
+		}
+
+		static CDuiString DescribeConflictControl(CControlUI* p)
+		{
+			if( p == NULL ) return _T("其他控件");
+			CDuiString s = p->GetText();
+			if( !s.IsEmpty() ) return s;
+			s = p->GetName();
+			if( !s.IsEmpty() ) return s;
+			return _T("其他控件");
+		}
+
+		static CControlUI* CALLBACK FindHotKeyConflictProc(CControlUI* pThis, LPVOID pData)
+		{
+			HotKeyConflictFindCtx* ctx = (HotKeyConflictFindCtx*)pData;
+			if( pThis == NULL || ctx == NULL ) return NULL;
+			if( pThis == ctx->pExclude ) return NULL;
+
+			CButtonUI* pBtn = static_cast<CButtonUI*>(pThis->GetInterface(DUI_CTR_BUTTON));
+			if( pBtn != NULL && pBtn->HasShortcutKey() ) {
+				WORD vk = 0, mod = 0;
+				pBtn->GetShortcutKey(vk, mod);
+				if( CHotKeyUI::IsSameHotKey(vk, mod, ctx->vk, ctx->mod) )
+					return pThis;
+			}
+
+			if( ConflictsWithAltShortcut(ctx->vk, ctx->mod, pThis->GetShortcut()) )
+				return pThis;
+
+			return NULL;
+		}
+
+	} // namespace
+
+	CControlUI* CHotKeyUI::FindShortcutConflict(CPaintManagerUI* pm, WORD vk, WORD mod,
+		CControlUI* pExclude, CDuiString* pConflictText)
+	{
+		if( pm == NULL ) return NULL;
+		if( vk == 0 && HotKeyCompareMask(mod) == 0 ) return NULL;
+
+		CControlUI* pRoot = pm->GetRoot();
+		if( pRoot == NULL ) return NULL;
+
+		HotKeyConflictFindCtx ctx = { vk, mod, pExclude };
+		CControlUI* pHit = pRoot->FindControl(FindHotKeyConflictProc, &ctx, UIFIND_ALL);
+		if( pHit != NULL && pConflictText != NULL ) {
+			CDuiString who = DescribeConflictControl(pHit);
+			CDuiString key = FormatHotKeyName(vk, mod);
+			pConflictText->Format(_T("快捷键「%s」已被「%s」占用，设置无效。"),
+				key.IsEmpty() ? _T("?") : key.GetData(),
+				who.GetData());
+		}
+		return pHit;
 	}
 
 }// Duilib

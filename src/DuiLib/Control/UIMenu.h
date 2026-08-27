@@ -264,7 +264,14 @@ public:
 
 	SIZE EstimateSize(SIZE szAvailable);
 
-	void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) ;
+	void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+
+	/// 图标槽与文字之间的竖分割线（经典菜单样式）；默认 true；XML：icon-line
+	void SetShowIconLine(bool bShow);
+	bool IsShowIconLine() const;
+
+private:
+	bool m_bShowIconLine;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -349,6 +356,7 @@ public:
 	void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true);
     bool DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl);
 	void DrawItemText(IRenderContext& ctx, const RECT& rcItem);
+	void DrawIconGutterLine(IRenderContext& ctx, const RECT& rcItem);
 	SIZE EstimateSize(SIZE szAvailable);
 
 	void DoEvent(TEventUI& event);

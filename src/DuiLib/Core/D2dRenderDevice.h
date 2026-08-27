@@ -299,6 +299,12 @@ namespace DuiLib {
 	UILIB_API bool EnableD2dRenderDevice();
 	UILIB_API void EnableGdiRenderDevice();
 
+	/// 任务栏只用窗口图标，禁用 Live Preview（悬停不再抓客户区，避免整栏闪白）。
+	UILIB_API void DisableTaskbarLivePreview(HWND hWnd);
+	UILIB_API void HandleTaskbarIconicThumbnail(HWND hWnd, int cx, int cy);
+	UILIB_API void HandleTaskbarIconicLivePreview(HWND hWnd);
+	UILIB_API void ClearTaskbarLivePreview(HWND hWnd);
+
 } // namespace DuiLib
 
 #endif // __D2DRENDERDEVICE_H__

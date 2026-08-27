@@ -11,6 +11,7 @@ namespace DuiLib {
 
 		CMenuUI::CMenuUI():
 		m_pWindow(NULL)
+		, m_bShowIconLine(true)
 	{
 		if (GetHeader() != NULL)
 			GetHeader()->SetVisible(false);
@@ -130,7 +131,25 @@ namespace DuiLib {
 
 	void CMenuUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 	{
+		if( _tcsicmp(pstrName, _T("icon-line")) == 0
+			|| _tcsicmp(pstrName, _T("show-icon-line")) == 0 ) {
+			SetShowIconLine(_tcsicmp(pstrValue, _T("true")) == 0
+				|| _tcscmp(pstrValue, _T("1")) == 0);
+			return;
+		}
 		CListUI::SetAttribute(pstrName, pstrValue);
+	}
+
+	void CMenuUI::SetShowIconLine(bool bShow)
+	{
+		if( m_bShowIconLine == bShow ) return;
+		m_bShowIconLine = bShow;
+		Invalidate();
+	}
+
+	bool CMenuUI::IsShowIconLine() const
+	{
+		return m_bShowIconLine;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -712,6 +731,8 @@ namespace DuiLib {
 		m_rcLinePadding.top = m_rcLinePadding.bottom = 0;
 		m_rcLinePadding.left = DEFAULT_LINE_LEFT_INSET;
 		m_rcLinePadding.right = DEFAULT_LINE_RIGHT_INSET;
+		// 可点菜单项默认手型；分隔线 SetLineType 会禁用，不出手型；皮肤可用 cursor 覆盖
+		SetCursor(DUI_HAND);
 	}
 
 	CMenuElementUI::~CMenuElementUI()
@@ -760,6 +781,7 @@ namespace DuiLib {
 			};
 			if( rcLine.right > rcLine.left )
 				ctx.DrawLine(rcLine, 1, GetAdjustColor(m_dwLineColor));
+			DrawIconGutterLine(ctx, m_rcItem);
 		}
 		else
 		{
@@ -768,6 +790,7 @@ namespace DuiLib {
 			DrawItemText(ctx, m_rcItem);
 			DrawItemIcon(ctx, m_rcItem);
 			DrawItemExpland(ctx, m_rcItem);
+			DrawIconGutterLine(ctx, m_rcItem);
 
 			if( m_items.GetSize() > 0 ) {
 				RECT rc = m_rcItem;
@@ -834,6 +857,43 @@ namespace DuiLib {
 			}
 		}
 		return true;
+	}
+
+	void CMenuElementUI::DrawIconGutterLine(IRenderContext& ctx, const RECT& rcItem)
+	{
+		// 项挂在 ListBody 下，须向上找 Menu（勿只用 GetParent）
+		CMenuUI* pMenu = NULL;
+		for( CControlUI* p = GetParent(); p != NULL; p = p->GetParent() ) {
+			pMenu = static_cast<CMenuUI*>(p->GetInterface(_T("Menu")));
+			if( pMenu != NULL ) break;
+		}
+		if( pMenu == NULL || !pMenu->IsShowIconLine() ) return;
+		if( m_pOwner == NULL ) return;
+
+		TListInfoUI* pInfo = m_pOwner->GetListInfo();
+		if( pInfo == NULL ) return;
+
+		RECT rcTextPadding = pInfo->rcTextPadding;
+		if( GetManager() != NULL )
+			rcTextPadding = GetManager()->GetDPIObj()->Scale(rcTextPadding);
+		// 无图标槽时不画（左 padding 过窄）
+		if( rcTextPadding.left < 12 ) return;
+
+		// 默认跟主题 color-border（与横分隔线 / ApplyMenuChrome 一致），热切主题后仍可读
+		DWORD clr = 0;
+		CThemeManager* pTm = CThemeManager::GetInstance();
+		if( pTm != NULL && pTm->IsEnabled() )
+			clr = pTm->GetColor(_T("color-border"), 0);
+		if( clr == 0 && pInfo->dwLineColor != 0 )
+			clr = pInfo->dwLineColor;
+		if( clr == 0 && m_dwLineColor != 0 )
+			clr = m_dwLineColor;
+		if( clr == 0 )
+			clr = (DWORD)DEFAULT_LINE_COLOR;
+
+		const int x = rcItem.left + rcTextPadding.left - 1;
+		RECT rcLine = { x, rcItem.top, x + 1, rcItem.bottom };
+		ctx.DrawColor(rcLine, GetAdjustColor(clr));
 	}
 
 	void CMenuElementUI::DrawItemIcon(IRenderContext& ctx, const RECT& rcItem)

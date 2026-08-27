@@ -156,6 +156,11 @@ namespace DuiLib {
 
 		LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 
+		friend class CTxtWinHost;
+		bool StartQueueTimer(UINT idTimer, UINT uElapse);
+		void StopQueueTimer(UINT idTimer);
+		void StopAllQueueTimers();
+
 	protected:
 		enum { 
 			DEFAULT_TIMERID = 20,
@@ -190,6 +195,9 @@ namespace DuiLib {
 		CDuiString m_sPlaceholder;
 		DWORD m_dwPlaceholderColor;
 		UINT m_uPlaceholderAlign;
+
+		struct RichEditQueueTimers;
+		RichEditQueueTimers* m_pQueueTimers;
 	};
 
 } // namespace DuiLib

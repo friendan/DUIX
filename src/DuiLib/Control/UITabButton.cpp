@@ -345,7 +345,9 @@ namespace DuiLib
 		return _tcsncmp(pExt, _T(".bmp"), 4) == 0
 			|| _tcsncmp(pExt, _T(".png"), 4) == 0
 			|| _tcsncmp(pExt, _T(".jpg"), 4) == 0
-			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0;
+			|| _tcsncmp(pExt, _T(".jpeg"), 5) == 0
+			|| _tcsncmp(pExt, _T(".gif"), 4) == 0
+			|| _tcsncmp(pExt, _T(".webp"), 5) == 0;
 	}
 
 	void CTabButtonUI::RefreshRasterIconImage()

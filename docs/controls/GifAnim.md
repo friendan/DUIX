@@ -36,7 +36,7 @@ p->StopGif();
 | `auto-play` | 加载后自动播放 | `true` |
 | `auto-size` | 按首帧尺寸设控件宽高 | `false` |
 
-可见时 `PlayGif`，隐藏时 `StopGif`。定时器用帧间隔属性（GIF 自带 delay）。
+可见时 `PlayGif`，隐藏时 `StopGif`。定时器：`CreateTimerQueueTimer` → `UIMSG_GIFANIM_TICK`（**非** `SetTimer`，见 [Messages.md](Messages.md)）；逐帧按 GIF delay 重排（`WT_EXECUTEONLYONCE`）。
 
 ### C++ API
 

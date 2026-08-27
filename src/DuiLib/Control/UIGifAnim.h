@@ -7,10 +7,6 @@ namespace DuiLib
 {
 	class UILIB_API CGifAnimUI : public CControlUI
 	{
-		enum
-		{ 
-			EVENT_TIEM_ID = 100,
-		};
 		DECLARE_DUICONTROL(CGifAnimUI)
 	public:
 		CGifAnimUI(void);
@@ -33,11 +29,15 @@ namespace DuiLib
 		void	PlayGif();
 		void	PauseGif();
 		void	StopGif();
+		/// TimerQueue → UIMSG_GIFANIM_TICK
+		void	OnAnimTick();
 
 	private:
 		void	InitGifImage();
 		void	DeleteGif();
-		void    OnTimer( UINT_PTR idEvent );
+		void	StartQueueTimer(UINT uElapse);
+		void	StopQueueTimer();
+		UINT	GetFrameDelayMs() const;
 		void	DrawFrame( IRenderContext& ctx );		// 绘制GIF每帧
 
 	private:
@@ -50,7 +50,10 @@ namespace DuiLib
 		bool			m_bIsAutoPlay;				// 是否自动播放gif
 		bool			m_bIsAutoSize;				// 是否自动根据图片设置大小
 		bool			m_bIsPlaying;
+		HANDLE			m_hQueueTimer;
 	};
+
+	void DuiLib_GifAnimOnQueueTick(CGifAnimUI* pGif);
 }
 
 #endif // GifAnimUI_h__

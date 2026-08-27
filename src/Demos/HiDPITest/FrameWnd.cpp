@@ -38,9 +38,11 @@ LRESULT CFrameWnd::OnDPIChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 	wss << L"DPI";
 	wss << m_pm.GetDPIObj()->GetDPI();
 	wss >> optionName;
-	COptionUI* option = static_cast<COptionUI*>(m_pm.FindControl(optionName.c_str()));
-	if( option != NULL )
-		option->Selected(true);
+	if( m_pm.GetRootPtr() != NULL ) {
+		COptionUI* option = static_cast<COptionUI*>(m_pm.FindControl(optionName.c_str()));
+		if( option != NULL )
+			option->Selected(true);
+	}
 
 	bHandled = TRUE;
 	return lRes;
@@ -175,9 +177,11 @@ LRESULT CFrameWnd::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 		wss << L"DPI";
 		wss << m_pm.GetDPIObj()->GetDPI();
 		wss >> optionName;
-		COptionUI* option = static_cast<COptionUI*>(m_pm.FindControl(optionName.c_str()));
-		if( option != NULL )
-			option->Selected(true);
+		if( m_pm.GetRootPtr() != NULL ) {
+			COptionUI* option = static_cast<COptionUI*>(m_pm.FindControl(optionName.c_str()));
+			if( option != NULL )
+				option->Selected(true);
+		}
 	}
 
 	bHandled = false;

@@ -3,6 +3,21 @@
 #include <vector>
 #include <algorithm>
 
+namespace
+{
+	VOID CALLBACK AnimationQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		DuiLib::CAnimationData* pData = static_cast<DuiLib::CAnimationData*>(lpParameter);
+		if( pData == NULL || pData->m_pOwner == NULL ) return;
+		DuiLib::CPaintManagerUI* pm = pData->m_pOwner->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, DuiLib::UIMSG_ANIMATION_TICK,
+			(WPARAM)pData->m_pOwner, (LPARAM)pData->m_nAnimationID);
+	}
+}
+
 namespace DuiLib {
 	struct CUIAnimation::Imp
 	{
@@ -16,6 +31,7 @@ namespace DuiLib {
 
 	CUIAnimation:: ~CUIAnimation()
 	{
+		StopAnimation(0);
 		if(m_pImp)
 		{
 			delete m_pImp;
@@ -26,6 +42,28 @@ namespace DuiLib {
 	void CUIAnimation::Attach(CControlUI* pOwner)
 	{
 		m_pControl = pOwner;
+	}
+
+	void CUIAnimation::StopAnimationTimer(CAnimationData* pData)
+	{
+		if( pData != NULL && pData->m_hQueueTimer != NULL ) {
+			::DeleteTimerQueueTimer(NULL, pData->m_hQueueTimer, INVALID_HANDLE_VALUE);
+			pData->m_hQueueTimer = NULL;
+		}
+	}
+
+	void CUIAnimation::StartAnimationTimer(CAnimationData* pData)
+	{
+		if( pData == NULL || m_pControl == NULL ) return;
+		StopAnimationTimer(pData);
+		pData->m_pOwner = m_pControl;
+		if( pData->m_nElapse <= 0 ) return;
+		HANDLE hTimer = NULL;
+		if( ::CreateTimerQueueTimer(&hTimer, NULL, AnimationQueueTimerProc,
+			reinterpret_cast<PVOID>(pData),
+			(UINT)pData->m_nElapse, (UINT)pData->m_nElapse, WT_EXECUTEDEFAULT) ) {
+			pData->m_hQueueTimer = hTimer;
+		}
 	}
 
 	BOOL CUIAnimation::StartAnimation(int nElapse, int nTotalFrame, int nAnimationID /*= 0*/, BOOL bLoop/* = FALSE*/)
@@ -42,45 +80,42 @@ namespace DuiLib {
 
 		CAnimationData* pAnimation = new CAnimationData(nElapse, nTotalFrame, nAnimationID, bLoop);
 		if( NULL == pAnimation ) return FALSE;
-		
-		if(m_pControl->GetManager()->SetTimer( m_pControl, nAnimationID, nElapse ))
+		pAnimation->m_pOwner = m_pControl;
+
+		StartAnimationTimer(pAnimation);
+		if( pAnimation->m_hQueueTimer != NULL )
 		{
 			m_pImp->m_arAnimations.push_back(pAnimation);
 			return TRUE;
 		}
+		delete pAnimation;
 		return FALSE;
 	}
 
 	void CUIAnimation::StopAnimation(int nAnimationID /*= 0*/)
 	{
-		if(m_pControl == NULL) return;
+		if(m_pControl == NULL || m_pImp == NULL) return;
 
 		if(nAnimationID  != 0)
 		{
 			CAnimationData* pData = GetAnimationDataByID(nAnimationID);
 			if( NULL != pData )
 			{
-				m_pControl->GetManager()->KillTimer( m_pControl, nAnimationID );
+				StopAnimationTimer(pData);
 				m_pImp->m_arAnimations.erase(std::remove(m_pImp->m_arAnimations.begin(), m_pImp->m_arAnimations.end(), pData), m_pImp->m_arAnimations.end());
-				if(pData != NULL){
-					delete pData;
-					pData = NULL;
-				}
+				delete pData;
 				return;
 			}
 		}
 		else
 		{
-			int nCount = m_pImp->m_arAnimations.size();
+			int nCount = (int)m_pImp->m_arAnimations.size();
 			for(int i=0; i<nCount; ++i)
 			{
 				CAnimationData* pData = m_pImp->m_arAnimations[i];
 				if(pData) {
-					m_pControl->GetManager()->KillTimer(m_pControl, pData->m_nAnimationID);
-					if(pData != NULL){
-						delete pData;
-						pData = NULL;
-					}
+					StopAnimationTimer(pData);
+					delete pData;
 				}
 			}
 			m_pImp->m_arAnimations.clear();
@@ -150,7 +185,7 @@ namespace DuiLib {
 			}
 			else
 			{
-				m_pControl->GetManager()->KillTimer( m_pControl, nAnimationID );
+				StopAnimationTimer(pData);
 				m_pImp->m_arAnimations.erase(std::remove(m_pImp->m_arAnimations.begin(), m_pImp->m_arAnimations.end(), pData), m_pImp->m_arAnimations.end());
 				delete pData;
 				pData = NULL;
@@ -166,7 +201,7 @@ namespace DuiLib {
 	CAnimationData* CUIAnimation::GetAnimationDataByID(int nAnimationID)
 	{
 		CAnimationData* pRet = NULL;
-		int nCount = m_pImp->m_arAnimations.size();
+		int nCount = (int)m_pImp->m_arAnimations.size();
 		for(int i=0; i<nCount; ++i)
 		{
 			if(m_pImp->m_arAnimations[i]->m_nAnimationID == nAnimationID)

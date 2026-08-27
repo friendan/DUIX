@@ -9,6 +9,12 @@ namespace DuiLib
 	//168 DPI = 175% scaling
 	//192 DPI = 200% scaling
 
+#ifndef DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+	DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE     ((DPI_AWARENESS_CONTEXT)-3)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2  ((DPI_AWARENESS_CONTEXT)-4)
+#endif
+
 	typedef HRESULT (WINAPI *LPSetProcessDpiAwareness)(
 		_In_ PROCESS_DPI_AWARENESS value
 		);
@@ -26,15 +32,80 @@ namespace DuiLib
 		_Out_ UINT             *dpiY
 		);
 
+	typedef BOOL (WINAPI *LPSetProcessDpiAwarenessContext)(_In_ DPI_AWARENESS_CONTEXT value);
+	typedef UINT (WINAPI *LPGetDpiForWindow)(_In_ HWND hwnd);
+
+	static BOOL s_bDpiAwarenessTried = FALSE;
+	static BOOL s_bDpiAwarenessOk = FALSE;
 
 	CDPI::CDPI()
 	{
 		m_nScaleFactor = 0;
 		m_nScaleFactorSDA = 0;
+		// 默认按 Per-Monitor 缩放；实际进程感知由 EnableProcessDpiAwareness 在 SetInstance 时启用
 		m_Awareness = PROCESS_PER_MONITOR_DPI_AWARE;
-
 		SetScale(96);
+	}
 
+	BOOL CDPI::EnableProcessDpiAwareness()
+	{
+		if( s_bDpiAwarenessTried )
+			return s_bDpiAwarenessOk;
+		s_bDpiAwarenessTried = TRUE;
+
+		// Win10 1703+：PerMonitorV2（跨屏清晰；标题栏/菜单等非客户区也跟 DPI）
+		HMODULE hUser = ::GetModuleHandle(_T("user32.dll"));
+		if( hUser != NULL ) {
+			LPSetProcessDpiAwarenessContext pfnCtx =
+				(LPSetProcessDpiAwarenessContext)::GetProcAddress(hUser, "SetProcessDpiAwarenessContext");
+			if( pfnCtx != NULL ) {
+				if( pfnCtx(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
+					|| pfnCtx(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE) ) {
+					s_bDpiAwarenessOk = TRUE;
+					return TRUE;
+				}
+			}
+		}
+
+		// Win8.1+：Shcore Per-Monitor
+		HMODULE hShcore = ::LoadLibrary(_T("Shcore.dll"));
+		if( hShcore != NULL ) {
+			LPSetProcessDpiAwareness pfn =
+				(LPSetProcessDpiAwareness)::GetProcAddress(hShcore, "SetProcessDpiAwareness");
+			if( pfn != NULL && pfn(PROCESS_PER_MONITOR_DPI_AWARE) == S_OK ) {
+				s_bDpiAwarenessOk = TRUE;
+				return TRUE;
+			}
+			// 清单已声明感知时 Set* 会失败；再读一次进程状态
+			LPGetProcessDpiAwareness pfnGet =
+				(LPGetProcessDpiAwareness)::GetProcAddress(hShcore, "GetProcessDpiAwareness");
+			if( pfnGet != NULL ) {
+				PROCESS_DPI_AWARENESS aw = PROCESS_DPI_UNAWARE;
+				if( pfnGet(::GetCurrentProcess(), &aw) == S_OK
+					&& aw == PROCESS_PER_MONITOR_DPI_AWARE ) {
+					s_bDpiAwarenessOk = TRUE;
+					return TRUE;
+				}
+			}
+		}
+		return FALSE;
+	}
+
+	int CDPI::GetDpiForHwnd(HWND hWnd)
+	{
+		if( hWnd == NULL || !::IsWindow(hWnd) )
+			return GetMainMonitorDPI();
+
+		HMODULE hUser = ::GetModuleHandle(_T("user32.dll"));
+		if( hUser != NULL ) {
+			LPGetDpiForWindow pfn = (LPGetDpiForWindow)::GetProcAddress(hUser, "GetDpiForWindow");
+			if( pfn != NULL ) {
+				UINT dpi = pfn(hWnd);
+				if( dpi != 0 )
+					return (int)dpi;
+			}
+		}
+		return GetDPIOfMonitor(::MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST));
 	}
 
 	int CDPI::GetDPIOfMonitor(HMONITOR hMonitor)
@@ -106,6 +177,7 @@ namespace DuiLib
 		}
 		else {
 			m_Awareness = Awareness;
+			bRet = TRUE;
 		}
 		return bRet;
 	}

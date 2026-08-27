@@ -129,6 +129,26 @@ pSettings->ShowModal();
 - Demo：Accordion → Modal →「铺满设置窗（同步主窗）」（`CSettingsSyncWnd` / `settings_sync.html`；标题栏含最小/最大化，便于测最小化联动）
 - 轻量确认框仍用 [Modal.md](Modal.md) 的 `CModal::SyncOwnerMove`；业务模态窗用本基类
 
+### Per-Monitor DPI（多屏 / HiDPI）
+
+未启用时系统会对窗口做**位图拉伸** → 拖到另一缩放比的显示器时文字变大且模糊。库侧默认路径：
+
+| 步骤 | 行为 |
+|------|------|
+| `CPaintManagerUI::SetInstance` | 调用 `CDPI::EnableProcessDpiAwareness()`：优先 `PerMonitorV2`，失败回退 Per-Monitor |
+| `WindowImplBase::OnCreate` | 加载皮肤前按窗口所在显示器 `SetDPI`（`CDPI::GetDpiForHwnd`） |
+| `WM_DPICHANGED` | `SetDPI` + 系统建议矩形；重建字体/图片缓存并重绘 |
+
+可选清单模板：`src/DuiLib/dpi-aware.manifest`（`dpiAware true/pm` + `dpiAwareness PerMonitorV2`）。clang/llvm-mt 合清单易失败，**勿**用 CMake `target_sources` 硬塞；MSVC `mt.exe` 或 `.rc` 嵌入 `RT_MANIFEST` 时可用。清单与 `EnableProcessDpiAwareness` 二选一或双保险均可。
+
+**进程级、只生效一次（多 EXE / 多 DLL）：**
+
+- DPI 感知属于**整个进程**，不是某个 DLL 的私有状态；`SetProcessDpiAwareness*` 成功一次后，后续再设通常失败，**不会改成另一种模式**。
+- 多个模块都调 `EnableProcessDpiAwareness`：**先成功的生效**；后面的 `Set*` 失败时实现会再读 `GetProcessDpiAwareness`，已是 Per-Monitor 则视为成功。各 DLL 自有静态「已尝试」标志，互不影响正确性。
+- **建议只在一处主动设定**：优先宿主 EXE 的 `WinMain` / 第一次 `SetInstance`（DuiLib 已做）。其它 DLL 再调也可以，目标须同为 Per-Monitor（V2）。
+- **不要**在不同模块里分别设成 Unaware / System / PerMonitor 混用——先到先得，后到改不掉，表现会依赖加载顺序。
+- 须在**创建任何 HWND 之前**设定；窗口已存在后再设通常无效。
+
 HWND 自定义消息号段（库占用 `WM_APP` 低端，业务用 `WM_DUILIB_USER + n`）见 **[Messages.md](Messages.md)**。
 
 ---
@@ -196,3 +216,52 @@ bool on = DuiLib::CDuiLog::IsEnabled();
 - `Write(格式, …)`：printf 风格，无类别；仅当已启用才写，关闭时为空操作。
 - 库内已埋点示例：`WM_CONTEXTMENU` 分支会输出 `[ctxmenu]` 行，排查右键不弹菜单时：`evtRClick=…` 看命中对象、`blank=1/0` 看是否走空白兜底、`target=…` 看发给哪个容器、`SendNotify sent` 看广播是否真实执行。
 - 注意：诊断行不变慢库（关闭时 `Write` 立即返回），但发布版默认应保持关闭。
+
+---
+
+## 任务栏悬停整栏图标闪白（排障）
+
+### 现象
+
+- 自定义无边框窗（D2D Present）启动后，**快速在本应用任务栏按钮上左右划**。
+- 任务栏**左侧一串图标**（含其它应用）短暂变白 / 闪几下后稳定。
+- Win10 `10.0.18363` 上复现率极高；与「只闪本应用缩略图」不同，是 **taskband 整栏合成被刷**。
+
+### 根因（两路叠加）
+
+1. **D2D GDI 兼容 RT 用 `D2D1_RENDER_TARGET_TYPE_DEFAULT`**  
+   常落 **硬件 DXGI**。非分层路径最终仍 `BitBlt` 到窗口 DC；硬件 RT 与任务栏 Live Preview / DWM 在悬停时的合成冲突，会刷爆 taskband。
+2. **任务栏 Live Preview 实时抓自定义窗**  
+   悬停时 DWM 反复要客户区缩略图；自定义框 + Present 更容易把整栏一起带崩。
+3. **阴影窗（早期）加重**  
+   owned 分层阴影、`COLOR_WINDOW` 类刷、在 `WM_NCACTIVATE` / `WM_ACTIVATEAPP` 里 `SetWindowPos` 调 Z 序 → 悬停时消息风暴，其它应用图标也会闪。
+
+### 现行修复（库内默认，勿拆）
+
+| 层 | 做法 | 源码 |
+|----|------|------|
+| D2D | GDI 兼容 RT 统一 `GdiCompatRtProps()` → **`TYPE_SOFTWARE`**（仍走 D2D 绘制，Present 仍是 GDI BitBlt） | `D2dRenderDevice.cpp` |
+| DWM | `WindowImplBase::OnCreate` 末尾 `DisableTaskbarLivePreview`：`FORCE_ICONIC` + `HAS_ICONIC_BITMAP` + `DISALLOW_PEEK` + `TRANSITIONS_FORCEDISABLED` + `FREEZE_REPRESENTATION`；处理 `WM_DWMSENDICONICTHUMBNAIL` / `WM_DWMSENDICONICLIVEPREVIEWBITMAP`，**始终** `DwmSetIconic*`，位图走窗口图标缓存 | `D2dRenderDevice.*`、`WinImplBase.cpp` |
+| 阴影 | `NULL_BRUSH`；`WS_EX_LAYERED\|TRANSPARENT\|TOOLWINDOW\|NOACTIVATE` + `WS_POPUP`；**无 owner**；创建时 `DeleteTab`；去掉 NCACTIVATE/ACTIVATEAPP 的 `SetWindowPos`；仅真 MOVE/SIZE 时挪阴影且 `SWP_NOZORDER\|NOREDRAW` | `UIShadow.cpp` |
+
+#### Shadow 子类化与 `WM_TIMER`（控件动画）
+
+`AttachDialog` → `CShadowUI::Create` 会 **子类化主窗 `GWLP_WNDPROC`**（`UIShadow.cpp`）。`CPaintManagerUI::SetTimer` 依赖 **`WM_TIMER`** 进 `DoEvent`；子类化后常 **收不到**，表现为 Loading / Ring 等 **Paint 正常但角度/帧永远不变**（`SetTimer` 返回成功也无 `Tick`）。
+
+**控件帧动画**（非 Toast 那种一次性延迟）勿再依赖 `SetTimer`，改用 **`CreateTimerQueueTimer` → `PostMessage(UIMSG_*_TICK)`**（见 [Messages.md — Shadow 子类化与控件动画定时器](Messages.md#shadow-子类化与控件动画定时器硬约束)）。库内 Loading / Ring / Skeleton / GifAnim / ScrollBar / Carousel 等已迁移。
+
+悬停预览变为**应用图标**（非实时客户区），属预期。
+
+### 已验证无效 / 有害（勿再试）
+
+| 做法 | 结果 |
+|------|------|
+| `DwmExtendFrameIntoClientArea(-1)` | 客户区内容异常 |
+| 每帧 Present 再 `FREEZE_REPRESENTATION` | 反而猛刷 taskband |
+| 只 `FORCE_ICONIC`、仍用硬件 D2D RT | 仍闪 |
+| 收到 `WM_DWMSENDICONIC*` 后不调用 `DwmSetIconic*` | 白缩略图 / 仍闪 |
+| Demo 里长期 `EnableGdiRenderDevice()` / `showshadow: false` | 仅排查用；正式方案是 SOFTWARE RT + 禁 Live Preview，**保留 D2D 与阴影** |
+
+### 冒烟
+
+`bin\duidemo_mtd.exe`：启动后在任务栏本应用按钮上快速划动数次 → 整栏图标不闪白；主界面仍为 D2D（圆角/皮肤正常）。改 Present / 阴影 / DWM 属性后必测。细节硬约束见根目录 [AGENTS.md](../../AGENTS.md)。

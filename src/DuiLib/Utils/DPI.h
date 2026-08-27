@@ -33,6 +33,10 @@ namespace DuiLib
 		static int GetMainMonitorDPI();
 		static int GetDPIOfMonitor(HMONITOR hMonitor);
 		static int GetDPIOfMonitorNearestToPoint(POINT pt);
+		/// 优先 GetDpiForWindow；失败则按 MonitorFromWindow
+		static int GetDpiForHwnd(HWND hWnd);
+		/// 进程级启用 PerMonitorV2（失败则回退 PerMonitor）；须在创建任何 HWND 前调用
+		static BOOL EnableProcessDpiAwareness();
 
 	public:
 		PROCESS_DPI_AWARENESS GetDPIAwareness();

@@ -20,6 +20,7 @@
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
 | `item-padding` | 菜单项文字区（同 List）；默认约 `0,14,0,32`（左为图标槽）。**二级菜单**会继承一级 `Menu` 的该值 | padding |
+| `icon-line` / `show-icon-line` | 图标槽与文字之间的竖分割线；默认 `true`；颜色跟主题 `color-border`（与横分隔线一致） | 无 |
 | `icon` / `icon-src` | SVG 文件或 PNG/BMP/JPG 路径 | 无 |
 | `lucide` / `tabler-outline` / `bsicon` 等 | SVG 图标库（与 Button / ListLabel 同名） | 无 |
 | `icon-size` | `16` 或 `16,16` | 无 |
@@ -32,6 +33,8 @@
 | `line-padding` | CSS `top,right,bottom,left` | padding |
 
 菜单项属性全部非标准（接近桌面菜单模型，非 HTML `<menu>`）。
+
+可点菜单项默认 `cursor` 为手型（与 Button 一致）；`line-type` 分隔线 / 禁用项不切换光标；可用 `cursor="arrow"` 覆盖。
 
 ### 主题
 

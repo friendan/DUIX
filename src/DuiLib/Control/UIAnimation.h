@@ -35,11 +35,13 @@ namespace DuiLib {
 			m_nTotalFrame = nFrame;
 			m_bLoop = bLoop;
 			m_nAnimationID = nID;
+			m_pOwner = NULL;
+			m_hQueueTimer = NULL;
 		}
 
 	//protected:
 	public:
-		friend class CDUIAnimation;
+		friend class CUIAnimation;
 
 		int m_nAnimationID;
 		int m_nElapse;
@@ -49,6 +51,8 @@ namespace DuiLib {
 
 		BOOL m_bLoop;
 		BOOL m_bFirstLoop;
+		CControlUI* m_pOwner;
+		HANDLE m_hQueueTimer;
 	};
 
 	class UILIB_API CUIAnimation: public IUIAnimation
@@ -75,6 +79,8 @@ namespace DuiLib {
 
 	protected:
 		CAnimationData* GetAnimationDataByID(int nAnimationID);
+		void StartAnimationTimer(CAnimationData* pData);
+		void StopAnimationTimer(CAnimationData* pData);
 
 	protected:
 		CControlUI* m_pControl;

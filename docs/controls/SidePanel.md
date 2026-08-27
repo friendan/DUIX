@@ -93,6 +93,7 @@ p->Show(true);
 
 ## 注意
 
+- 滑入/滑出动画经 `CUIAnimation`：`CreateTimerQueueTimer` → `UIMSG_ANIMATION_TICK`（**非** `SetTimer`，开 Shadow 主窗下 `WM_TIMER` 会丢）；见 [Messages.md](Messages.md)。
 - 关闭且非动画中 `visible=false`，不挡下层点击。
 - 子节点经 `Add` 进内容区（header/遮罩为内建 chrome）。
 - 宿主在 `html{action:title}` 下，遮罩与关闭钮已做 `PreferClientHit`，避免误成拖窗。

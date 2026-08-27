@@ -81,7 +81,21 @@ p->Start();
 
 圆环类（css/gap/fade/spoke/arc）先画好带缺口的静态图，再每帧只改旋转角（与 `Ring` 相同），避免 D2D 图缓存导致“闪一下/不转”。
 
-`Init` 自动 `Start()`。控件建议 ≥ `48×48`，线宽 `4~6` 更接近常见网页效果。
+### 动画定时器
+
+可见时 `Start()` 启动帧循环；折叠 / `Stop()` / 析构停表。`SetInternVisible` / `SetVisible` 与 Accordion 联动。
+
+**不要**用 `CPaintManagerUI::SetTimer` 驱动本控件：主窗开 Shadow 时 `WM_TIMER` 到不了 PaintManager（动画会完全静止）。现行实现：
+
+| 项 | 说明 |
+|----|------|
+| 驱动 | `CreateTimerQueueTimer` → `PostMessage(UIMSG_LOADING_TICK, pLoading)` |
+| 派发 | `UIManager::MessageHandler` → `CLoadingUI::OnAnimTick()` → `TickFrame()` → `Invalidate()` |
+| 间隔 | XML `time`（默认 16ms）；相位步进由 `duration` 算每帧角度 |
+
+详见 [Messages.md](Messages.md)#shadow-子类化与控件动画定时器硬约束。
+
+`Init` 在可见时会 `Start()`。控件建议 ≥ `48×48`，线宽 `4~6` 更接近常见网页效果。
 
 ### C++ API
 

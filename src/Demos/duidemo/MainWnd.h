@@ -106,6 +106,9 @@ private:// UI变量
 	CStdStringPtrMap m_MenuInfos;
 	CVirtualListDemoCallback m_vlistCallback;
 	CLookupPartCallback m_lookupCallback;
+	CHotKeyBinder m_hotKeys;
+
+	static void CALLBACK OnAppHotKey(int id, WORD vk, WORD mod, int scope, LPVOID pUser);
 
 public:
 	CMainPage m_MainPage;

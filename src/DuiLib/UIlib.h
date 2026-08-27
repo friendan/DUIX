@@ -107,6 +107,7 @@
 #include "Control/UILabel.h"
 #include "Control/UIText.h"
 #include "Control/UIEdit.h"
+#include "Control/UIEditBox.h"
 #include "Control/UISpin.h"
 #include "Control/UISegmented.h"
 #include "Control/UIBadge.h"
@@ -125,6 +126,8 @@
 #include "Control/UISwitch.h"
 #include "Control/UIImage.h"
 #include "Control/UIFontIcon.h"
+#include "Control/UIAppIcon.h"
+#include "Control/UIAppGrid.h"
 #include "Control/UISidePanel.h"
 
 #include "Control/UIProgress.h"
@@ -158,6 +161,9 @@
 #include "Control/UIToast.h"
 #include "Control/UIModal.h"
 #include "Control/UIMessageBox.h"
+#include "Control/UIInputBox.h"
+#include "Control/UIHotKeyBox.h"
+#include "Control/UIHotKeyBinder.h"
 
 #pragma comment( lib, "comctl32.lib" )
 #pragma comment( lib, "GdiPlus.lib" )

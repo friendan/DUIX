@@ -1035,8 +1035,8 @@ namespace DuiLib
 		// 纯色壳由 CMenuWnd::ResizeMenu → ApplyMenuChrome 套当前主题
 		static LPCTSTR sBuiltinMenuShell =
 			_T("<Window>")
-			_T("<Menu border-width=\"1\" border-radius=\"2,2\" ")
-			_T("padding=\"4,4,4,4\" item-padding=\"0,14,0,14\" />")
+			_T("<Menu border-width=\"1\" border-radius=\"4,4\" ")
+			_T("padding=\"4,4,4,4\" item-padding=\"0,14,0,32\" />")
 			_T("</Window>");
 
 		bool bCustom = !m_sContextMenuXml.IsEmpty();

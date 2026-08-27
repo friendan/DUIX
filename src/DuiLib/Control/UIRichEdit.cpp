@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "UIRichEdit.h"
 #include <ole2.h>
+#include <vector>
 
 #ifdef _USEIMM
 #include <imm.h>
@@ -16,6 +17,73 @@ namespace DuiLib {
 #define ID_RICH_SELECTALL		106
 
 	const LONG cInitTextMax = (32 * 1024) - 1;
+
+	struct RichEditTimerCtx
+	{
+		CRichEditUI* pSelf;
+		UINT idTimer;
+	};
+
+	VOID CALLBACK RichEditQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		RichEditTimerCtx* pCtx = static_cast<RichEditTimerCtx*>(lpParameter);
+		if( pCtx == NULL || pCtx->pSelf == NULL ) return;
+		CPaintManagerUI* pm = pCtx->pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, UIMSG_RICHEDIT_TICK, (WPARAM)pCtx->pSelf, pCtx->idTimer);
+	}
+
+	struct CRichEditUI::RichEditQueueTimers
+	{
+		struct Entry
+		{
+			UINT idTimer;
+			HANDLE hTimer;
+			RichEditTimerCtx* pCtx;
+		};
+		std::vector<Entry> items;
+
+		Entry* Find(UINT idTimer)
+		{
+			for( size_t i = 0; i < items.size(); ++i ) {
+				if( items[i].idTimer == idTimer )
+					return &items[i];
+			}
+			return NULL;
+		}
+
+		void StopEntry(Entry& e)
+		{
+			if( e.hTimer != NULL ) {
+				::DeleteTimerQueueTimer(NULL, e.hTimer, INVALID_HANDLE_VALUE);
+				e.hTimer = NULL;
+			}
+			if( e.pCtx != NULL ) {
+				delete e.pCtx;
+				e.pCtx = NULL;
+			}
+		}
+
+		void Stop(UINT idTimer)
+		{
+			for( size_t i = 0; i < items.size(); ) {
+				if( items[i].idTimer == idTimer ) {
+					StopEntry(items[i]);
+					items.erase(items.begin() + (ptrdiff_t)i);
+				}
+				else ++i;
+			}
+		}
+
+		void StopAll()
+		{
+			for( size_t i = 0; i < items.size(); ++i )
+				StopEntry(items[i]);
+			items.clear();
+		}
+	};
 
 	EXTERN_C const IID IID_ITextServices = { // 8d33f740-cf58-11ce-a89d-00aa006cadc5
 		0x8d33f740,
@@ -568,12 +636,14 @@ namespace DuiLib {
 	BOOL CTxtWinHost::TxSetTimer(UINT idTimer, UINT uTimeout)
 	{
 		fTimer = TRUE;
-		return m_re->GetManager()->SetTimer(m_re, idTimer, uTimeout) == TRUE;
+		if( m_re == NULL ) return FALSE;
+		return m_re->StartQueueTimer(idTimer, uTimeout) ? TRUE : FALSE;
 	}
 
 	void CTxtWinHost::TxKillTimer(UINT idTimer)
 	{
-		m_re->GetManager()->KillTimer(m_re, idTimer);
+		if( m_re != NULL )
+			m_re->StopQueueTimer(idTimer);
 		fTimer = FALSE;
 	}
 
@@ -1094,13 +1164,15 @@ namespace DuiLib {
 		CRichEditUI::CRichEditUI() : m_pTwh(NULL), m_bVScrollBarFixing(false), m_bWantTab(true), m_bWantReturn(true), 
 		m_bWantCtrlReturn(true), m_bTransparent(true), m_bRich(true), m_bReadOnly(false), m_bWordWrap(false), m_dwColor(0), m_iFont(-1), 
 		m_iLimitText(cInitTextMax), m_lTwhStyle(ES_MULTILINE), m_bDrawCaret(true), m_bInited(false), m_chLeadByte(0),m_uButtonState(0),
-		m_dwPlaceholderColor(0xBAC0C5FF), m_uPlaceholderAlign(DT_SINGLELINE | DT_LEFT)
+		m_dwPlaceholderColor(0xBAC0C5FF), m_uPlaceholderAlign(DT_SINGLELINE | DT_LEFT),
+		m_pQueueTimers(NULL)
 	{
 #ifndef _UNICODE
 		m_fAccumulateDBC =true;
 #else
 		m_fAccumulateDBC= false;
 #endif
+		m_pQueueTimers = new RichEditQueueTimers();
 		::ZeroMemory(&m_rcTextPadding, sizeof(m_rcTextPadding));
 		// 默认右键：全选 / 复制 / 粘贴；menu="false" 可关
 		SetContextMenuUsed(true);
@@ -1108,6 +1180,11 @@ namespace DuiLib {
 
 	CRichEditUI::~CRichEditUI()
 	{
+		StopAllQueueTimers();
+		if( m_pQueueTimers != NULL ) {
+			delete m_pQueueTimers;
+			m_pQueueTimers = NULL;
+		}
 		// 无窗口 RichEdit 的 WM_COPY/Ctrl+C 会把依赖本控件的 OLE 数据挂到剪贴板；
 		// 关窗释放 ITextServices 前若不 Flush，易卡死或整进程退出。
 		::OleFlushClipboard();
@@ -1126,6 +1203,39 @@ namespace DuiLib {
 	{
 		if( _tcscmp(pstrName, DUI_CTR_RICHEDIT) == 0 ) return static_cast<CRichEditUI*>(this);
 		return CContainerUI::GetInterface(pstrName);
+	}
+
+	bool CRichEditUI::StartQueueTimer(UINT idTimer, UINT uElapse)
+	{
+		if( m_pQueueTimers == NULL || m_pManager == NULL || uElapse == 0 ) return false;
+		StopQueueTimer(idTimer);
+		RichEditTimerCtx* pCtx = new RichEditTimerCtx;
+		pCtx->pSelf = this;
+		pCtx->idTimer = idTimer;
+		HANDLE hTimer = NULL;
+		if( !::CreateTimerQueueTimer(&hTimer, NULL, RichEditQueueTimerProc,
+			reinterpret_cast<PVOID>(pCtx), uElapse, uElapse, WT_EXECUTEDEFAULT) ) {
+			delete pCtx;
+			return false;
+		}
+		RichEditQueueTimers::Entry e;
+		e.idTimer = idTimer;
+		e.hTimer = hTimer;
+		e.pCtx = pCtx;
+		m_pQueueTimers->items.push_back(e);
+		return true;
+	}
+
+	void CRichEditUI::StopQueueTimer(UINT idTimer)
+	{
+		if( m_pQueueTimers != NULL )
+			m_pQueueTimers->Stop(idTimer);
+	}
+
+	void CRichEditUI::StopAllQueueTimers()
+	{
+		if( m_pQueueTimers != NULL )
+			m_pQueueTimers->StopAll();
 	}
 
 	UINT CRichEditUI::GetControlFlags() const
@@ -1856,7 +1966,7 @@ namespace DuiLib {
 			m_pTwh->GetTextServices()->TxSendMessage(EM_SETEVENTMASK, 0, ENM_DROPFILES|ENM_LINK|ENM_CHANGE, &lResult);
 			m_pTwh->OnTxInPlaceActivate(NULL);
 			m_pManager->AddMessageFilter(this);
-			m_pManager->SetTimer(this, DEFAULT_TIMERID, ::GetCaretBlinkTime());
+			StartQueueTimer(DEFAULT_TIMERID, ::GetCaretBlinkTime());
 			// 属性可能在 DoInit 前已写入成员：补应用到 host
 			if( m_iFont >= 0 )
 				m_pTwh->SetFont(m_pManager->GetFont(m_iFont));

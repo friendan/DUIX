@@ -39,6 +39,8 @@ namespace DuiLib
 		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 		/// 主题 chrome：控制栏 / 页签 / 指示点
 		void ApplyThemeChrome(DWORD dwBarBg, DWORD dwPageColor, DWORD dwDot, DWORD dwDotActive);
+		/// TimerQueue → UIMSG_CAROUSEL_TICK
+		void OnAnimTick();
 
 	protected:
 		enum { TIMER_ID = 0xC401 };
@@ -76,7 +78,10 @@ namespace DuiLib
 		CControlUI* m_pGapBeforeLast;
 		DWORD m_dwIndicatorColor;
 		DWORD m_dwIndicatorActiveColor;
+		HANDLE m_hQueueTimer;
 	};
+
+	void DuiLib_CarouselOnQueueTick(CCarouselUI* pCarousel);
 
 	/// 轮播项：可选 caption 条；内容由皮肤自由布局
 	class UILIB_API CCarouselItemUI : public CVerticalLayoutUI

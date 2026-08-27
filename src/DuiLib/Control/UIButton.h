@@ -63,11 +63,19 @@ namespace DuiLib
 		DWORD GetFocusedColor() const;
 
 		/// SVG 图标库 / 文件（属性名同 SvgBox：bsicon、lucide…）；icon / icon-src：SVG 或 PNG/BMP/JPG
-		void SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName);
-		void SetIconSrc(LPCTSTR pstrPath);
-		void ClearIcon();
+		virtual void SetIconLib(LPCTSTR pstrLib, LPCTSTR pstrName);
+		virtual void SetIconSrc(LPCTSTR pstrPath);
+		/// 内存位图图标（接管 hBitmap；失败时 DeleteObject）。用于 EXE/外壳图标等。
+		bool SetIconBitmap(HBITMAP hBitmap, int nWidth, int nHeight, bool bAlpha = true);
+		/// 内存字节图标：PNG/JPG/BMP/GIF/WEBP、ICO、SVG（网站 favicon 等）。失败静默返回 false。
+		/// 未挂 Manager 时先缓存，SetManager 后自动应用。
+		virtual bool SetIconFromMemory(const BYTE* pData, DWORD dwSize);
+		/// HICON → 预乘 alpha 的 32 位 HBITMAP（供 SetIconBitmap；失败 NULL）
+		/// DrawIconEx + 必要时黑白双缓冲重建 alpha；并裁透明边铺满
+		static HBITMAP CreateBitmapFromHIcon(HICON hIcon, int cx, int cy);
+		virtual void ClearIcon();
 		bool HasIcon() const;
-		void SetIconSize(int nSize);
+		virtual void SetIconSize(int nSize);
 		int GetIconSize() const { return m_nIconSize; }
 		void SetIconGap(int nGap);
 		int GetIconGap() const { return m_nIconGap; }
@@ -89,6 +97,33 @@ namespace DuiLib
 		LPCTSTR GetLoadingType() const { return m_sLoadingType.GetData(); }
 		void SetLoadingDisable(bool bDisable);
 		bool IsLoadingDisable() const { return m_bLoadingDisable; }
+
+		/// 右键「修改文本」：默认 false
+		void SetEditTextEnabled(bool bEnable);
+		bool IsEditTextEnabled() const { return m_bEditText; }
+		/// 右键「设置/清除快捷键」：默认 false（与 edit-text 独立）
+		void SetEditHotKeyEnabled(bool bEnable);
+		bool IsEditHotKeyEnabled() const { return m_bEditHotKey; }
+
+		/// 副标题（第二行：快捷键/说明）；空则单行。默认色/字号可省略
+		void SetSubText(LPCTSTR pstrText);
+		LPCTSTR GetSubText() const { return m_sSubText.GetData(); }
+		void SetSubColor(DWORD dwColor);
+		DWORD GetSubColor() const { return m_dwSubColor; }
+		void SetSubFont(int index);
+		int GetSubFont() const { return m_iSubFont; }
+		void SetSubGap(int nGap);
+		int GetSubGap() const { return m_nSubGap; }
+		bool HasSubText() const { return !m_sSubText.IsEmpty(); }
+
+		/// 与 sub-text 配套的快捷键（仅存储；不自动注册加速键 / RegisterHotKey）
+		/// scope：0=程序（HOTKEYBOX_SCOPE_APP，默认），1=全局（HOTKEYBOX_SCOPE_GLOBAL）
+		void SetShortcutKey(WORD wVirtualKeyCode, WORD wModifiers, int scope = 0);
+		void GetShortcutKey(WORD& wVirtualKeyCode, WORD& wModifiers) const;
+		void GetShortcutKey(WORD& wVirtualKeyCode, WORD& wModifiers, int& scope) const;
+		int GetShortcutScope() const { return m_nShortcutScope; }
+		void ClearShortcutKey();
+		bool HasShortcutKey() const { return m_wShortcutVk != 0 || m_wShortcutMod != 0; }
 
 		SIZE EstimateSize(SIZE szAvailable) override;
 
@@ -117,6 +152,9 @@ namespace DuiLib
 		void ShowSvgIcon();
 		void ShowRasterIcon(LPCTSTR pstrPath);
 		void RefreshRasterIconImage();
+		void ReleaseMemIcon();
+		void ClearPendingIconMemory();
+		bool ApplyIconFromMemory(const BYTE* pData, DWORD dwSize);
 		void ClearRasterTintCache();
 		bool EnsureRasterTintCache(DWORD dwColor);
 		void PaintRasterIcon(IRenderContext& ctx, const RECT& rcIcon);
@@ -128,6 +166,15 @@ namespace DuiLib
 		DWORD ResolvePaintIconColor() const;
 		/// 根据内容区计算图标矩形，并收缩 rcText
 		bool LayoutIconAndText(const RECT& rcContent, RECT& rcIcon, RECT& rcText) const;
+		/// 主行 + 可选副行的文字块尺寸（逻辑像素测量结果已含 DPI 字体）
+		SIZE MeasureTitleBlock(int iMainFont) const;
+		int ResolvePaintMainFont() const;
+		int ResolvePaintSubFont(int iMainFont) const;
+		DWORD ResolveSubTextColor(DWORD clrMain) const;
+		void ShowEditTextMenu(POINT ptClient);
+		bool HandleEditTextMenuClick(WPARAM wParam);
+
+		friend class CButtonEditTextMenuFilter;
 
 		UINT m_uButtonState;
 
@@ -155,6 +202,10 @@ namespace DuiLib
 		CLoadingUI* m_pLoading;
 		IconKind m_eIconKind;
 		CDuiString m_sRasterPath;
+		CDuiString m_sMemIconKey;
+		bool m_bRasterMemKey;
+		BYTE* m_pPendingIconData;
+		DWORD m_dwPendingIconSize;
 		HBITMAP m_hRasterTint;
 		DWORD m_dwRasterTintColor;
 		int m_nRasterTintW;
@@ -173,6 +224,16 @@ namespace DuiLib
 		DWORD m_dwIconTintFocus;
 		bool m_bIconTint;
 		bool m_bIconTintAuto; // 光栅跟随文字色；SVG 始终着色
+		bool m_bEditText;              // 右键「修改文本」
+		bool m_bEditHotKey;            // 右键「设置/清除快捷键」
+		bool m_bEditTextMenuPending;   // 已弹出内置菜单，等待 WM_MENUCLICK
+		CDuiString m_sSubText;         // 第二行说明/快捷键
+		DWORD m_dwSubColor;            // 0=自动（主题次要色 / 主色半透明）
+		int m_iSubFont;                // -1=与主行同 font
+		int m_nSubGap;                 // 主副行间距（逻辑像素）
+		WORD m_wShortcutVk;            // 快捷键虚拟键（0=无）
+		WORD m_wShortcutMod;           // HOTKEYF_* 修饰键
+		int m_nShortcutScope;          // HOTKEYBOX_SCOPE_APP / GLOBAL
 	};
 
 }	// namespace DuiLib

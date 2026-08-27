@@ -1,6 +1,8 @@
 #include "StdAfx.h"
 #include <zmouse.h>
+#include <Imm.h>
 #include "DuiExitTrace.h"
+#pragma comment(lib, "Imm32.lib")
 
 #pragma warning(push)
 #pragma warning(disable:4838 4244)
@@ -548,6 +550,8 @@ namespace DuiLib {
 	void CPaintManagerUI::SetInstance(HINSTANCE hInst)
 	{
 		m_hInstance = hInst;
+		// 须在任何 HWND 创建前：否则跨屏时系统位图拉伸 → 文字变大且模糊
+		CDPI::EnableProcessDpiAwareness();
 	}
 
 	void CPaintManagerUI::SetCurrentPath(LPCTSTR pStrPath)
@@ -1905,34 +1909,74 @@ namespace DuiLib {
 						m_pOffscreenSurface->Present(presentParams);
 					}
 					else {
+						// 非分层 Present：显式 ExcludeClipRect 排除 WC_EDIT 子窗。
+						// 日志已证明系统 caret 存在但看不见；若 BeginPaint 的 CLIPCHILDREN
+						// 未生效（PtVisible(editCenter)=1），BitBlt 会盖掉 XOR 光标。
+						int nPaintSave = ::SaveDC(ps.hdc);
+						for( HWND hChild = ::GetWindow(m_hWndPaint, GW_CHILD);
+							hChild != NULL;
+							hChild = ::GetWindow(hChild, GW_HWNDNEXT) )
+						{
+							if( !::IsWindowVisible(hChild) ) continue;
+							TCHAR cls[64] = {};
+							::GetClassName(hChild, cls, _countof(cls));
+							if( _tcsicmp(cls, WC_EDIT) != 0 && _tcsicmp(cls, _T("EditWnd")) != 0 )
+								continue;
+							RECT rcChild = {};
+							::GetWindowRect(hChild, &rcChild);
+							::MapWindowPoints(HWND_DESKTOP, m_hWndPaint, (LPPOINT)&rcChild, 2);
+							::ExcludeClipRect(ps.hdc, rcChild.left, rcChild.top, rcChild.right, rcChild.bottom);
+						}
 						RenderPresentParams presentParams;
 						presentParams.hWnd = m_hWndPaint;
-						presentParams.hWindowDC = m_hDcPaint;
+						presentParams.hWindowDC = ps.hdc;
 						presentParams.rcPaint = rcPaint;
 						presentParams.rcClient = rcClient;
 						presentParams.bLayered = false;
 						presentParams.nOpacity = m_nOpacity;
 						m_pOffscreenSurface->Present(presentParams);
+						::RestoreDC(ps.hdc, nPaintSave);
+						// Present 后子 Edit 需重绘才能让系统 caret 重新 XOR 出来。
+						// 须在每次 Present 后都刷（不限脏区相交）：侧栏等无关脏区也会间接影响。
+						// 整窗 Redraw 会冲 IME 候选，故仅在未组字时刷新。
+						{
+							HWND hFocus = ::GetFocus();
+							if( hFocus != NULL && ::IsChild(m_hWndPaint, hFocus) ) {
+								TCHAR cls[64] = {};
+								::GetClassName(hFocus, cls, _countof(cls));
+								if( _tcsicmp(cls, WC_EDIT) == 0 || _tcsicmp(cls, _T("EditWnd")) == 0 ) {
+									bool bComposing = false;
+									HIMC hImc = ::ImmGetContext(hFocus);
+									if( hImc != NULL ) {
+										LONG nComp = ::ImmGetCompositionString(hImc, GCS_COMPSTR, NULL, 0);
+										bComposing = (nComp > 0);
+										::ImmReleaseContext(hFocus, hImc);
+									}
+									if( !bComposing )
+										::RedrawWindow(hFocus, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+								}
+							}
+						}
 					}
 
 					if( m_bShowUpdateRect && !m_bLayered ) {
-						HPEN hOldPen = (HPEN)::SelectObject(m_hDcPaint, m_hUpdateRectPen);
-						::SelectObject(m_hDcPaint, ::GetStockObject(HOLLOW_BRUSH));
-						::Rectangle(m_hDcPaint, rcPaint.left, rcPaint.top, rcPaint.right, rcPaint.bottom);
-						::SelectObject(m_hDcPaint, hOldPen);
+						HPEN hOldPen = (HPEN)::SelectObject(ps.hdc, m_hUpdateRectPen);
+						::SelectObject(ps.hdc, ::GetStockObject(HOLLOW_BRUSH));
+						::Rectangle(ps.hdc, rcPaint.left, rcPaint.top, rcPaint.right, rcPaint.bottom);
+						::SelectObject(ps.hdc, hOldPen);
 					}
 				}
 				else {
-					// A standard paint job
-					int iSaveDC = ::SaveDC(m_hDcPaint);
-					COwnedRenderContextScope renderScope(this, m_hDcPaint);
+					// A standard paint job（同样走 ps.hdc，避免盖住子窗）
+					int iSaveDC = ::SaveDC(ps.hdc);
+					COwnedRenderContextScope renderScope(this, ps.hdc);
 					IRenderContext& renderCtx = renderScope.GetContext();
 					m_pRoot->Paint(renderCtx, rcPaint, NULL);
 					for( int i = 0; i < m_aPostPaintControls.GetSize(); i++ ) {
 						CControlUI* pPostPaintControl = static_cast<CControlUI*>(m_aPostPaintControls[i]);
 						pPostPaintControl->DoPostPaint(renderCtx, rcPaint);
 					}
-					::RestoreDC(m_hDcPaint, iSaveDC);
+					::RestoreDC(ps.hdc, iSaveDC);
 				}
 				// All Done!
 				::EndPaint(m_hWndPaint, &ps);
@@ -2007,6 +2051,71 @@ namespace DuiLib {
 					m_pFocus->Event(event);
 				}
 				if( m_pRoot != NULL ) m_pRoot->NeedUpdate();
+			}
+			return true;
+		case UIMSG_LOADING_TICK:
+			DuiLib_LoadingOnQueueTick(reinterpret_cast<CLoadingUI*>(wParam));
+			return true;
+		case UIMSG_RING_TICK:
+			DuiLib_RingOnQueueTick(reinterpret_cast<CRingUI*>(wParam));
+			return true;
+		case UIMSG_SKELETON_TICK:
+			DuiLib_SkeletonOnQueueTick(reinterpret_cast<CSkeletonUI*>(wParam));
+			return true;
+		case UIMSG_GIFANIM_TICK:
+			DuiLib_GifAnimOnQueueTick(reinterpret_cast<CGifAnimUI*>(wParam));
+			return true;
+#ifdef USE_XIMAGE_EFFECT
+		case UIMSG_GIFANIMEX_TICK:
+			DuiLib_GifAnimExOnQueueTick(reinterpret_cast<CGifAnimExUI*>(wParam));
+			return true;
+#endif
+		case UIMSG_SCROLLBAR_TICK:
+			DuiLib_ScrollBarOnQueueTick(reinterpret_cast<CScrollBarUI*>(wParam));
+			return true;
+		case UIMSG_CAROUSEL_TICK:
+			DuiLib_CarouselOnQueueTick(reinterpret_cast<CCarouselUI*>(wParam));
+			return true;
+		case UIMSG_ANIMATION_TICK:
+			{
+				CControlUI* pControl = reinterpret_cast<CControlUI*>(wParam);
+				if( pControl != NULL ) {
+					TEventUI event = { 0 };
+					event.Type = UIEVENT_TIMER;
+					event.pSender = pControl;
+					event.dwTimestamp = ::GetTickCount();
+					event.wParam = lParam;
+					event.lParam = lParam;
+					pControl->Event(event);
+				}
+			}
+			return true;
+		case UIMSG_ROLLTEXT_TICK:
+			{
+				CControlUI* pControl = reinterpret_cast<CControlUI*>(wParam);
+				if( pControl != NULL ) {
+					TEventUI event = { 0 };
+					event.Type = UIEVENT_TIMER;
+					event.pSender = pControl;
+					event.dwTimestamp = ::GetTickCount();
+					event.wParam = lParam;
+					event.lParam = lParam;
+					pControl->Event(event);
+				}
+			}
+			return true;
+		case UIMSG_RICHEDIT_TICK:
+			{
+				CControlUI* pControl = reinterpret_cast<CControlUI*>(wParam);
+				if( pControl != NULL ) {
+					TEventUI event = { 0 };
+					event.Type = UIEVENT_TIMER;
+					event.pSender = pControl;
+					event.dwTimestamp = ::GetTickCount();
+					event.wParam = lParam;
+					event.lParam = lParam;
+					pControl->Event(event);
+				}
 			}
 			return true;
 		case WM_TIMER:
@@ -2907,8 +3016,10 @@ namespace DuiLib {
 			rc.bottom = rcWnd.top + (rcWnd.bottom - rcWnd.top) * scale2 / scale1;
 			::SetWindowPos(hWnd, NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER | SWP_NOACTIVATE);
 		}
-		if (GetRoot() != NULL) GetRoot()->NeedUpdate();
-		if( hWnd != NULL )
+		// AttachDialog 前可调 SetDPI（OnCreate）；勿用 GetRoot()（会 ASSERT）
+		if( GetRootPtr() != NULL ) GetRootPtr()->NeedUpdate();
+		// 根未挂上时不 Post UIMSG_SET_DPI，避免应用在 HandleCustomMessage 里 FindControl 踩空根
+		if( hWnd != NULL && GetRootPtr() != NULL )
 			::PostMessage(hWnd, UIMSG_SET_DPI, 0, 0);
 	}
 
@@ -2937,8 +3048,26 @@ namespace DuiLib {
 		}
 		RebuildFont(&m_SharedResInfo.m_DefaultFontInfo);
 
-		if( GetRoot() == NULL ) return;
-		CStdPtrArray *richEditList = FindSubControlsByClass(GetRoot(), _T("RichEditUI"));
+		// mem 图（AppIcon file=/EXE 等）已随 RemoveAllImages 失效，通知控件重建
+		if( GetRootPtr() != NULL ) {
+			CStdPtrArray aStack;
+			aStack.Add(GetRootPtr());
+			while( aStack.GetSize() > 0 ) {
+				CControlUI* p = static_cast<CControlUI*>(aStack.GetAt(aStack.GetSize() - 1));
+				aStack.Remove(aStack.GetSize() - 1);
+				if( p == NULL ) continue;
+				p->OnResetDpiAssets();
+				CContainerUI* pContainer = static_cast<CContainerUI*>(p->GetInterface(DUI_CTR_CONTAINER));
+				if( pContainer == NULL ) continue;
+				const int n = pContainer->GetCount();
+				for( int i = 0; i < n; ++i )
+					aStack.Add(pContainer->GetItemAt(i));
+			}
+		}
+
+		CControlUI* pRoot = GetRootPtr();
+		if( pRoot == NULL ) return;
+		CStdPtrArray *richEditList = FindSubControlsByClass(pRoot, _T("RichEditUI"));
 		if( richEditList == NULL ) return;
 		for (int i = 0; i < richEditList->GetSize(); i++)
 		{
@@ -4401,7 +4530,9 @@ namespace DuiLib {
 
 	CControlUI* CPaintManagerUI::FindControl(LPCTSTR pstrName) const
 	{
-		ASSERT(m_pRoot);
+		// AttachDialog 前 / 根已拆除时允许按名查找：返回 NULL，勿 ASSERT
+		//（OnCreate 里 SetDPI 会 PostMessage UIMSG_SET_DPI；阴影 CreateWindow 等可能重入派发）
+		if( m_pRoot == NULL ) return NULL;
 		return static_cast<CControlUI*>(m_mNameHash.Find(pstrName));
 	}
 
