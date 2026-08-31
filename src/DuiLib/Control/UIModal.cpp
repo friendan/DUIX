@@ -655,12 +655,12 @@ namespace DuiLib {
 		CControlUI* pHitCtrl = m_pm.FindControl(pt);
 		if( pHitCtrl != NULL ) {
 			if( pHitCtrl->IsCaptionDragHit(pt) )
-				return HTCAPTION;
+				return CPaintManagerUI::HitTestCaptionDrag(true);
 			UIAction leafAct = pHitCtrl->GetAction();
 			if( leafAct == UIACTION_NONE && !pHitCtrl->PreferClientHit() ) {
 				for( CControlUI* pWalk = pHitCtrl->GetParent(); pWalk != NULL; pWalk = pWalk->GetParent() ) {
 					if( pWalk->IsCaptionDragHit(pt) )
-						return HTCAPTION;
+						return CPaintManagerUI::HitTestCaptionDrag(true);
 					UIAction parentAct = pWalk->GetAction();
 					if( parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW )
 						break;

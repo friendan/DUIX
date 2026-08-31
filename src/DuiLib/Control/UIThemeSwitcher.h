@@ -11,8 +11,10 @@ namespace DuiLib
 	public:
 		CThemeSwitcherUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
+		/// 标题栏内必须保持 HTCLIENT，否则 tooltip / 悬停进不来
+		bool PreferClientHit() const override;
 
 		void SetThemesFilter(LPCTSTR pstrThemes);
 		LPCTSTR GetThemesFilter() const;
@@ -44,9 +46,9 @@ namespace DuiLib
 		void SyncFromManager();
 		void OpenPicker();
 
-		bool Activate();
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
-		void DoInit();
+		bool Activate() override;
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
+		void DoInit() override;
 
 	protected:
 		CDuiString m_sThemesFilter;

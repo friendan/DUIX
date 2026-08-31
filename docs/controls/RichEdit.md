@@ -43,4 +43,4 @@
 
 **复制：** `Copy` 写 `CF_UNICODETEXT` 到系统剪贴板（不用 `WM_COPY` 的 OLE 延迟渲染）；析构前 `OleFlushClipboard`，避免关窗卡死。
 
-**插入符闪烁：** `DoInit` 与 RichEdit 引擎 `TxSetTimer` 均经 `CreateTimerQueueTimer` → `UIMSG_RICHEDIT_TICK`（**非** `SetTimer`；开 Shadow 主窗时 `WM_TIMER` 丢失会导致闪烁错乱或频率异常）。见 [Messages.md](Messages.md)。分层窗自绘 caret 仍走 `m_bDrawCaret` 切换；非分层用 `ShowCaret`/`HideCaret`。
+**插入符闪烁：** 聚焦时 host 开 `CARET_BLINK_TIMERID` TimerQueue → `UIMSG_RICHEDIT_TICK` → `m_bDrawCaret` 相位；**DoPaint 自绘竖线**（内部坐标，**勿**在父 HWND `CreateCaret`，以免与 WC_EDIT 子窗争用）。引擎 `TxSetTimer` 仅应答。见 [Messages.md](Messages.md)。

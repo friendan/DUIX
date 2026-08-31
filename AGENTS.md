@@ -96,6 +96,27 @@ build_clang_ninja_release.bat
 - **字符集：仅 Unicode**。CMake 已强制 `-DUNICODE -D_UNICODE`；[`src/DuiLib/StdAfx.h`](src/DuiLib/StdAfx.h) 对非 Unicode 直接 `#error`。禁止再维护 ANSI / MultiByte 皮肤或字符串副本（内嵌皮肤用 `LR"..."`）
 - 输出目录：`bin/`（exe、dll、lib 统一输出；后缀 `_mtd` / `_mt`）
 
+## C++ 代码规范（硬约束）
+
+clang-cl 使用 **`/W3`**（[`src/CMakeLists.txt`](src/CMakeLists.txt)），会对未标 `override` 的覆写报 **`-Winconsistent-missing-override`**。**凡覆写基类虚函数，声明末尾必须写 `override`**，否则每个包含该头文件的 `.cpp` 都会重复报 warning，整库编译日志会被刷爆。
+
+### 必须带 `override` 的常见虚函数
+
+| 类别 | 典型函数 |
+|------|----------|
+| 控件身份 | `GetClass`、`GetInterface` |
+| 属性 / 布局 | `SetAttribute`、`SetPos`、`EstimateSize` |
+| 生命周期 / 事件 | `DoInit`、`DoEvent`、`SetVisible`、`SetEnabled` |
+| 绘制 | `Paint`、`PaintText`、`PaintBackgroundImage` 等 `Paint*` |
+
+### 新增 / 修改控件时
+
+1. **新控件头文件**：参照 [`UILoading.h`](src/DuiLib/Control/UILoading.h)、[`UIEdit.h`](src/DuiLib/Control/UIEdit.h)——凡 override 基类虚函数的一律加 `override`；不要只给部分函数加（如 `UIRing.h` 曾混用，导致 130 个 TU × 3 条 warning）。
+2. **改已有 `.h/.cpp`**：动到类声明时，**顺带**给该类仍缺 `override` 的覆写补上；勿为「清 warning」无功能需求地整库批量改声明。
+3. **提交前**：本地编译后看 `build.log`（或终端输出），**不得新增 warning**；若动到的文件仍报 `-Winconsistent-missing-override`，先修再交。
+4. **禁止**为压 warning 去掉基类 `virtual` 或改用 `#pragma` 关警告；应补 `override` 或改签名与基类一致。
+5. **禁止**用脚本/正则「全库批量」把 `virtual` 换成 `override` 或给所有声明补 `override`。基类里**非 virtual 的默认实现**（如 `IRenderSurface::GetBackendTarget`）、**不同签名的重载**、**带函数体的 inline 声明**、接口/引擎里**首次出现的 virtual**，误标 `override` 会直接编译失败。历史 warning 只修**编译输出指向的那一个头文件/声明**。
+
 ## 渲染后端
 
 - 默认：Direct2D（`DUILIB_USE_D2D=ON` → `DUILIB_RENDER_BACKEND=1`）

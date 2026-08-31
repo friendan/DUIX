@@ -11,6 +11,28 @@
 
 v1 **不做**：文件夹、长按菜单。分页模式：圆点 / 滚轮 / **拖拽时悬停圆点或方向键**跨页；`scroll` 模式：列表滚动。
 
+### 稀疏格子（`sparse`）
+
+| 属性 / API | 说明 | 默认 |
+|------------|------|------|
+| `sparse` / `SetSparse` / `IsSparse` | 开启空位占位网格 | `false`（密排） |
+| `CreateSlot()` | 新建空位（`name=__slot__`）；持久化恢复时对洞 `Add(CreateSlot())` | |
+| `EnsureSlotCount(n)` | 尾部补空位到至少 n 格 | |
+| `CompactSlots()` | 去掉全部空位，恢复密排 | |
+| `FindFirstEmptySlot()` | 第一个空位下标；无则 `-1` | |
+| `AddToFirstEmpty(p)` | 放入第一个空位；无空位则追加末尾；成功返回下标 | |
+| `IsSlotEmpty(p)` / `IsSlotEmptyAt(i)` | 是否为空位 | |
+| `GetRealItemCount()` | 非空位项数量 | |
+| `RemoveGridItemAt(i)` | **sparse**：删除图标后**同下标留洞**；删空位或密排则塌陷 | |
+
+语义（仅 `sparse=true`）：
+
+- 拖到**空格**：与占位互换 → 图标落位，**源位留空**
+- 拖到**图标**：互换（与密排一致）
+- 有 **filter** 时隐藏空位（搜索密排）；清除过滤后空位恢复
+
+独立 Demo：Accordion「AppGrid·Sparse」→ 打开 `appgridsparse.htm` 测试窗。
+
 ### 布局模式
 
 | 模式 | 属性 | 行为 |
@@ -90,8 +112,8 @@ v1 **不做**：文件夹、长按菜单。分页模式：圆点 / 滚轮 / **�
 |------|------|
 | 点击圆点 | 切页 |
 | 滚轮 | 分页模式：上下翻页；`scroll`：滚内容 |
-| 拖拽子项 | 超过阈值后源格隐藏、**拖影跟手**；与目标格**互换**（拖过不触发 click）；分页模式：悬停圆点切页，或 **←↑→↓ / PageUp·PageDown** 翻页后松手互换 |
-| 拖空白区 | 默认 `action=title`：间隙 / 未铺满区域拖移窗口；图标、分页条、滚动条槽除外（`action="none"` 可关） |
+| 拖拽子项 | 超过阈值后源格隐藏、**拖影跟手**；与目标格**互换**（拖过不触发 click）；分页模式：悬停圆点切页，或 **←↑→↓ / PageUp·PageDown** 翻页后松手互换。`sparse` 时可落到空格（源留洞） |
+| 拖空白区 | 默认 `action=title`：间隙 / 未铺满区域 / **空位占位**拖移窗口；真图标、分页条、滚动条槽除外（`action="none"` 可关） |
 | 单击子项 | 子控件 `click` → `itemclick` |
 | 双击子项 | 系统 `DBLCLICK` → `itemdbclick`（此前第一次抬起仍会有一次 `itemclick`） |
 | 右键子项 | 上抛网格 `itemrclick`（便于弹菜单） |
@@ -138,4 +160,4 @@ if( msg.sType == DUI_MSGTYPE_ITEMRCLICK && msg.pSender->GetName() == _T("app_gri
 
 ### Demo
 
-`duidemo` → Accordion「AppIcon / AppGrid」：前排为 [AppIcon](AppIcon.md) 功能样例（角标 / 文字图标 / `file=` EXE·WebP 等），其后 100 项翻页；「AppGrid·滚动」`scroll=true` 连续滑。
+`duidemo` → Accordion「AppIcon / AppGrid」：前排为 [AppIcon](AppIcon.md) 功能样例，其后 100 项翻页；「AppGrid·滚动」`scroll=true`；「AppGrid·Sparse」打开独立稀疏测试窗。

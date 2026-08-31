@@ -36,6 +36,10 @@ namespace DuiLib
 		pFolderButton->SetFixedWidth(GetFixedHeight());
 		pDottedLine->SetFixedWidth(2);
 		pCheckBox->SetFixedWidth(GetFixedHeight());
+		// 节点标签不是独立按钮：清掉 Option 默认左右 padding / kind 圆角，否则
+		// HBox 里被估成极窄宽时内容区被 padding 吃光，图标会被裁成残缺。
+		pItemButton->SetKind(CONTROLKIND_NONE);
+		pItemButton->SetPadding(CDuiBox(0));
 		pItemButton->SetAttribute(_T("text-align"),_T("left"));
 		pDottedLine->SetVisible(FALSE);
 		pCheckBox->SetVisible(FALSE);
@@ -543,6 +547,15 @@ namespace DuiLib
 			pCheckBox->ApplyAttributeList(pstrValue);
 		else if(_tcsicmp(pstrName, _T("itemattr")) == 0 )
 			pItemButton->ApplyAttributeList(pstrValue);
+		else if(_tcsicmp(pstrName, _T("height")) == 0 ) {
+			CListContainerElementUI::SetAttribute(pstrName, pstrValue);
+			// folder/check 槽宽跟行高对齐（构造时用 GetFixedHeight；改 height 后需同步）
+			int nH = _ttoi(pstrValue);
+			if( nH > 0 ) {
+				pFolderButton->SetFixedWidth(nH);
+				pCheckBox->SetFixedWidth(nH);
+			}
+		}
 		else if(_tcsicmp(pstrName, _T("item-color")) == 0 ){
 			DWORD clrColor = 0;
 			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;

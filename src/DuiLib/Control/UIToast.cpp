@@ -1065,13 +1065,13 @@ namespace DuiLib {
 		CControlUI* pHitCtrl = m_pm.FindControl(pt);
 		if( pHitCtrl != NULL ) {
 			if( pHitCtrl->IsCaptionDragHit(pt) )
-				return HTCAPTION;
+				return CPaintManagerUI::HitTestCaptionDrag(true);
 			UIAction leafAct = pHitCtrl->GetAction();
 			// 叶子无 action 时向上找；PreferClientHit（热态/SETCURSOR 等）不继承父级拖拽
 			if( leafAct == UIACTION_NONE && !pHitCtrl->PreferClientHit() ) {
 				for( CControlUI* pWalk = pHitCtrl->GetParent(); pWalk != NULL; pWalk = pWalk->GetParent() ) {
 					if( pWalk->IsCaptionDragHit(pt) )
-						return HTCAPTION;
+						return CPaintManagerUI::HitTestCaptionDrag(true);
 					UIAction parentAct = pWalk->GetAction();
 					if( parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW )
 						break;

@@ -7,6 +7,7 @@ namespace DuiLib
 {
 	/// 自适应列×行的应用图标网格：按页切片、底部分页圆点、拖拽换位（拖到圆点 / 方向键跨页）。
 	/// 子节点任意 CControlUI（Demo 用 AppIcon）；不做文件夹 / 长按菜单。
+	/// sparse=true 时支持空位占位（可拖到空格、删除留洞）；默认密排。
 	class UILIB_API CAppGridUI : public CContainerUI, public IMessageFilterUI
 	{
 		DECLARE_DUICONTROL(CAppGridUI)
@@ -64,6 +65,10 @@ namespace DuiLib
 		bool IsScrollMode() const { return m_bScrollMode; }
 		void SetScrollMode(bool b);
 
+		/// 稀疏格子：空位用占位子项；拖到空格互换留洞；删除图标留洞。默认 false=密排
+		bool IsSparse() const { return m_bSparse; }
+		void SetSparse(bool b);
+
 		/// 分页圆点直径（逻辑像素）；绘制时按可用宽度在 [min,max] 内取尽量大的值
 		void SetDotSizeMin(int n);
 		int GetDotSizeMin() const { return m_nDotSizeMin; }
@@ -74,17 +79,33 @@ namespace DuiLib
 		int GetRows() const { return m_nRows; }
 		int GetPerPage() const;
 
-		/// 网格项（跳过 absolute）；下标用于顺序持久化 / EnsureItemVisible（不过滤）
+		/// 网格项（跳过 absolute）；下标用于顺序持久化 / EnsureItemVisible（不过滤；含占位）
 		int GetGridItemCount() const;
 		CControlUI* GetGridItemAt(int iGridIndex) const;
 		int GetGridIndexOf(CControlUI* pControl) const;
+		/// 非占位项数量
+		int GetRealItemCount() const;
+		/// 是否为空位占位（持久化哨兵 name=`__slot__`）
+		static bool IsSlotEmpty(CControlUI* pControl);
+		bool IsSlotEmptyAt(int iGridIndex) const;
+		/// 新建空位占位（未加入网格）；name=`__slot__`
+		static CControlUI* CreateSlot();
+		/// 尾部补占位，使网格项数至少为 n（拖到页内空槽时用）
+		bool EnsureSlotCount(int n);
+		/// 去掉全部空位，恢复密排
+		bool CompactSlots();
+		/// 第一个空位的网格下标；无则 -1
+		int FindFirstEmptySlot() const;
+		/// 放入第一个空位（替换占位）；无空位则追加末尾。成功返回网格下标，失败 -1
+		int AddToFirstEmpty(CControlUI* pControl);
+
 		/// 互换两个网格下标；成功则发 itemmoved（wParam=from, lParam=to）
 		bool SwapItems(int iFrom, int iTo, bool bNotify = true);
 		/// 将 from 插入到 to 位置（最终下标为 to）；成功发 itemmoved
 		bool MoveItem(int iFrom, int iTo);
-		/// 按网格下标删除（跳过 absolute）；走 Remove 生命周期
+		/// 按网格下标删除：sparse 下非空位改为留洞；空位或密排则 Remove 塌陷
 		bool RemoveGridItemAt(int iGridIndex);
-		/// 命中当前页格子 → 全局网格下标；未命中 -1
+		/// 命中当前页真图标 → 全局网格下标；空位 / 未命中 -1
 		int HitTestItemIndex(POINT pt) const;
 
 		/// 显示过滤：空串=显示全部；非空时对 text / name 做不区分大小写子串匹配（可叠加回调）
@@ -121,8 +142,10 @@ namespace DuiLib
 		CScrollBarUI* HitTestScrollBar(POINT pt) const;
 		int HitTestCellIndex(POINT pt, const RECT& rcContent) const;
 		CControlUI* HitTestItem(POINT pt) const;
-		int ResolveDragHoverIndex(POINT pt) const;
+		/// sparse 时可能补占位，故非 const
+		int ResolveDragHoverIndex(POINT pt);
 		void UpdateDragHoverAfterPage(POINT pt);
+		bool GetCellRectByVisibleIndex(int iVisible, RECT& rc) const;
 		/// 拖拽中方向键 / PageUp·PageDown 翻页；已处理返回 true
 		bool HandleDragPageKey(TEventUI& event);
 		void HookChild(CControlUI* pControl);
@@ -136,7 +159,7 @@ namespace DuiLib
 		void UpdateDragGhost(POINT ptMouse);
 		void EndDragGhost(int iSrcIdx = -1);
 		void ForceRepaintAfterDrag(CControlUI* pItem);
-		/// 结束拖拽：仅落在其它图标上才换位；空白 / 滚动条 / 界外均取消并还原
+		/// 结束拖拽：落在其它格（含空位）则互换；滚动条 / 界外取消
 		void FinishDrag(POINT pt, bool bAllowSwap);
 		bool QueryDragMouseClient(POINT& pt) const;
 		RECT GetDragGhostRect() const;
@@ -160,6 +183,7 @@ namespace DuiLib
 		bool m_bDraggable;
 		bool m_bShowPageDots;
 		bool m_bScrollMode;
+		bool m_bSparse;
 		bool m_bDragging;
 		bool m_bSuppressChildClick;
 		int m_nDragSrcIdx;

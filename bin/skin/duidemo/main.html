@@ -346,6 +346,52 @@
                         </AppGrid>
                       </VBox>
                     </AccordionItem>
+                    <AccordionItem title="AppGrid·Sparse" active="false" header-align="left">
+                      <HBox height="48" gap="8" align-items="vcenter" padding="0,8,0,8">
+                        <Button name="btn_appgrid_sparse_test" text="打开 Sparse 测试窗口" kind="primary" width="180" height="36"
+                            tooltip="sparse=true：拖到空格留洞、互换、删除留空位" />
+                        <Label text="独立验证空位网格（appgridsparse.htm）" theme="secondary" />
+                      </HBox>
+                    </AccordionItem>
+                    <AccordionItem title="ToolCard" active="false" header-align="left">
+                      <VBox height="360" padding="8,12,8,12" gap="10">
+                        <Label text="内容区右键：全选/复制；可用 ToolCardHeader / ToolCardBody 槽。" theme="secondary" height="22" />
+                        <ToolCard name="toolcard_file" kind="file"
+                          path="src/DuiLib/Control/UIToolCard.cpp" body-max-height="88">
+                          <ToolCardHeader>
+                            <Label text="open" color="#0D6EFDFF" width="36" height="20" />
+                          </ToolCardHeader>
+                          <ToolCardBody>
+                            <Label text="class CToolCardUI : public CVerticalLayoutUI" color="#495057FF" height="20" />
+                            <Label text="// 点标题 → toolcardopen → 业务打开文件" color="#6C757DFF" height="20" />
+                            <Label text="// 内容区右键可全选/复制" color="#6C757DFF" height="20" />
+                          </ToolCardBody>
+                        </ToolCard>
+                        <ToolCard name="toolcard_cmd" kind="cmd"
+                          command="build_clang_ninja_debug.bat"
+                          expanded="true" body-max-height="120">
+                          <ToolCardHeader gap="6">
+                            <Label text="done" color="#198754FF" width="40" height="20" />
+                            <Button name="btn_toolcard_copy" text="复制" width="48" height="22" />
+                          </ToolCardHeader>
+                          <ToolCardBody>
+                            <Label text="[1/12] Building CXX object DuiLib/UIToolCard.cpp.obj" color="#495057FF" height="18" />
+                            <Label text="[2/12] Building CXX object DuiLib/UIManager.cpp.obj" color="#495057FF" height="18" />
+                            <Label text="[3/12] Building CXX object DuiLib/WinImplBase.cpp.obj" color="#495057FF" height="18" />
+                            <Label text="[4/12] Building CXX object DuiLib/UIControl.cpp.obj" color="#495057FF" height="18" />
+                            <Label text="[5/12] Building CXX object DuiLib/UIContainer.cpp.obj" color="#495057FF" height="18" />
+                            <Label text="[6/12] Building CXX object DuiLib/UIRender.cpp.obj" color="#495057FF" height="18" />
+                            <Label text="[7/12] Building CXX object duidemo/MainWnd.cpp.obj" color="#495057FF" height="18" />
+                            <Label text="[8/12] Linking CXX static library DuiLib_mtd.lib" color="#495057FF" height="18" />
+                            <Label text="[9/12] Linking CXX executable duidemo_mtd.exe" color="#495057FF" height="18" />
+                            <Label text="[10/12] Linking CXX executable HiDPITest_mtd.exe" color="#495057FF" height="18" />
+                            <Label text="[11/12] Done." color="#495057FF" height="18" />
+                            <Label text="Build succeeded." color="#198754FF" height="18" />
+                          </ToolCardBody>
+                        </ToolCard>
+                        <Label name="toolcard_tip" height="22" text="内容区右键菜单：全选 / 复制；超出 max 有滚动条" theme="secondary" />
+                      </VBox>
+                    </AccordionItem>
                     <AccordionItem title="SvgBox" active="false" header-align="left">
                       <VBox height="336" gap="8" padding="4,8,4,8">
                         <HBox height="40" gap="8" align-items="vcenter">

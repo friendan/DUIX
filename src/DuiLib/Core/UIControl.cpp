@@ -126,7 +126,7 @@ namespace DuiLib {
 		m_nPaintBackgroundDepth(0),
 		m_nBorderWidth(0),
 		m_nBorderStyle(PS_SOLID),
-		m_nTooltipWidth(300),
+		m_nTooltipWidth(360),
 		m_wCursor(0),
 		m_uWindowResizeEdges(0),
 		m_instance(NULL)
@@ -2344,6 +2344,8 @@ namespace DuiLib {
 		else if( _tcsicmp(pstrName, _T("text")) == 0 ) SetText(pstrValue);
 		else if( _tcsicmp(pstrName, _T("tooltip")) == 0 || _tcsicmp(pstrName, _T("title")) == 0 )
 			SetToolTip(pstrValue);
+		else if( _tcsicmp(pstrName, _T("tooltipwidth")) == 0 || _tcsicmp(pstrName, _T("tooltipmaxwidth")) == 0 )
+			SetToolTipWidth(_ttoi(pstrValue));
 		else if( _tcsicmp(pstrName, _T("user-data")) == 0 ) SetUserData(pstrValue);
 		else if( _tcsicmp(pstrName, _T("enabled")) == 0 ) SetEnabled(_tcsicmp(pstrValue, _T("true")) == 0);
 		else if( _tcsicmp(pstrName, _T("disabled")) == 0 ) SetEnabled(_tcsicmp(pstrValue, _T("true")) != 0);

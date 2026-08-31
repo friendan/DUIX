@@ -78,7 +78,14 @@ namespace DuiLib
 		void PaintStatusImage(IRenderContext& ctx) override;
 		void PaintText(IRenderContext& ctx) override;
 
+		void OnQueueTimerTick(UINT idTimer);
+		bool StartQueueTimer(UINT idTimer, UINT uElapse);
+		void StopQueueTimer(UINT idTimer);
+		void StopAllQueueTimers();
+		void StartCaretBlinkTimer();
+
 	protected:
+		struct EditQueueTimers;
 		/// 有效透明度 < 255 时不用原生 WC_EDIT，走自绘以支持 opacity
 		bool CanHostNativeEdit() const;
 		void DismissNativeEdit();
@@ -102,6 +109,8 @@ namespace DuiLib
 		bool m_bNativeBkColorCustom;
 		bool m_bNativeTextColorCustom;
 		int m_iWindowStyls;
+		EditQueueTimers* m_pQueueTimers;
 	};
+	void DuiLib_EditOnQueueTick(CEditUI* pEdit, UINT idTimer);
 }
 #endif // __UIEDIT_H__

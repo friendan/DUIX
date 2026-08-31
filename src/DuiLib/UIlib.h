@@ -128,6 +128,7 @@
 #include "Control/UIFontIcon.h"
 #include "Control/UIAppIcon.h"
 #include "Control/UIAppGrid.h"
+#include "Control/UIToolCard.h"
 #include "Control/UISidePanel.h"
 
 #include "Control/UIProgress.h"

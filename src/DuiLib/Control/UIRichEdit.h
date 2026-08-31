@@ -156,16 +156,15 @@ namespace DuiLib {
 
 		LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 
+		void OnQueueTimerTick(UINT idTimer);
+
 		friend class CTxtWinHost;
 		bool StartQueueTimer(UINT idTimer, UINT uElapse);
 		void StopQueueTimer(UINT idTimer);
 		void StopAllQueueTimers();
+		void StartCaretBlinkTimer();
 
 	protected:
-		enum { 
-			DEFAULT_TIMERID = 20,
-		};
-
 		CTxtWinHost* m_pTwh;
 		bool m_bVScrollBarFixing;
 		bool m_bWantTab;
@@ -199,6 +198,8 @@ namespace DuiLib {
 		struct RichEditQueueTimers;
 		RichEditQueueTimers* m_pQueueTimers;
 	};
+
+	void DuiLib_RichEditOnQueueTick(CRichEditUI* pEdit, UINT idTimer);
 
 } // namespace DuiLib
 

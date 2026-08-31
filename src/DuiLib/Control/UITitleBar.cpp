@@ -617,6 +617,20 @@ namespace DuiLib
 			RECT rc = m_pSys->GetPos();
 			if( ::PtInRect(&rc, pt) ) return false;
 		}
+
+		// 左侧交互子控件（ThemeSwitcher / 图标钮 / Edit 等）不参与拖窗。
+		// 若仍返回 true → HTCAPTION，无客户区 WM_MOUSE*，tooltip / 悬停会失效。
+		if( m_pManager != NULL && m_pLeft != NULL ) {
+			CControlUI* pHit = m_pManager->FindControl(pt);
+			if( pHit != NULL && pHit->PreferClientHit() ) {
+				for( CControlUI* q = pHit; q != NULL; q = q->GetParent() ) {
+					if( q == m_pLeft ) {
+						return false;
+					}
+					if( q == this ) break;
+				}
+			}
+		}
 		return true;
 	}
 }

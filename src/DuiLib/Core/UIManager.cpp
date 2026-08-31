@@ -10,6 +10,94 @@
 
 namespace DuiLib {
 
+namespace
+{
+	const TCHAR kTipPopupClass[] = _T("DuiLibTipPopup");
+	const int kTipDefaultMaxTextWidth = 360;
+	const int kTipPadX = 8;
+	const int kTipPadY = 6;
+
+	VOID CALLBACK ToolTipQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		HWND hWnd = static_cast<HWND>(lpParameter);
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, UIMSG_TOOLTIP_HOVER, 0, 0);
+	}
+
+	bool TipPopupEnsureClass(HINSTANCE hInst)
+	{
+		static bool s_registered = false;
+		if( s_registered ) return true;
+		WNDCLASSEX wc = { sizeof(wc) };
+		if( ::GetClassInfoEx(hInst, kTipPopupClass, &wc) ) {
+			s_registered = true;
+			return true;
+		}
+		wc.style = CS_HREDRAW | CS_VREDRAW;
+		wc.lpfnWndProc = CPaintManagerUI::TipPopupWndProc;
+		wc.hInstance = hInst;
+		wc.hCursor = ::LoadCursor(NULL, IDC_ARROW);
+		wc.hbrBackground = NULL;
+		wc.lpszClassName = kTipPopupClass;
+		if( ::RegisterClassEx(&wc) == 0 && ::GetLastError() != ERROR_CLASS_ALREADY_EXISTS )
+			return false;
+		s_registered = true;
+		return true;
+	}
+
+	SIZE MeasureTipPopupWndSize(CPaintManagerUI* pManager, LPCTSTR text, int nMaxTextWidth)
+	{
+		SIZE szWnd = { 64, 28 };
+		if( pManager == NULL || text == NULL || *text == _T('\0') ) return szWnd;
+
+		HDC hdc = ::GetDC(NULL);
+		if( hdc == NULL ) return szWnd;
+
+		int maxTextCx = nMaxTextWidth;
+		if( maxTextCx <= 0 )
+			maxTextCx = pManager->GetDPIObj()->Scale(kTipDefaultMaxTextWidth);
+
+		// 与 WM_PAINT 相同路径（GdiplusDrawText），避免 DWrite 测量与 GDI+ 绘制宽度不一致
+		RECT rc = { 0, 0, 0, 0 };
+		CRenderEngine::GdiplusDrawText(hdc, pManager, rc, text, pManager->GetDefaultFontColor(), 0,
+			DT_LEFT | DT_TOP | DT_SINGLELINE | DT_CALCRECT | DT_NOPREFIX);
+		int textCx = rc.right - rc.left;
+		if( textCx > maxTextCx ) textCx = maxTextCx;
+
+		rc = { 0, 0, textCx, 0 };
+		CRenderEngine::GdiplusDrawText(hdc, pManager, rc, text, pManager->GetDefaultFontColor(), 0,
+			DT_LEFT | DT_TOP | DT_WORDBREAK | DT_CALCRECT | DT_NOPREFIX);
+		::ReleaseDC(NULL, hdc);
+
+		int cxClient = rc.right + kTipPadX * 2 + 2;
+		int cyClient = rc.bottom + kTipPadY * 2 + 4;
+		if( cxClient < 32 ) cxClient = 32;
+		if( cyClient < 24 ) cyClient = 24;
+		RECT rcWnd = { 0, 0, cxClient, cyClient };
+		::AdjustWindowRectEx(&rcWnd, WS_POPUP | WS_BORDER, FALSE,
+			WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE);
+		szWnd.cx = rcWnd.right - rcWnd.left;
+		szWnd.cy = rcWnd.bottom - rcWnd.top;
+		return szWnd;
+	}
+
+	void ClampTipPopupPos(POINT& pt, SIZE sz)
+	{
+		HMONITOR hMon = ::MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO mi = { sizeof(mi) };
+		if( hMon == NULL || !::GetMonitorInfo(hMon, &mi) ) return;
+		const int margin = 4;
+		if( pt.x + sz.cx > mi.rcWork.right - margin )
+			pt.x = mi.rcWork.right - margin - sz.cx;
+		if( pt.x < mi.rcWork.left + margin )
+			pt.x = mi.rcWork.left + margin;
+		if( pt.y + sz.cy > mi.rcWork.bottom - margin )
+			pt.y = pt.y - sz.cy - 8;
+		if( pt.y < mi.rcWork.top + margin )
+			pt.y = mi.rcWork.top + margin;
+	}
+}
+
 	/////////////////////////////////////////////////////////////////////////////////////
 	//
 	//
@@ -262,8 +350,11 @@ namespace DuiLib {
 		m_pRenderContext(NULL),
 		m_pOffscreenSurface(NULL),
 		m_pBackgroundSurface(NULL),
-		m_hwndTooltip(NULL),
-		m_iHoverTime(400UL),
+		m_hwndTipPopup(NULL),
+		m_pTipPending(NULL),
+		m_pTipShown(NULL),
+		m_hTipQueueTimer(NULL),
+		m_iHoverTime(400),
 		m_bShowUpdateRect(false),
 		m_pRoot(NULL),
 		m_pFocus(NULL),
@@ -337,7 +428,8 @@ namespace DuiLib {
 		if( m_hUpdateRectPen == NULL ) {
 			m_hUpdateRectPen = ::CreatePen(PS_SOLID, 1, RGB(220, 0, 0));
 			// Boot Windows Common Controls (for the ToolTip control)
-			::InitCommonControls();
+			INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_WIN95_CLASSES };
+			::InitCommonControlsEx(&icc);
 			::LoadLibrary(_T("msimg32.dll"));
 		}
 
@@ -430,9 +522,10 @@ namespace DuiLib {
 			}
 		}
 
-		if( m_hwndTooltip != NULL ) {
-			::DestroyWindow(m_hwndTooltip);
-			m_hwndTooltip = NULL;
+		KillTipQueueTimer();
+		if( m_hwndTipPopup != NULL ) {
+			::DestroyWindow(m_hwndTipPopup);
+			m_hwndTipPopup = NULL;
 		}
 		if (!m_aFonts.IsEmpty()) {
 			for (int i = 0; i < m_aFonts.GetSize();++i)
@@ -786,8 +879,9 @@ namespace DuiLib {
 
 	HWND CPaintManagerUI::GetTooltipWindow() const
 	{
-		return m_hwndTooltip;
+		return m_hwndTipPopup;
 	}
+
 	int CPaintManagerUI::GetHoverTime() const
 	{
 		return m_iHoverTime;
@@ -796,6 +890,143 @@ namespace DuiLib {
 	void CPaintManagerUI::SetHoverTime(int iTime)
 	{
 		m_iHoverTime = iTime;
+	}
+
+	DWORD CPaintManagerUI::GetToolTipDelay() const
+	{
+		return (DWORD)((m_iHoverTime > 0) ? m_iHoverTime : 400);
+	}
+
+	LRESULT CALLBACK CPaintManagerUI::TipPopupWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		CPaintManagerUI* pPm = reinterpret_cast<CPaintManagerUI*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
+		if( uMsg == WM_PAINT ) {
+			PAINTSTRUCT ps = { 0 };
+			HDC hdc = ::BeginPaint(hWnd, &ps);
+			RECT rc = { 0 };
+			::GetClientRect(hWnd, &rc);
+			if( pPm != NULL ) {
+				DWORD dwBk = pPm->GetWindowBackgroundColor();
+				DWORD dwText = pPm->GetDefaultFontColor();
+				CRenderEngine::DrawColor(hdc, rc, dwBk);
+				if( !pPm->m_sTipPopupText.IsEmpty() ) {
+					RECT rcText = rc;
+					rcText.left += kTipPadX;
+					rcText.top += kTipPadY;
+					rcText.right -= kTipPadX;
+					rcText.bottom -= kTipPadY;
+					CRenderEngine::GdiplusDrawText(hdc, pPm, rcText, pPm->m_sTipPopupText.GetData(),
+						dwText, 0, DT_LEFT | DT_TOP | DT_WORDBREAK | DT_NOPREFIX);
+				}
+			}
+			::EndPaint(hWnd, &ps);
+			return 0;
+		}
+		return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+	}
+
+	void CPaintManagerUI::EnsureTipPopup()
+	{
+		if( m_hwndTipPopup != NULL || m_hWndPaint == NULL ) return;
+		if( !TipPopupEnsureClass(m_hInstance) ) return;
+		m_hwndTipPopup = ::CreateWindowEx(
+			WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+			kTipPopupClass, NULL,
+			WS_POPUP | WS_BORDER,
+			0, 0, 0, 0,
+			m_hWndPaint, NULL, m_hInstance, NULL);
+		if( m_hwndTipPopup == NULL ) return;
+		::SetWindowLongPtr(m_hwndTipPopup, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+	}
+
+	void CPaintManagerUI::KillTipQueueTimer()
+	{
+		if( m_hTipQueueTimer != NULL ) {
+			// 取消待发 tip 时用 NULL：勿 INVALID_HANDLE_VALUE 阻塞 UI 线程（拖动/移入按钮时会卡）
+			::DeleteTimerQueueTimer(NULL, m_hTipQueueTimer, NULL);
+			m_hTipQueueTimer = NULL;
+		}
+	}
+
+	void CPaintManagerUI::ScheduleControlToolTip(CControlUI* pHover)
+	{
+		if( pHover == NULL || m_hWndPaint == NULL || pHover->GetToolTip().IsEmpty() ) return;
+		KillTipQueueTimer();
+		if( m_pTipShown != NULL && m_pTipShown != pHover )
+			HideControlToolTip();
+		m_pTipPending = pHover;
+		HANDLE hTimer = NULL;
+		DWORD dwDelay = GetToolTipDelay();
+		if( ::CreateTimerQueueTimer(&hTimer, NULL, ToolTipQueueTimerProc,
+			reinterpret_cast<PVOID>(m_hWndPaint), dwDelay, 0, WT_EXECUTEONLYONCE) ) {
+			m_hTipQueueTimer = hTimer;
+		}
+	}
+
+	void CPaintManagerUI::ShowControlToolTip(CControlUI* pHover)
+	{
+		if( pHover == NULL || m_hWndPaint == NULL || pHover != m_pEventHover ) return;
+		m_sTipPopupText = pHover->GetToolTip();
+		if( m_sTipPopupText.IsEmpty() ) return;
+
+		EnsureTipPopup();
+		if( m_hwndTipPopup == NULL ) return;
+
+		SIZE szTip = MeasureTipPopupWndSize(this, m_sTipPopupText.GetData(), pHover->GetToolTipWidth());
+
+		RECT rcCtrl = pHover->GetPos();
+		POINT pt = { (rcCtrl.left + rcCtrl.right) / 2, rcCtrl.bottom };
+		::ClientToScreen(m_hWndPaint, &pt);
+		pt.x -= szTip.cx / 2;
+		pt.y += 4;
+		ClampTipPopupPos(pt, szTip);
+
+		::SetWindowPos(m_hwndTipPopup, HWND_TOPMOST, pt.x, pt.y, szTip.cx, szTip.cy,
+			SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		::InvalidateRect(m_hwndTipPopup, NULL, TRUE);
+		m_pTipShown = pHover;
+		m_pTipPending = NULL;
+		KillTipQueueTimer();
+	}
+
+	void CPaintManagerUI::HideControlToolTip()
+	{
+		KillTipQueueTimer();
+		if( m_hwndTipPopup != NULL && ::IsWindow(m_hwndTipPopup) )
+			::ShowWindow(m_hwndTipPopup, SW_HIDE);
+		m_pTipShown = NULL;
+		m_pTipPending = NULL;
+	}
+
+	void CPaintManagerUI::SyncToolTipWithHover(CControlUI* pHover)
+	{
+		if( m_pTipShown != NULL && pHover != m_pTipShown )
+			HideControlToolTip();
+		else if( m_pTipPending != NULL && pHover != m_pTipPending ) {
+			KillTipQueueTimer();
+			m_pTipPending = NULL;
+		}
+	}
+
+	LRESULT CPaintManagerUI::HitTestCaptionDrag(bool bWouldDragCaption)
+	{
+		// tooltip 已不依赖客户区 WM_MOUSEHOVER；拖窗区可始终 HTCAPTION，由系统原生处理拖动。
+		return bWouldDragCaption ? HTCAPTION : HTCLIENT;
+	}
+
+	void CPaintManagerUI::ArmMouseHoverTrack(bool bCancelFirst, POINT pt)
+	{
+		if( m_hWndPaint == NULL ) return;
+		if( pt.x == -1 && pt.y == -1 ) return;
+		if( bCancelFirst ) {
+			TRACKMOUSEEVENT cancel = { sizeof(cancel), TME_CANCEL, m_hWndPaint, 0 };
+			::TrackMouseEvent(&cancel);
+			m_bMouseTracking = false;
+		}
+		if( m_bMouseTracking ) return;
+		TRACKMOUSEEVENT tme = { sizeof(tme), TME_HOVER | TME_LEAVE, m_hWndPaint, GetToolTipDelay() };
+		if( ::TrackMouseEvent(&tme) )
+			m_bMouseTracking = true;
 	}
 
 	LPCTSTR CPaintManagerUI::GetName() const
@@ -1622,9 +1853,9 @@ namespace DuiLib {
 					if( hwndParent != NULL ) ::SetFocus(hwndParent);
 				}
 
-				if (m_hwndTooltip != NULL) {
-					::DestroyWindow(m_hwndTooltip);
-					m_hwndTooltip = NULL;
+				if (m_hwndTipPopup != NULL) {
+					::DestroyWindow(m_hwndTipPopup);
+					m_hwndTipPopup = NULL;
 				}
 			}
 			break;
@@ -1936,24 +2167,18 @@ namespace DuiLib {
 						presentParams.nOpacity = m_nOpacity;
 						m_pOffscreenSurface->Present(presentParams);
 						::RestoreDC(ps.hdc, nPaintSave);
-						// Present 后子 Edit 需重绘才能让系统 caret 重新 XOR 出来。
-						// 须在每次 Present 后都刷（不限脏区相交）：侧栏等无关脏区也会间接影响。
-						// 整窗 Redraw 会冲 IME 候选，故仅在未组字时刷新。
+						// 原生 Edit 插入符改由 CEditWnd TimerQueue 自绘；此处仅停 RichEdit 误留的 TimerQueue。
 						{
 							HWND hFocus = ::GetFocus();
 							if( hFocus != NULL && ::IsChild(m_hWndPaint, hFocus) ) {
 								TCHAR cls[64] = {};
 								::GetClassName(hFocus, cls, _countof(cls));
-								if( _tcsicmp(cls, WC_EDIT) == 0 || _tcsicmp(cls, _T("EditWnd")) == 0 ) {
-									bool bComposing = false;
-									HIMC hImc = ::ImmGetContext(hFocus);
-									if( hImc != NULL ) {
-										LONG nComp = ::ImmGetCompositionString(hImc, GCS_COMPSTR, NULL, 0);
-										bComposing = (nComp > 0);
-										::ImmReleaseContext(hFocus, hImc);
-									}
-									if( !bComposing )
-										::RedrawWindow(hFocus, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+								if( (_tcsicmp(cls, WC_EDIT) == 0 || _tcsicmp(cls, _T("EditWnd")) == 0)
+									&& m_pFocus != NULL )
+								{
+									CRichEditUI* pRich = static_cast<CRichEditUI*>(m_pFocus->GetInterface(DUI_CTR_RICHEDIT));
+									if( pRich != NULL )
+										pRich->StopAllQueueTimers();
 								}
 							}
 						}
@@ -2105,17 +2330,19 @@ namespace DuiLib {
 			}
 			return true;
 		case UIMSG_RICHEDIT_TICK:
-			{
-				CControlUI* pControl = reinterpret_cast<CControlUI*>(wParam);
-				if( pControl != NULL ) {
-					TEventUI event = { 0 };
-					event.Type = UIEVENT_TIMER;
-					event.pSender = pControl;
-					event.dwTimestamp = ::GetTickCount();
-					event.wParam = lParam;
-					event.lParam = lParam;
-					pControl->Event(event);
-				}
+			DuiLib_RichEditOnQueueTick(reinterpret_cast<CRichEditUI*>(wParam), (UINT)lParam);
+			return true;
+		case UIMSG_EDIT_TICK:
+			DuiLib_EditOnQueueTick(reinterpret_cast<CEditUI*>(wParam), (UINT)lParam);
+			return true;
+		case UIMSG_TOOLTIP_HOVER:
+			m_hTipQueueTimer = NULL;
+			if( m_pTipPending != NULL && m_pEventHover == m_pTipPending ) {
+				CControlUI* pAt = FindControl(m_ptLastMousePos);
+				if( pAt == m_pTipPending )
+					ShowControlToolTip(m_pTipPending);
+				else
+					m_pTipPending = NULL;
 			}
 			return true;
 		case WM_TIMER:
@@ -2144,9 +2371,6 @@ namespace DuiLib {
 			{
 				m_bMouseTracking = false;
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
-				CControlUI* pHover = FindControl(pt);
-				if( pHover == NULL ) break;
-				// Generate mouse hover event
 				if( m_pEventHover != NULL ) {
 					TEventUI event = { 0 };
 					event.Type = UIEVENT_MOUSEHOVER;
@@ -2158,66 +2382,34 @@ namespace DuiLib {
 					event.wKeyState = MapKeyState();
 					m_pEventHover->Event(event);
 				}
-				// Create tooltip information
-				CDuiString sToolTip = pHover->GetToolTip();
-				if( sToolTip.IsEmpty() ) return true;
-				::ZeroMemory(&m_ToolTip, sizeof(TOOLINFO));
-				m_ToolTip.cbSize = sizeof(TOOLINFO);
-				m_ToolTip.uFlags = TTF_IDISHWND;
-				m_ToolTip.hwnd = m_hWndPaint;
-				m_ToolTip.uId = (UINT_PTR) m_hWndPaint;
-				m_ToolTip.hinst = m_hInstance;
-				m_ToolTip.lpszText = const_cast<LPTSTR>( sToolTip.GetData() );
-				m_ToolTip.rect = pHover->GetPos();
-				if( m_hwndTooltip == NULL ) {
-					m_hwndTooltip = ::CreateWindowEx(0, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, m_hWndPaint, NULL, m_hInstance, NULL);
-					::SendMessage(m_hwndTooltip, TTM_ADDTOOL, 0, (LPARAM) &m_ToolTip);
-					::SendMessage(m_hwndTooltip,TTM_SETMAXTIPWIDTH,0, pHover->GetToolTipWidth());
-				}
-				if(!::IsWindowVisible(m_hwndTooltip))
-				{
-					::SendMessage(m_hwndTooltip, TTM_SETTOOLINFO, 0, (LPARAM)&m_ToolTip);
-					::SendMessage(m_hwndTooltip, TTM_TRACKACTIVATE, TRUE, (LPARAM)&m_ToolTip);
-				}
+				ArmMouseHoverTrack(false, pt);
 			}
 			return true;
 		case WM_MOUSELEAVE:
 			{
-				if( m_hwndTooltip != NULL ) ::SendMessage(m_hwndTooltip, TTM_TRACKACTIVATE, FALSE, (LPARAM) &m_ToolTip);
-				if( m_bMouseTracking ) {
-					POINT pt = { 0 };
-					RECT rcWnd = { 0 };
-					::GetCursorPos(&pt);
-					::GetWindowRect(m_hWndPaint, &rcWnd);
-					if( !::IsIconic(m_hWndPaint) && ::GetActiveWindow() == m_hWndPaint && ::PtInRect(&rcWnd, pt) ) {
-						LRESULT ht = ::SendMessage(m_hWndPaint, WM_NCHITTEST, 0, MAKELPARAM(pt.x, pt.y));
-						// HTMAXBUTTON 仍在窗口按钮上，应继续按客户区坐标派发 MOUSEMOVE，
-						// 否则会用 (-1,-1) 清掉 hover，最大化按钮热态丢失。
-						if( ht == HTCLIENT || ht == HTMAXBUTTON ) {
-							::ScreenToClient(m_hWndPaint, &pt);
-							::SendMessage(m_hWndPaint, WM_MOUSEMOVE, 0, MAKELPARAM(pt.x, pt.y));
-						}
-						else 
-							::SendMessage(m_hWndPaint, WM_MOUSEMOVE, 0, (LPARAM)-1);
-					}
-					else 
-						::SendMessage(m_hWndPaint, WM_MOUSEMOVE, 0, (LPARAM)-1);
+				POINT pt = { 0 };
+				RECT rcWnd = { 0 };
+				::GetCursorPos(&pt);
+				::GetWindowRect(m_hWndPaint, &rcWnd);
+				// 客户区↔非客户区切换会误发 LEAVE；光标仍在窗内则忽略（勿 re-arm TME，避免与拖窗抢消息）
+				if( !::IsIconic(m_hWndPaint) && ::PtInRect(&rcWnd, pt) ) {
+					m_bMouseTracking = false;
+					POINT ptClient = pt;
+					::ScreenToClient(m_hWndPaint, &ptClient);
+					SyncToolTipWithHover(FindControl(ptClient));
+					break;
 				}
+				HideControlToolTip();
 				m_bMouseTracking = false;
+				::SendMessage(m_hWndPaint, WM_MOUSEMOVE, 0, (LPARAM)-1);
 			}
 			break;
 		case WM_MOUSEMOVE:
 			{
-				// Start tracking this entire window again...
-				if( !m_bMouseTracking ) {
-					TRACKMOUSEEVENT tme = { 0 };
-					tme.cbSize = sizeof(TRACKMOUSEEVENT);
-					tme.dwFlags = TME_HOVER | TME_LEAVE;
-					tme.hwndTrack = m_hWndPaint;
-					tme.dwHoverTime = m_hwndTooltip == NULL ? m_iHoverTime : (DWORD) ::SendMessage(m_hwndTooltip, TTM_GETDELAYTIME, TTDT_INITIAL, 0L);
-					_TrackMouseEvent(&tme);
-					m_bMouseTracking = true;
-				}
+				POINT ptArm = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+				if( (ptArm.x != -1 || ptArm.y != -1) && !m_bMouseTracking
+					&& ::GetCapture() != m_hWndPaint )
+					ArmMouseHoverTrack(false, ptArm);
 
 				// Generate the appropriate mouse messages
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
@@ -2230,6 +2422,8 @@ namespace DuiLib {
 				m_ptLastMousePos = pt;
 				CControlUI* pNewHover = FindControl(pt);
 				if( pNewHover != NULL && pNewHover->GetManager() != this ) break;
+				if( !IsCaptured() )
+					SyncToolTipWithHover(pNewHover);
 
 				// ??????
 				if(bNeedDrag && m_bDragMode && wParam == MK_LBUTTON)
@@ -2314,14 +2508,17 @@ namespace DuiLib {
 						}
 
 						m_pEventHover->Event(event);
+						if( m_pTipPending == m_pEventHover || m_pTipShown == m_pEventHover )
+							HideControlToolTip();
 						m_pEventHover = NULL;
-						if( m_hwndTooltip != NULL ) ::SendMessage(m_hwndTooltip, TTM_TRACKACTIVATE, FALSE, (LPARAM) &m_ToolTip);
 					}
 					if( pNewHover != m_pEventHover && pNewHover != NULL ) {
 						event.Type = UIEVENT_MOUSEENTER;
 						event.pSender = pNewHover;
 						pNewHover->Event(event);
 						m_pEventHover = pNewHover;
+						if( !pNewHover->GetToolTip().IsEmpty() )
+							ScheduleControlToolTip(pNewHover);
 					}
 				}
 				if( m_pEventClick != NULL ) {
@@ -2338,15 +2535,48 @@ namespace DuiLib {
 			break;
 		case WM_LBUTTONDOWN:
 			{
+				HideControlToolTip();
 				// We alway set focus back to our app (this helps
 				// when Win32 child windows are placed on the dialog
 				// and we need to remove them on focus change).
 				if (!m_bNoActivate) ::SetFocus(m_hWndPaint);
 				if( m_pRoot == NULL ) break;
-				// ??????
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				m_ptLastMousePos = pt;
 				CControlUI* pControl = FindControl(pt);
+
+				// 悬停策略下拖窗区保持 HTCLIENT，点击可能走到客户区 LBUTTONDOWN；
+				// 与旧 HTCAPTION 行为对齐：转交 DefWindowProc 拖窗。
+				bool bCaptionDrag = false;
+				if( pControl != NULL ) {
+					if( pControl->IsCaptionDragHit(pt) ) bCaptionDrag = true;
+					else if( pControl->GetAction() == UIACTION_NONE && !pControl->PreferClientHit() ) {
+						for( CControlUI* pWalk = pControl->GetParent(); pWalk != NULL; pWalk = pWalk->GetParent() ) {
+							if( pWalk->IsCaptionDragHit(pt) ) { bCaptionDrag = true; break; }
+							UIAction parentAct = pWalk->GetAction();
+							if( parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW ) break;
+							if( parentAct != UIACTION_NONE ) break;
+						}
+						if( !bCaptionDrag ) {
+							UIAction winAct = GetWindowAction();
+							if( winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW )
+								bCaptionDrag = true;
+						}
+					}
+				}
+				else {
+					UIAction winAct = GetWindowAction();
+					if( winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW )
+						bCaptionDrag = true;
+				}
+				if( bCaptionDrag ) {
+					::ReleaseCapture();
+					POINT screen = pt;
+					::ClientToScreen(m_hWndPaint, &screen);
+					::SendMessage(m_hWndPaint, WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(screen.x, screen.y));
+					return true;
+				}
+
 				if( pControl == NULL ) break;
 				if( pControl->GetManager() != this ) break;
 
@@ -3112,7 +3342,9 @@ namespace DuiLib {
 		if( hFocusWnd != m_hWndPaint )
 			::SetFocus(m_hWndPaint);
 
-		if( pControl == NULL ) return;
+		if( pControl == NULL ) {
+			return;
+		}
 		if( pControl->GetManager() == this
 			&& pControl->IsVisible()
 			&& pControl->IsEnabled() )

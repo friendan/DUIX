@@ -35,6 +35,8 @@
 
 建议节点 `height` ≥ `icon-size`（默认行高 18 偏紧，demo 用 28）。
 
+内部标签是 `Option`：库已设 `kind=none`、`padding=0`、`text-align=left`，并在 HBox 中撑满剩余宽度；勿再给节点 `itemattr` 加回大左右 padding，否则窄内容区会裁切图标。
+
 ```xml
 <TreeView header="hidden" height="240" overflow="scroll"
     item-color="#333333FF" item-color-hover="#1677FFFF" item-color-selected="#0958D9FF">

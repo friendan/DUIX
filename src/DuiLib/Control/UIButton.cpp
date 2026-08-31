@@ -2083,16 +2083,18 @@ namespace DuiLib
 		}
 
 		if( m_cxyFixed.cx == 0 ) {
+			// 未写 width / width=auto 时：仅在需要固有宽（auto-calc 或纯图标）时给出最小宽。
+			// 有文字且非 auto：保持 cx=0，让父布局（如 TreeNode 内 HBox）撑满；
+			// 否则原先无条件 += icon 会把控件估成 ~20px，再叠加 Option 左右 padding 图标被裁残。
 			if( !bHasText ) {
 				sz.cx = nSize + padL + padR;
 			}
-			else if( bVertical ) {
-				const int minW = (szBlock.cx > nSize ? szBlock.cx : nSize) + padL + padR;
-				if( sz.cx < minW ) sz.cx = minW;
-			}
-			else {
-				sz.cx += nSize + nGap;
-				if( szBlock.cx > 0 && GetAutoCalcWidth() ) {
+			else if( GetAutoCalcWidth() ) {
+				if( bVertical ) {
+					const int minW = (szBlock.cx > nSize ? szBlock.cx : nSize) + padL + padR;
+					if( sz.cx < minW ) sz.cx = minW;
+				}
+				else {
 					const int want = nSize + nGap + szBlock.cx + padL + padR;
 					if( sz.cx < want ) sz.cx = want;
 				}
@@ -2279,7 +2281,12 @@ namespace DuiLib
 			return true;
 		}
 
-		int x = rcContent.left + (cw - blockW) / 2;
+		// DT_LEFT==0：无 CENTER/RIGHT 时左对齐（TreeNode item 设了 text-align=left）
+		int x = rcContent.left;
+		if( (m_uTextStyle & DT_CENTER) != 0 )
+			x = rcContent.left + (cw - blockW) / 2;
+		else if( (m_uTextStyle & DT_RIGHT) != 0 )
+			x = rcContent.right - blockW;
 		if( bRight ) {
 			rcText.left = x;
 			rcText.right = x + szText.cx;

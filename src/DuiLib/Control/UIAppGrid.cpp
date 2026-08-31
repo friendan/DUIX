@@ -6,6 +6,31 @@ namespace DuiLib
 	IMPLEMENT_DUICONTROL(CAppGridUI)
 
 	static const int kDragThreshold = 5;
+	static const TCHAR kAppGridSlotName[] = _T("__slot__");
+	static const TCHAR kAppGridSlotClass[] = _T("AppGridSlotUI");
+	static const TCHAR kAppGridSlotInterface[] = _T("AppGridSlot");
+
+	/// 稀疏空位占位：不绘制、不接鼠标；参与网格下标与布局
+	class CAppGridSlotUI : public CControlUI
+	{
+	public:
+		CAppGridSlotUI()
+		{
+			SetName(kAppGridSlotName);
+			SetMouseEnabled(false);
+		}
+		LPCTSTR GetClass() const override { return kAppGridSlotClass; }
+		LPVOID GetInterface(LPCTSTR pstrName) override
+		{
+			if( _tcsicmp(pstrName, kAppGridSlotInterface) == 0 )
+				return static_cast<CAppGridSlotUI*>(this);
+			return CControlUI::GetInterface(pstrName);
+		}
+		bool DoPaint(IRenderContext& /*ctx*/, const RECT& /*rcPaint*/, CControlUI* /*pStopControl*/) override
+		{
+			return true;
+		}
+	};
 	static const int kDotBarPadLogic = 8;   // 圆点条相对直径上下留白
 	static const int kDotGapMinLogic = 6;   // 圆点间距下限
 
@@ -62,6 +87,7 @@ namespace DuiLib
 		, m_bDraggable(true)
 		, m_bShowPageDots(true)
 		, m_bScrollMode(false)
+		, m_bSparse(false)
 		, m_bDragging(false)
 		, m_bSuppressChildClick(false)
 		, m_nDragSrcIdx(-1)
@@ -228,8 +254,9 @@ namespace DuiLib
 			return false;
 		// 分页条整段可点，不拖窗
 		if( ShouldPaintDots() && ::PtInRect(&m_rcDots, pt) ) return false;
-		// 当前页图标格（含子控件命中）不拖窗
-		if( HitTestItem(pt) != NULL ) return false;
+		// 当前页真图标不拖窗；空位占位仍可拖窗
+		CControlUI* pHit = HitTestItem(pt);
+		if( pHit != NULL && !IsSlotEmpty(pHit) ) return false;
 		return true;
 	}
 
@@ -286,7 +313,7 @@ namespace DuiLib
 
 	void CAppGridUI::NotifyItemClick(CControlUI* pItem)
 	{
-		if( pItem == NULL || m_pManager == NULL ) return;
+		if( pItem == NULL || m_pManager == NULL || IsSlotEmpty(pItem) ) return;
 		int gi = GetGridIndexOf(pItem);
 		if( gi < 0 ) return;
 		m_pManager->SendNotify(this, DUI_MSGTYPE_ITEMCLICK, (WPARAM)gi, (LPARAM)pItem);
@@ -294,7 +321,7 @@ namespace DuiLib
 
 	void CAppGridUI::NotifyItemRClick(CControlUI* pItem)
 	{
-		if( pItem == NULL || m_pManager == NULL ) return;
+		if( pItem == NULL || m_pManager == NULL || IsSlotEmpty(pItem) ) return;
 		int gi = GetGridIndexOf(pItem);
 		if( gi < 0 ) return;
 		m_pManager->SendNotify(this, DUI_MSGTYPE_ITEMRCLICK, (WPARAM)gi, (LPARAM)pItem);
@@ -302,7 +329,7 @@ namespace DuiLib
 
 	void CAppGridUI::NotifyItemDbClick(CControlUI* pItem)
 	{
-		if( pItem == NULL || m_pManager == NULL ) return;
+		if( pItem == NULL || m_pManager == NULL || IsSlotEmpty(pItem) ) return;
 		int gi = GetGridIndexOf(pItem);
 		if( gi < 0 ) return;
 		m_pManager->SendNotify(this, DUI_MSGTYPE_ITEMDBCLICK, (WPARAM)gi, (LPARAM)pItem);
@@ -421,6 +448,105 @@ namespace DuiLib
 		NeedUpdate();
 	}
 
+	void CAppGridUI::SetSparse(bool b)
+	{
+		if( m_bSparse == b ) return;
+		m_bSparse = b;
+		NeedUpdate();
+	}
+
+	bool CAppGridUI::IsSlotEmpty(CControlUI* pControl)
+	{
+		if( pControl == NULL ) return false;
+		if( pControl->GetInterface(kAppGridSlotInterface) != NULL ) return true;
+		return _tcsicmp(pControl->GetName().GetData(), kAppGridSlotName) == 0;
+	}
+
+	bool CAppGridUI::IsSlotEmptyAt(int iGridIndex) const
+	{
+		return IsSlotEmpty(GetGridItemAt(iGridIndex));
+	}
+
+	CControlUI* CAppGridUI::CreateSlot()
+	{
+		return new CAppGridSlotUI();
+	}
+
+	int CAppGridUI::GetRealItemCount() const
+	{
+		int n = 0;
+		for( int i = 0; i < m_items.GetSize(); ++i ) {
+			CControlUI* p = static_cast<CControlUI*>(m_items[i]);
+			if( p == NULL || p->IsAbsolute() || IsSlotEmpty(p) ) continue;
+			++n;
+		}
+		return n;
+	}
+
+	bool CAppGridUI::EnsureSlotCount(int n)
+	{
+		if( n < 0 ) return false;
+		bool added = false;
+		while( GetGridItemCount() < n ) {
+			CControlUI* pSlot = CreateSlot();
+			if( pSlot == NULL ) return false;
+			if( !Add(pSlot) ) {
+				delete pSlot;
+				return false;
+			}
+			added = true;
+		}
+		if( added ) NeedUpdate();
+		return true;
+	}
+
+	bool CAppGridUI::CompactSlots()
+	{
+		bool changed = false;
+		for( int i = m_items.GetSize() - 1; i >= 0; --i ) {
+			CControlUI* p = static_cast<CControlUI*>(m_items[i]);
+			if( p == NULL || p->IsAbsolute() || !IsSlotEmpty(p) ) continue;
+			if( Remove(p) ) changed = true;
+		}
+		return changed;
+	}
+
+	int CAppGridUI::FindFirstEmptySlot() const
+	{
+		int n = GetGridItemCount();
+		for( int i = 0; i < n; ++i ) {
+			if( IsSlotEmptyAt(i) ) return i;
+		}
+		return -1;
+	}
+
+	int CAppGridUI::AddToFirstEmpty(CControlUI* pControl)
+	{
+		if( pControl == NULL || IsSlotEmpty(pControl) ) return -1;
+
+		int iEmpty = FindFirstEmptySlot();
+		if( iEmpty < 0 ) {
+			if( !Add(pControl) ) return -1;
+			return GetGridIndexOf(pControl);
+		}
+
+		CControlUI* pSlot = GetGridItemAt(iEmpty);
+		if( pSlot == NULL ) return -1;
+		int childIdx = GetItemIndex(pSlot);
+		if( childIdx < 0 ) return -1;
+
+		UnhookChild(pSlot);
+		DestroyChild(pSlot);
+		if( m_pManager != NULL ) {
+			m_pManager->InitControls(pControl, this);
+			CThemeManager::GetInstance()->ApplyChromeToControl(pControl);
+		}
+		m_items.SetAt(childIdx, pControl);
+		HookChild(pControl);
+		NeedUpdate();
+		return iEmpty;
+	}
+
 	void CAppGridUI::SetDotSizeMin(int n)
 	{
 		if( n < 2 ) n = 2;
@@ -499,6 +625,9 @@ namespace DuiLib
 	bool CAppGridUI::PassesFilter(CControlUI* pItem) const
 	{
 		if( pItem == NULL || pItem->IsAbsolute() ) return false;
+		// 有过滤时隐藏空位（搜索结果密排）；无过滤时占位参与布局
+		if( IsSlotEmpty(pItem) )
+			return !HasFilter();
 		if( m_pfnItemFilter != NULL && !m_pfnItemFilter(pItem, m_pFilterUserData) )
 			return false;
 		if( !m_sFilterText.IsEmpty() && !MatchFilterText(pItem, m_sFilterText.GetData()) )
@@ -1068,14 +1197,60 @@ namespace DuiLib
 		return p;
 	}
 
-	int CAppGridUI::ResolveDragHoverIndex(POINT pt) const
+	int CAppGridUI::ResolveDragHoverIndex(POINT pt)
 	{
-		// 仅命中真实图标才可换位；空白格 / 间隙 / 滚动条 / 界外均为 -1（松手取消）
-		CControlUI* pHit = HitTestItem(pt);
-		if( pHit == NULL ) return -1;
-		int idx = GetGridIndexOf(pHit);
+		if( HitTestScrollBar(pt) != NULL ) return -1;
+		if( !m_bScrollMode && HitTestDot(pt) >= 0 ) return -1;
+
+		if( !m_bSparse || HasFilter() ) {
+			// 密排 / 过滤中：仅真图标可换位
+			CControlUI* pHit = HitTestItem(pt);
+			if( pHit == NULL || IsSlotEmpty(pHit) ) return -1;
+			int idx = GetGridIndexOf(pHit);
+			if( idx == m_nDragSrcIdx ) return -1;
+			return idx;
+		}
+
+		int slot = HitTestCellIndex(pt, m_rcContent);
+		if( slot < 0 ) return -1;
+		int targetVi = m_bScrollMode ? slot : (m_nPageIndex * GetPerPage() + slot);
+		if( !EnsureSlotCount(targetVi + 1) ) return -1;
+		CControlUI* pTarget = GetGridItemAt(targetVi);
+		if( pTarget == NULL ) return -1;
+		int idx = GetGridIndexOf(pTarget);
 		if( idx == m_nDragSrcIdx ) return -1;
 		return idx;
+	}
+
+	bool CAppGridUI::GetCellRectByVisibleIndex(int iVisible, RECT& rc) const
+	{
+		::ZeroMemory(&rc, sizeof(rc));
+		if( iVisible < 0 ) return false;
+		SIZE szItem = GetItemSize();
+		int iGap = GetGap();
+		if( m_bScrollMode ) {
+			int col = iVisible % (m_nColumns > 0 ? m_nColumns : 1);
+			int row = iVisible / (m_nColumns > 0 ? m_nColumns : 1);
+			int scrollY = 0;
+			if( m_pVerticalScrollBar && m_pVerticalScrollBar->IsVisible() )
+				scrollY = m_pVerticalScrollBar->GetScrollPos();
+			rc.left = m_rcContent.left + col * (szItem.cx + iGap);
+			rc.top = m_rcContent.top + row * (szItem.cy + iGap) - scrollY;
+			rc.right = rc.left + szItem.cx;
+			rc.bottom = rc.top + szItem.cy;
+			return true;
+		}
+		int per = GetPerPage();
+		int begin = m_nPageIndex * per;
+		int slot = iVisible - begin;
+		if( slot < 0 || slot >= per ) return false;
+		int col = slot % m_nColumns;
+		int row = slot / m_nColumns;
+		rc.left = m_rcContent.left + col * (szItem.cx + iGap);
+		rc.top = m_rcContent.top + row * (szItem.cy + iGap);
+		rc.right = rc.left + szItem.cx;
+		rc.bottom = rc.top + szItem.cy;
+		return true;
 	}
 
 	void CAppGridUI::UpdateDragHoverAfterPage(POINT pt)
@@ -1182,12 +1357,30 @@ namespace DuiLib
 	{
 		CControlUI* p = GetGridItemAt(iGridIndex);
 		if( p == NULL ) return false;
+		if( m_bSparse && !IsSlotEmpty(p) ) {
+			int childIdx = GetItemIndex(p);
+			if( childIdx < 0 ) return false;
+			CControlUI* pSlot = CreateSlot();
+			if( pSlot == NULL ) return false;
+			UnhookChild(p);
+			DestroyChild(p);
+			if( m_pManager != NULL ) {
+				m_pManager->InitControls(pSlot, this);
+				CThemeManager::GetInstance()->ApplyChromeToControl(pSlot);
+			}
+			m_items.SetAt(childIdx, pSlot);
+			HookChild(pSlot);
+			NeedUpdate();
+			return true;
+		}
 		return Remove(p);
 	}
 
 	int CAppGridUI::HitTestItemIndex(POINT pt) const
 	{
-		return GetGridIndexOf(HitTestItem(pt));
+		CControlUI* p = HitTestItem(pt);
+		if( p == NULL || IsSlotEmpty(p) ) return -1;
+		return GetGridIndexOf(p);
 	}
 
 	DWORD CAppGridUI::ResolvePrimaryColor() const
@@ -1249,28 +1442,18 @@ namespace DuiLib
 	{
 		if( !m_bDragging || m_nDragHoverIdx < 0 ) return;
 		CControlUI* pHover = GetGridItemAt(m_nDragHoverIdx);
-		if( pHover == NULL || !pHover->IsVisible() ) return;
-
-		RECT rc;
-		if( m_bScrollMode ) {
+		RECT rc = { 0 };
+		bool haveRc = false;
+		if( pHover != NULL ) {
 			rc = pHover->GetPos();
+			if( rc.right > rc.left && rc.bottom > rc.top )
+				haveRc = true;
 		}
-		else {
-			int vis = GetVisibleIndexOf(pHover);
-			if( vis < 0 ) return;
-			int per = GetPerPage();
-			int begin = m_nPageIndex * per;
-			int slot = vis - begin;
-			if( slot < 0 || slot >= per ) return;
-			SIZE szItem = GetItemSize();
-			int iGap = GetGap();
-			int col = slot % m_nColumns;
-			int row = slot / m_nColumns;
-			rc.left = m_rcContent.left + col * (szItem.cx + iGap);
-			rc.top = m_rcContent.top + row * (szItem.cy + iGap);
-			rc.right = rc.left + szItem.cx;
-			rc.bottom = rc.top + szItem.cy;
+		if( !haveRc ) {
+			int vis = (pHover != NULL) ? GetVisibleIndexOf(pHover) : m_nDragHoverIdx;
+			if( !GetCellRectByVisibleIndex(vis, rc) ) return;
 		}
+
 		DWORD primary = ResolvePrimaryColor();
 		DWORD fill = (primary & 0xFFFFFF00) | 0x28;
 		int rad = ScaleValue(12);
@@ -1281,7 +1464,7 @@ namespace DuiLib
 	void CAppGridUI::BeginDragGhost(CControlUI* pItem, POINT ptMouse)
 	{
 		EndDragGhost();
-		if( pItem == NULL ) return;
+		if( pItem == NULL || IsSlotEmpty(pItem) ) return;
 
 		RECT rc = pItem->GetPos();
 		m_szDragGhost.cx = rc.right - rc.left;
@@ -1435,6 +1618,7 @@ namespace DuiLib
 	{
 		if( pControl == NULL ) return false;
 		if( pControl == m_pDragHideItem ) return false;
+		if( IsSlotEmpty(pControl) ) return false;
 		return pControl->IsVisible();
 	}
 
@@ -1569,7 +1753,7 @@ namespace DuiLib
 		if( pDragItem == NULL && iFrom >= 0 )
 			pDragItem = GetGridItemAt(iFrom);
 		RECT rcGhostSnap = GetDragGhostRect();
-		// 仅落在「其它图标」上才换位；空白 / 滚动条 / 圆点条 / 界外 → 取消
+		// 落在其它格（含 sparse 空位）则互换；滚动条 / 圆点条 / 界外 → 取消
 		if( bAllowSwap && wasDragging && iFrom >= 0 ) {
 			if( HitTestScrollBar(pt) == NULL && HitTestDot(pt) < 0 )
 				iTo = ResolveDragHoverIndex(pt);
@@ -1754,7 +1938,7 @@ namespace DuiLib
 			m_bSuppressChildClick = false;
 			m_nDragHoverIdx = -1;
 			m_nDragSrcIdx = -1;
-			if( pItem != NULL ) {
+			if( pItem != NULL && !IsSlotEmpty(pItem) ) {
 				m_nDragSrcIdx = GetGridIndexOf(pItem);
 				m_ptDragDown = event.ptMouse;
 			}
@@ -1874,6 +2058,9 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("scroll")) == 0 ) {
 			SetScrollMode(_tcsicmp(pstrValue, _T("true")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("sparse")) == 0 ) {
+			SetSparse(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
 		else if( _tcsicmp(pstrName, _T("dot-size-min")) == 0 ) {
 			SetDotSizeMin(_ttoi(pstrValue));

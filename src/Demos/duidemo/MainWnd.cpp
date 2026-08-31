@@ -7,6 +7,7 @@
 #include "BrowserWnd.h"
 #include "CarouselTestWnd.h"
 #include "LayoutTestWnd.h"
+#include "AppGridSparseTestWnd.h"
 #include "SettingsSyncWnd.h"
 	#include "ShapeDemoWnd.h"
 	#include "BlankMenuWnd.h"
@@ -383,6 +384,43 @@ LPCTSTR CMainWnd::QueryControlText(LPCTSTR lpstrId, LPCTSTR lpstrType)
 
 void CMainWnd::Notify(TNotifyUI& msg)
 {
+	if( msg.sType == DUI_MSGTYPE_TOOLCARDOPEN && msg.pSender != NULL ) {
+		CToolCardUI* pCard = static_cast<CToolCardUI*>(msg.pSender->GetInterface(DUI_CTR_TOOLCARD));
+		LPCTSTR path = (pCard != NULL) ? pCard->GetPath() : _T("");
+		CDuiString tip;
+		tip.Format(_T("打开文件：%s"), path && *path ? path : _T("(空路径)"));
+		CToast::ShowInfo(tip.GetData(), 2000);
+		CLabelUI* pTip = static_cast<CLabelUI*>(m_pm.FindControl(_T("toolcard_tip")));
+		if( pTip != NULL ) pTip->SetText(tip.GetData());
+		return;
+	}
+	if( msg.sType == DUI_MSGTYPE_CLICK && msg.pSender != NULL
+		&& msg.pSender->GetName() == _T("btn_toolcard_copy") )
+	{
+		CToolCardUI* pCard = static_cast<CToolCardUI*>(m_pm.FindControl(_T("toolcard_cmd")));
+		LPCTSTR cmd = (pCard != NULL) ? pCard->GetCommand() : _T("");
+		CDuiString tip;
+		tip.Format(_T("复制命令：%s"), cmd && *cmd ? cmd : _T("(空)"));
+		CToast::ShowInfo(tip.GetData(), 1800);
+		CLabelUI* pTip = static_cast<CLabelUI*>(m_pm.FindControl(_T("toolcard_tip")));
+		if( pTip != NULL ) pTip->SetText(tip.GetData());
+		return;
+	}
+	if( (msg.sType == DUI_MSGTYPE_ITEMEXPAND || msg.sType == DUI_MSGTYPE_ITEMCOLLAPSE)
+		&& msg.pSender != NULL
+		&& (msg.pSender->GetName() == _T("toolcard_cmd")
+			|| msg.pSender->GetName() == _T("toolcard_file")) )
+	{
+		CLabelUI* pTip = static_cast<CLabelUI*>(m_pm.FindControl(_T("toolcard_tip")));
+		if( pTip != NULL ) {
+			const bool bFile = (msg.pSender->GetName() == _T("toolcard_file"));
+			if( msg.sType == DUI_MSGTYPE_ITEMEXPAND )
+				pTip->SetText(bFile ? _T("File 已展开") : _T("Cmd 已展开（内容区变高）"));
+			else
+				pTip->SetText(bFile ? _T("File 已折叠（仅标题栏）") : _T("Cmd 已折叠（仅标题栏）"));
+		}
+		return;
+	}
 	if( msg.sType == DUI_MSGTYPE_ITEMMOVED
 		&& msg.pSender != NULL
 		&& (msg.pSender->GetName() == _T("demo_appgrid")
@@ -928,6 +966,10 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	else if(sName.CompareNoCase(_T("btn_layout_test")) == 0)
 	{
 		CLayoutTestWnd::Open(m_hWnd);
+	}
+	else if(sName.CompareNoCase(_T("btn_appgrid_sparse_test")) == 0)
+	{
+		CAppGridSparseTestWnd::Open(m_hWnd);
 	}
 	else if(sName.CompareNoCase(_T("btn_loading_start")) == 0)
 	{

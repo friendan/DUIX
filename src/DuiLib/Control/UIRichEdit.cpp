@@ -18,6 +18,14 @@ namespace DuiLib {
 
 	const LONG cInitTextMax = (32 * 1024) - 1;
 
+	enum { CARET_BLINK_TIMERID = 0xFFF0 };
+
+	static UINT GetCaretBlinkInterval()
+	{
+		UINT u = ::GetCaretBlinkTime();
+		return (u == 0) ? 530u : u;
+	}
+
 	struct RichEditTimerCtx
 	{
 		CRichEditUI* pSelf;
@@ -134,6 +142,7 @@ namespace DuiLib {
 		void NeedFreshCaret();
 		INT GetCaretWidth();
 		INT GetCaretHeight();
+		void GetCaretPos(POINT* pt) const;
 
 		BOOL GetAllowBeep();
 		void SetAllowBeep(BOOL fAllowBeep);
@@ -231,6 +240,8 @@ namespace DuiLib {
 
 		INT         iCaretWidth;
 		INT         iCaretHeight;
+		INT         iCaretX;
+		INT         iCaretY;
 		INT         iCaretLastWidth;
 		INT         iCaretLastHeight;
 		LONG		lSelBarWidth;			// Width of the selection bar
@@ -599,52 +610,52 @@ namespace DuiLib {
 
 	BOOL CTxtWinHost::TxCreateCaret(HBITMAP hbmp, INT xWidth, INT yHeight)
 	{
+		(void)hbmp;
 		iCaretWidth = xWidth;
 		iCaretHeight = yHeight;
-		return ::CreateCaret(m_re->GetManager()->GetPaintWindow(), hbmp, xWidth, yHeight);
+		// 勿在父 HWND 上 CreateCaret：会与 WC_EDIT 子窗争用系统 caret
+		return TRUE;
 	}
 
 	BOOL CTxtWinHost::TxShowCaret(BOOL fShow)
 	{
 		fShowCaret = fShow;
-		if(fShow)
-			return ::ShowCaret(m_re->GetManager()->GetPaintWindow());
-		else
-			return ::HideCaret(m_re->GetManager()->GetPaintWindow());
+		if( m_re != NULL && m_re->IsFocused() )
+			m_re->Invalidate();
+		return TRUE;
 	}
 
 	BOOL CTxtWinHost::TxSetCaretPos(INT x, INT y)
 	{
-		POINT ptCaret = { 0 };
-		::GetCaretPos(&ptCaret);
-		RECT rcCaret = { ptCaret.x, ptCaret.y, ptCaret.x + iCaretLastWidth, ptCaret.y + iCaretLastHeight };
-		if( m_re->GetManager()->IsLayered() ) m_re->GetManager()->Invalidate(rcCaret);
-		else if( fNeedFreshCaret == TRUE ) {
+		if( m_re != NULL && m_re->GetManager() != NULL ) {
+			RECT rcCaret = { iCaretX, iCaretY, iCaretX + iCaretLastWidth, iCaretY + iCaretLastHeight };
 			m_re->GetManager()->Invalidate(rcCaret);
-			fNeedFreshCaret = FALSE;
 		}
-		rcCaret.left = x;
-		rcCaret.top = y;
-		rcCaret.right = x + iCaretWidth;
-		rcCaret.bottom = y + iCaretHeight;
-		if( m_re->GetManager()->IsLayered() ) m_re->GetManager()->Invalidate(rcCaret);
+		fNeedFreshCaret = FALSE;
 		iCaretLastWidth = iCaretWidth;
 		iCaretLastHeight = iCaretHeight;
-		return ::SetCaretPos(x, y);
+		iCaretX = x;
+		iCaretY = y;
+		if( m_re != NULL && m_re->GetManager() != NULL ) {
+			RECT rcCaret = { iCaretX, iCaretY, iCaretX + iCaretWidth, iCaretY + iCaretHeight };
+			m_re->GetManager()->Invalidate(rcCaret);
+		}
+		return TRUE;
 	}
 
 	BOOL CTxtWinHost::TxSetTimer(UINT idTimer, UINT uTimeout)
 	{
 		fTimer = TRUE;
-		if( m_re == NULL ) return FALSE;
-		return m_re->StartQueueTimer(idTimer, uTimeout) ? TRUE : FALSE;
+		// 插入符闪烁由 host CARET_BLINK_TIMERID 自管；引擎 TxSetTimer 仅应答
+		(void)idTimer;
+		(void)uTimeout;
+		return TRUE;
 	}
 
 	void CTxtWinHost::TxKillTimer(UINT idTimer)
 	{
-		if( m_re != NULL )
-			m_re->StopQueueTimer(idTimer);
 		fTimer = FALSE;
+		(void)idTimer;
 	}
 
 	void CTxtWinHost::TxScrollWindowEx (INT dx, INT dy, LPCRECT lprcScroll,	LPCRECT lprcClip,	HRGN hrgnUpdate, LPRECT lprcUpdate,	UINT fuScroll)	
@@ -948,6 +959,14 @@ namespace DuiLib {
 		return iCaretHeight;
 	}
 
+	void CTxtWinHost::GetCaretPos(POINT* pt) const
+	{
+		if( pt != NULL ) {
+			pt->x = iCaretX;
+			pt->y = iCaretY;
+		}
+	}
+
 	BOOL CTxtWinHost::GetAllowBeep()
 	{
 		return fAllowBeep;
@@ -1207,7 +1226,10 @@ namespace DuiLib {
 
 	bool CRichEditUI::StartQueueTimer(UINT idTimer, UINT uElapse)
 	{
-		if( m_pQueueTimers == NULL || m_pManager == NULL || uElapse == 0 ) return false;
+		if( uElapse == 0 ) uElapse = 530;
+		if( m_pQueueTimers == NULL || m_pManager == NULL ) {
+			return false;
+		}
 		StopQueueTimer(idTimer);
 		RichEditTimerCtx* pCtx = new RichEditTimerCtx;
 		pCtx->pSelf = this;
@@ -1236,6 +1258,24 @@ namespace DuiLib {
 	{
 		if( m_pQueueTimers != NULL )
 			m_pQueueTimers->StopAll();
+	}
+
+	void CRichEditUI::StartCaretBlinkTimer()
+	{
+		m_bDrawCaret = true;
+		StartQueueTimer(CARET_BLINK_TIMERID, GetCaretBlinkInterval());
+	}
+
+	void CRichEditUI::OnQueueTimerTick(UINT idTimer)
+	{
+		if( !IsFocused() ) return;
+		if( idTimer == CARET_BLINK_TIMERID ) {
+			m_bDrawCaret = !m_bDrawCaret;
+			Invalidate();
+			return;
+		}
+		if( m_pTwh != NULL )
+			m_pTwh->GetTextServices()->TxSendMessage(WM_TIMER, idTimer, idTimer, 0);
 	}
 
 	UINT CRichEditUI::GetControlFlags() const
@@ -1966,7 +2006,7 @@ namespace DuiLib {
 			m_pTwh->GetTextServices()->TxSendMessage(EM_SETEVENTMASK, 0, ENM_DROPFILES|ENM_LINK|ENM_CHANGE, &lResult);
 			m_pTwh->OnTxInPlaceActivate(NULL);
 			m_pManager->AddMessageFilter(this);
-			StartQueueTimer(DEFAULT_TIMERID, ::GetCaretBlinkTime());
+			// 插入符闪烁：聚焦时 host 开 CARET_BLINK_TIMERID TimerQueue（引擎 TxSetTimer 仅应答）
 			// 属性可能在 DoInit 前已写入成员：补应用到 host
 			if( m_iFont >= 0 )
 				m_pTwh->SetFont(m_pManager->GetFont(m_iFont));
@@ -2214,49 +2254,19 @@ namespace DuiLib {
 				m_pTwh->GetTextServices()->TxSendMessage(WM_SETFOCUS, 0, 0, 0);
 			}
 			m_bFocused = true;
+			StartCaretBlinkTimer();
 			Invalidate();
 			return;
 		}
 		if( event.Type == UIEVENT_KILLFOCUS )  {
+			StopAllQueueTimers();
+			m_bDrawCaret = false;
 			if( m_pTwh ) {
 				m_pTwh->OnTxInPlaceActivate(NULL);
 				m_pTwh->GetTextServices()->TxSendMessage(WM_KILLFOCUS, 0, 0, 0);
 			}
 			m_bFocused = false;
 			Invalidate();
-			return;
-		}
-		else if( event.Type == UIEVENT_TIMER ) {
-			if( event.wParam == DEFAULT_TIMERID ) {
-				if(m_pManager->IsLayered() && IsFocused() && m_pTwh && m_pTwh->IsShowCaret()) {
-					if (::GetFocus() != m_pManager->GetPaintWindow()) return;
-					m_bDrawCaret = !m_bDrawCaret;
-					POINT ptCaret;
-					::GetCaretPos(&ptCaret);
-					RECT rcCaret = { ptCaret.x, ptCaret.y, ptCaret.x + m_pTwh->GetCaretWidth(), ptCaret.y + m_pTwh->GetCaretHeight() };
-					RECT rcTemp = rcCaret;
-					if( !::IntersectRect(&rcCaret, &rcTemp, &m_rcItem) ) return;
-					CControlUI* pParent = this;
-					RECT rcParent;
-					while( (pParent = pParent->GetParent()) ) {
-						rcTemp = rcCaret;
-						rcParent = pParent->GetPos();
-						if( !::IntersectRect(&rcCaret, &rcTemp, &rcParent) ) {
-							return;
-						}
-					}                    
-					m_pManager->Invalidate(rcCaret);
-				}
-				else if(IsFocused() && m_pTwh) {
-					if (::GetFocus() != m_pManager->GetPaintWindow()) return;
-					if(m_pTwh->IsShowCaret()) m_pTwh->TxShowCaret(FALSE);
-					else m_pTwh->TxShowCaret(TRUE);
-				}
-				return;
-			}
-			else if( m_pTwh ) {
-				m_pTwh->GetTextServices()->TxSendMessage(WM_TIMER, event.wParam, event.lParam, 0);
-			}
 			return;
 		}
 		if( event.Type == UIEVENT_SCROLLWHEEL ) {
@@ -2571,15 +2581,15 @@ namespace DuiLib {
 			}
 		}
 
-		if(m_pManager->IsLayered() && IsFocused() && m_pTwh && m_pTwh->IsShowCaret()) {
-			if(m_bDrawCaret) {
-				POINT ptCaret;
-				::GetCaretPos(&ptCaret);
-				if( ::PtInRect(&m_rcItem, ptCaret) ) {
-					RECT rcCaret = { ptCaret.x, ptCaret.y, ptCaret.x, ptCaret.y + m_pTwh->GetCaretHeight() };
-					DWORD dwColor = GetColor();
-					ctx.DrawLine(rcCaret, m_pTwh->GetCaretWidth(), dwColor);
-				}
+		if( IsFocused() && m_pTwh && m_pTwh->IsShowCaret() && m_bDrawCaret ) {
+			POINT ptCaret = { 0 };
+			m_pTwh->GetCaretPos(&ptCaret);
+			if( ::PtInRect(&m_rcItem, ptCaret) ) {
+				RECT rcCaret = { ptCaret.x, ptCaret.y, ptCaret.x, ptCaret.y + m_pTwh->GetCaretHeight() };
+				DWORD dwColor = GetColor();
+				if( dwColor == 0 && m_pManager != NULL )
+					dwColor = m_pManager->GetDefaultFontColor();
+				ctx.DrawLine(rcCaret, m_pTwh->GetCaretWidth(), GetAdjustColor(dwColor));
 			}
 		}
 
@@ -2897,8 +2907,9 @@ namespace DuiLib {
 			// 解决微软输入法位置异常的问题
 			HIMC hIMC = ImmGetContext(GetManager()->GetPaintWindow());
 			if (hIMC)  {
-				POINT point;
-				GetCaretPos(&point);
+				POINT point = { 0 };
+				if( m_pTwh != NULL )
+					m_pTwh->GetCaretPos(&point);
 
 				COMPOSITIONFORM Composition;
 				Composition.dwStyle = CFS_POINT;
@@ -2967,8 +2978,9 @@ namespace DuiLib {
 #ifdef _USEIMM
 		else if( uMsg == WM_IME_STARTCOMPOSITION ) {
 			if( IsFocused() ) {
-				POINT ptCaret;
-				::GetCaretPos(&ptCaret);
+				POINT ptCaret = { 0 };
+				if( m_pTwh != NULL )
+					m_pTwh->GetCaretPos(&ptCaret);
 				HIMC hMic = ::ImmGetContext(GetManager()->GetPaintWindow());
 				COMPOSITIONFORM cpf;
 				cpf.dwStyle = CFS_FORCE_POSITION;
@@ -3104,6 +3116,12 @@ namespace DuiLib {
 			Invalidate();
 		}
 		return lResult;
+	}
+
+	void DuiLib_RichEditOnQueueTick(CRichEditUI* pEdit, UINT idTimer)
+	{
+		if( pEdit != NULL )
+			pEdit->OnQueueTimerTick(idTimer);
 	}
 
 } // namespace DuiLib

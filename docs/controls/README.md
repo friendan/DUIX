@@ -53,6 +53,7 @@
 | FontIcon | [FontIcon.md](FontIcon.md) | `src/DuiLib/Control/UIFontIcon.*` |
 | AppIcon | [AppIcon.md](AppIcon.md) | `src/DuiLib/Control/UIAppIcon.*` |
 | AppGrid | [AppGrid.md](AppGrid.md) | `src/DuiLib/Control/UIAppGrid.*` |
+| ToolCard | [ToolCard.md](ToolCard.md) | `src/DuiLib/Control/UIToolCard.*` |
 | Steps | [Steps.md](Steps.md) | `src/DuiLib/Control/UISteps.*` |
 | Timeline | [Timeline.md](Timeline.md) | `src/DuiLib/Control/UITimeline.*` |
 | Edit | [Edit.md](Edit.md) | `src/DuiLib/Control/UIEdit.*` |

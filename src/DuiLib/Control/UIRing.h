@@ -16,9 +16,9 @@ namespace DuiLib
 		CRingUI();
 		~CRingUI();
 
-		LPCTSTR GetClass() const;
-		LPVOID GetInterface(LPCTSTR pstrName);
-		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue);
+		LPCTSTR GetClass() const override;
+		LPVOID GetInterface(LPCTSTR pstrName) override;
+		void SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue) override;
 		void SetBackgroundImage(LPCTSTR pStrImage);
 		void SetVisible(bool bVisible = true) override;
 		void SetInternVisible(bool bVisible = true) override;

@@ -2,10 +2,88 @@
 #include "UIEdit.h"
 #include "UIEditBox.h"
 #include <Imm.h>
+#include <vector>
 #pragma comment(lib, "Imm32.lib")
 
 namespace DuiLib
 {
+	enum { EDIT_CARET_BLINK_TIMERID = 0xFFF2 };
+
+	static UINT GetEditCaretBlinkInterval()
+	{
+		UINT u = ::GetCaretBlinkTime();
+		return (u == 0) ? 530u : u;
+	}
+
+	struct EditTimerCtx
+	{
+		CEditUI* pSelf;
+		UINT idTimer;
+	};
+
+	VOID CALLBACK EditQueueTimerProc(PVOID lpParameter, BOOLEAN /*TimerOrWaitFired*/)
+	{
+		EditTimerCtx* pCtx = static_cast<EditTimerCtx*>(lpParameter);
+		if( pCtx == NULL || pCtx->pSelf == NULL ) return;
+		CPaintManagerUI* pm = pCtx->pSelf->GetManager();
+		if( pm == NULL ) return;
+		HWND hWnd = pm->GetPaintWindow();
+		if( hWnd == NULL || !::IsWindow(hWnd) ) return;
+		::PostMessage(hWnd, UIMSG_EDIT_TICK, (WPARAM)pCtx->pSelf, pCtx->idTimer);
+	}
+
+	struct CEditUI::EditQueueTimers
+	{
+		struct Entry
+		{
+			UINT idTimer;
+			HANDLE hTimer;
+			EditTimerCtx* pCtx;
+		};
+		std::vector<Entry> items;
+
+		Entry* Find(UINT idTimer)
+		{
+			for( size_t i = 0; i < items.size(); ++i ) {
+				if( items[i].idTimer == idTimer )
+					return &items[i];
+			}
+			return NULL;
+		}
+
+		void StopEntry(Entry& e)
+		{
+			if( e.hTimer != NULL ) {
+				::DeleteTimerQueueTimer(NULL, e.hTimer, INVALID_HANDLE_VALUE);
+				e.hTimer = NULL;
+			}
+			if( e.pCtx != NULL ) {
+				delete e.pCtx;
+				e.pCtx = NULL;
+			}
+		}
+
+		void Stop(UINT idTimer)
+		{
+			for( size_t i = 0; i < items.size(); ) {
+				if( items[i].idTimer == idTimer ) {
+					StopEntry(items[i]);
+					items.erase(items.begin() + i);
+				}
+				else {
+					++i;
+				}
+			}
+		}
+
+		void StopAll()
+		{
+			for( size_t i = 0; i < items.size(); ++i )
+				StopEntry(items[i]);
+			items.clear();
+		}
+	};
+
 	class CEditWnd : public CWindowWnd
 	{
 	public:
@@ -15,6 +93,9 @@ namespace DuiLib
 		RECT CalPos();
 		/// 控件析构前同步拆掉原生窗，避免异步 WM_CLOSE 访问已释放的 owner
 		void CloseAndDetach();
+		void OnCaretBlinkTick();
+		void ApplyReadOnlyCaretPolicy();
+		void RestartSoftCaretBlink();
 
 		LPCTSTR GetWindowClassName() const;
 		LPCTSTR GetSuperClassName() const;
@@ -29,16 +110,223 @@ namespace DuiLib
 			DEFAULT_TIMERID = 20,
 		};
 
+		int GetCaretLineHeight() const;
+		int GetCaretCharIndex() const;
+		bool GetCaretPoint(POINT& pt) const;
+		bool GetCaretRect(RECT& rc) const;
+		void SuppressSystemCaret();
+		void InvalidateCaretRect();
+		void DrawSoftCaret(HDC hdc) const;
+		void RefreshSoftCaret();
+
 		CEditUI* m_pOwner;
 		HBRUSH m_hBkBrush;
 		DWORD m_dwBrushColor;
 		bool m_bInit;
 		bool m_bDrawCaret;
+		RECT m_rcLastSoftCaret;
 	};
 
 
 	CEditWnd::CEditWnd() : m_pOwner(NULL), m_hBkBrush(NULL), m_dwBrushColor(0), m_bInit(false), m_bDrawCaret(false)
 	{
+		::SetRectEmpty(&m_rcLastSoftCaret);
+	}
+
+	int CEditWnd::GetCaretLineHeight() const
+	{
+		if( m_pOwner == NULL || m_pOwner->GetManager() == NULL ) return 16;
+		HFONT hFont = m_pOwner->GetManager()->GetFont(m_pOwner->GetFont());
+		if( hFont == NULL )
+			hFont = m_pOwner->GetManager()->GetDefaultFontInfo()->hFont;
+		if( hFont == NULL ) return 16;
+		HDC hdc = ::GetDC(m_hWnd);
+		if( hdc == NULL ) return 16;
+		HFONT hOld = (HFONT)::SelectObject(hdc, hFont);
+		TEXTMETRIC tm = { 0 };
+		::GetTextMetrics(hdc, &tm);
+		::SelectObject(hdc, hOld);
+		::ReleaseDC(m_hWnd, hdc);
+		return tm.tmHeight > 0 ? tm.tmHeight : 16;
+	}
+
+	int CEditWnd::GetCaretCharIndex() const
+	{
+		if( !::IsWindow(m_hWnd) ) return 0;
+		DWORD dwStart = 0;
+		DWORD dwEnd = 0;
+		// 直接交给 Edit 默认过程，避免 SendMessage 再进 HandleMessage 拿到旧 sel
+		::CallWindowProc(m_OldWndProc, m_hWnd, EM_GETSEL, (WPARAM)&dwStart, (LPARAM)&dwEnd);
+		return (int)((dwEnd >= dwStart) ? dwEnd : dwStart);
+	}
+
+	bool CEditWnd::GetCaretPoint(POINT& pt) const
+	{
+		pt.x = 0;
+		pt.y = 0;
+		if( !::IsWindow(m_hWnd) || m_pOwner == NULL ) return false;
+
+		const int iChar = GetCaretCharIndex();
+		const int cchLen = ::GetWindowTextLength(m_hWnd);
+
+		HDC hdc = ::GetDC(m_hWnd);
+		if( hdc == NULL ) return false;
+		HFONT hFont = NULL;
+		if( m_pOwner->GetManager() != NULL ) {
+			hFont = m_pOwner->GetManager()->GetFont(m_pOwner->GetFont());
+			if( hFont == NULL )
+				hFont = m_pOwner->GetManager()->GetDefaultFontInfo()->hFont;
+		}
+		HFONT hOld = hFont != NULL ? (HFONT)::SelectObject(hdc, hFont) : NULL;
+
+		auto MeasureChars = [&](LPCTSTR psz, int nChars) -> int {
+			if( nChars <= 0 || psz == NULL ) return 0;
+			SIZE sz = { 0 };
+			if( !::GetTextExtentPoint32(hdc, psz, nChars, &sz) ) return 0;
+			return sz.cx;
+		};
+
+		int nPrefixCx = 0;
+		int nFullCx = 0;
+		if( cchLen > 0 ) {
+			LPTSTR pszText = static_cast<LPTSTR>(_alloca((cchLen + 1) * sizeof(TCHAR)));
+			if( pszText == NULL ) {
+				if( hOld != NULL ) ::SelectObject(hdc, hOld);
+				::ReleaseDC(m_hWnd, hdc);
+				return false;
+			}
+			::GetWindowText(m_hWnd, pszText, cchLen + 1);
+			if( m_pOwner->IsPasswordMode() ) {
+				const TCHAR chPwd = m_pOwner->GetPasswordChar();
+				TCHAR szPrefix[512] = { 0 };
+				const int nPrefix = (iChar < (int)_countof(szPrefix)) ? iChar : (int)_countof(szPrefix) - 1;
+				for( int i = 0; i < nPrefix; ++i ) szPrefix[i] = chPwd;
+				nPrefixCx = MeasureChars(szPrefix, nPrefix);
+				TCHAR szFull[512] = { 0 };
+				const int nFull = (cchLen < (int)_countof(szFull)) ? cchLen : (int)_countof(szFull) - 1;
+				for( int i = 0; i < nFull; ++i ) szFull[i] = chPwd;
+				nFullCx = MeasureChars(szFull, nFull);
+			}
+			else {
+				LPCTSTR pEnd = pszText;
+				for( int i = 0; i < iChar && *pEnd != _T('\0'); ++i )
+					pEnd = ::CharNext(pEnd);
+				const int nPrefixLen = (int)(pEnd - pszText);
+				nPrefixCx = MeasureChars(pszText, nPrefixLen);
+				nFullCx = MeasureChars(pszText, cchLen);
+			}
+		}
+
+		if( hOld != NULL ) ::SelectObject(hdc, hOld);
+		::ReleaseDC(m_hWnd, hdc);
+
+		DWORD dwMargins = (DWORD)::SendMessage(m_hWnd, EM_GETMARGINS, 0, 0);
+		const int nLeftMg = (int)LOWORD(dwMargins);
+		const int nRightMg = (int)HIWORD(dwMargins);
+		RECT rcClient = { 0 };
+		::GetClientRect(m_hWnd, &rcClient);
+		const int nClientW = rcClient.right - rcClient.left;
+		const LONG style = ::GetWindowLong(m_hWnd, GWL_STYLE);
+		int x = nLeftMg + nPrefixCx;
+		if( style & ES_CENTER ) {
+			x = nLeftMg + (nClientW - nLeftMg - nRightMg - nFullCx) / 2 + nPrefixCx;
+		}
+		else if( style & ES_RIGHT ) {
+			x = nClientW - nRightMg - nFullCx + nPrefixCx;
+		}
+		else {
+			const int nScroll = ::GetScrollPos(m_hWnd, SB_HORZ);
+			if( nScroll > 0 ) x -= nScroll;
+		}
+		if( x < 0 ) x = 0;
+		pt.x = x;
+		pt.y = 0;
+		return true;
+	}
+
+	bool CEditWnd::GetCaretRect(RECT& rc) const
+	{
+		POINT pt = { 0 };
+		if( !GetCaretPoint(pt) ) return false;
+		const int nH = GetCaretLineHeight();
+		rc.left = pt.x;
+		rc.top = pt.y;
+		rc.right = pt.x + 1;
+		rc.bottom = pt.y + nH;
+		return true;
+	}
+
+	void CEditWnd::SuppressSystemCaret()
+	{
+		// 仅 HideCaret；DestroyCaret 会把 Edit 插入点重置到开头
+		::HideCaret(m_hWnd);
+	}
+
+	void CEditWnd::InvalidateCaretRect()
+	{
+		if( !::IsWindow(m_hWnd) ) return;
+		RECT rc = { 0 };
+		if( !GetCaretRect(rc) ) return;
+		::InflateRect(&rc, 0, 1);
+		::InvalidateRect(m_hWnd, &rc, FALSE);
+	}
+
+	void CEditWnd::DrawSoftCaret(HDC hdc) const
+	{
+		if( !m_bDrawCaret || m_pOwner == NULL ) return;
+		RECT rc = { 0 };
+		if( !GetCaretRect(rc) ) return;
+		DWORD dwColor = m_pOwner->GetNativeEditColor();
+		if( dwColor == 0 && m_pOwner->GetManager() != NULL )
+			dwColor = m_pOwner->GetManager()->GetDefaultFontColor();
+		dwColor = m_pOwner->GetAdjustColor(dwColor);
+		HBRUSH hBrush = ::CreateSolidBrush(DuiColorToCOLORREF(dwColor));
+		if( hBrush == NULL ) return;
+		::FillRect(hdc, &rc, hBrush);
+		::DeleteObject(hBrush);
+	}
+
+	void CEditWnd::RefreshSoftCaret()
+	{
+		if( !m_bInit || !::IsWindow(m_hWnd) || ::GetFocus() != m_hWnd ) return;
+		if( m_pOwner != NULL && m_pOwner->IsReadOnly() ) return;
+		RECT rcNew = { 0 };
+		if( !GetCaretRect(rcNew) ) return;
+		::InflateRect(&rcNew, 0, 1);
+		RECT rcPaint = rcNew;
+		if( !::IsRectEmpty(&m_rcLastSoftCaret) )
+			::UnionRect(&rcPaint, &rcPaint, &m_rcLastSoftCaret);
+		SuppressSystemCaret();
+		::RedrawWindow(m_hWnd, &rcPaint, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+		m_rcLastSoftCaret = rcNew;
+	}
+
+	void CEditWnd::OnCaretBlinkTick()
+	{
+		if( !m_bInit || !::IsWindow(m_hWnd) || ::GetFocus() != m_hWnd ) return;
+		if( m_pOwner != NULL && m_pOwner->IsReadOnly() ) return;
+		m_bDrawCaret = !m_bDrawCaret;
+		RefreshSoftCaret();
+	}
+
+	void CEditWnd::ApplyReadOnlyCaretPolicy()
+	{
+		if( m_pOwner == NULL || !m_pOwner->IsReadOnly() ) return;
+		m_pOwner->StopAllQueueTimers();
+		m_bDrawCaret = false;
+		::SetRectEmpty(&m_rcLastSoftCaret);
+		SuppressSystemCaret();
+		if( ::IsWindow(m_hWnd) )
+			::InvalidateRect(m_hWnd, NULL, FALSE);
+	}
+
+	void CEditWnd::RestartSoftCaretBlink()
+	{
+		if( !m_bInit || m_pOwner == NULL || m_pOwner->IsReadOnly() ) return;
+		if( ::GetFocus() != m_hWnd ) return;
+		m_bDrawCaret = true;
+		m_pOwner->StartCaretBlinkTimer();
+		RefreshSoftCaret();
 	}
 
 	void CEditWnd::Init(CEditUI* pOwner)
@@ -108,6 +396,15 @@ namespace DuiLib
 		}
 
 		m_bInit = true;
+		SuppressSystemCaret();
+		if( !m_pOwner->IsReadOnly() ) {
+			m_bDrawCaret = true;
+			m_pOwner->StartCaretBlinkTimer();
+			RefreshSoftCaret();
+		}
+		else {
+			m_bDrawCaret = false;
+		}
 	}
 
 	RECT CEditWnd::CalPos()
@@ -193,13 +490,30 @@ namespace DuiLib
 		if( uMsg == WM_CREATE ) {
 			bHandled = FALSE;
 		}
-		else if( uMsg == WM_KILLFOCUS ) lRes = OnKillFocus(uMsg, wParam, lParam, bHandled);
+		else if( uMsg == WM_SETFOCUS ) {
+			CPaintManagerUI* pm = (m_pOwner != NULL) ? m_pOwner->GetManager() : NULL;
+			if( m_pOwner != NULL && pm != NULL && pm->GetFocus() != m_pOwner )
+				pm->SetFocus(m_pOwner);
+			SuppressSystemCaret();
+			if( m_bInit && m_pOwner != NULL ) {
+				if( m_pOwner->IsReadOnly() )
+					ApplyReadOnlyCaretPolicy();
+				else
+					RestartSoftCaretBlink();
+			}
+			bHandled = FALSE;
+		}
+		else if( uMsg == WM_KILLFOCUS ) {
+			lRes = OnKillFocus(uMsg, wParam, lParam, bHandled);
+		}
 		else if( uMsg == OCM_COMMAND ) {
 			if( GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE ) lRes = OnEditChanged(uMsg, wParam, lParam, bHandled);
 			else if( GET_WM_COMMAND_CMD(wParam, lParam) == EN_UPDATE ) {
 				RECT rcClient;
 				::GetClientRect(m_hWnd, &rcClient);
 				::InvalidateRect(m_hWnd, &rcClient, FALSE);
+				if( m_bInit && ::GetFocus() == m_hWnd )
+					RefreshSoftCaret();
 			}
 		}
 		else if( uMsg == WM_KEYDOWN && TCHAR(wParam) == VK_RETURN ){
@@ -222,13 +536,20 @@ namespace DuiLib
 			if( m_pOwner != NULL && m_pOwner->GetManager() != NULL )
 				m_pOwner->GetManager()->SetNextTabControl(::GetKeyState(VK_SHIFT) >= 0);
 		}
+		else if( uMsg == WM_CHAR
+			|| (uMsg == WM_KEYDOWN && wParam != VK_RETURN && wParam != VK_TAB) ) {
+			lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
+			if( m_bInit && ::GetFocus() == m_hWnd )
+				RefreshSoftCaret();
+			return lRes;
+		}
 		else if( uMsg == WM_IME_STARTCOMPOSITION || uMsg == WM_IME_COMPOSITION ) {
 			// 把候选/拼写窗钉在光标旁。EditBox 内嵌 Edit 在外壳 Invalidate 后，
 			// 系统默认位置常飘到错误处或看不见；与 RichEdit 同样显式设置。
 			HIMC hImc = ::ImmGetContext(m_hWnd);
 			if( hImc != NULL ) {
-				POINT pt = {};
-				::GetCaretPos(&pt);
+				POINT pt = { 0 };
+				GetCaretPoint(pt);
 				COMPOSITIONFORM cf = {};
 				cf.dwStyle = CFS_POINT;
 				cf.ptCurrentPos = pt;
@@ -281,23 +602,27 @@ namespace DuiLib
 			return (LRESULT)m_hBkBrush;
 		}
 		else if( uMsg == WM_PAINT) {
-			bHandled = FALSE;
+			lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
+			SuppressSystemCaret();
+			if( m_bInit && m_bDrawCaret && ::GetFocus() == m_hWnd
+				&& m_pOwner != NULL && !m_pOwner->IsReadOnly() ) {
+				HDC hdc = ::GetDC(m_hWnd);
+				if( hdc != NULL ) {
+					DrawSoftCaret(hdc);
+					::ReleaseDC(m_hWnd, hdc);
+				}
+			}
+			return lRes;
 		}
 		else if( uMsg == WM_PRINT ) {
 			bHandled = FALSE;
 		}
-		else if( uMsg == WM_TIMER ) {
-			if (wParam == CARET_TIMERID) {
-				m_bDrawCaret = !m_bDrawCaret;
-				RECT rcClient;
-				::GetClientRect(m_hWnd, &rcClient);
-				::InvalidateRect(m_hWnd, &rcClient, FALSE);
-				return 0;
-			}
-			bHandled = FALSE;
-		}
 		else if( uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONDBLCLK ) {
 			lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
+			if( m_pOwner != NULL && m_pOwner->GetManager() != NULL
+				&& m_pOwner->GetManager()->GetFocus() != m_pOwner ) {
+				m_pOwner->GetManager()->SetFocus(m_pOwner);
+			}
 			// 已有焦点时再点输入框不会走 Dui SETFOCUS/BUTTONDOWN，在此通知 EditBox 弹历史
 			if( m_pOwner != NULL ) {
 				for( CControlUI* p = m_pOwner; p != NULL; p = p->GetParent() ) {
@@ -308,6 +633,8 @@ namespace DuiLib
 					}
 				}
 			}
+			if( m_bInit && ::GetFocus() == m_hWnd )
+				RefreshSoftCaret();
 			return lRes;
 		}
 		else bHandled = FALSE;
@@ -318,6 +645,10 @@ namespace DuiLib
 
 	LRESULT CEditWnd::OnKillFocus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
+		if( m_pOwner != NULL )
+			m_pOwner->StopAllQueueTimers();
+		m_bDrawCaret = false;
+		::SetRectEmpty(&m_rcLastSoftCaret);
 		// 销毁前先回写文本；随后忽略 EN_CHANGE。
 		// 文本相对上次 EN_CHANGE 未变时不要再发 TEXTCHANGED：否则点列表项时
 		// KillFocus 会同步重建列表并删掉正在点击的控件 → 崩溃。
@@ -374,7 +705,8 @@ namespace DuiLib
 		CEditUI::CEditUI() : m_pWindow(NULL), m_uMaxChar(255), m_bReadOnly(false), 
 		m_bPasswordMode(false), m_bAutoSelAll(false), m_cPasswordChar(_T('*')), m_uButtonState(0), 
 		m_dwPlaceholderColor(0xBAC0C5FF), m_dwEditbkColor(0), m_dwEditTextColor(0),
-		m_bNativeBkColorCustom(false), m_bNativeTextColorCustom(false), m_iWindowStyls(0)
+		m_bNativeBkColorCustom(false), m_bNativeTextColorCustom(false), m_iWindowStyls(0),
+		m_pQueueTimers(NULL)
 	{
 		SetPadding(CDuiBox(4, 10, 4, 10)); // 默认左右内边距，圆角时文字不贴边
 		SetBackgroundColor(0xFFFFFFFF);
@@ -382,6 +714,7 @@ namespace DuiLib
 
 	CEditUI::~CEditUI()
 	{
+		StopAllQueueTimers();
 		// DestroyWindow 前确保 manager 不再认为本控件有焦点，避免 paint WM_SETFOCUS 回打重建。
 		if( m_pManager != NULL && m_pManager->GetFocus() == this )
 			m_pManager->ReapObjects(this);
@@ -604,7 +937,13 @@ namespace DuiLib
 		if( m_bReadOnly == bReadOnly ) return;
 
 		m_bReadOnly = bReadOnly;
-		if( m_pWindow != NULL ) Edit_SetReadOnly(*m_pWindow, m_bReadOnly);
+		if( m_pWindow != NULL ) {
+			Edit_SetReadOnly(*m_pWindow, m_bReadOnly);
+			if( m_bReadOnly )
+				m_pWindow->ApplyReadOnlyCaretPolicy();
+			else if( ::GetFocus() == m_pWindow->GetHWND() )
+				m_pWindow->RestartSoftCaretBlink();
+		}
 		Invalidate();
 	}
 
@@ -962,5 +1301,62 @@ namespace DuiLib
 
 		DWORD clrColor = IsEnabled() ? mCurTextColor : m_dwDisabledColor;
 		ctx.DrawText(rc, sDrawText.GetData(), GetAdjustColor(clrColor), m_iFont, DT_SINGLELINE | m_uTextStyle);
+	}
+
+	bool CEditUI::StartQueueTimer(UINT idTimer, UINT uElapse)
+	{
+		if( uElapse == 0 ) uElapse = 530;
+		if( m_pQueueTimers == NULL )
+			m_pQueueTimers = new EditQueueTimers;
+		if( m_pManager == NULL ) return false;
+		StopQueueTimer(idTimer);
+		EditTimerCtx* pCtx = new EditTimerCtx;
+		pCtx->pSelf = this;
+		pCtx->idTimer = idTimer;
+		HANDLE hTimer = NULL;
+		if( !::CreateTimerQueueTimer(&hTimer, NULL, EditQueueTimerProc,
+			reinterpret_cast<PVOID>(pCtx), uElapse, uElapse, WT_EXECUTEDEFAULT) ) {
+			delete pCtx;
+			return false;
+		}
+		EditQueueTimers::Entry e;
+		e.idTimer = idTimer;
+		e.hTimer = hTimer;
+		e.pCtx = pCtx;
+		m_pQueueTimers->items.push_back(e);
+		return true;
+	}
+
+	void CEditUI::StopQueueTimer(UINT idTimer)
+	{
+		if( m_pQueueTimers != NULL )
+			m_pQueueTimers->Stop(idTimer);
+	}
+
+	void CEditUI::StopAllQueueTimers()
+	{
+		if( m_pQueueTimers != NULL ) {
+			m_pQueueTimers->StopAll();
+			delete m_pQueueTimers;
+			m_pQueueTimers = NULL;
+		}
+	}
+
+	void CEditUI::StartCaretBlinkTimer()
+	{
+		StartQueueTimer(EDIT_CARET_BLINK_TIMERID, GetEditCaretBlinkInterval());
+	}
+
+	void CEditUI::OnQueueTimerTick(UINT idTimer)
+	{
+		if( !IsFocused() ) return;
+		if( idTimer == EDIT_CARET_BLINK_TIMERID && m_pWindow != NULL )
+			m_pWindow->OnCaretBlinkTick();
+	}
+
+	void DuiLib_EditOnQueueTick(CEditUI* pEdit, UINT idTimer)
+	{
+		if( pEdit != NULL )
+			pEdit->OnQueueTimerTick(idTimer);
 	}
 }

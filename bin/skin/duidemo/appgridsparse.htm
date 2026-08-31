@@ -1,0 +1,50 @@
+<html>
+    <body name="root">
+        <HBox name="titlebar" height="40" background-color="#32323CFF" align-items="center" gap="8" padding="8,0">
+            <Label text="AppGrid · Sparse" color="#C8C8C8FF" font="font13" width="220" />
+            <Spacer />
+            <Button name="closebtn" text="✕" width="36" height="36" kind="none"
+                background-color="#32323CFF" color="#B4B4BEFF" color-hover="#FFFFFFFF" background-color-hover="#E81123FF"
+                action="close" />
+        </HBox>
+
+        <VBox name="content" padding="12" gap="10" background-color="#F5F5F5FF">
+            <Label text="sparse=true：拖到空格落位且源位留洞；拖到图标互换；删除留空位。空白区可拖窗。"
+                theme="secondary" height="22" />
+            <HBox height="36" gap="8" align-items="vcenter">
+                <Button name="btn_sparse_delete" text="删除选中（留洞）" kind="danger" width="140" height="32" />
+                <Button name="btn_sparse_compact" text="压缩空位" kind="secondary" width="100" height="32" />
+                <Button name="btn_sparse_add" text="加到首个空位" kind="primary" width="120" height="32" />
+                <Button name="btn_sparse_pad" text="补满一页空位" kind="info" width="120" height="32" />
+            </HBox>
+            <Label name="sparse_status" height="22" text="准备中…" theme="secondary" />
+            <AppGrid name="sparse_grid" sparse="true" item-size="72,88" gap="8"
+                dot-size-min="6" dot-size-max="14"
+                border-color="#D9D9D9FF" border-size="1" border-radius="8" padding="8,8,8,8"
+                bkcolor="#FAFAFAFF">
+                <AppIcon name="sp_mail" text="邮件" lucide="mail" />
+                <AppIcon name="sp_msg" text="消息" lucide="message-circle" />
+                <AppIcon name="sp_bell" text="通知" lucide="bell" />
+                <AppIcon name="sp_cloud" text="云盘" lucide="cloud" />
+                <AppIcon name="sp_music" text="音乐" lucide="music" />
+                <AppIcon name="sp_map" text="地图" lucide="map" />
+                <AppIcon name="sp_cal" text="日历" lucide="calendar" />
+                <AppIcon name="sp_set" text="设置" lucide="settings" />
+            </AppGrid>
+        </VBox>
+    </body>
+</html>
+<style>
+  html {
+    size: 720,520;
+    caption: 0,0,0,40;
+    min-size: 560,400;
+    size-box: 4,4,4,4;
+    shadowimage: main/shadow.png;
+    background-color: #32323CFF;
+    action: title;
+  }
+  body {
+    background-color: #F5F5F5FF;
+  }
+</style>

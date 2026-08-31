@@ -41,7 +41,7 @@ SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。
 
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
-| `action` | `title`/`close`/`min`/`max`/`move`/`copy`；亦可用 `html { action: title; }` 落到 root。命中控件若 `PreferClientHit()`（SETCURSOR / cursor / 已配热态视觉）则不继承拖拽 | HTML form `action`（含义不同） |
+| `action` | `title`/`close`/`min`/`max`/`move`/`copy`；亦可用 `html { action: title; }` 落到 root。命中控件若 `PreferClientHit()`（SETCURSOR / cursor / 已配热态视觉）则不继承拖拽。拖窗区仅在**左键按下**时 `WM_NCHITTEST` 返回 `HTCAPTION`（悬停保持 `HTCLIENT`，否则 `TrackMouseEvent(TME_HOVER)` / tooltip 失效） | HTML form `action`（含义不同） |
 | `min-size` / `max-size` | `w,h` 跟踪尺寸；亦可分写 `min-width`/`min-height`、`max-width`/`max-height` | min/max-width/height |
 | `size` | 初始客户区 `w,h`；亦可分写 `width`/`height` | width/height |
 

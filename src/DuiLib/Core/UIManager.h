@@ -101,7 +101,9 @@ namespace DuiLib {
 		UIMSG_ANIMATION_TICK,                 // CUIAnimation  mixin（SidePanel 等）
 		UIMSG_ROLLTEXT_TICK,                  // RollText 滚动 / 超时
 		UIMSG_RICHEDIT_TICK,                  // RichEdit 插入符 / TxSetTimer
-		UIMSG__LIB_LAST = UIMSG_RICHEDIT_TICK, // 库消息上限（追加时改此）
+		UIMSG_EDIT_TICK,                      // Edit 原生窗自绘插入符闪烁
+		UIMSG_TOOLTIP_HOVER,                  // Tooltip 悬停到点（TimerQueue→PostMessage，绕开 Shadow 吞 WM_TIMER）
+		UIMSG__LIB_LAST = UIMSG_TOOLTIP_HOVER, // 库消息上限（追加时改此）
 
 		UIMSG_USER = WM_DUILIB_USER,          // 同 WM_DUILIB_USER
 	};
@@ -614,7 +616,12 @@ namespace DuiLib {
 		bool PreMessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, LRESULT& lRes);
 		void UsedVirtualWnd(bool bUsed);
 
+		/// action:title 拖窗：拖窗区返回 HTCAPTION（PreferClientHit / 有 tooltip 的控件仍为 HTCLIENT）
+		static LRESULT HitTestCaptionDrag(bool bWouldDragCaption);
+		static LRESULT CALLBACK TipPopupWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 	private:
+		void ArmMouseHoverTrack(bool bCancelFirst, POINT pt);
 		CStdPtrArray* GetFoundControls();
 		static CControlUI* CALLBACK __FindControlFromNameHash(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromCount(CControlUI* pThis, LPVOID pData);
@@ -646,9 +653,12 @@ namespace DuiLib {
 		IRenderSurface* m_pOffscreenSurface;
 		IRenderSurface* m_pBackgroundSurface;
 
-		// 提示信息
-		HWND m_hwndTooltip;
-		TOOLINFO m_ToolTip;
+		// 提示信息（自绘 popup + TimerQueue，不依赖 TOOLTIPS_CLASS / WM_MOUSEHOVER）
+		HWND m_hwndTipPopup;
+		CDuiString m_sTipPopupText;
+		CControlUI* m_pTipPending;
+		CControlUI* m_pTipShown;
+		HANDLE m_hTipQueueTimer;
 		int m_iHoverTime;
 		bool m_bNoActivate;
 		bool m_bShowUpdateRect;
@@ -660,7 +670,13 @@ namespace DuiLib {
         CControlUI* m_pEventClick;
         CControlUI* m_pEventRClick;
 		CControlUI* m_pEventKey;
-		CControlUI* m_pLastToolTip;
+		void EnsureTipPopup();
+		void KillTipQueueTimer();
+		void ScheduleControlToolTip(CControlUI* pHover);
+		void ShowControlToolTip(CControlUI* pHover);
+		void HideControlToolTip();
+		void SyncToolTipWithHover(CControlUI* pHover);
+		DWORD GetToolTipDelay() const;
 		bool m_bBlankCtxMenu;          // 空白右键菜单总开关，默认 false
 		bool m_bBlankCtxMenuDeepest;   // target 模式：true=最内层容器（默认），false=根容器
 		//
@@ -704,6 +720,7 @@ namespace DuiLib {
 		bool m_bIsPainting;
 		bool m_bUsedVirtualWnd;
 		bool m_bAsyncNotifyPosted;
+
 
 		//
 		CStdPtrArray m_aNotifiers;

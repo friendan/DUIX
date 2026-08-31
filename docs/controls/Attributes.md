@@ -93,7 +93,7 @@
 
 ## 已对齐（优先使用）
 
-`margin` / `padding`（及单边）、`width`/`height`/`min-*`/`max-*`、`gap`、`justify-content`/`align-items`、`overflow`/`overflow-x`/`overflow-y`、`border`/`border-width`/`border-color`/`border-style`/`border-radius`、`background`/`background-color`/`background-image`、`color`、`font-family`/`font-size`/`font-weight`/`font-style`/`text-decoration`、`text-align`/`vertical-align`、`opacity`/`alpha`/`opacity-inherit`/`opacity-isolate`/`opacity-propagate`/`child-opacity-inherit`、`pointer-events`、`class`/`style`、`disabled`、`title`/`tooltip`、`draggable`、`accesskey`、`contextmenu`、`cursor`（含 CSS 关键字）、`id`、`enabled`/`visible`、`visibility`/`display`（映射可见性）。
+`margin` / `padding`（及单边）、`width`/`height`/`min-*`/`max-*`、`gap`、`justify-content`/`align-items`、`overflow`/`overflow-x`/`overflow-y`、`border`/`border-width`/`border-color`/`border-style`/`border-radius`、`background`/`background-color`/`background-image`、`color`、`font-family`/`font-size`/`font-weight`/`font-style`/`text-decoration`、`text-align`/`vertical-align`、`opacity`/`alpha`/`opacity-inherit`/`opacity-isolate`/`opacity-propagate`/`child-opacity-inherit`、`pointer-events`、`class`/`style`、`disabled`、`title`/`tooltip`/`tooltipwidth`（多行 tip 单行最长宽度，逻辑像素，默认 360）、`draggable`、`accesskey`、`contextmenu`、`cursor`（含 CSS 关键字）、`id`、`enabled`/`visible`、`visibility`/`display`（映射可见性）。
 
 窗口根上的 `selected-color` 是默认选中**背景**色（与 Option 的 `color-selected` 不同）。
 

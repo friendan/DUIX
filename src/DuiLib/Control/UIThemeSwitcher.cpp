@@ -730,6 +730,7 @@ CThemeSwitcherUI::CThemeSwitcherUI()
 	SetToolTip(_T("选择主题"));
 	SetIconLib(_T("lucide"), _T("palette"));
 	SetIconSize(18);
+	SetCursor(DUI_HAND);
 }
 
 LPCTSTR CThemeSwitcherUI::GetClass() const
@@ -742,6 +743,11 @@ LPVOID CThemeSwitcherUI::GetInterface(LPCTSTR pstrName)
 	if( _tcsicmp(pstrName, DUI_CTR_THEMESWITCHER) == 0 ) return static_cast<CThemeSwitcherUI*>(this);
 	if( _tcsicmp(pstrName, _T("ThemeSwitcher")) == 0 ) return static_cast<CThemeSwitcherUI*>(this);
 	return CButtonUI::GetInterface(pstrName);
+}
+
+bool CThemeSwitcherUI::PreferClientHit() const
+{
+	return IsEnabled();
 }
 
 void CThemeSwitcherUI::SetThemesFilter(LPCTSTR pstrThemes)

@@ -556,21 +556,33 @@ namespace DuiLib
 		if (!::IsZoomed(*this))
 		{
 			RECT rcSizeBox = m_pm.GetSizeBox();
-			if (pt.y < rcClient.top + rcSizeBox.top)
+			CControlUI* pHitCtrl = m_pm.FindControl(pt);
+			// size-box 在标题栏按钮/ThemeSwitcher 之上时勿返回 HTTOP 等，否则客户区悬停失效。
+			// 仅 PreferClientHit / 有 tooltip 的交互控件挡缩放；勿用 !IsCaptionDragHit
+			//（内容区几乎都非拖窗 → 会把整圈 size-box 废掉）。
+			auto KeepClientForResizeEdge = [&](CControlUI* p) -> bool {
+				if( p == NULL || !p->IsVisible() || !p->IsEnabled() ) return false;
+				if( p->PreferClientHit() ) return true;
+				if( !p->GetToolTip().IsEmpty() ) return true;
+				return false;
+			};
+			const bool bKeepClient = KeepClientForResizeEdge(pHitCtrl);
+
+			if (pt.y < rcClient.top + rcSizeBox.top && !bKeepClient)
 			{
 				if (pt.x < rcClient.left + rcSizeBox.left) return HTTOPLEFT;
 				if (pt.x > rcClient.right - rcSizeBox.right) return HTTOPRIGHT;
 				return HTTOP;
 			}
-			else if (pt.y > rcClient.bottom - rcSizeBox.bottom)
+			else if (pt.y > rcClient.bottom - rcSizeBox.bottom && !bKeepClient)
 			{
 				if (pt.x < rcClient.left + rcSizeBox.left) return HTBOTTOMLEFT;
 				if (pt.x > rcClient.right - rcSizeBox.right) return HTBOTTOMRIGHT;
 				return HTBOTTOM;
 			}
 
-			if (pt.x < rcClient.left + rcSizeBox.left) return HTLEFT;
-			if (pt.x > rcClient.right - rcSizeBox.right) return HTRIGHT;
+			if (pt.x < rcClient.left + rcSizeBox.left && !bKeepClient) return HTLEFT;
+			if (pt.x > rcClient.right - rcSizeBox.right && !bKeepClient) return HTRIGHT;
 		}
 
 		// 控件边缘缩放宿主（TabLayout 等可只开 N 条边；与窗口 size-box 互补）
@@ -601,37 +613,54 @@ namespace DuiLib
 			}
 		}
 
-		// action 属性驱动的拖拽：不受 caption rect 限制；IsCaptionDragHit 区分空白/交互区
+		// action 属性驱动的拖拽：不受 caption rect 限制；IsCaptionDragHit 区分空白/交互区。
+		// 拖窗区返回 HTCAPTION（tooltip 走 TimerQueue，不依赖客户区 HOVER）。
 		{
 			CControlUI* pHitCtrl = m_pm.FindControl(pt);
 			if (pHitCtrl != NULL) {
-				if (pHitCtrl->IsCaptionDragHit(pt))
-					return HTCAPTION;
-
-				UIAction leafAct = pHitCtrl->GetAction();
-				// 自身有 title 但点在交互区（如 TabBar 标签/+）：保持 HTCLIENT，不向上/窗口级拖拽
-				// PreferClientHit：SETCURSOR / cursor / 已配热态视觉；新控件用基类 *-hover 即可，不必再改此处
-				if (leafAct == UIACTION_NONE && !pHitCtrl->PreferClientHit()) {
-					CControlUI* pWalk = pHitCtrl->GetParent();
-					while (pWalk != NULL) {
-						if (pWalk->IsCaptionDragHit(pt))
-							return HTCAPTION;
-						UIAction parentAct = pWalk->GetAction();
-						// 父级是 title 但该点不可拖（交互区）→ 停止向上，留给客户区点击
-						if (parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW)
-							break;
-						if (parentAct != UIACTION_NONE) break;
-						pWalk = pWalk->GetParent();
-					}
-					UIAction winAct = m_pm.GetWindowAction();
-					if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW)
+				if (pHitCtrl->IsCaptionDragHit(pt)) {
+					LRESULT htCap = CPaintManagerUI::HitTestCaptionDrag(true);
+					if( htCap == HTCAPTION ) {
 						return HTCAPTION;
+					}
+					return HTCLIENT;
+				}
+				else {
+					UIAction leafAct = pHitCtrl->GetAction();
+					// 自身有 title 但点在交互区（如 TabBar 标签/+）：保持 HTCLIENT，不向上/窗口级拖拽
+					// PreferClientHit：SETCURSOR / cursor / 已配热态视觉；新控件用基类 *-hover 即可，不必再改此处
+					if (leafAct == UIACTION_NONE && !pHitCtrl->PreferClientHit()) {
+						CControlUI* pWalk = pHitCtrl->GetParent();
+						while (pWalk != NULL) {
+							if (pWalk->IsCaptionDragHit(pt)) {
+								LRESULT htCap = CPaintManagerUI::HitTestCaptionDrag(true);
+								if( htCap == HTCAPTION ) {
+									return HTCAPTION;
+								}
+								break;
+							}
+							UIAction parentAct = pWalk->GetAction();
+							// 父级是 title 但该点不可拖（交互区）→ 停止向上，留给客户区点击
+							if (parentAct == UIACTION_TITLE || parentAct == UIACTION_MOVEWINDOW)
+								break;
+							if (parentAct != UIACTION_NONE) break;
+							pWalk = pWalk->GetParent();
+						}
+						UIAction winAct = m_pm.GetWindowAction();
+						if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW) {
+							LRESULT htCap = CPaintManagerUI::HitTestCaptionDrag(true);
+							if( htCap == HTCAPTION )
+								return HTCAPTION;
+						}
+					}
 				}
 			}
 			else {
 				UIAction winAct = m_pm.GetWindowAction();
-				if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW)
-					return HTCAPTION;
+				if (winAct == UIACTION_TITLE || winAct == UIACTION_MOVEWINDOW) {
+					LRESULT htCap = CPaintManagerUI::HitTestCaptionDrag(true);
+					if( htCap == HTCAPTION ) return HTCAPTION;
+				}
 			}
 		}
 
@@ -646,7 +675,8 @@ namespace DuiLib
 		{
 			if (IsInStaticControl(m_pm.FindControl(pt)))
 			{
-				return HTCAPTION;
+				LRESULT htCap = CPaintManagerUI::HitTestCaptionDrag(true);
+				if( htCap == HTCAPTION ) return HTCAPTION;
 			}
 		}
 
@@ -713,8 +743,9 @@ namespace DuiLib
 
 	LRESULT WindowImplBase::OnMouseHover(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
-		bHandled = FALSE;
-		return 0;
+		LRESULT lRes = 0;
+		bHandled = m_pm.MessageHandler(uMsg, wParam, lParam, lRes) ? TRUE : FALSE;
+		return lRes;
 	}
 #endif
 
@@ -1026,7 +1057,7 @@ namespace DuiLib
 		case WM_NCMOUSEHOVER:
 		case WM_NCMOUSELEAVE:
 		case WM_NCMOUSEMOVE: {
-			if (wParam == HTMAXBUTTON) {
+			if (wParam == HTMAXBUTTON || uMsg == WM_NCMOUSEHOVER) {
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
 				::ScreenToClient(m_hWnd, &pt);
 				LPARAM param = MAKELPARAM(pt.x, pt.y);
@@ -1034,16 +1065,18 @@ namespace DuiLib
 				if (uMsg == WM_NCMOUSELEAVE) {
 					m_pm.MessageHandler(WM_MOUSELEAVE, 0, 0, lr);
 				}
+				else if (uMsg == WM_NCMOUSEHOVER) {
+					m_pm.MessageHandler(WM_MOUSEHOVER, 0, param, lr);
+				}
 				else if (uMsg == WM_NCMOUSEMOVE) {
 					TRACKMOUSEEVENT tme = { 0 };
 					tme.cbSize = sizeof(tme);
 					tme.dwFlags = TME_LEAVE | TME_NONCLIENT;
 					tme.hwndTrack = m_hWnd;
 					::TrackMouseEvent(&tme);
-					// wParam 必须是按键标志，不能传 HTMAXBUTTON
 					m_pm.MessageHandler(WM_MOUSEMOVE, 0, param, lr);
 				}
-				return 0;
+				return lr;
 			}
 			bHandled = FALSE;
 			break;
@@ -1064,8 +1097,19 @@ namespace DuiLib
 		case WM_SETFOCUS:		lRes = OnSetFocus(uMsg, wParam, lParam, bHandled); break;
 		case WM_LBUTTONUP:		lRes = OnLButtonUp(uMsg, wParam, lParam, bHandled); break;
 		case WM_LBUTTONDOWN:	lRes = OnLButtonDown(uMsg, wParam, lParam, bHandled); break;
-		case WM_MOUSEMOVE:		lRes = OnMouseMove(uMsg, wParam, lParam, bHandled); break;
-		case WM_MOUSEHOVER:	lRes = OnMouseHover(uMsg, wParam, lParam, bHandled); break;
+		case WM_TIMER:
+			if( m_pm.MessageHandler(uMsg, wParam, lParam, lRes) )
+				return lRes;
+			bHandled = FALSE;
+			break;
+		case WM_MOUSEMOVE:
+			::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+			lRes = OnMouseMove(uMsg, wParam, lParam, bHandled);
+			break;
+		case WM_MOUSEHOVER:
+			::DefWindowProc(m_hWnd, uMsg, wParam, lParam);
+			lRes = OnMouseHover(uMsg, wParam, lParam, bHandled);
+			break;
 		default:				bHandled = FALSE; break;
 		}
 		if (bHandled) return lRes;
