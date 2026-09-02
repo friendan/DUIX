@@ -6,7 +6,8 @@
 | XML | `<Window>` / 根 `html` |
 | 源码 | `src/DuiLib/Core/UIDlgBuilder.cpp` |
 
-> 全局盒模型 / 颜色 / 伪类见 [Attributes.md](Attributes.md)。本页只列**窗口级**属性。
+> 全局盒模型 / 颜色 / 伪类见 [Attributes.md](Attributes.md)。本页只列**窗口级**属性。  
+> 业务窗继承 `WindowImplBase`、消息映射宏与 `override` 约定见 [WinImplBase.md](WinImplBase.md)。
 
 ### 接近 HTML/CSS
 
@@ -122,7 +123,7 @@ pSettings->ShowModal();
 - 仅 Move：纯移动 → Owner 跟移；仅右/下边缩放 → Owner 不动；左/上边缩放 → 只重算偏移
 - 开了 Size：任意边缩放都同步 Owner 尺寸；同时开了 Move 时左/上边缩放会连位置一起跟
 - **多屏幕**：屏幕物理像素（副屏可为负坐标）；跨屏 DPI 由 `WM_DPICHANGED` 跟系统建议矩形并同步 Owner；`WM_DISPLAYCHANGE` 重抓偏移
-- **最大化**：几何同步仍跳过（`IsZoomed`），避免套用最大化异常矩形
+- **最大化**：本窗仍最大化时跳过几何同步（避免套用最大化异常矩形）。Owner 最大化而本窗已普通态（铺满打开后拖/缩）时，先 `SW_RESTORE` Owner 再同步位置/尺寸
 - **最小化 / 还原**：开了 `SyncOwnerMove` 或 `SyncOwnerSize` 时，本窗最小化会一并最小化 Owner（避免露出后面的主窗）；还原本窗时还原 Owner 并重新对齐位置/尺寸
 - **SyncOwnerSize 遵守 Owner 的 `min-size` / `max-size`**（本窗拖缩下限不低于 Owner 最小跟踪尺寸；`SetWindowPos` 同步时也会钳制）。铺满场景宽高差为 0 时，本窗与主窗同限
 - 无 Owner（主窗）时为空操作；默认皆关

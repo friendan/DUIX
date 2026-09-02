@@ -72,13 +72,13 @@ namespace DuiLib
 
 		static void Open(HWND hOwner, CThemeSwitcherUI* pSwitcher, LPCTSTR pstrThemesFilter, bool bModal = false);
 
-		virtual void OnFinalMessage(HWND hWnd);
-		virtual CDuiString GetSkinFile();
-		virtual LPCTSTR GetWindowClassName() const;
-		virtual void InitWindow();
-		virtual void Notify(TNotifyUI& msg);
+		void OnFinalMessage(HWND hWnd) override;
+		CDuiString GetSkinFile() override;
+		LPCTSTR GetWindowClassName() const override;
+		void InitWindow() override;
+		void Notify(TNotifyUI& msg) override;
 		DUI_DECLARE_MESSAGE_MAP()
-		virtual void OnClick(TNotifyUI& msg);
+		void OnClick(TNotifyUI& msg) override;
 
 	private:
 		bool ThemeAllowed(LPCTSTR id) const;

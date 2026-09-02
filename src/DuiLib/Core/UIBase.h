@@ -53,7 +53,7 @@ namespace DuiLib {
 		bool RemoveVirtualWnd(CDuiString strName);
 		void NotifyPump(TNotifyUI& msg);
 		bool LoopDispatch(TNotifyUI& msg);
-		DUI_DECLARE_MESSAGE_MAP()
+		DUI_DECLARE_MESSAGE_MAP_BASE()
 	private:
 		CStdStringPtrMap m_VirtualWndMap;
 	};

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 //////////////////////////////////////////////////////////////////////////
 ///
@@ -19,14 +19,15 @@ public:
 	~CSplashWnd(void);
 
 public:
-	virtual void OnFinalMessage( HWND );
-	virtual CDuiString GetSkinFile();
-	virtual LPCTSTR GetWindowClassName( void ) const;
-	virtual void InitWindow();
+	void OnFinalMessage( HWND ) override;
+	CDuiString GetSkinFile() override;
+	LPCTSTR GetWindowClassName( void ) const override;
+	void InitWindow() override;
 
 	DUI_DECLARE_MESSAGE_MAP()
-	virtual void OnClick(TNotifyUI& msg);
+	void OnClick(TNotifyUI& msg) override;
 
-	virtual LRESULT OnSysCommand( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled );
-	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnSysCommand( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled ) override;
+	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) override;
 };
+

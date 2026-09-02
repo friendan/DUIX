@@ -214,23 +214,23 @@ public:
 	{
 	}
 
-	virtual void OnFinalMessage(HWND hWnd)
+	void OnFinalMessage(HWND hWnd) override
 	{
 		WindowImplBase::OnFinalMessage(hWnd);
 		delete this;
 	}
 
-	virtual CDuiString GetSkinFile()
+	CDuiString GetSkinFile() override
 	{
 		return GetBuiltinHotKeyBoxSkin();
 	}
 
-	virtual LPCTSTR GetWindowClassName() const
+	LPCTSTR GetWindowClassName() const override
 	{
 		return _T("DuiHotKeyBoxWnd");
 	}
 
-	virtual void InitWindow()
+	void InitWindow() override
 	{
 		m_pPrompt = static_cast<CLabelUI*>(m_pm.FindControl(_T("prompt")));
 		m_pHotKey = static_cast<CHotKeyUI*>(m_pm.FindControl(_T("hotkey")));
@@ -322,7 +322,7 @@ public:
 		}
 	}
 
-	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled)
+	LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled) override
 	{
 		if( (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN) && m_pHotKey != NULL ) {
 			if( wParam == VK_ESCAPE ) {
@@ -345,7 +345,7 @@ public:
 
 	DUI_DECLARE_MESSAGE_MAP()
 
-	virtual void OnClick(TNotifyUI& msg)
+	void OnClick(TNotifyUI& msg) override
 	{
 		CDuiString sName = msg.pSender ? msg.pSender->GetName() : _T("");
 		if( sName.CompareNoCase(_T("btn_ok")) == 0 ) {

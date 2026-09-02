@@ -121,7 +121,9 @@ namespace DuiLib {
 
 		LPCTSTR GetClass() const;
 		UINT GetControlFlags() const;
+		bool PreferClientHit() const;
 		LPVOID GetInterface(LPCTSTR pstrName);
+		CControlUI* FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT uFlags);
 
 		bool GetScrollSelect();
 		void SetScrollSelect(bool bScrollSelect);
@@ -280,6 +282,8 @@ namespace DuiLib {
 		void SetScrollPos(SIZE szPos, bool bMsg = true);
 		void SetPos(RECT rc, bool bNeedInvalidate = true);
 		void DoEvent(TEventUI& event);
+		// html{action:title} 下列表区保持 HTCLIENT，避免点滚动条/空白变成拖窗
+		bool PreferClientHit() const;
 		BOOL SortItems(PULVCompareFunc pfnCompare, UINT_PTR dwData);
 	protected:
 		static int __cdecl ItemComareFunc(void *pvlocale, const void *item1, const void *item2);

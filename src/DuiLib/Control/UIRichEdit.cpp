@@ -2784,7 +2784,8 @@ namespace DuiLib {
 				if( m_pTwh ) m_pTwh->TxEnableScrollBar(SB_HORZ, ESB_ENABLE_BOTH);
 			}
 		}
-		else if( _tcscmp(pstrName, _T("v-scrollbar")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("v-scrollbar")) == 0
+			|| _tcsicmp(pstrName, _T("vscrollbar")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_DISABLENOSCROLL | WS_VSCROLL;
 			if(m_pTwh) m_pTwh->TxEnableScrollBar(SB_VERT, ESB_ENABLE_BOTH);
 		}
@@ -2792,7 +2793,8 @@ namespace DuiLib {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_AUTOVSCROLL;
 			if(m_pTwh) m_pTwh->TxShowScrollBar(SB_VERT, true);
 		}
-		else if( _tcscmp(pstrName, _T("h-scrollbar")) == 0 ) {
+		else if( _tcscmp(pstrName, _T("h-scrollbar")) == 0
+			|| _tcsicmp(pstrName, _T("hscrollbar")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_DISABLENOSCROLL | WS_HSCROLL;
 			if(m_pTwh) m_pTwh->TxEnableScrollBar(SB_HORZ, ESB_ENABLE_BOTH);
 		}

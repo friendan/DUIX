@@ -13,16 +13,16 @@ public:
 
 	static void Open(HWND hParent, const DuiLib::IconEntry* pEntries, int nCount, LPCTSTR pstrAttr, LPCTSTR pstrTitle);
 
-	virtual void OnFinalMessage(HWND hWnd);
-	virtual CDuiString GetSkinFile();
-	virtual LPCTSTR GetWindowClassName() const;
-	virtual void InitWindow();
-	virtual void Notify(TNotifyUI& msg);
-	virtual LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
+	void OnFinalMessage(HWND hWnd) override;
+	CDuiString GetSkinFile() override;
+	LPCTSTR GetWindowClassName() const override;
+	void InitWindow() override;
+	void Notify(TNotifyUI& msg) override;
+	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) override;
+	LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled) override;
 
 	DUI_DECLARE_MESSAGE_MAP()
-	virtual void OnClick(TNotifyUI& msg);
+	void OnClick(TNotifyUI& msg) override;
 
 private:
 	enum { ROW_HEADER_H = 32, ROW_ICON_H = 68, CELL_W = 120, VIEW_BUFFER_PX = 200 };

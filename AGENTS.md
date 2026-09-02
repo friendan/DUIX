@@ -25,6 +25,7 @@ docs/controls/ 控件用法知识库（按控件一篇，勿堆本文件）
 
 - 属性总览与盒模型约定：[Attributes.md](docs/controls/Attributes.md)
 - 窗口级属性：[Window.md](docs/controls/Window.md)
+- 窗口基类 / 消息映射 / override：[WinImplBase.md](docs/controls/WinImplBase.md)（独立工程可复制摘要进自有 AGENTS）
 - HWND 自定义消息：[Messages.md](docs/controls/Messages.md)
 - 各控件：同目录下对应 `*.md`（如 [TabBar](docs/controls/TabBar.md)）
 - 颜色主题：[Theme.md](docs/controls/Theme.md)（`CTheme` / 内置 azure 等）
@@ -107,7 +108,21 @@ clang-cl 使用 **`/W3`**（[`src/CMakeLists.txt`](src/CMakeLists.txt)），会�
 | 控件身份 | `GetClass`、`GetInterface` |
 | 属性 / 布局 | `SetAttribute`、`SetPos`、`EstimateSize` |
 | 生命周期 / 事件 | `DoInit`、`DoEvent`、`SetVisible`、`SetEnabled` |
-| 绘制 | `Paint`、`PaintText`、`PaintBackgroundImage` 等 `Paint*` |
+clang 绘制 | `Paint`、`PaintText`、`PaintBackgroundImage` 等 `Paint*` |
+| 窗口基类 | 见下「消息映射 / WindowImplBase」 |
+
+### 消息映射 / WindowImplBase（硬约束）
+
+独立工程窗体若用 clang-cl `/W3`，下列写法会触发 **`-Winconsistent-missing-override`**（每个包含该头的 `.cpp` 刷爆日志）。
+
+| 场景 | 正确写法 |
+|------|----------|
+| 根类 `CNotifyPump` | `DUI_DECLARE_MESSAGE_MAP_BASE()`（首次引入 `virtual GetMessageMap`） |
+| 派生窗 / `WindowImplBase` 子类 | `DUI_DECLARE_MESSAGE_MAP()`（宏内已是 `GetMessageMap() const override`） |
+| 覆写 `CWindowWnd` / `INotifyUI` / `IMessageFilterUI` 等 | 声明末尾写 `override`：如 `OnFinalMessage`、`Notify`、`HandleMessage`、`MessageHandler`、`GetWindowClassName`、`GetClassStyle`、`CreateControl`、`QueryControlText` |
+| 仅在 `WindowImplBase` **首次引入**的虚函数 | 继续 `virtual`，**不要**误标 `override`：如 `InitWindow`、`OnClick`、`GetSkinFile`、`InitResource` |
+
+用法与可复制到业务工程 `AGENTS.md` 的摘要见 **[docs/controls/WinImplBase.md](docs/controls/WinImplBase.md)**。
 
 ### 新增 / 修改控件时
 

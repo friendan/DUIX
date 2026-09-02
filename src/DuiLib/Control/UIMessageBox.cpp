@@ -102,23 +102,23 @@ namespace DuiLib {
 			if( p ) p->SetText(text);
 		}
 
-		virtual void OnFinalMessage(HWND hWnd)
+		void OnFinalMessage(HWND hWnd) override
 		{
 			WindowImplBase::OnFinalMessage(hWnd);
 			delete this;
 		}
 
-		virtual CDuiString GetSkinFile() { return m_sSkin; }
-		virtual CDuiString GetSkinType() { return m_sSkinType; }
-		virtual LPCTSTR GetWindowClassName() const { return _T("DuiMessageBoxWnd"); }
+		CDuiString GetSkinFile() override { return m_sSkin; }
+		CDuiString GetSkinType() override { return m_sSkinType; }
+		LPCTSTR GetWindowClassName() const override { return _T("DuiMessageBoxWnd"); }
 
-		virtual void InitWindow()
+		void InitWindow() override
 		{
 			m_pCloseBtn = static_cast<CButtonUI*>(m_pm.FindControl(_T("closebtn")));
 		}
 
 		DUI_DECLARE_MESSAGE_MAP()
-		virtual void OnClick(TNotifyUI& msg)
+		void OnClick(TNotifyUI& msg) override
 		{
 			if( msg.pSender == m_pCloseBtn ) {
 				Close(MESSAGEBOX_CANCEL);

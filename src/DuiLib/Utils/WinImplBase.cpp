@@ -125,8 +125,17 @@ namespace DuiLib
 		if( !bPos && !bSize ) return;
 		HWND hOwner = ResolveSyncOwner();
 		if( hOwner == NULL ) return;
-		if( ::IsZoomed(hOwner) || ::IsIconic(hOwner) ) return;
-		if( ::IsZoomed(m_hWnd) || ::IsIconic(m_hWnd) ) return;
+		if( ::IsIconic(hOwner) || ::IsIconic(m_hWnd) ) return;
+
+		// 铺满打开时 Owner 常仍为最大化，本窗只是同矩形普通窗。
+		// 若仍跳过 IsZoomed(Owner)，拖/缩本窗时主窗永远不同步。
+		// 本窗已非最大化而 Owner 仍最大化：先还原 Owner，再套用偏移几何。
+		if( ::IsZoomed(hOwner) && !::IsZoomed(m_hWnd) ) {
+			m_bSyncingOwner = true;
+			::ShowWindow(hOwner, SW_RESTORE);
+			m_bSyncingOwner = false;
+		}
+		if( ::IsZoomed(hOwner) || ::IsZoomed(m_hWnd) ) return;
 
 		RECT rcSelf = { 0 };
 		if( !::GetWindowRect(m_hWnd, &rcSelf) ) return;
@@ -204,7 +213,7 @@ namespace DuiLib
 			m_bSyncingOwner = false;
 		}
 
-		// 从最小化还原后重新对齐；最大化几何仍由 SyncOwnerGeometry 内 IsZoomed 跳过
+		// 从最小化还原后重新对齐；Owner 仍最大化而本窗已普通态时由 SyncOwnerGeometry 先还原再同步
 		if( !::IsZoomed(m_hWnd) && !::IsIconic(m_hWnd) )
 			SyncOwnerGeometry(m_bSyncOwnerMove, m_bSyncOwnerSize);
 	}

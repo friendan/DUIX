@@ -100,13 +100,13 @@ namespace DuiLib
 		/// 打开选择窗；pOwner 提供当前库/选中图标/白名单/颜色；nSizeMin/NMax 为尺寸范围
 		static void Open(HWND hOwner, CIconPickerUI* pPicker, int nSizeMin, int nSizeMax, DWORD dwIconColor, bool bModal = false);
 
-		virtual void OnFinalMessage(HWND hWnd);
-		virtual CDuiString GetSkinFile();
-		virtual LPCTSTR GetWindowClassName() const;
-		virtual void InitWindow();
-		virtual void Notify(TNotifyUI& msg);
+		void OnFinalMessage(HWND hWnd) override;
+		CDuiString GetSkinFile() override;
+		LPCTSTR GetWindowClassName() const override;
+		void InitWindow() override;
+		void Notify(TNotifyUI& msg) override;
 		DUI_DECLARE_MESSAGE_MAP()
-		virtual void OnClick(TNotifyUI& msg);
+		void OnClick(TNotifyUI& msg) override;
 
 	private:
 		bool LibAllowed(LPCTSTR lib) const;

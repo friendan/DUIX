@@ -172,9 +172,11 @@ namespace DuiLib
 		DUI_PMSG   pfn;               // 指向函数的指针
 	};
 
-	//定义
+	// 消息映射表声明：
+	// - DUI_DECLARE_MESSAGE_MAP_BASE：仅用于根类 CNotifyPump（首次引入 virtual）
+	// - DUI_DECLARE_MESSAGE_MAP：派生类覆写，必须带 override（clang -Winconsistent-missing-override）
 #ifndef UILIB_STATIC
-#define DUI_DECLARE_MESSAGE_MAP()                                         \
+#define DUI_DECLARE_MESSAGE_MAP_BASE()                                    \
 private:                                                                  \
 	static const DUI_MSGMAP_ENTRY _messageEntries[];                      \
 protected:                                                                \
@@ -182,13 +184,28 @@ protected:                                                                \
 	static const DUI_MSGMAP* PASCAL _GetBaseMessageMap();                 \
 	virtual const DUI_MSGMAP* GetMessageMap() const;                      \
 
-#else
 #define DUI_DECLARE_MESSAGE_MAP()                                         \
 private:                                                                  \
 	static const DUI_MSGMAP_ENTRY _messageEntries[];                      \
 protected:                                                                \
-	static  const DUI_MSGMAP messageMap;				                  \
+	static const DUI_MSGMAP messageMap;                                   \
+	static const DUI_MSGMAP* PASCAL _GetBaseMessageMap();                 \
+	const DUI_MSGMAP* GetMessageMap() const override;                     \
+
+#else
+#define DUI_DECLARE_MESSAGE_MAP_BASE()                                    \
+private:                                                                  \
+	static const DUI_MSGMAP_ENTRY _messageEntries[];                      \
+protected:                                                                \
+	static  const DUI_MSGMAP messageMap;                                   \
 	virtual const DUI_MSGMAP* GetMessageMap() const;                      \
+
+#define DUI_DECLARE_MESSAGE_MAP()                                         \
+private:                                                                  \
+	static const DUI_MSGMAP_ENTRY _messageEntries[];                      \
+protected:                                                                \
+	static  const DUI_MSGMAP messageMap;                                   \
+	const DUI_MSGMAP* GetMessageMap() const override;                     \
 
 #endif
 

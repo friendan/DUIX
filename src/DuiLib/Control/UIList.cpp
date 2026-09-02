@@ -126,6 +126,31 @@ namespace DuiLib {
 		return UIFLAG_TABSTOP;
 	}
 
+	bool CListUI::PreferClientHit() const
+	{
+		return IsEnabled();
+	}
+
+	CControlUI* CListUI::FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT uFlags)
+	{
+		// Empty 绝对层可能盖住 ListBody 滚动条；命中测试优先滚动条（配合 PreferClientHit）
+		if( (uFlags & UIFIND_HITTEST) != 0 && m_pList != NULL
+			&& ((uFlags & UIFIND_VISIBLE) == 0 || IsVisible())
+			&& ((uFlags & UIFIND_ENABLED) == 0 || IsEnabled()) ) {
+			CScrollBarUI* pVBar = m_pList->GetVerticalScrollBar();
+			if( pVBar != NULL && pVBar->IsVisible() ) {
+				CControlUI* pHit = pVBar->FindControl(Proc, pData, uFlags);
+				if( pHit != NULL ) return pHit;
+			}
+			CScrollBarUI* pHBar = m_pList->GetHorizontalScrollBar();
+			if( pHBar != NULL && pHBar->IsVisible() ) {
+				CControlUI* pHit = pHBar->FindControl(Proc, pData, uFlags);
+				if( pHit != NULL ) return pHit;
+			}
+		}
+		return CVerticalLayoutUI::FindControl(Proc, pData, uFlags);
+	}
+
 	LPVOID CListUI::GetInterface(LPCTSTR pstrName)
 	{
 		if (_tcsicmp(pstrName, DUI_CTR_LIST) == 0) return static_cast<CListUI*>(this);
@@ -1750,7 +1775,27 @@ namespace DuiLib {
 			return;
 		}
 
+		// 与 VirtualList 一致：点在滚动条上转给 ScrollBar，避免被吞掉 / 变成拖窗
+		if( event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK
+			|| event.Type == UIEVENT_BUTTONUP || event.Type == UIEVENT_MOUSEMOVE ) {
+			if( m_pVerticalScrollBar != NULL && m_pVerticalScrollBar->IsVisible()
+				&& ::PtInRect(&m_pVerticalScrollBar->GetPos(), event.ptMouse) ) {
+				m_pVerticalScrollBar->DoEvent(event);
+				return;
+			}
+			if( m_pHorizontalScrollBar != NULL && m_pHorizontalScrollBar->IsVisible()
+				&& ::PtInRect(&m_pHorizontalScrollBar->GetPos(), event.ptMouse) ) {
+				m_pHorizontalScrollBar->DoEvent(event);
+				return;
+			}
+		}
+
 		CVerticalLayoutUI::DoEvent(event);
+	}
+
+	bool CListBodyUI::PreferClientHit() const
+	{
+		return IsEnabled();
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////

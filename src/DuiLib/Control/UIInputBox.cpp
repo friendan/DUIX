@@ -146,23 +146,23 @@ public:
 	{
 	}
 
-	virtual void OnFinalMessage(HWND hWnd)
+	void OnFinalMessage(HWND hWnd) override
 	{
 		WindowImplBase::OnFinalMessage(hWnd);
 		delete this;
 	}
 
-	virtual CDuiString GetSkinFile()
+	CDuiString GetSkinFile() override
 	{
 		return GetBuiltinInputBoxSkin();
 	}
 
-	virtual LPCTSTR GetWindowClassName() const
+	LPCTSTR GetWindowClassName() const override
 	{
 		return _T("DuiInputBoxWnd");
 	}
 
-	virtual void InitWindow()
+	void InitWindow() override
 	{
 		m_pPrompt = static_cast<CLabelUI*>(m_pm.FindControl(_T("prompt")));
 		m_pEdit = static_cast<CEditUI*>(m_pm.FindControl(_T("input")));
@@ -221,7 +221,7 @@ public:
 
 	DUI_DECLARE_MESSAGE_MAP()
 
-	virtual void Notify(TNotifyUI& msg)
+	void Notify(TNotifyUI& msg) override
 	{
 		if( msg.sType == DUI_MSGTYPE_RETURN && msg.pSender == m_pEdit ) {
 			CommitOk();
@@ -230,7 +230,7 @@ public:
 		WindowImplBase::Notify(msg);
 	}
 
-	virtual void OnClick(TNotifyUI& msg)
+	void OnClick(TNotifyUI& msg) override
 	{
 		CDuiString sName = msg.pSender ? msg.pSender->GetName() : _T("");
 		if( sName.CompareNoCase(_T("btn_ok")) == 0 ) {

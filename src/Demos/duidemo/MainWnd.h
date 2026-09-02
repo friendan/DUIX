@@ -31,7 +31,7 @@ private:
 class CVirtualListDemoCallback : public IVirtualListCallback
 {
 public:
-	virtual LPCTSTR GetItemText(CControlUI* /*pList*/, int iIndex)
+	virtual LPCTSTR GetItemText(CControlUI* /*pList*/, int iIndex) override
 	{
 		m_sText.Format(_T("虚拟行 #%d  —  仅绘制可见项，滚动不会创建 10 万个子控件"), iIndex + 1);
 		return m_sText.GetData();
@@ -43,11 +43,11 @@ private:
 class CLookupPartCallback : public ILookupEditCallback
 {
 public:
-	virtual int GetRowCount()
+	virtual int GetRowCount() override
 	{
 		return 10000;
 	}
-	virtual LPCTSTR GetCellText(int nRow, int nCol)
+	virtual LPCTSTR GetCellText(int nRow, int nCol) override
 	{
 		if( nCol == 0 ) m_sText.Format(_T("P%05d"), nRow + 1);
 		else if( nCol == 1 ) m_sText.Format(_T("零件 %d"), nRow + 1);
@@ -65,19 +65,19 @@ public:
 	~CMainWnd();
 
 public:// UI初始化
-	DuiLib::CDuiString GetSkinFile();
-	LPCTSTR GetWindowClassName() const;
-	UINT GetClassStyle() const;
-	void InitWindow();
-	void OnFinalMessage(HWND hWnd);
+	DuiLib::CDuiString GetSkinFile() override;
+	LPCTSTR GetWindowClassName() const override;
+	UINT GetClassStyle() const override;
+	void InitWindow() override;
+	void OnFinalMessage(HWND hWnd) override;
 
 public:// 接口回调
-	CControlUI* CreateControl(LPCTSTR pstrClass);
-	virtual BOOL Receive(SkinChangedParam param);
-	LPCTSTR QueryControlText(LPCTSTR lpstrId, LPCTSTR lpstrType);
+	CControlUI* CreateControl(LPCTSTR pstrClass) override;
+	BOOL Receive(SkinChangedParam param) override;
+	LPCTSTR QueryControlText(LPCTSTR lpstrId, LPCTSTR lpstrType) override;
 
 public:// UI通知消息
-	void Notify(TNotifyUI& msg);
+	void Notify(TNotifyUI& msg) override;
 	void OnLClick(CControlUI *pControl);
 	void PickWallpaperImage();
 	void ClearWallpaperImage();
@@ -88,13 +88,13 @@ public:// UI通知消息
 	DUI_DECLARE_MESSAGE_MAP()
 
 public:// 系统消息
-	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
-	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled) override;
+	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) override;
 
 public:// WebBrowser
-	virtual HRESULT STDMETHODCALLTYPE UpdateUI(CWebBrowserUI* pWeb);
-	virtual HRESULT STDMETHODCALLTYPE GetHostInfo(CWebBrowserUI* pWeb, DOCHOSTUIINFO __RPC_FAR *pInfo);
-	virtual HRESULT STDMETHODCALLTYPE ShowContextMenu(CWebBrowserUI* pWeb, DWORD dwID, POINT __RPC_FAR *ppt, IUnknown __RPC_FAR *pcmdtReserved, IDispatch __RPC_FAR *pdispReserved);
+	HRESULT STDMETHODCALLTYPE UpdateUI(CWebBrowserUI* pWeb) override;
+	HRESULT STDMETHODCALLTYPE GetHostInfo(CWebBrowserUI* pWeb, DOCHOSTUIINFO __RPC_FAR *pInfo) override;
+	HRESULT STDMETHODCALLTYPE ShowContextMenu(CWebBrowserUI* pWeb, DWORD dwID, POINT __RPC_FAR *ppt, IUnknown __RPC_FAR *pcmdtReserved, IDispatch __RPC_FAR *pdispReserved) override;
 
 private:// UI变量
 	CButtonUI* m_pCloseBtn;

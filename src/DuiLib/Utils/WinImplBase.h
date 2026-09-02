@@ -1,4 +1,4 @@
-﻿#ifndef WIN_IMPL_BASE_HPP
+#ifndef WIN_IMPL_BASE_HPP
 #define WIN_IMPL_BASE_HPP
 
 #include "TrayIcon.h"
@@ -22,8 +22,8 @@ namespace DuiLib
 		virtual void InitResource(){};
 		// 每个窗口都可以重写
 		virtual void InitWindow(){};
-		virtual void OnFinalMessage( HWND hWnd );
-		virtual void Notify(TNotifyUI& msg);
+		void OnFinalMessage( HWND hWnd ) override;
+		void Notify(TNotifyUI& msg) override;
 
 		DUI_DECLARE_MESSAGE_MAP()
 		virtual void OnClick(TNotifyUI& msg);
@@ -58,7 +58,7 @@ namespace DuiLib
 	protected:
 		virtual CDuiString GetSkinType() { return _T(""); }
 		virtual CDuiString GetSkinFile() = 0;
-		virtual LPCTSTR GetWindowClassName(void) const = 0 ;
+		LPCTSTR GetWindowClassName(void) const override = 0;
 		virtual LPCTSTR GetManagerName() { return NULL; }
 		virtual LRESULT ResponseDefaultKeyEvent(WPARAM wParam);
 		CPaintManagerUI m_pm;
@@ -87,11 +87,11 @@ namespace DuiLib
 		bool m_bTrayAutoCreated;
 
 	public:
-		virtual UINT GetClassStyle() const;
-		virtual CControlUI* CreateControl(LPCTSTR pstrClass);
-		virtual LPCTSTR QueryControlText(LPCTSTR lpstrId, LPCTSTR lpstrType);
+		UINT GetClassStyle() const override;
+		CControlUI* CreateControl(LPCTSTR pstrClass) override;
+		LPCTSTR QueryControlText(LPCTSTR lpstrId, LPCTSTR lpstrType) override;
 
-		virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& /*bHandled*/);
+		LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& /*bHandled*/) override;
 		virtual LRESULT OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 		virtual LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 
@@ -117,7 +117,7 @@ namespace DuiLib
 		virtual LRESULT OnWindowPosChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		virtual LRESULT OnDisplayChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		virtual LRESULT OnDPIChanged(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-		virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+		LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 		virtual LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 		virtual LONG GetStyle();
 

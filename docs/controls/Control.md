@@ -34,7 +34,7 @@
 | `opacity-propagate` / `child-opacity-inherit` | 默认 `true`；父设 `false`：自己可淡、子孙乘算时跳过本节点 |
 | `wallpaper-bleed` / `bg-bleed` | 壁纸透出系数；`inherit`/`auto` 跟窗口；`solid`/`opaque`/`none`/`false` 本控件不透；数值同 `opacity`。仅影响**背景色**绘制 |
 | API | `SetBackgroundImageFromMemory`（PNG/JPEG/BMP/GIF，可识别 SVG 文本）、`SetBackgroundImageFromSvg` |
-| `title` / `tooltip` | 提示（`title` 为别名；Accordion/Tab 等自有 `title` 仍为标题） |
+| `title` / `tooltip` | 提示（`title` 为别名；Accordion/Tab 等自有 `title` 仍为标题）。Tip 弹层 `WM_NCHITTEST=HTTRANSPARENT` 不挡点击；优先显示在控件右侧 |
 | `draggable` / `drag` | 可拖拽 |
 | `accesskey` / `shortcut` | 快捷键字符 |
 | `contextmenu` / `menu` | 是否使用右键菜单 |

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 //////////////////////////////////////////////////////////////////////////
 ///
@@ -10,20 +10,20 @@ public:
 	~CPopWnd(void);
 
 public:
-	virtual void OnFinalMessage( HWND );
-	virtual CDuiString GetSkinFile();
-	virtual LPCTSTR GetWindowClassName( void ) const;
-	virtual void Notify( TNotifyUI &msg );
-	virtual void InitWindow();
+	void OnFinalMessage( HWND ) override;
+	CDuiString GetSkinFile() override;
+	LPCTSTR GetWindowClassName( void ) const override;
+	void Notify( TNotifyUI &msg ) override;
+	void InitWindow() override;
 
 	DUI_DECLARE_MESSAGE_MAP()
-	virtual void OnClick(TNotifyUI& msg);
+	void OnClick(TNotifyUI& msg) override;
 	virtual void OnSelectChanged( TNotifyUI &msg );
 	virtual void OnItemSelect( TNotifyUI &msg );
 
-	virtual LRESULT OnSysCommand( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled );
-	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& /*bHandled*/)
+	LRESULT OnSysCommand( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled ) override;
+	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) override;
+	LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& /*bHandled*/) override
 	{
 		if (uMsg == WM_KEYDOWN)
 		{
@@ -45,3 +45,4 @@ private:
 	CButtonUI* m_pMinBtn;
 	CButtonUI* m_pMenuBtn;
 };
+

@@ -899,6 +899,10 @@ namespace
 
 	LRESULT CALLBACK CPaintManagerUI::TipPopupWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		// 穿透命中，避免 tip 盖住下方图标后挡点击（活动栏等纵向图标尤甚）
+		if( uMsg == WM_NCHITTEST )
+			return HTTRANSPARENT;
+
 		CPaintManagerUI* pPm = reinterpret_cast<CPaintManagerUI*>(::GetWindowLongPtr(hWnd, GWLP_USERDATA));
 		if( uMsg == WM_PAINT ) {
 			PAINTSTRUCT ps = { 0 };
@@ -975,10 +979,19 @@ namespace
 		SIZE szTip = MeasureTipPopupWndSize(this, m_sTipPopupText.GetData(), pHover->GetToolTipWidth());
 
 		RECT rcCtrl = pHover->GetPos();
-		POINT pt = { (rcCtrl.left + rcCtrl.right) / 2, rcCtrl.bottom };
-		::ClientToScreen(m_hWndPaint, &pt);
-		pt.x -= szTip.cx / 2;
-		pt.y += 4;
+		RECT rcScr = rcCtrl;
+		::MapWindowPoints(m_hWndPaint, NULL, reinterpret_cast<LPPOINT>(&rcScr), 2);
+
+		// 优先控件右侧（侧栏图标不挡下一枚）；右侧不够再落到下方居中
+		POINT pt = { rcScr.right + 6, (rcScr.top + rcScr.bottom - szTip.cy) / 2 };
+		HMONITOR hMon = ::MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO mi = { sizeof(mi) };
+		if( hMon != NULL && ::GetMonitorInfo(hMon, &mi) ) {
+			if( pt.x + szTip.cx > mi.rcWork.right - 4 ) {
+				pt.x = (rcScr.left + rcScr.right - szTip.cx) / 2;
+				pt.y = rcScr.bottom + 4;
+			}
+		}
 		ClampTipPopupPos(pt, szTip);
 
 		::SetWindowPos(m_hwndTipPopup, HWND_TOPMOST, pt.x, pt.y, szTip.cx, szTip.cy,

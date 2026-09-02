@@ -27,7 +27,7 @@
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
 | `align` | FlowLayout 上作 `justify-content` 别名 | justify-content |
-| `v-scrollbar` / `h-scrollbar` | 布尔开关；优先写 `overflow-*` | overflow-y / overflow-x |
+| `v-scrollbar` / `vscrollbar` / `h-scrollbar` / `hscrollbar` | 布尔开关；优先写 `overflow-*` | overflow-y / overflow-x |
 
 ### 非标准 / 无 HTML 等价
 

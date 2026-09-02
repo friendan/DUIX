@@ -18,7 +18,7 @@
 | `placeholder` / `placeholder-color` | 占位；`theme="chrome"` 时 `placeholder-color` 跟 `color-text-secondary` |
 | `text-align` / `color` / `font-family` / `font-size` | 文字样式 |
 | `overflow` / `overflow-x` / `overflow-y` | 映射启用滚动；优先于单独写 `v-scrollbar` |
-| `v-scrollbar` / `h-scrollbar` | 布尔开关（兼容） |
+| `v-scrollbar` / `vscrollbar` / `h-scrollbar` / `hscrollbar` | 布尔开关（兼容） |
 | `auto-vscroll` / `auto-hscroll` | 随输入滚动 |
 | `want-tab` / `want-return` / `want-ctrl-return` | 按键消费 |
 

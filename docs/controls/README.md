@@ -14,6 +14,7 @@
 | 文档 | 说明 |
 |------|------|
 | [CustomControl.md](CustomControl.md) | 自定义控件：工厂 / 窗口回调 / 插件 / 并入库 |
+| [WinImplBase.md](WinImplBase.md) | `WindowImplBase` / 消息映射宏 / `override`（独立工程可复制进自有 AGENTS） |
 
 	## 工具
 

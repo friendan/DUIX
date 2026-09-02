@@ -10,15 +10,15 @@ public:
 		int nCtrlW = 0, int nCtrlH = 0);
 	static void OpenBlank(HWND hOwner, bool bPickFile = false);
 	static void OpenFromClipboard(HWND hOwner);
-	virtual void OnFinalMessage(HWND hWnd);
-	virtual CDuiString GetSkinFile();
-	virtual LPCTSTR GetWindowClassName() const;
-	virtual void InitWindow();
-	virtual void Notify(TNotifyUI& msg);
-	virtual LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	void OnFinalMessage(HWND hWnd) override;
+	CDuiString GetSkinFile() override;
+	LPCTSTR GetWindowClassName() const override;
+	void InitWindow() override;
+	void Notify(TNotifyUI& msg) override;
+	LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) override;
 	DUI_DECLARE_MESSAGE_MAP()
-	virtual void OnClick(TNotifyUI& msg);
-	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& /*bHandled*/)
+	void OnClick(TNotifyUI& msg) override;
+	LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM /*lParam*/, bool& /*bHandled*/) override
 	{
 		if( uMsg == WM_KEYDOWN && wParam == VK_ESCAPE ) {
 			Close(0);

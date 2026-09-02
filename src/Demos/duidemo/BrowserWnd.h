@@ -11,15 +11,15 @@ public:
 
 	static void Open(HWND hParent);
 
-	virtual void OnFinalMessage(HWND hWnd);
-	virtual CDuiString GetSkinFile();
-	virtual LPCTSTR GetWindowClassName() const;
-	virtual void InitWindow();
-	virtual void Notify(TNotifyUI& msg);
-	virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnFinalMessage(HWND hWnd) override;
+	CDuiString GetSkinFile() override;
+	LPCTSTR GetWindowClassName() const override;
+	void InitWindow() override;
+	void Notify(TNotifyUI& msg) override;
+	LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
 	DUI_DECLARE_MESSAGE_MAP()
-	virtual void OnClick(TNotifyUI& msg);
+	void OnClick(TNotifyUI& msg) override;
 
 private:
 	void AddNewTab(LPCTSTR pstrTitle = NULL, LPCTSTR pstrUrl = NULL);
@@ -60,12 +60,12 @@ private:
 	{
 	public:
 		explicit HostEvents(CBrowserWnd* pOwner) : m_pOwner(pOwner) {}
-		virtual void OnDocumentTitleChanged(CWebBrowserUI* pWeb, LPCTSTR title);
-		virtual void OnNavigationStarting(CWebBrowserUI* pWeb, LPCTSTR url, bool* pCancel);
-		virtual void OnNavigationCompleted(CWebBrowserUI* pWeb, LPCTSTR url, bool success);
-		virtual void OnFaviconChanged(CWebBrowserUI* pWeb, const BYTE* pData, DWORD dwSize);
-		virtual void OnHistoryChanged(CWebBrowserUI* pWeb);
-		virtual void OnNewWindowRequested(CWebBrowserUI* pWeb, LPCTSTR url, bool* pHandled);
+		void OnDocumentTitleChanged(CWebBrowserUI* pWeb, LPCTSTR title) override;
+		void OnNavigationStarting(CWebBrowserUI* pWeb, LPCTSTR url, bool* pCancel) override;
+		void OnNavigationCompleted(CWebBrowserUI* pWeb, LPCTSTR url, bool success) override;
+		void OnFaviconChanged(CWebBrowserUI* pWeb, const BYTE* pData, DWORD dwSize) override;
+		void OnHistoryChanged(CWebBrowserUI* pWeb) override;
+		void OnNewWindowRequested(CWebBrowserUI* pWeb, LPCTSTR url, bool* pHandled) override;
 	private:
 		CBrowserWnd* m_pOwner;
 	};

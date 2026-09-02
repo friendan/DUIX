@@ -816,7 +816,8 @@ namespace DuiLib
 			if( ParseCssOverflowEnablesScroll(pstrValue, bEnable) )
 				EnableScrollBar(bEnable, GetHorizontalScrollBar() != NULL);
 		}
-		else if( _tcsicmp(pstrName, _T("v-scrollbar")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("v-scrollbar")) == 0
+			|| _tcsicmp(pstrName, _T("vscrollbar")) == 0 ) {
 			EnableScrollBar(_tcsicmp(pstrValue, _T("true")) == 0, GetHorizontalScrollBar() != NULL);
 		}
 		else if( _tcsicmp(pstrName, _T("v-scrollbar-style")) == 0 ) {
@@ -832,7 +833,8 @@ namespace DuiLib
 				}
 			}
 		}
-		else if( _tcsicmp(pstrName, _T("h-scrollbar")) == 0 ) {
+		else if( _tcsicmp(pstrName, _T("h-scrollbar")) == 0
+			|| _tcsicmp(pstrName, _T("hscrollbar")) == 0 ) {
 			EnableScrollBar(GetVerticalScrollBar() != NULL, _tcsicmp(pstrValue, _T("true")) == 0);
 		}
 		else if( _tcsicmp(pstrName, _T("h-scrollbar-style")) == 0 ) {

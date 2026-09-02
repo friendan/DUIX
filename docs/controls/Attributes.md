@@ -21,7 +21,7 @@
 | 文字缩进 | 用 `padding`；List/Combo/Menu 项用 `item-padding`（同 CSS 顺序） |
 | 尺寸 | 控件：`width`/`height`/`min-*`/`max-*`（像素、`%`；另见下表 `auto`/`fit-content`）；窗口：`size`/`min-size`/`max-size`，亦可 `width`/`height`、`min-width`/`min-height`、`max-width`/`max-height`；树项 `item-min-width`；TabBar `tab-min-width`/`tab-max-width` |
 | 子控件间距 | `gap` |
-| 溢出 / 滚动 | `overflow` / `overflow-x` / `overflow-y`（映射 `EnableScrollBar`；旧名 `v-scrollbar`/`h-scrollbar` 仍可用） |
+| 溢出 / 滚动 | `overflow` / `overflow-x` / `overflow-y`（映射 `EnableScrollBar`；旧名 `v-scrollbar`/`h-scrollbar`/`vscrollbar`/`hscrollbar` 仍可用） |
 | 绝对定位 | `position="absolute"`；偏移用 `margin`；`position-align`；亦可写百分比重叠矩形（扩展语法） |
 | 文字对齐 | `text-align` / `vertical-align`（可用 `middle`/`vcenter`）；列表项 `item-text-align` / `item-vertical-align` |
 | 容器对齐 | `justify-content` / `align-items`（HBox 主轴水平、VBox 主轴竖直）；FlowLayout 的 `align` 仅为 `justify-content` 别名 |
