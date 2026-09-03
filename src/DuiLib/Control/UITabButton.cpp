@@ -113,6 +113,7 @@ namespace DuiLib
 		m_pIconGap = new CControlUI;
 		m_pIconGap->SetMouseEnabled(false);
 		m_pIconGap->SetFixedWidth(0);
+		m_pIconGap->SetVisible(false);   // 初始无图标即隐藏，避免 0=弹性平分剩余挤偏标题（见 ApplyIconSize）
 		CHorizontalLayoutUI::Add(m_pIconGap);
 
 		m_pTitle = new CLabelUI;
@@ -324,8 +325,14 @@ namespace DuiLib
 				m_pLoading->SetFixedHeight(m_nIconSize);
 			}
 		}
-		if( m_pIconGap != NULL )
-			m_pIconGap->SetFixedWidth((bSvg || bRaster || bLoading) ? 4 : 0);
+		// m_pIconGap 无图标时必须隐藏而非仅置宽 0：DUIX 布局里 fixed=0 是弹性占满语义，
+		// 若保持可见会与标题(同为弹性项)平分剩余空间 → 标题起点被推右(实测各占一半)。
+		// 与 icon/raster/loading 一致：无图标隐藏(不参与布局)，有图标可见并留 4px 间隔。
+		if( m_pIconGap != NULL ) {
+			const bool bNeed = (bSvg || bRaster || bLoading);
+			m_pIconGap->SetVisible(bNeed);
+			m_pIconGap->SetFixedWidth(bNeed ? 4 : 0);
+		}
 	}
 
 	bool CTabButtonUI::IsRasterImagePath(LPCTSTR pstrPath)
@@ -887,8 +894,11 @@ namespace DuiLib
 			m_pRasterIcon->SetFixedWidth(0);
 			m_pRasterIcon->SetFixedHeight(0);
 		}
-		if( m_pIconGap != NULL )
+		if( m_pIconGap != NULL ) {
+			// 同 ApplyIconSize：置 0 不够，必须隐藏才不参与布局(0=弹性会平分剩余挤偏标题)
+			m_pIconGap->SetVisible(false);
 			m_pIconGap->SetFixedWidth(0);
+		}
 		NeedUpdate();
 	}
 
