@@ -39,6 +39,10 @@ namespace DuiLib
 		void SetSyncOwnerSize(bool sync);
 		bool IsSyncOwnerSize() const { return m_bSyncOwnerSize; }
 
+		/// 双击拖窗区（HTCAPTION）是否切换最大化/还原；默认 false。亦可用皮肤属性 caption-dblclk-maximize。
+		void SetCaptionDblClkMaximize(bool enable) { m_pm.SetCaptionDblClkMaximize(enable); }
+		bool IsCaptionDblClkMaximize() const { return m_pm.IsCaptionDblClkMaximize(); }
+
 		/// 进入模态前抓取与 Owner 的屏幕偏移/尺寸差；关闭后自动清除。
 		UINT ShowModal();
 		void ShowModalFake();

@@ -64,9 +64,19 @@ namespace DuiLib {
 		CDuiString key(name);
 		key.MakeLower();
 		std::map<CDuiString, DWORD>::const_iterator it = m_tokens.find(key);
-		if (it == m_tokens.end()) return false;
-		color = it->second;
-		return true;
+		if (it != m_tokens.end()) {
+			color = it->second;
+			return true;
+		}
+		// 旧主题 / 自定义主题未写 panel 时回退到 elevated（theme=panel 同色）
+		if (key == _T("color-bg-panel")) {
+			it = m_tokens.find(_T("color-bg-elevated"));
+			if (it != m_tokens.end()) {
+				color = it->second;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	DWORD CTheme::GetToken(LPCTSTR name, DWORD fallback) const
@@ -222,6 +232,7 @@ namespace DuiLib {
 		DWORD borderStrong = TokenOr(_T("color-border-strong"), 0xADB5BDFF);
 		DWORD bg = TokenOr(_T("color-bg"), 0xFFFFFFFF);
 		DWORD bgElev = TokenOr(_T("color-bg-elevated"), 0xF8F9FAFF);
+		DWORD bgPanel = TokenOr(_T("color-bg-panel"), bgElev);
 		DWORD disBg = TokenOr(_T("color-disabled-bg"), 0xE9ECEFFF);
 		DWORD ctrlBg = TokenOr(_T("color-control-bg"), bg);
 		DWORD ctrlBd = TokenOr(_T("color-control-border"), border);
@@ -315,6 +326,11 @@ namespace DuiLib {
 			_T("header-background-color-hover=\"#%08X\" border-color=\"#%08X\" border-bottom-width=\"1\""),
 			bgElev, text, borderStrong, border);
 		pManager->AddDefaultAttributeList(_T("AccordionItem"), sAccItem.GetData(), true);
+
+		CDuiString sPanel;
+		sPanel.Format(_T("background-color=\"#%08X\" border-color=\"#%08X\""), bgPanel, border);
+		pManager->AddDefaultAttributeList(_T("VerticalLayout.panel"), sPanel.GetData(), true);
+		pManager->AddDefaultAttributeList(_T("HorizontalLayout.panel"), sPanel.GetData(), true);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -643,6 +659,13 @@ namespace DuiLib {
 	static void ThemeSetColorAttr(CControlUI* p, LPCTSTR name, DWORD color)
 	{
 		if (p == NULL || name == NULL) return;
+		// 显式 var(--token) 或皮肤/代码写过的同名属性：勿被 chrome 盖掉
+		CDuiString tvarKey;
+		tvarKey.Format(_T("_tvar:%s"), name);
+		if (p->GetCustomAttribute(tvarKey.GetData()) != NULL)
+			return;
+		if (p->GetCustomAttribute(name) != NULL)
+			return;
 		CDuiString s;
 		s.Format(_T("#%08X"), color);
 		p->SetAttribute(name, s.GetData());
@@ -735,6 +758,7 @@ namespace DuiLib {
 			DWORD titleTx = pUse->GetToken(_T("color-titlebar-text"), 0xFFFFFFFF);
 			DWORD titleBd = pUse->GetToken(_T("color-titlebar-border"), 0x222222FF);
 			DWORD bgElev = pUse->GetToken(_T("color-bg-elevated"), 0xF8F9FAFF);
+			DWORD bgPanel = pUse->GetToken(_T("color-bg-panel"), bgElev);
 			DWORD bgHover = pUse->GetToken(_T("color-bg-hover"), bgElev);
 			DWORD selection = pUse->GetToken(_T("color-selection"), bgElev);
 			DWORD primary = pUse->GetToken(_T("color-primary"), 0x0D6EFDFF);
@@ -818,7 +842,7 @@ namespace DuiLib {
 					|| _tcscmp(pControl->GetClass(), _T("LabelUI")) == 0));
 
 			if (bSelfPanel) {
-				pControl->SetBackgroundColor(bgElev);
+				pControl->SetBackgroundColor(bgPanel);
 				pControl->SetBorderColor(border);
 			}
 
@@ -874,13 +898,20 @@ namespace DuiLib {
 					ThemeSetColorAttr(pControl, _T("background-color-hover"), bgHover);
 				}
 				else if (bForm) {
-					pControl->SetBackgroundColor(ctrlBg);
-					pControl->SetBorderColor(ctrlBd);
-					pControl->SetFocusBorderColor(ctrlFocus);
-					ThemeSetColorAttr(pControl, _T("background-color-disabled"), disBg);
+					CRichEditUI* pRichForm = bRichEdit
+						? static_cast<CRichEditUI*>(pControl->GetInterface(DUI_CTR_RICHEDIT)) : NULL;
+					// 透明只读 RichEdit（聊天气泡正文）：勿铺表单底/边，勿强行正文色
+					const bool bBubbleRich = (pRichForm != NULL && pRichForm->IsTransparent());
+					if( !bBubbleRich ) {
+						pControl->SetBackgroundColor(ctrlBg);
+						pControl->SetBorderColor(ctrlBd);
+						pControl->SetFocusBorderColor(ctrlFocus);
+						ThemeSetColorAttr(pControl, _T("background-color-disabled"), disBg);
+					}
 					CLabelUI* pLabel = static_cast<CLabelUI*>(pControl->GetInterface(DUI_CTR_LABEL));
 					if (pLabel != NULL) pLabel->SetColor(text);
-					else ThemeSetColorAttr(pControl, _T("color"), text);
+					else if( !bBubbleRich )
+						ThemeSetColorAttr(pControl, _T("color"), text);
 					if (bEdit) {
 						ThemeSetColorAttr(pControl, _T("native-background-color"), ctrlBg);
 						ThemeSetColorAttr(pControl, _T("native-color"), text);

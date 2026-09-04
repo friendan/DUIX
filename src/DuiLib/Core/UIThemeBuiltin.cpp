@@ -83,6 +83,8 @@ namespace DuiLib {
 		t->SetToken(_T("color-border-strong"), 0xADB5BDFF);
 		t->SetToken(_T("color-bg"), 0xFFFFFFFF);
 		t->SetToken(_T("color-bg-elevated"), 0xF8F9FAFF);
+		// panel / 气泡等抬升面：默认与 elevated 同色，可单独微调
+		t->SetToken(_T("color-bg-panel"), 0xF8F9FAFF);
 		t->SetToken(_T("color-bg-hover"), 0xF0F0F0FF);
 		t->SetToken(_T("color-bg-hover-medium"), 0xDEE2E6FF);
 		t->SetToken(_T("color-bg-hover-primary"), 0xCFE2FFFF);
@@ -140,6 +142,7 @@ namespace DuiLib {
 		pAzure->SetToken(_T("color-bg-hover-medium"), 0xBAE0FFFF);
 		pAzure->SetToken(_T("color-bg-hover-primary"), 0x91CAFFFF);
 		pAzure->SetToken(_T("color-bg-elevated"), 0xF0F5FFFF);
+		pAzure->SetToken(_T("color-bg-panel"), 0xF0F5FFFF);
 		// 滚动条偏中性，不跟主色抢戏
 		pAzure->SetToken(_T("color-scrollbar-rail"), 0xEEF2F6FF);
 		pAzure->SetToken(_T("color-scrollbar-thumb"), 0xB8C4D4FF);
@@ -175,6 +178,7 @@ namespace DuiLib {
 		pEmerald->SetToken(_T("color-bg-hover-medium"), 0xA7F3D0FF);
 		pEmerald->SetToken(_T("color-bg-hover-primary"), 0x6EE7B7FF);
 		pEmerald->SetToken(_T("color-bg-elevated"), 0xF4FBF7FF);
+		pEmerald->SetToken(_T("color-bg-panel"), 0xF4FBF7FF);
 		pEmerald->SetToken(_T("color-scrollbar-rail"), 0xEEF2F0FF);
 		pEmerald->SetToken(_T("color-scrollbar-thumb"), 0xA8B8B0FF);
 		pEmerald->SetToken(_T("color-scrollbar-thumb-hover"), 0x7E9488FF);
@@ -188,6 +192,7 @@ namespace DuiLib {
 		// 冷灰 slate 一体：正文微灰、主色加深、标题栏跟 primary 同族（避免浅正文+近黑标题割裂）
 		pGraphite->SetToken(_T("color-bg"), 0xF8FAFCFF);
 		pGraphite->SetToken(_T("color-bg-elevated"), 0xF1F5F9FF);
+		pGraphite->SetToken(_T("color-bg-panel"), 0xF1F5F9FF);
 		pGraphite->SetToken(_T("color-bg-hover"), 0xE2E8F0FF);
 		pGraphite->SetToken(_T("color-bg-hover-medium"), 0xCBD5E1FF);
 		pGraphite->SetToken(_T("color-bg-hover-primary"), 0x94A3B8FF);
@@ -233,6 +238,7 @@ namespace DuiLib {
 		pDark->CopyTokensFrom(*pDefault);
 		pDark->SetToken(_T("color-bg"), 0x141414FF);
 		pDark->SetToken(_T("color-bg-elevated"), 0x1F1F1FFF);
+		pDark->SetToken(_T("color-bg-panel"), 0x1F1F1FFF);
 		pDark->SetToken(_T("color-text"), 0xFFFFFFE0);
 		pDark->SetToken(_T("color-text-secondary"), 0xFFFFFFA6);
 		pDark->SetToken(_T("color-text-disabled"), 0xFFFFFF73);

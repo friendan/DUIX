@@ -62,6 +62,8 @@ namespace DuiLib {
 		void OnEndFrame();
 
 		HDC GetDC() const override;
+		void ReleaseNativeDC() override;
+		HDC GetGdiPaintDC() const override;
 		CPaintManagerUI* GetManager() const override;
 
 		void PushClip(const RECT& rc) override;

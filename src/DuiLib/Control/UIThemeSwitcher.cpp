@@ -238,6 +238,7 @@ namespace {
 
 		t->SetToken(_T("color-bg"), bg);
 		t->SetToken(_T("color-bg-elevated"), elev);
+		t->SetToken(_T("color-bg-panel"), elev);
 		t->SetToken(_T("color-bg-hover"), bgHover);
 		t->SetToken(_T("color-bg-hover-medium"), bgHoverMedium);
 		t->SetToken(_T("color-bg-hover-primary"), bgHoverPrimary);
@@ -367,7 +368,8 @@ namespace {
 		struct Item { LPCTSTR key; LPCTSTR desc; };
 		static const Item kMap[] = {
 			{ _T("color-bg"), _T("窗口/页面背景色") },
-			{ _T("color-bg-elevated"), _T("抬升面板背景（panel）") },
+			{ _T("color-bg-elevated"), _T("抬升背景（列表斑马纹等）") },
+			{ _T("color-bg-panel"), _T("面板/气泡背景（theme=panel）") },
 			{ _T("color-bg-hover"), _T("悬停底色（轻：列表/大面积）") },
 			{ _T("color-bg-hover-medium"), _T("悬停底色（中：图标按钮等）") },
 			{ _T("color-bg-hover-primary"), _T("悬停底色（强：主色倾向）") },
@@ -528,7 +530,7 @@ namespace {
 		_T("color-titlebar-bg"), _T("color-titlebar-text"), _T("color-titlebar-border"),
 		_T("color-titlebar-close-hover"),
 		// 窗口
-		_T("color-bg"), _T("color-bg-elevated"), _T("color-bg-hover"),
+		_T("color-bg"), _T("color-bg-elevated"), _T("color-bg-panel"), _T("color-bg-hover"),
 		_T("color-bg-hover-medium"), _T("color-bg-hover-primary"),
 		_T("color-border"), _T("color-border-strong"),
 		_T("color-selection"),

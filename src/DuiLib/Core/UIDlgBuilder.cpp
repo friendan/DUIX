@@ -44,6 +44,11 @@ namespace DuiLib {
 			rcCaption.bottom = _tcstol(pstr + 1, &pstr, 10); ASSERT(pstr);
 			pManager->SetCaptionRect(rcCaption);
 		}
+		else if( _tcsicmp(pstrName, _T("caption-dblclk-maximize")) == 0
+			|| _tcsicmp(pstrName, _T("dblclk-maximize")) == 0 ) {
+			// 默认关：双击拖窗区不切换最大化；true 时走系统 DefWindowProc 行为
+			pManager->SetCaptionDblClkMaximize(_tcsicmp(pstrValue, _T("true")) == 0);
+		}
 		else if( _tcsicmp(pstrName, _T("border-radius")) == 0 ) {
 			SIZE szRound = { 0 };
 			if( ParseBorderRadiusValue(pstrValue, szRound) )

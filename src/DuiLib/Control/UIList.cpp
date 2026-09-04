@@ -1289,6 +1289,7 @@ namespace DuiLib {
 			SetItemColor(clrColor);
 		}
 		else if (_tcsicmp(pstrName, _T("item-background-color")) == 0) {
+			AddCustomAttribute(_T("item-background-color"), pstrValue);
 			DWORD clrColor = 0;
 			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
 			SetItemBackgroundColor(clrColor);
@@ -1313,6 +1314,7 @@ namespace DuiLib {
 			SetSelectedItemColor(clrColor);
 		}
 		else if (_tcsicmp(pstrName, _T("item-background-color-selected")) == 0) {
+			AddCustomAttribute(_T("item-background-color-selected"), pstrValue);
 			DWORD clrColor = 0;
 			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
 			SetSelectedItemBackgroundColor(clrColor);
@@ -1324,6 +1326,7 @@ namespace DuiLib {
 			SetHoverItemColor(clrColor);
 		}
 		else if (_tcsicmp(pstrName, _T("item-background-color-hover")) == 0) {
+			AddCustomAttribute(_T("item-background-color-hover"), pstrValue);
 			DWORD clrColor = 0;
 			if( !ParseColorString(pstrValue, clrColor) ) clrColor = 0;
 			SetHoverItemBackgroundColor(clrColor);

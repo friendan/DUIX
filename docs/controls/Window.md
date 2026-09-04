@@ -42,7 +42,7 @@ SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。
 
 | 属性 | 说明 | HTML/CSS 对照 |
 |------|------|---------------|
-| `action` | `title`/`close`/`min`/`max`/`move`/`copy`；亦可用 `html { action: title; }` 落到 root。命中控件若 `PreferClientHit()`（SETCURSOR / cursor / 已配热态视觉）则不继承拖拽。拖窗区仅在**左键按下**时 `WM_NCHITTEST` 返回 `HTCAPTION`（悬停保持 `HTCLIENT`，否则 `TrackMouseEvent(TME_HOVER)` / tooltip 失效） | HTML form `action`（含义不同） |
+| `action` | `title`/`close`/`min`/`max`/`move`/`copy`；亦可用 `html { action: title; }` 落到 root。命中控件若 `PreferClientHit()`（SETCURSOR / cursor / 已配热态视觉）则不继承拖拽。拖窗区仅在**左键按下**时 `WM_NCHITTEST` 返回 `HTCAPTION`（悬停保持 `HTCLIENT`，否则 `TrackMouseEvent(TME_HOVER)` / tooltip 失效）。双击拖窗区是否最大化见 `caption-dblclk-maximize`（默认关） | HTML form `action`（含义不同） |
 | `min-size` / `max-size` | `w,h` 跟踪尺寸；亦可分写 `min-width`/`min-height`、`max-width`/`max-height` | min/max-width/height |
 | `size` | 初始客户区 `w,h`；亦可分写 `width`/`height` | width/height |
 
@@ -52,6 +52,7 @@ SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。
 |------|------|
 | `size-box` | 窗口客户区缩放热区厚度，四值顺序 **左,上,右,下（LTRB）**（例 `4,4,6,6`）；**不是** CSS 上右下左。某边 `0` 则该边不缩；可与控件 `window-resize` / `window-size-box` 分工 |
 | `caption` | 标题拖拽区 RECT |
+| `caption-dblclk-maximize` / `dblclk-maximize` | 双击拖窗区（`HTCAPTION`，含 `action=title` / `caption`）是否在最大化与还原间切换。**默认 `false`（关闭）**；`true` 时交给 `DefWindowProc`（与经典标题栏双击一致）。最大化按钮不受影响 |
 | `layered` | 分层窗口 |
 | `layered-opacity` | 分层整体透明度 `0`–`255` |
 | `layered-image` | 启用分层并设置分层图 |
@@ -63,6 +64,19 @@ SVG 栅格底层：`CSvgBoxUI::RasterizeToHBitmap`。
 | `default-font-color` / `disabled-font-color` / `link-font-color` / `link-hover-font-color` | 默认/链接字体色 |
 | `selected-color` | 默认选中背景色（与 Option 的 `color-selected` / `background-color-selected` 不同） |
 | `show-dirty` / `gdiplus-text` / `text-rendering-hint` / `tooltip-hover-time` / `no-activate` | 调试 / 文本渲染 / Tooltip / 无激活 |
+
+C++（拖窗区双击最大化，默认关）：
+
+```cpp
+m_pm.SetCaptionDblClkMaximize(true);   // CPaintManagerUI
+SetCaptionDblClkMaximize(true);        // WindowImplBase 转发
+```
+
+皮肤：
+
+```html
+<html caption-dblclk-maximize="true" action="title" ...>
+```
 
 ### `CenterWindow`（C++）
 

@@ -277,7 +277,8 @@ CModal::Show(_T("不同步"), _T("只动对话框，主窗留在原地。"),
 | 方法 | 默认 | 说明 |
 |------|------|------|
 | `Title` / `Text` | 标题默认「提示」 | |
-| `Kind` | `PRIMARY` | 标题栏与确定按钮配色 |
+| `Kind` | `PRIMARY` | 标题栏配色；未设 `OkKind` 时确定按钮也跟它 |
+| `OkKind` | `NONE`（跟随 Kind） | 仅确定按钮配色，例如标题 Primary、按钮 Danger |
 | `ShowCancel` | false | 是否显示取消按钮 |
 | `OkText` / `CancelText` | 确定 / 取消 | |
 | `Width` / `Height` | 420 / 200 | |

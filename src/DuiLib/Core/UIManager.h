@@ -375,6 +375,9 @@ namespace DuiLib {
 		// html/Window 的 action（如 title）；Attach 后落到 root（root 已有 action 则不覆盖）
 		UIAction GetWindowAction() const;
 		void SetWindowAction(UIAction action);
+		/// 双击 HTCAPTION（action/caption 拖窗区）是否在最大化与还原间切换；默认 false
+		bool IsCaptionDblClkMaximize() const;
+		void SetCaptionDblClkMaximize(bool bEnable);
 		/// html/Window 上的 theme / theme-id（Attach 后落到 root，见 ApplyDefaultWindowTheme）
 		LPCTSTR GetWindowTheme() const;
 		void SetWindowTheme(LPCTSTR pstrTheme);
@@ -565,6 +568,8 @@ namespace DuiLib {
 		/// target 选择：true=最内层覆盖点的可见容器（默认）；false=窗口根容器。
 		void SetBlankContextMenuUseDeepestContainer(bool bUse);
 		bool IsBlankContextMenuUseDeepestContainer() const;
+		/// 立即隐藏控件 tooltip 弹层（右键菜单等场景）
+		void HideControlToolTip();
 
 		bool AddPreMessageFilter(IMessageFilterUI* pFilter);
 		bool RemovePreMessageFilter(IMessageFilterUI* pFilter);
@@ -674,7 +679,6 @@ namespace DuiLib {
 		void KillTipQueueTimer();
 		void ScheduleControlToolTip(CControlUI* pHover);
 		void ShowControlToolTip(CControlUI* pHover);
-		void HideControlToolTip();
 		void SyncToolTipWithHover(CControlUI* pHover);
 		DWORD GetToolTipDelay() const;
 		bool m_bBlankCtxMenu;          // 空白右键菜单总开关，默认 false
@@ -701,6 +705,7 @@ namespace DuiLib {
 		CDuiString m_sWindowBackgroundImage;
 		bool m_bWindowBackgroundImageCustom;
 		UIAction m_windowAction;
+		bool m_bCaptionDblClkMaximize;
 		CDuiString m_sWindowTheme;
 		CDuiString m_sWindowThemeId;
 		bool m_bLayered;

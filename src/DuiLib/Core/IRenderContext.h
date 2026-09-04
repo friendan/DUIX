@@ -21,6 +21,11 @@ namespace DuiLib {
 		virtual ~IRenderContext() {}
 
 		virtual HDC GetDC() const = 0;
+		// 归还 GetDC() 借出的原生 DC（D2D GdiInterop）；GDI 后端可空操作
+		virtual void ReleaseNativeDC() {}
+		// 专供 RichEdit/TxDraw：必须落到不透明 GDI 离屏缓冲。
+		// D2D GdiInterop 是预乘 alpha 表面，ClearType 画上去会发糊；默认等同 GetDC()。
+		virtual HDC GetGdiPaintDC() const { return GetDC(); }
 		virtual CPaintManagerUI* GetManager() const = 0;
 
 		// 裁剪栈（后端可用 HRGN / D2D layer / SkCanvas clip）

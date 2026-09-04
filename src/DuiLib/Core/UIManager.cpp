@@ -376,6 +376,7 @@ namespace
 		m_bWindowBackgroundColorCustom(false),
 		m_bWindowBackgroundImageCustom(false),
 		m_windowAction(UIACTION_NONE),
+		m_bCaptionDblClkMaximize(false),
 		m_bLayered(false),
 		m_bLayeredCompositionEnabled(true),
 		m_bLayeredChanged(false),
@@ -1379,6 +1380,16 @@ namespace
 		m_windowAction = action;
 		m_bWindowActionFromShape = false;
 		ApplyDefaultWindowAction();
+	}
+
+	bool CPaintManagerUI::IsCaptionDblClkMaximize() const
+	{
+		return m_bCaptionDblClkMaximize;
+	}
+
+	void CPaintManagerUI::SetCaptionDblClkMaximize(bool bEnable)
+	{
+		m_bCaptionDblClkMaximize = bEnable;
 	}
 
 	void CPaintManagerUI::ApplyDefaultWindowAction()

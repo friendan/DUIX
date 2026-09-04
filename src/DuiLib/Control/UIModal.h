@@ -22,6 +22,8 @@ namespace DuiLib {
 		CModalOptions& Title(LPCTSTR text);
 		CModalOptions& Text(LPCTSTR text);
 		CModalOptions& Kind(ControlKind kind);
+		/// 仅确定按钮 kind；默认 NONE 表示跟随 Kind（标题栏仍用 Kind）
+		CModalOptions& OkKind(ControlKind kind);
 		CModalOptions& ShowCancel(bool show);
 		CModalOptions& OkText(LPCTSTR text);
 		CModalOptions& CancelText(LPCTSTR text);
@@ -40,6 +42,7 @@ namespace DuiLib {
 		CDuiString m_sTitle;
 		CDuiString m_sText;
 		ControlKind m_kind;
+		ControlKind m_okKind;
 		bool m_bShowCancel;
 		CDuiString m_sOkText;
 		CDuiString m_sCancelText;

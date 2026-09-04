@@ -30,6 +30,7 @@ namespace DuiLib {
 
 	CModalOptions::CModalOptions()
 		: m_kind(CONTROLKIND_PRIMARY)
+		, m_okKind(CONTROLKIND_NONE)
 		, m_bShowCancel(false)
 		, m_sOkText(_T("确定"))
 		, m_sCancelText(_T("取消"))
@@ -46,6 +47,7 @@ namespace DuiLib {
 	CModalOptions& CModalOptions::Title(LPCTSTR text) { m_sTitle = text ? text : _T(""); return *this; }
 	CModalOptions& CModalOptions::Text(LPCTSTR text) { m_sText = text ? text : _T(""); return *this; }
 	CModalOptions& CModalOptions::Kind(ControlKind kind) { m_kind = kind; return *this; }
+	CModalOptions& CModalOptions::OkKind(ControlKind kind) { m_okKind = kind; return *this; }
 	CModalOptions& CModalOptions::ShowCancel(bool show) { m_bShowCancel = show; return *this; }
 	CModalOptions& CModalOptions::OkText(LPCTSTR text) { m_sOkText = text ? text : _T(""); return *this; }
 	CModalOptions& CModalOptions::CancelText(LPCTSTR text) { m_sCancelText = text ? text : _T(""); return *this; }
@@ -556,7 +558,7 @@ namespace DuiLib {
 		pOk->SetText(m_opts.m_sOkText.GetData());
 		pOk->SetFixedWidth(kModalBtnW);
 		pOk->SetFixedHeight(kModalBtnH);
-		pOk->SetKind(m_opts.m_kind);
+		pOk->SetKind(m_opts.m_okKind != CONTROLKIND_NONE ? m_opts.m_okKind : m_opts.m_kind);
 		SIZE szOkRound = { 2, 2 };
 		pOk->SetBorderRadius(szOkRound);
 		pBtnRow->Add(pOk);

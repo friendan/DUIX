@@ -1,12 +1,9 @@
 #include "StdAfx.h"
 #include "UIRichEdit.h"
 #include <ole2.h>
+#include <Imm.h>
 #include <vector>
-
-#ifdef _USEIMM
-#include <imm.h>
-#pragma comment(lib, "imm32.lib")
-#endif
+#pragma comment(lib, "Imm32.lib")
 // These constants are for backward compatibility. They are the 
 // sizes used for initialization and reset in RichEdit 1.0
 
@@ -266,6 +263,115 @@ namespace DuiLib {
 		return (LONG) MulDiv(dy, HIMETRIC_PER_INCH, yPerInch);
 	}
 
+	// GDI/RichEdit 只用 COLORREF（无 alpha）。主题次要字色常是半透明白（如 #FFFFFFA6），
+	// 若直接丢 A 会变成纯白，多行 ClearType 强制不透明后更刺眼。先按控件底色合成不透明色。
+	DWORD ResolveRichEditBlendBackground(CRichEditUI* re)
+	{
+		for( CControlUI* p = re; p != NULL; p = p->GetParent() ) {
+			const DWORD bg = p->GetBackgroundColor();
+			if( bg != 0 && DuiColorA(bg) >= 0xF0 )
+				return bg;
+		}
+		if( re != NULL && re->GetManager() != NULL ) {
+			const DWORD win = re->GetManager()->GetWindowBackgroundColor();
+			if( win != 0 ) return win;
+		}
+		return 0xFFFFFFFF;
+	}
+
+	DWORD ResolveRichEditSelectionColor(CRichEditUI* re)
+	{
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm != NULL ) {
+			CTheme* th = tm->GetCurrentTheme();
+			if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+			if( th != NULL ) {
+				DWORD c = 0;
+				if( th->TryGetToken(_T("color-selection"), c) && c != 0 )
+					return DuiColorSetA(c, 0xA0);
+			}
+		}
+		COLORREF cr = ::GetSysColor(COLOR_HIGHLIGHT);
+		return DuiColorFromRGB(GetRValue(cr), GetGValue(cr), GetBValue(cr), 0xA0);
+	}
+
+	void PaintReadonlySelectionBg(IRenderContext& ctx, CRichEditUI* re, const RECT& rcText)
+	{
+		if( re == NULL ) return;
+		long a = 0, b = 0;
+		re->GetSel(a, b);
+		if( a == b ) return;
+		const long len = re->GetTextLength(GTL_DEFAULT);
+		if( b < 0 || b > len ) b = len;
+		if( a < 0 ) a = 0;
+		if( a > b ) {
+			const long t = a; a = b; b = t;
+		}
+		if( a >= b ) return;
+
+		const DWORD selBg = re->GetAdjustColor(ResolveRichEditSelectionColor(re));
+		// 全选：铺满正文区（与 DWrite 行高一致，避免切 TxDraw 导致换行跳动）
+		if( a == 0 && b >= len ) {
+			ctx.DrawColor(rcText, selBg);
+			return;
+		}
+
+		int lineH = 18;
+		if( re->GetManager() != NULL ) {
+			TFontInfo* fi = re->GetManager()->GetFontInfo(re->GetFont());
+			if( fi == NULL ) fi = re->GetManager()->GetDefaultFontInfo();
+			if( fi != NULL ) {
+				lineH = fi->tm.tmHeight + fi->tm.tmExternalLeading;
+				if( lineH < 14 ) lineH = 14;
+			}
+		}
+
+		const long line0 = re->LineFromChar(a);
+		const long line1 = re->LineFromChar(b > a ? b - 1 : a);
+		for( long line = line0; line <= line1; ++line ) {
+			const int iLineStart = re->LineIndex((int)line);
+			if( iLineStart < 0 ) continue;
+			const int cch = re->LineLength(iLineStart);
+			const int iLineEnd = iLineStart + (cch > 0 ? cch : 0);
+			long sel0 = a > iLineStart ? a : iLineStart;
+			long sel1 = b < iLineEnd ? b : iLineEnd;
+			if( sel0 >= sel1 ) {
+				// 空行也给一条细高亮
+				if( line == line0 || line == line1 ) {
+					CDuiPoint p = re->PosFromChar((UINT)iLineStart);
+					RECT rc = { rcText.left, p.y, rcText.right, p.y + lineH };
+					if( rc.bottom > rcText.bottom ) rc.bottom = rcText.bottom;
+					if( rc.top < rcText.bottom && rc.bottom > rcText.top )
+						ctx.DrawColor(rc, selBg);
+				}
+				continue;
+			}
+			CDuiPoint p0 = re->PosFromChar((UINT)sel0);
+			CDuiPoint p1 = re->PosFromChar((UINT)sel1);
+			RECT rc = { p0.x, p0.y, (line < line1) ? rcText.right : p1.x, p0.y + lineH };
+			if( line > line0 ) rc.left = rcText.left;
+			if( rc.right < rc.left + 4 ) rc.right = rc.left + 4;
+			if( rc.right > rcText.right ) rc.right = rcText.right;
+			if( rc.bottom > rcText.bottom ) rc.bottom = rcText.bottom;
+			if( rc.top < rcText.bottom && rc.bottom > rcText.top )
+				ctx.DrawColor(rc, selBg);
+		}
+	}
+
+	DWORD SolidifyRichEditTextColor(CRichEditUI* re, DWORD dwColor)
+	{
+		const BYTE a = DuiColorA(dwColor);
+		if( a >= 0xF8 )
+			return DuiColorFromRGB(DuiColorR(dwColor), DuiColorG(dwColor), DuiColorB(dwColor), 0xFF);
+
+		const DWORD bg = ResolveRichEditBlendBackground(re);
+		const int ia = 255 - (int)a;
+		const BYTE r = (BYTE)((DuiColorR(dwColor) * (int)a + DuiColorR(bg) * ia) / 255);
+		const BYTE g = (BYTE)((DuiColorG(dwColor) * (int)a + DuiColorG(bg) * ia) / 255);
+		const BYTE b = (BYTE)((DuiColorB(dwColor) * (int)a + DuiColorB(bg) * ia) / 255);
+		return DuiColorFromRGB(r, g, b, 0xFF);
+	}
+
 	HRESULT InitDefaultCharFormat(CRichEditUI* re, CHARFORMAT2W* pcf, HFONT hfont) 
 	{
 		memset(pcf, 0, sizeof(CHARFORMAT2W));
@@ -278,6 +384,7 @@ namespace DuiLib {
 		DWORD dwColor = re->GetColor();
 		if( dwColor == 0 && re->GetManager() != NULL )
 			dwColor = re->GetManager()->GetDefaultFontColor();
+		dwColor = SolidifyRichEditTextColor(re, dwColor);
 		if(re->GetManager()->IsLayered()) {
 			CRenderEngine::CheckAlphaColor(dwColor);
 		}
@@ -619,6 +726,8 @@ namespace DuiLib {
 
 	BOOL CTxtWinHost::TxShowCaret(BOOL fShow)
 	{
+		if( m_re != NULL && m_re->IsReadOnly() )
+			fShow = FALSE;
 		fShowCaret = fShow;
 		if( m_re != NULL && m_re->IsFocused() )
 			m_re->Invalidate();
@@ -911,7 +1020,7 @@ namespace DuiLib {
 
 	void CTxtWinHost::SetColor(DWORD dwColor)
 	{
-		cf.crTextColor = DuiColorToCOLORREF(dwColor);
+		cf.crTextColor = DuiColorToCOLORREF(SolidifyRichEditTextColor(m_re, dwColor));
 		pserv->OnTxPropertyBitsChange(TXTBIT_CHARFORMATCHANGE, 
 			TXTBIT_CHARFORMATCHANGE);
 	}
@@ -1262,6 +1371,10 @@ namespace DuiLib {
 
 	void CRichEditUI::StartCaretBlinkTimer()
 	{
+		if( IsReadOnly() ) {
+			m_bDrawCaret = false;
+			return;
+		}
 		m_bDrawCaret = true;
 		StartQueueTimer(CARET_BLINK_TIMERID, GetCaretBlinkInterval());
 	}
@@ -1270,6 +1383,10 @@ namespace DuiLib {
 	{
 		if( !IsFocused() ) return;
 		if( idTimer == CARET_BLINK_TIMERID ) {
+			if( IsReadOnly() ) {
+				m_bDrawCaret = false;
+				return;
+			}
 			m_bDrawCaret = !m_bDrawCaret;
 			Invalidate();
 			return;
@@ -1369,6 +1486,10 @@ namespace DuiLib {
 	void CRichEditUI::SetReadOnly(bool bReadOnly)
 	{
 		m_bReadOnly = bReadOnly;
+		if( bReadOnly )
+			m_lTwhStyle |= ES_READONLY | ES_NOHIDESEL; // 失焦仍显示选区（右键全选可见）
+		else
+			m_lTwhStyle &= ~ES_READONLY;
 		if( m_pTwh ) m_pTwh->SetReadOnly(bReadOnly);
 	}
 
@@ -1612,7 +1733,10 @@ namespace DuiLib {
 
 	int CRichEditUI::SetSelAll()
 	{
-		return SetSel(0, -1);
+		const int n = SetSel(0, -1);
+		// 只读 DWrite 路径依赖选区状态切换绘制；强制刷新以显示高亮
+		Invalidate();
+		return n;
 	}
 
 	int CRichEditUI::SetSelNone()
@@ -2003,7 +2127,8 @@ namespace DuiLib {
 			if( m_bTransparent ) m_pTwh->SetTransparent(TRUE);
 			LRESULT lResult;
 			m_pTwh->GetTextServices()->TxSendMessage(EM_SETLANGOPTIONS, 0, 0, &lResult);
-			m_pTwh->GetTextServices()->TxSendMessage(EM_SETEVENTMASK, 0, ENM_DROPFILES|ENM_LINK|ENM_CHANGE, &lResult);
+			m_pTwh->GetTextServices()->TxSendMessage(EM_SETEVENTMASK, 0,
+				ENM_DROPFILES | ENM_LINK | ENM_CHANGE | ENM_SELCHANGE, &lResult);
 			m_pTwh->OnTxInPlaceActivate(NULL);
 			m_pManager->AddMessageFilter(this);
 			// 插入符闪烁：聚焦时 host 开 CARET_BLINK_TIMERID TimerQueue（引擎 TxSetTimer 仅应答）
@@ -2072,12 +2197,16 @@ namespace DuiLib {
 				GetManager()->SendNotify(this, DUI_MSGTYPE_TEXTCHANGED);
 				break;
 			}
+		case EN_SELCHANGE:
+			{
+				Invalidate();
+				break;
+			}
 		case EN_DROPFILES:   
 		case EN_MSGFILTER:   
 		case EN_OLEOPFAILED:   
 		case EN_PROTECTED:   
 		case EN_SAVECLIPBOARD:   
-		case EN_SELCHANGE:   
 		case EN_STOPNOUNDO:   
 		case EN_LINK:   
 		case EN_OBJECTPOSITIONS:   
@@ -2254,7 +2383,12 @@ namespace DuiLib {
 				m_pTwh->GetTextServices()->TxSendMessage(WM_SETFOCUS, 0, 0, 0);
 			}
 			m_bFocused = true;
-			StartCaretBlinkTimer();
+			if( !IsReadOnly() )
+				StartCaretBlinkTimer();
+			else {
+				m_bDrawCaret = false;
+				if( m_pTwh ) m_pTwh->TxShowCaret(FALSE);
+			}
 			Invalidate();
 			return;
 		}
@@ -2441,82 +2575,54 @@ namespace DuiLib {
 		CControlUI::DoPaint(ctx, rcPaint, pStopControl);
 
 		if( m_pTwh ) {
+			DWORD dwColor = m_dwColor;
+			if( dwColor == 0 && m_pManager != NULL )
+				dwColor = m_pManager->GetDefaultFontColor();
+			// 可编辑才同步 CHARFORMAT；只读用 DWrite 画原始半透明色，避免 Solidify 成刺眼纯白
+			if( dwColor != 0 && !IsReadOnly() )
+				m_pTwh->SetColor(dwColor);
+
 			RECT rc;
 			m_pTwh->GetControlRect(&rc);
 			const int nW = rc.right - rc.left;
 			const int nH = rc.bottom - rc.top;
-			// 勿对主 RT GetDC/Flush（会整窗黑屏）。离屏 GDI TxDraw 后再贴回。
-			// CreatePixelBuffer 为正高度 bottom-up（GDI/TxDraw 可靠）；D2D 直传 bmBits 按 top-down，
-			// 故 TxDraw 后需垂直翻转扫描行。勿在 GetOrCreateBitmap 里全局翻转（会误伤 SvgBox 等 top-down 图）。
-			if( nW > 0 && nH > 0 && m_pManager != NULL ) {
-				BYTE* pBits = NULL;
-				void* pNative = NULL;
-				IRenderDevice* pDev = GetRenderDevice();
-				if( pDev != NULL && pDev->CreatePixelBuffer(nW, nH, &pBits, &pNative) && pBits != NULL && pNative != NULL ) {
-					DWORD dwBk = GetPaintBackgroundColor();
-					if( dwBk == 0 ) dwBk = 0xFFFFFFFF;
-					const BYTE nR = (BYTE)DuiColorR(dwBk);
-					const BYTE nG = (BYTE)DuiColorG(dwBk);
-					const BYTE nB = (BYTE)DuiColorB(dwBk);
-					const int nPixels = nW * nH;
-					for( int i = 0; i < nPixels; ++i ) {
-						pBits[i * 4 + 0] = nB;
-						pBits[i * 4 + 1] = nG;
-						pBits[i * 4 + 2] = nR;
-						pBits[i * 4 + 3] = 0xFF;
+			if( nW > 0 && nH > 0 ) {
+				long nSelStart = 0, nSelEnd = 0;
+				GetSel(nSelStart, nSelEnd);
+				const bool bHasSel = (nSelStart != nSelEnd);
+				// 只读始终 DWrite：选区只铺高亮底，勿切 TxDraw（换行算法不同会导致行数跳动）
+				if( IsReadOnly() ) {
+					if( bHasSel )
+						PaintReadonlySelectionBg(ctx, this, rc);
+					DWORD clr = GetAdjustColor(dwColor != 0 ? dwColor :
+						(m_pManager != NULL ? m_pManager->GetDefaultFontColor() : 0x000000FF));
+					RECT rcText = rc;
+					CDuiString sText = GetText();
+					ctx.DrawText(rcText, sText.IsEmpty() ? _T(" ") : sText.GetData(), clr, m_iFont,
+						DT_LEFT | DT_TOP | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX | DT_EXPANDTABS);
+				}
+				else {
+					if( dwColor != 0 )
+						m_pTwh->SetColor(dwColor);
+					ctx.ReleaseNativeDC();
+					HDC hDC = ctx.GetGdiPaintDC();
+					if( hDC != NULL ) {
+						int nSave = ::SaveDC(hDC);
+						::IntersectClipRect(hDC, rcTemp.left, rcTemp.top, rcTemp.right, rcTemp.bottom);
+						::SetBkMode(hDC, TRANSPARENT);
+						m_pTwh->GetTextServices()->TxDraw(
+							DVASPECT_CONTENT, 0, NULL, NULL, hDC, NULL,
+							(RECTL*)&rc, NULL, (RECT*)&rcTemp, NULL, NULL, 0);
+						::RestoreDC(hDC, nSave);
 					}
-
-					HDC hPaint = m_pManager->GetPaintDC();
-					HDC hMem = ::CreateCompatibleDC(hPaint);
-					HBITMAP hBmp = reinterpret_cast<HBITMAP>(pNative);
-					HBITMAP hOld = (HBITMAP)::SelectObject(hMem, hBmp);
-					POINT ptOrg = { 0 };
-					::SetWindowOrgEx(hMem, rc.left, rc.top, &ptOrg);
-					::SetBkMode(hMem, TRANSPARENT);
-
-					m_pTwh->GetTextServices()->TxDraw(
-						DVASPECT_CONTENT,
-						0,
-						NULL,
-						NULL,
-						hMem,
-						NULL,
-						(RECTL*)&rc,
-						NULL,
-						(RECT*)&rc,
-						NULL,
-						NULL,
-						0);
-
-					::SetWindowOrgEx(hMem, ptOrg.x, ptOrg.y, NULL);
-					::SelectObject(hMem, hOld);
-					::DeleteDC(hMem);
-
-					// GDI/TxDraw 常把 alpha 写成 0 → alpha blit 有框无字
-					for( int i = 0; i < nPixels; ++i )
-						pBits[i * 4 + 3] = 0xFF;
-
-					// bottom-up → 内存顺序改成 top-down，供 D2D 上传
-					if( nH > 1 ) {
-						const int stride = nW * 4;
-						BYTE* pTmp = new BYTE[stride];
-						for( int y = 0; y < nH / 2; ++y ) {
-							BYTE* pTop = pBits + y * stride;
-							BYTE* pBot = pBits + (nH - 1 - y) * stride;
-							memcpy(pTmp, pTop, (size_t)stride);
-							memcpy(pTop, pBot, (size_t)stride);
-							memcpy(pBot, pTmp, (size_t)stride);
-						}
-						delete[] pTmp;
+					else {
+						DWORD clr = GetAdjustColor(SolidifyRichEditTextColor(this, dwColor != 0 ? dwColor :
+							(m_pManager != NULL ? m_pManager->GetDefaultFontColor() : 0x000000FF)));
+						RECT rcText = rc;
+						CDuiString sText = GetText();
+						ctx.DrawText(rcText, sText.IsEmpty() ? _T(" ") : sText.GetData(), clr, m_iFont,
+							DT_LEFT | DT_TOP | DT_WORDBREAK | DT_EDITCONTROL | DT_NOPREFIX | DT_EXPANDTABS);
 					}
-
-					{
-						RECT rcBmpPart = { 0, 0, nW, nH };
-						RECT rcCorners = { 0, 0, 0, 0 };
-						ctx.DrawImage(hBmp, rc, m_rcPaint, rcBmpPart, rcCorners, true, ScaleImageFade());
-					}
-					// Destroy 前清 D2D 缓存，避免 HBITMAP 句柄复用把 RichEdit 图串到 SvgBox
-					pDev->DestroyPixelBuffer(pNative);
 				}
 			}
 			if( m_bVScrollBarFixing ) {
@@ -2581,7 +2687,7 @@ namespace DuiLib {
 			}
 		}
 
-		if( IsFocused() && m_pTwh && m_pTwh->IsShowCaret() && m_bDrawCaret ) {
+		if( !IsReadOnly() && IsFocused() && m_pTwh && m_pTwh->IsShowCaret() && m_bDrawCaret ) {
 			POINT ptCaret = { 0 };
 			m_pTwh->GetCaretPos(&ptCaret);
 			if( ::PtInRect(&m_rcItem, ptCaret) ) {
@@ -2822,9 +2928,16 @@ namespace DuiLib {
 		}
 		else if( _tcscmp(pstrName, _T("readonly")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) { 
-				m_lTwhStyle |= ES_READONLY; 
+				m_lTwhStyle |= ES_READONLY | ES_NOHIDESEL;
 				m_bReadOnly = true; 
 			}
+		}
+		else if( _tcsicmp(pstrName, _T("nohidesel")) == 0
+			|| _tcsicmp(pstrName, _T("no-hide-sel")) == 0 ) {
+			if( _tcscmp(pstrValue, _T("true")) == 0 )
+				m_lTwhStyle |= ES_NOHIDESEL;
+			else
+				m_lTwhStyle &= ~ES_NOHIDESEL;
 		}
 		else if( _tcscmp(pstrName, _T("password")) == 0 ) {
 			if( _tcscmp(pstrValue, _T("true")) == 0 ) m_lTwhStyle |= ES_PASSWORD;
@@ -2874,6 +2987,12 @@ namespace DuiLib {
 			}
 		}
 		else if( _tcscmp(pstrName, _T("color")) == 0 ) {
+			// 与 CControlUI 一致：记录 var()，主题热切换 / chrome 才不会盖掉
+			if( pstrValue != NULL && _tcsnicmp(pstrValue, _T("var("), 4) == 0 ) {
+				CDuiString key;
+				key.Format(_T("_tvar:%s"), pstrName);
+				AddCustomAttribute(key.GetData(), pstrValue);
+			}
 			DWORD clrColor = 0;
 			if( ParseColorString(pstrValue, clrColor) ) SetColor(clrColor);
 		}
@@ -2905,27 +3024,43 @@ namespace DuiLib {
 		if( !IsMouseEnabled() && uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST ) return 0;
 		if( uMsg == WM_MOUSEWHEEL && (LOWORD(wParam) & MK_CONTROL) == 0 ) return 0;
 
-		if (uMsg == WM_IME_COMPOSITION) {
-			// 解决微软输入法位置异常的问题
-			HIMC hIMC = ImmGetContext(GetManager()->GetPaintWindow());
-			if (hIMC)  {
-				POINT point = { 0 };
-				if( m_pTwh != NULL )
-					m_pTwh->GetCaretPos(&point);
-
-				COMPOSITIONFORM Composition;
-				Composition.dwStyle = CFS_POINT;
-				Composition.ptCurrentPos.x = point.x;
-				Composition.ptCurrentPos.y = point.y;
-				ImmSetCompositionWindow(hIMC, &Composition);
-
-				ImmReleaseContext(GetManager()->GetPaintWindow(),hIMC);
+		bool bWasHandled = true;
+		if( uMsg == WM_IME_STARTCOMPOSITION || uMsg == WM_IME_COMPOSITION ) {
+			// 只钉拼写/候选窗位置，不吞消息：无 HWND RichEdit 仍靠 DefWindowProc
+			// → WM_CHAR/WM_IME_CHAR 上字；若在此 TxSendMessage 并 bHandled，会挡掉上字。
+			if( IsFocused() && m_pTwh != NULL && GetManager() != NULL ) {
+				HWND hPaint = GetManager()->GetPaintWindow();
+				HIMC hImc = ::ImmGetContext(hPaint);
+				if( hImc != NULL ) {
+					POINT pt = { 0 };
+					m_pTwh->GetCaretPos(&pt);
+					if( !::PtInRect(&m_rcItem, pt) ) {
+						pt.x = m_rcItem.left + 2;
+						pt.y = m_rcItem.top + 2;
+					}
+					COMPOSITIONFORM cf = {};
+					cf.dwStyle = CFS_POINT;
+					cf.ptCurrentPos = pt;
+					::ImmSetCompositionWindow(hImc, &cf);
+					CANDIDATEFORM cand = {};
+					cand.dwIndex = 0;
+					cand.dwStyle = CFS_CANDIDATEPOS;
+					cand.ptCurrentPos = pt;
+					::ImmSetCandidateWindow(hImc, &cand);
+					HFONT hFont = GetManager()->GetFont(GetFont());
+					if( hFont == NULL )
+						hFont = GetManager()->GetDefaultFontInfo()->hFont;
+					if( hFont != NULL ) {
+						LOGFONT lf = {};
+						if( ::GetObject(hFont, sizeof(lf), &lf) != 0 )
+							::ImmSetCompositionFont(hImc, &lf);
+					}
+					::ImmReleaseContext(hPaint, hImc);
+				}
 			}
-
 			return 0;
 		}
-		bool bWasHandled = true;
-		if( (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST) || uMsg == WM_SETCURSOR ) {
+		else if( (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST) || uMsg == WM_SETCURSOR ) {
 			if( !m_pTwh->IsCaptured() ) {
 				switch (uMsg) {
 				case WM_LBUTTONDOWN:
@@ -2971,36 +3106,12 @@ namespace DuiLib {
 			}
 		}
 #ifdef _UNICODE
-		else if( uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST ) {
+		else if( (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST) || uMsg == WM_IME_CHAR ) {
 #else
 		else if( (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST) || uMsg == WM_CHAR || uMsg == WM_IME_CHAR ) {
 #endif
 			if( !IsFocused() ) return 0;
 		}
-#ifdef _USEIMM
-		else if( uMsg == WM_IME_STARTCOMPOSITION ) {
-			if( IsFocused() ) {
-				POINT ptCaret = { 0 };
-				if( m_pTwh != NULL )
-					m_pTwh->GetCaretPos(&ptCaret);
-				HIMC hMic = ::ImmGetContext(GetManager()->GetPaintWindow());
-				COMPOSITIONFORM cpf;
-				cpf.dwStyle = CFS_FORCE_POSITION;
-				cpf.ptCurrentPos.x = ptCaret.x + m_pTwh->GetCaretWidth();
-				cpf.ptCurrentPos.y = ptCaret.y;
-				::ImmSetCompositionWindow(hMic, &cpf);
-
-				HFONT hFont = GetManager()->GetFont(m_iFont);
-				LOGFONT lf;
-				::GetObject(hFont, sizeof(LOGFONT), &lf);
-				::ImmSetCompositionFont(hMic, &lf);
-
-				::ImmReleaseContext(GetManager()->GetPaintWindow(), hMic);
-			}
-			bWasHandled = false;
-			return 0;
-		}
-#endif
 		else if( uMsg == WM_CONTEXTMENU ) {
 			// 默认内置右键菜单；menu / contextmenu="false" 关闭
 			if(!IsContextMenuUsed()) {

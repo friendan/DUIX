@@ -1040,6 +1040,11 @@ namespace DuiLib
 				}
 				return 0;
 			}
+			// 拖窗区（HTCAPTION）：DefWindowProc 默认双击切换最大化/还原。默认关闭，需显式开启。
+			if( uMsg == WM_NCLBUTTONDBLCLK && wParam == HTCAPTION
+				&& !m_pm.IsCaptionDblClkMaximize() ) {
+				return 0;
+			}
 			bHandled = FALSE;
 			break;
 		}

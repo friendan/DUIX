@@ -296,11 +296,21 @@ namespace DuiLib {
 		if( rcSrc.right <= rcSrc.left || rcSrc.bottom <= rcSrc.top ) return;
 		if( opacity <= 0.0f ) return;
 		if( opacity > 1.0f ) opacity = 1.0f;
+		// 1:1 blit (RichEdit GDI offscreen, native icons): NEAREST keeps ClearType sharp.
+		// Scaled images still use LINEAR.
+		const LONG destW = rcDest.right - rcDest.left;
+		const LONG destH = rcDest.bottom - rcDest.top;
+		const LONG srcW = rcSrc.right - rcSrc.left;
+		const LONG srcH = rcSrc.bottom - rcSrc.top;
+		const D2D1_BITMAP_INTERPOLATION_MODE mode =
+			(destW == srcW && destH == srcH)
+				? D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR
+				: D2D1_BITMAP_INTERPOLATION_MODE_LINEAR;
 		m_pRT->DrawBitmap(
 			pBitmap,
 			ToRectF(rcDest),
 			opacity,
-			D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+			mode,
 			ToRectF(rcSrc));
 	}
 
@@ -318,11 +328,20 @@ namespace DuiLib {
 			const int destW = dest.right - dest.left;
 			const int destH = dest.bottom - dest.top;
 			if( destW <= 0 || destH <= 0 ) return;
-			// 按 dest→src 比例映射脏区，避免画到 rcPaint 外覆盖已绘好的旁钮
-			rcSrc.left = srcL + ::MulDiv(rcDraw.left - dest.left, srcW, destW);
-			rcSrc.top = srcT + ::MulDiv(rcDraw.top - dest.top, srcH, destH);
-			rcSrc.right = srcL + ::MulDiv(rcDraw.right - dest.left, srcW, destW);
-			rcSrc.bottom = srcT + ::MulDiv(rcDraw.bottom - dest.top, srcH, destH);
+			// Prefer integer 1:1 mapping when buffer matches dest (avoids MulDiv
+			// shrink/stretch that forces LINEAR upsample and blurs RichEdit text).
+			if( srcW == destW && srcH == destH ) {
+				rcSrc.left = srcL + (rcDraw.left - dest.left);
+				rcSrc.top = srcT + (rcDraw.top - dest.top);
+				rcSrc.right = srcL + (rcDraw.right - dest.left);
+				rcSrc.bottom = srcT + (rcDraw.bottom - dest.top);
+			}
+			else {
+				rcSrc.left = srcL + ::MulDiv(rcDraw.left - dest.left, srcW, destW);
+				rcSrc.top = srcT + ::MulDiv(rcDraw.top - dest.top, srcH, destH);
+				rcSrc.right = srcL + ::MulDiv(rcDraw.right - dest.left, srcW, destW);
+				rcSrc.bottom = srcT + ::MulDiv(rcDraw.bottom - dest.top, srcH, destH);
+			}
 			if( rcSrc.right <= rcSrc.left || rcSrc.bottom <= rcSrc.top ) return;
 			DrawBitmapRect(pBitmap, rcDraw, rcSrc, opacity);
 		};
@@ -659,6 +678,21 @@ namespace DuiLib {
 		}
 
 		FlushToGdi();
+		pThis->m_bPixelsDirty = true;
+		return m_gdiFallback.GetDC();
+	}
+
+	void CD2dRenderContext::ReleaseNativeDC()
+	{
+		ReleaseHwndInteropDC();
+	}
+
+	HDC CD2dRenderContext::GetGdiPaintDC() const
+	{
+		// 先结束 D2D 帧并同步到 GDI，再在真正的 GDI DC 上 TxDraw。
+		// 禁止走 AcquireHwndInteropDC：预乘 BGRA 上的 ClearType 会发灰发糊。
+		CD2dRenderContext* pThis = const_cast<CD2dRenderContext*>(this);
+		pThis->FlushToGdi();
 		pThis->m_bPixelsDirty = true;
 		return m_gdiFallback.GetDC();
 	}
@@ -1706,6 +1740,21 @@ namespace DuiLib {
 	void CD2dRenderContext::DrawImage(HBITMAP hBitmap, const RECT& rc, const RECT& rcPaint, const RECT& rcBmpPart, const RECT& rcCorners, bool bAlpha, UINT uFade, bool hole, bool xtiled, bool ytiled)
 	{
 		if( hBitmap == NULL ) return;
+
+		// RichEdit 等离屏文字：不透明 1:1 直接 GDI BitBlt，避免 D2D 上传/采样发糊
+		const bool bOpaqueCopy =
+			!bAlpha && !hole && !xtiled && !ytiled && uFade >= 255
+			&& rcCorners.left == 0 && rcCorners.top == 0
+			&& rcCorners.right == 0 && rcCorners.bottom == 0
+			&& (rc.right - rc.left) == (rcBmpPart.right - rcBmpPart.left)
+			&& (rc.bottom - rc.top) == (rcBmpPart.bottom - rcBmpPart.top);
+		if( bOpaqueCopy ) {
+			FlushToGdi();
+			m_gdiFallback.DrawImage(hBitmap, rc, rcPaint, rcBmpPart, rcCorners, false, uFade, hole, xtiled, ytiled);
+			m_bPixelsDirty = true;
+			return;
+		}
+
 		if( !EnsureD2dDraw() ) {
 			FlushToGdi();
 			m_gdiFallback.DrawImage(hBitmap, rc, rcPaint, rcBmpPart, rcCorners, bAlpha, uFade, hole, xtiled, ytiled);
