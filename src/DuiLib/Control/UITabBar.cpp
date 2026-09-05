@@ -494,8 +494,13 @@ namespace DuiLib
 		}
 
 		for( size_t i = 0; i < m_tabs.size(); ++i ) {
-			if( m_tabs[i] != NULL )
-				m_tabs[i]->SetButtonWidth(w);
+			if( m_tabs[i] == NULL ) continue;
+			// per-tab 上限（CTabButtonUI::SetTabMaxWidth，0 = 不限）：标题很短的固定页标签
+			// 可低于 bar 级 tab-max-width，不占满均分宽度（布局核心按固定宽实测溢出，自动正确）
+			int wi = w;
+			int maxI = m_tabs[i]->GetTabMaxWidth();
+			if( maxI > 0 && wi > maxI ) wi = maxI;
+			m_tabs[i]->SetButtonWidth(wi);
 		}
 	}
 

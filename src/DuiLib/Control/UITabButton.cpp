@@ -36,6 +36,7 @@ namespace DuiLib
 		, m_bRasterUsingTint(false)
 		, m_dwIconTint(0)
 		, m_nIconSize(14)
+		, m_nTabMaxWidth(0)
 		, m_hRasterTint(NULL)
 		, m_dwRasterTintColor(0)
 		, m_nRasterTintW(0)
@@ -253,6 +254,17 @@ namespace DuiLib
 	int CTabButtonUI::GetButtonWidth() const
 	{
 		return GetFixedWidth();
+	}
+
+	void CTabButtonUI::SetTabMaxWidth(int nWidth)
+	{
+		if( nWidth < 0 ) nWidth = 0;
+		m_nTabMaxWidth = nWidth;
+		CTabBarUI* pBar = GetOwnerBar();
+		if( pBar != NULL && pBar->IsFlexibleTabWidth() ) {
+			// flexible 均分布局：上限变化需立即按新约束重排（布局核心读 GetFixedWidth 估算溢出）
+			pBar->NeedUpdate();
+		}
 	}
 
 	void CTabButtonUI::SetIconSize(int nSize)
@@ -1080,6 +1092,9 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("active")) == 0 ) {
 			SetActive(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
+		}
+		else if( _tcsicmp(pstrName, _T("tab-max-width")) == 0 ) {
+			SetTabMaxWidth(_ttoi(pstrValue));
 		}
 		else if( _tcsicmp(pstrName, _T("locked")) == 0 ) {
 			SetLocked(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);

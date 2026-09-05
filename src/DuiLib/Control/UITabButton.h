@@ -42,6 +42,11 @@ namespace DuiLib
 		void SetButtonWidth(int nWidth);
 		int GetButtonWidth() const;
 
+		// 本标签宽度上限：flexible 均分布局下，标签自身的上限可低于 TabBar 级 tab-max-width
+		// （0 = 不限，取 TabBar 级上限）。用于“标题很短的固定页标签（如桌面导航）不占满均分宽度”。
+		void SetTabMaxWidth(int nWidth);
+		int GetTabMaxWidth() const { return m_nTabMaxWidth; }
+
 		void SetIconSize(int nSize);
 		int GetIconSize() const { return m_nIconSize; }
 		/// SVG 默认跟文字色；光栅默认原图。显式色 / `icon-tint="auto"` 才着色
@@ -121,6 +126,7 @@ namespace DuiLib
 		bool m_bRasterUsingTint;
 		DWORD m_dwIconTint;
 		int m_nIconSize;
+		int m_nTabMaxWidth;   // 本标签宽度上限（0 = 不限）；见 SetTabMaxWidth
 		HBITMAP m_hRasterTint;
 		DWORD m_dwRasterTintColor;
 		int m_nRasterTintW;
