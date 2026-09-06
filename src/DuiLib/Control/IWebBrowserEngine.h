@@ -32,6 +32,10 @@ namespace DuiLib
 		virtual void OnDownloadStarting(CWebBrowserUI* pWeb, LPCTSTR url, LPCTSTR suggestedPath, bool* pCancel) {}
 		/// ExecuteScript 异步结果（通常为 JSON 文本；失败时可为 NULL）
 		virtual void OnExecuteScriptResult(CWebBrowserUI* pWeb, LPCTSTR resultJson, bool success) {}
+		/// 页面脚本向宿主回传（WebView2：add_WebMessageReceived；CEF 由应用侧自行桥接）。
+		/// json 为页面 postMessage 传来的字符串（UTF-16，如观澜隐藏元素拾取结果）。
+		/// 注意：事件可能不在 UI 线程触发，接收方须自行跨线程投递后再碰 UI。
+		virtual void OnScriptMessage(CWebBrowserUI* pWeb, LPCTSTR json) {}
 	};
 
 	/// OSR 辅助：将 BGRA 缓冲贴到控件矩形（CEF OnPaint 缓冲可直接用；库不链 CEF）

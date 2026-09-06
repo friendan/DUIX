@@ -97,6 +97,7 @@ namespace DuiLib
 		EventRegistrationToken m_tokHistoryChanged;
 		EventRegistrationToken m_tokDownloadStarting;
 		EventRegistrationToken m_tokWebResource;
+		EventRegistrationToken m_tokWebMessage;   // 页面 postMessage 回传（观澜隐藏元素拾取用）
 	};
 }
 

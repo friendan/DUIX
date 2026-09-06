@@ -126,6 +126,7 @@ namespace DuiLib
 		ZeroMemory(&m_tokHistoryChanged, sizeof(m_tokHistoryChanged));
 		ZeroMemory(&m_tokDownloadStarting, sizeof(m_tokDownloadStarting));
 		ZeroMemory(&m_tokWebResource, sizeof(m_tokWebResource));
+		ZeroMemory(&m_tokWebMessage, sizeof(m_tokWebMessage));
 	}
 
 	CWebView2Engine::~CWebView2Engine()
@@ -542,6 +543,22 @@ namespace DuiLib
 					}
 					return S_OK;
 				}).Get(), &m_tokWebResource);
+
+		// 页面脚本回传（观澜隐藏元素拾取）：页面 chrome.webview.postMessage(json) →
+		// WebMessageReceived → 原样上抛 CWebBrowserHostEvents::OnScriptMessage。
+		// 事件线程可能非 UI 线程，宿主侧（观澜 WebEvents）自行保证投递安全。
+		m_pWebView->add_WebMessageReceived(
+			Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+				[self](ICoreWebView2* /*sender*/, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
+					if( self->m_pHostEvents == NULL || self->m_pFacade == NULL || args == NULL )
+						return S_OK;
+					LPWSTR msg = NULL;
+					if( FAILED(args->TryGetWebMessageAsString(&msg)) || msg == NULL )
+						return S_OK;
+					self->m_pHostEvents->OnScriptMessage(self->m_pFacade, msg);
+					CoTaskMemFree(msg);
+					return S_OK;
+				}).Get(), &m_tokWebMessage);
 	}
 
 	void CWebView2Engine::RequestFavicon()
@@ -589,6 +606,8 @@ namespace DuiLib
 			}
 			if( m_tokWebResource.value )
 				m_pWebView->remove_WebResourceRequested(m_tokWebResource);
+			if( m_tokWebMessage.value )
+				m_pWebView->remove_WebMessageReceived(m_tokWebMessage);
 			m_pWebView->Release();
 			m_pWebView = NULL;
 		}
@@ -644,6 +663,8 @@ namespace DuiLib
 		ZeroMemory(&m_tokFaviconChanged, sizeof(m_tokFaviconChanged));
 		ZeroMemory(&m_tokHistoryChanged, sizeof(m_tokHistoryChanged));
 		ZeroMemory(&m_tokDownloadStarting, sizeof(m_tokDownloadStarting));
+		ZeroMemory(&m_tokWebResource, sizeof(m_tokWebResource));
+		ZeroMemory(&m_tokWebMessage, sizeof(m_tokWebMessage));
 	}
 
 	void CWebView2Engine::ApplyBounds()
