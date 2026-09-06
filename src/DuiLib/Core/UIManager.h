@@ -636,6 +636,12 @@ namespace DuiLib {
 		static CControlUI* CALLBACK __FindControlFromTab(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromShortcut(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromName(CControlUI* pThis, LPVOID pData);
+		/// QueueTimer 到期经 PostMessage 携带裸控件指针（UIMSG_*_TICK）；控件析构后 in-flight 消息
+		/// 到达即对悬垂指针虚调用（UAF）。分发前用此方法判活：遍历本 PM 控件树仅比较地址、
+		/// 不解引用目标。已摘树/已析构/从属他 PM 一律判死，消息丢弃（UIEVENT_TIMER 为周期事件，
+		/// 丢一拍无害；且控件销毁前必先摘树，摘树即视为死亡窗口）。
+		bool IsControlAlive(CControlUI* pControl) const;
+		static CControlUI* CALLBACK __FindControlFromPtr(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlFromClass(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlsFromClass(CControlUI* pThis, LPVOID pData);
 		static CControlUI* CALLBACK __FindControlsFromUpdate(CControlUI* pThis, LPVOID pData);

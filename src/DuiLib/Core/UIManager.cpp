@@ -2302,33 +2302,47 @@ namespace
 				if( m_pRoot != NULL ) m_pRoot->NeedUpdate();
 			}
 			return true;
-		case UIMSG_LOADING_TICK:
-			DuiLib_LoadingOnQueueTick(reinterpret_cast<CLoadingUI*>(wParam));
+		case UIMSG_LOADING_TICK: {
+			CLoadingUI* pCtl = reinterpret_cast<CLoadingUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_LoadingOnQueueTick(pCtl);
 			return true;
-		case UIMSG_RING_TICK:
-			DuiLib_RingOnQueueTick(reinterpret_cast<CRingUI*>(wParam));
+		}
+		case UIMSG_RING_TICK: {
+			CRingUI* pCtl = reinterpret_cast<CRingUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_RingOnQueueTick(pCtl);
 			return true;
-		case UIMSG_SKELETON_TICK:
-			DuiLib_SkeletonOnQueueTick(reinterpret_cast<CSkeletonUI*>(wParam));
+		}
+		case UIMSG_SKELETON_TICK: {
+			CSkeletonUI* pCtl = reinterpret_cast<CSkeletonUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_SkeletonOnQueueTick(pCtl);
 			return true;
-		case UIMSG_GIFANIM_TICK:
-			DuiLib_GifAnimOnQueueTick(reinterpret_cast<CGifAnimUI*>(wParam));
+		}
+		case UIMSG_GIFANIM_TICK: {
+			CGifAnimUI* pCtl = reinterpret_cast<CGifAnimUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_GifAnimOnQueueTick(pCtl);
 			return true;
+		}
 #ifdef USE_XIMAGE_EFFECT
-		case UIMSG_GIFANIMEX_TICK:
-			DuiLib_GifAnimExOnQueueTick(reinterpret_cast<CGifAnimExUI*>(wParam));
+		case UIMSG_GIFANIMEX_TICK: {
+			CGifAnimExUI* pCtl = reinterpret_cast<CGifAnimExUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_GifAnimExOnQueueTick(pCtl);
 			return true;
+		}
 #endif
-		case UIMSG_SCROLLBAR_TICK:
-			DuiLib_ScrollBarOnQueueTick(reinterpret_cast<CScrollBarUI*>(wParam));
+		case UIMSG_SCROLLBAR_TICK: {
+			CScrollBarUI* pCtl = reinterpret_cast<CScrollBarUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_ScrollBarOnQueueTick(pCtl);
 			return true;
-		case UIMSG_CAROUSEL_TICK:
-			DuiLib_CarouselOnQueueTick(reinterpret_cast<CCarouselUI*>(wParam));
+		}
+		case UIMSG_CAROUSEL_TICK: {
+			CCarouselUI* pCtl = reinterpret_cast<CCarouselUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_CarouselOnQueueTick(pCtl);
 			return true;
+		}
 		case UIMSG_ANIMATION_TICK:
 			{
 				CControlUI* pControl = reinterpret_cast<CControlUI*>(wParam);
-				if( pControl != NULL ) {
+				if( IsControlAlive(pControl) ) {
 					TEventUI event = { 0 };
 					event.Type = UIEVENT_TIMER;
 					event.pSender = pControl;
@@ -2342,7 +2356,7 @@ namespace
 		case UIMSG_ROLLTEXT_TICK:
 			{
 				CControlUI* pControl = reinterpret_cast<CControlUI*>(wParam);
-				if( pControl != NULL ) {
+				if( IsControlAlive(pControl) ) {
 					TEventUI event = { 0 };
 					event.Type = UIEVENT_TIMER;
 					event.pSender = pControl;
@@ -2353,12 +2367,16 @@ namespace
 				}
 			}
 			return true;
-		case UIMSG_RICHEDIT_TICK:
-			DuiLib_RichEditOnQueueTick(reinterpret_cast<CRichEditUI*>(wParam), (UINT)lParam);
+		case UIMSG_RICHEDIT_TICK: {
+			CRichEditUI* pCtl = reinterpret_cast<CRichEditUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_RichEditOnQueueTick(pCtl, (UINT)lParam);
 			return true;
-		case UIMSG_EDIT_TICK:
-			DuiLib_EditOnQueueTick(reinterpret_cast<CEditUI*>(wParam), (UINT)lParam);
+		}
+		case UIMSG_EDIT_TICK: {
+			CEditUI* pCtl = reinterpret_cast<CEditUI*>(wParam);
+			if( IsControlAlive(pCtl) ) DuiLib_EditOnQueueTick(pCtl, (UINT)lParam);
 			return true;
+		}
 		case UIMSG_TOOLTIP_HOVER:
 			m_hTipQueueTimer = NULL;
 			if( m_pTipPending != NULL && m_pEventHover == m_pTipPending ) {
@@ -4894,6 +4912,18 @@ namespace
 		}
 		if( pFoundControls->GetAt(pFoundControls->GetSize() - 1) != NULL ) return pThis; 
 		return NULL;
+	}
+
+	CControlUI* CALLBACK CPaintManagerUI::__FindControlFromPtr(CControlUI* pThis, LPVOID pData)
+	{
+		// 仅比较指针地址，绝不解引用目标（目标可能已析构，内存已被复用）
+		return (pThis == static_cast<CControlUI*>(pData)) ? pThis : NULL;
+	}
+
+	bool CPaintManagerUI::IsControlAlive(CControlUI* pControl) const
+	{
+		if( pControl == NULL || m_pRoot == NULL ) return false;
+		return m_pRoot->FindControl(__FindControlFromPtr, static_cast<LPVOID>(pControl), UIFIND_ALL) != NULL;
 	}
 
 	CControlUI* CALLBACK CPaintManagerUI::__FindControlsFromClass(CControlUI* pThis, LPVOID pData)
