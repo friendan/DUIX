@@ -83,6 +83,7 @@ namespace DuiLib
 		ICoreWebView2Controller* m_pController;
 		ICoreWebView2CompositionController* m_pCompController;
 		ICoreWebView2* m_pWebView;
+		ICoreWebView2Environment* m_pEnv;   // 缓存环境（拦截时构造 403 响应用；Create 完成时 AddRef，Destroy Release）
 		IDCompositionDevice* m_pDComp;
 		IDCompositionTarget* m_pDCompTarget;
 		IDCompositionVisual* m_pDCompVisual;
@@ -95,6 +96,7 @@ namespace DuiLib
 		EventRegistrationToken m_tokFaviconChanged;
 		EventRegistrationToken m_tokHistoryChanged;
 		EventRegistrationToken m_tokDownloadStarting;
+		EventRegistrationToken m_tokWebResource;
 	};
 }
 

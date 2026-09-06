@@ -23,6 +23,10 @@ namespace DuiLib
 		const TCHAR kCompHostClass[] = _T("DuiLib_WebView2CompHost");
 		bool g_bCompHostClassReg = false;
 
+		// 资源过滤回调（应用层注入；观澜用来挂广告拦截）。UI 线程读写（AttachHandlers 挂载，
+		// WebResourceRequested 回调触发），无需加锁。
+		WebView2ResourceFilterFn g_pWv2Filter = NULL;
+
 		COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS MouseKeysFromWParam(WPARAM wParam)
 		{
 			int keys = COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE;
@@ -107,6 +111,7 @@ namespace DuiLib
 		, m_pController(NULL)
 		, m_pCompController(NULL)
 		, m_pWebView(NULL)
+		, m_pEnv(NULL)
 		, m_pDComp(NULL)
 		, m_pDCompTarget(NULL)
 		, m_pDCompVisual(NULL)
@@ -120,6 +125,7 @@ namespace DuiLib
 		ZeroMemory(&m_tokFaviconChanged, sizeof(m_tokFaviconChanged));
 		ZeroMemory(&m_tokHistoryChanged, sizeof(m_tokHistoryChanged));
 		ZeroMemory(&m_tokDownloadStarting, sizeof(m_tokDownloadStarting));
+		ZeroMemory(&m_tokWebResource, sizeof(m_tokWebResource));
 	}
 
 	CWebView2Engine::~CWebView2Engine()
@@ -257,8 +263,11 @@ namespace DuiLib
 		return env->CreateCoreWebView2Controller(
 			m_hParent,
 			Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-				[self](HRESULT result2, ICoreWebView2Controller* controller) -> HRESULT {
+				[self, env](HRESULT result2, ICoreWebView2Controller* controller) -> HRESULT {
 					if( FAILED(result2) || controller == NULL ) return result2;
+					// 缓存环境引用：WebResourceRequested 拦截需 env->CreateWebResourceResponse 构造响应
+					self->m_pEnv = env;
+					if( env ) env->AddRef();
 					self->m_pController = controller;
 					self->m_pController->AddRef();
 					self->m_pController->get_CoreWebView2(&self->m_pWebView);
@@ -301,6 +310,9 @@ namespace DuiLib
 					}
 
 					CWebView2Engine* s2 = self;
+					// 缓存环境引用（同 StartWindowController：拦截响应构造用）
+					self->m_pEnv = envKeep.Get();
+					if( self->m_pEnv ) self->m_pEnv->AddRef();
 					self->m_pCompController->add_CursorChanged(
 						Callback<ICoreWebView2CursorChangedEventHandler>(
 							[s2](ICoreWebView2CompositionController* sender, IUnknown*) -> HRESULT {
@@ -499,6 +511,37 @@ namespace DuiLib
 						return S_OK;
 					}).Get(), &m_tokDownloadStarting);
 		}
+
+		// 子资源请求过滤（广告拦截）：主文档导航（请求 URL == 当前 Source）放行，
+		// 其余资源（脚本/图片/iframe 文档等）交给应用注入的回调判定，命中回 403 空响应。
+		// 回调与拦截均发生在 UI 线程；AddWebResourceRequestedFilter 声明周期随 WebView 销毁，无需摘除。
+		m_pWebView->AddWebResourceRequestedFilter(L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL);
+		m_pWebView->add_WebResourceRequested(
+			Callback<ICoreWebView2WebResourceRequestedEventHandler>(
+				[self](ICoreWebView2* /*sender*/, ICoreWebView2WebResourceRequestedEventArgs* args) -> HRESULT {
+					if( self->m_pWebView == NULL || args == NULL ) return S_OK;
+					ComPtr<ICoreWebView2WebResourceRequest> req;
+					if( FAILED(args->get_Request(&req)) || !req ) return S_OK;
+					LPWSTR resUri = NULL;
+					if( FAILED(req->get_Uri(&resUri)) || resUri == NULL ) return S_OK;
+					LPWSTR topUri = NULL;
+					if( FAILED(self->m_pWebView->get_Source(&topUri)) ) topUri = NULL;
+					const bool bTopDoc = topUri != NULL && lstrcmpiW(topUri, resUri) == 0;
+					bool bBlock = false;
+					if( !bTopDoc && g_pWv2Filter != NULL )
+						bBlock = g_pWv2Filter(topUri != NULL ? topUri : L"", resUri);
+					if( topUri ) CoTaskMemFree(topUri);
+					CoTaskMemFree(resUri);
+					if( !bBlock ) return S_OK;
+					ComPtr<ICoreWebView2WebResourceResponse> resp;
+					if( self->m_pEnv != NULL
+						&& SUCCEEDED(self->m_pEnv->CreateWebResourceResponse(
+							NULL, 403, L"Blocked by Guanlan AdBlock", L"Content-Length: 0", &resp))
+						&& resp != NULL ) {
+						args->put_Response(resp.Get());
+					}
+					return S_OK;
+				}).Get(), &m_tokWebResource);
 	}
 
 	void CWebView2Engine::RequestFavicon()
@@ -544,6 +587,8 @@ namespace DuiLib
 				if( SUCCEEDED(m_pWebView->QueryInterface(IID_PPV_ARGS(&wv15))) && wv15 )
 					wv15->remove_FaviconChanged(m_tokFaviconChanged);
 			}
+			if( m_tokWebResource.value )
+				m_pWebView->remove_WebResourceRequested(m_tokWebResource);
 			m_pWebView->Release();
 			m_pWebView = NULL;
 		}
@@ -588,6 +633,10 @@ namespace DuiLib
 		m_hParent = NULL;
 		m_pOwner = NULL;
 		m_pFacade = NULL;
+		if( m_pEnv ) {
+			m_pEnv->Release();
+			m_pEnv = NULL;
+		}
 		ZeroMemory(&m_tokNavStarting, sizeof(m_tokNavStarting));
 		ZeroMemory(&m_tokNavCompleted, sizeof(m_tokNavCompleted));
 		ZeroMemory(&m_tokTitleChanged, sizeof(m_tokTitleChanged));
@@ -869,6 +918,17 @@ namespace DuiLib
 			break;
 		}
 		return ::DefWindowProc(hWnd, uMsg, wParam, lParam);
+	}
+
+	// ---- WebView2 资源过滤回调注入（广告拦截；观澜 main.cpp 启动时挂接，见 IWebBrowserEngine.h）----
+	void WebView2SetResourceFilter(WebView2ResourceFilterFn fn)
+	{
+		g_pWv2Filter = fn;
+	}
+
+	WebView2ResourceFilterFn WebView2GetResourceFilter()
+	{
+		return g_pWv2Filter;
 	}
 }
 

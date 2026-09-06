@@ -102,6 +102,16 @@ namespace DuiLib
 		std::map<CDuiString, WebBrowserEngineCreator> m_map;
 		bool m_bBuiltins;
 	};
+
+	/// WebView2 子资源过滤回调（广告拦截注入，观澜与 CEF 引擎共用同一规则库）。
+	/// topUrl：当前页面 URL；resourceUrl：被请求资源 URL（均 UTF-16）。
+	/// 返回 true = 拦截该请求（引擎侧回 403 空响应）。主文档导航请求不会回调（引擎已放行）。
+	typedef bool (*WebView2ResourceFilterFn)(LPCWSTR topUrl, LPCWSTR resourceUrl);
+
+	/// 设置 / 清除（传 NULL）WebView2 引擎资源过滤回调。全进程一份，UI 线程调用；
+	/// CWebView2Engine 在 AttachHandlers 时读取，之后每次子资源请求都会查询。
+	UILIB_API void WebView2SetResourceFilter(WebView2ResourceFilterFn fn);
+	UILIB_API WebView2ResourceFilterFn WebView2GetResourceFilter();
 }
 
 #endif // __IWEBBROWSERENGINE_H__
