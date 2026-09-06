@@ -48,6 +48,9 @@ namespace DuiLib
 		LRESULT HandleCompHostMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	private:
+		/// 顶层导航开始（NavigationStarting）时调用：移除上一份 document-created 脚本，
+		/// 向应用层取当前站点注入 JS 并注册（让广告规则在页面解析早期就位，防闪现）。
+		void ApplyDocStartCosmetic(LPCWSTR topUri);
 		bool WantComposition() const;
 		bool EnsureCompHostWindow();
 		bool EnsureCompVisual();

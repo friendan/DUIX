@@ -4,6 +4,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 
 namespace DuiLib
 {
@@ -116,6 +117,18 @@ namespace DuiLib
 	/// CWebView2Engine 在 AttachHandlers 时读取，之后每次子资源请求都会查询。
 	UILIB_API void WebView2SetResourceFilter(WebView2ResourceFilterFn fn);
 	UILIB_API WebView2ResourceFilterFn WebView2GetResourceFilter();
+
+	/// WebView2 document-start 注入脚本提供者（页面早期广告规则 cosmetic 注入，观澜实现）。
+	/// topUrl：即将开始的顶层导航 URL（UTF-16，含 scheme）。返回需在 document 创建后、
+	/// 页面任何脚本之前执行的 JS（UTF-16）；空串 = 本次不注入。
+	/// 引擎在 NavigationStarting（UI 线程、新 document 创建前）同步调用；同一 WebView
+	/// 同一时刻只保留最新一份注入脚本（下次导航前自动移除旧的），规则增删即时生效。
+	typedef std::wstring (*WebView2DocStartScriptFn)(LPCWSTR topUrl);
+
+	/// 设置 / 清除（传 NULL）document-start 注入脚本提供者。全进程一份，UI 线程调用；
+	/// CWebView2Engine 在每次顶层导航开始时查询。
+	UILIB_API void WebView2SetDocStartScriptProvider(WebView2DocStartScriptFn fn);
+	UILIB_API WebView2DocStartScriptFn WebView2GetDocStartScriptProvider();
 }
 
 #endif // __IWEBBROWSERENGINE_H__

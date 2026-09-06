@@ -27,6 +27,16 @@ namespace DuiLib
 		// WebResourceRequested 回调触发），无需加锁。
 		WebView2ResourceFilterFn g_pWv2Filter = NULL;
 
+		// document-start 注入脚本提供者（应用层注入；观澜用来在页面解析早期挂广告规则，
+		// 消除广告"先显示、加载完才隐藏"的闪现）。UI 线程同步查询（ApplyDocStartCosmetic）。
+		WebView2DocStartScriptFn g_pWv2DocStartProvider = NULL;
+
+		// 各 WebView 当前生效的 document-created 脚本 id（<引擎, 脚本id>）。
+		// AddScriptToExecuteOnDocumentCreated 的 id 只能经其异步完成回调获得，而回调可能
+		// 晚于引擎析构到达——不存进引擎成员（防写已释放对象→UAF），统一放全局表；
+		// 引擎 Destroy 时摘除自身条目。仅 UI 线程访问（Apply/Destroy/完成回调同线程）。
+		std::map<CWebView2Engine*, std::wstring> g_mapDocScriptId;
+
 		COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS MouseKeysFromWParam(WPARAM wParam)
 		{
 			int keys = COREWEBVIEW2_MOUSE_EVENT_VIRTUAL_KEYS_NONE;
@@ -396,6 +406,48 @@ namespace DuiLib
 		return SUCCEEDED(hr);
 	}
 
+	void CWebView2Engine::ApplyDocStartCosmetic(LPCWSTR topUri)
+	{
+		if( m_pWebView == NULL ) return;
+		// 1) 摘掉上一份注入脚本：同 WebView 只保留最新规则，防 document-created 脚本列表
+		//    无限累积；规则清空（provider 本次返回空）时也在这一步把旧的移除，
+		//    新 document 才不会被已删除的旧规则继续隐藏。
+		std::wstring oldId;
+		std::map<CWebView2Engine*, std::wstring>::iterator itOld = g_mapDocScriptId.find(this);
+		if( itOld != g_mapDocScriptId.end() ) {
+			oldId = itOld->second;
+			itOld->second.clear();
+		}
+		if( !oldId.empty() )
+			m_pWebView->RemoveScriptToExecuteOnDocumentCreated(oldId.c_str());
+		if( g_pWv2DocStartProvider == NULL ) return;
+		std::wstring js;
+		try {
+			js = g_pWv2DocStartProvider(topUri != NULL ? topUri : L"");
+		}
+		catch( ... ) {
+			js.clear();
+		}
+		if( js.empty() ) return;   // 本导航无规则：已移除旧的，无需注册
+		// 2) 注册新脚本。id 由异步完成回调带回；回调可能晚于本引擎析构，故不捕获 this
+		//    写成员（查全局表，条目不存在即丢弃），引擎销毁路径统一从表中摘除。
+		g_mapDocScriptId[this].clear();
+		CWebView2Engine* self = this;
+		HRESULT hr = m_pWebView->AddScriptToExecuteOnDocumentCreated(
+			js.c_str(),
+			Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
+				[self](HRESULT errorCode, LPCWSTR id) -> HRESULT {
+					if( FAILED(errorCode) || id == NULL || id[0] == L'\0' )
+						return S_OK;
+					std::map<CWebView2Engine*, std::wstring>::iterator it =
+						g_mapDocScriptId.find(self);
+					if( it != g_mapDocScriptId.end() )
+						it->second = id;
+					return S_OK;
+				}).Get());
+		( void )hr;   // 失败（极少）：本次无 document-start 注入，加载完成后有兜底注入
+	}
+
 	void CWebView2Engine::AttachHandlers()
 	{
 		if( m_pWebView == NULL ) return;
@@ -409,8 +461,12 @@ namespace DuiLib
 						args->get_Uri(&uri);
 						bool cancel = false;
 						self->m_pHostEvents->OnNavigationStarting(self->m_pFacade, uri ? uri : L"", &cancel);
-						if( uri ) CoTaskMemFree(uri);
 						if( cancel ) args->put_Cancel(TRUE);
+						// 顶层导航开始（新 document 尚未创建）：换装本站 document-start 注入脚本，
+						// 广告规则 <style> 在页面解析早期就位，广告元素从出现起即隐藏（不闪现）。
+						// 取消的导航不会有新 document，无需注入；后续导航会再次换装覆盖。
+						if( !cancel ) self->ApplyDocStartCosmetic(uri ? uri : L"");
+						if( uri ) CoTaskMemFree(uri);
 					}
 					return S_OK;
 				}).Get(), &m_tokNavStarting);
@@ -608,6 +664,17 @@ namespace DuiLib
 				m_pWebView->remove_WebResourceRequested(m_tokWebResource);
 			if( m_tokWebMessage.value )
 				m_pWebView->remove_WebMessageReceived(m_tokWebMessage);
+			// 摘掉 document-start 注入脚本并清全局表条目（表在 ApplyDocStartCosmetic 里查活，
+			// 即使 Add 完成回调晚到也只查表不碰本对象）
+			{
+				std::map<CWebView2Engine*, std::wstring>::iterator it =
+					g_mapDocScriptId.find(this);
+				if( it != g_mapDocScriptId.end() ) {
+					if( !it->second.empty() )
+						m_pWebView->RemoveScriptToExecuteOnDocumentCreated(it->second.c_str());
+					g_mapDocScriptId.erase(it);
+				}
+			}
 			m_pWebView->Release();
 			m_pWebView = NULL;
 		}
@@ -950,6 +1017,17 @@ namespace DuiLib
 	WebView2ResourceFilterFn WebView2GetResourceFilter()
 	{
 		return g_pWv2Filter;
+	}
+
+	// ---- document-start 注入脚本提供者（观澜 main.cpp 启动时挂接；见 IWebBrowserEngine.h）----
+	void WebView2SetDocStartScriptProvider(WebView2DocStartScriptFn fn)
+	{
+		g_pWv2DocStartProvider = fn;
+	}
+
+	WebView2DocStartScriptFn WebView2GetDocStartScriptProvider()
+	{
+		return g_pWv2DocStartProvider;
 	}
 }
 

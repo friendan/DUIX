@@ -3,11 +3,59 @@
 #include "UIEditBox.h"
 #include <Imm.h>
 #include <vector>
+#include <wchar.h>
 #pragma comment(lib, "Imm32.lib")
 
 namespace DuiLib
 {
 	enum { EDIT_CARET_BLINK_TIMERID = 0xFFF2 };
+
+	// 帧栈里是否出现指定模块（正式 helper：识别 EM_SETSEL 是否由系统 TSF 输入法框架发出，
+	// 供 HandleMessage 的 TSF 收尾光标误置纠正使用；勿随诊断注释删除）
+	static bool StackHasModule(void** frames, USHORT nFrames, LPCWSTR pModName)
+	{
+		for( USHORT k = 0; k < nFrames; k++ ) {
+			HMODULE hMod = NULL;
+			::GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+				| GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)frames[k], &hMod);
+			if( hMod == NULL ) continue;
+			wchar_t szMod[MAX_PATH] = { 0 };
+			if( ::GetModuleFileNameW(hMod, szMod, MAX_PATH) == 0 ) continue;
+			LPCWSTR p = wcsrchr(szMod, L'\\');
+			if( p == NULL ) p = szMod; else p++;
+			if( _wcsicmp(p, pModName) == 0 ) return true;
+		}
+		return false;
+	}
+
+	// ---- 跳头排查诊断 helper（DUILOG 写 CDuiLog 日志文件，开关 = exe 目录 diag 标记文件；
+	//      默认写 D:\DUIX.log）。OwnerTag/DumpSel 仍被下方保留的低频打点使用（CEditWnd::Init
+	//      done），勿删；高频段（HandleMessage 消息链 / EN_CHANGE）已注释，复发时按块注释说明恢复）----
+	// 找宿主标识（跳过 CEditBoxUI 内层 editbox_*，取最近的页面/容器名），写入 out 缓冲
+	static void OwnerTag(CEditUI* p, wchar_t* out, int nOut)
+	{
+		if( out == NULL || nOut <= 0 ) return;
+		out[0] = L'\0';
+		if( p == NULL ) return;
+		for( CControlUI* c = p; c != NULL; c = c->GetParent() ) {
+			CDuiString nm = c->GetName();
+			if( !nm.IsEmpty() && _tcsnicmp(nm.GetData(), _T("editbox_"), 9) != 0 ) {
+				_tcsncpy_s(out, nOut, nm.GetData(), _TRUNCATE);
+				return;
+			}
+		}
+		_tcsncpy_s(out, nOut, L"<root>", _TRUNCATE);
+	}
+
+	static void DumpSel(HWND hwnd, const wchar_t* tag)
+	{
+		if( hwnd == NULL || !::IsWindow(hwnd) ) return;
+		if( !CDuiLog::IsEnabled() ) return;   // 日志关时不做任何事（含 SendMessage）
+		DWORD s = 0, e = 0;
+		::SendMessage(hwnd, EM_GETSEL, (WPARAM)&s, (LPARAM)&e);
+		DUILOG(_T("  %s sel=%u..%u textlen=%d"), tag, s, e, ::GetWindowTextLengthW(hwnd));
+	}
+	// ---- 跳头排查诊断 helper 结束（保留）----
 
 	static UINT GetEditCaretBlinkInterval()
 	{
@@ -125,10 +173,13 @@ namespace DuiLib
 		bool m_bInit;
 		bool m_bDrawCaret;
 		RECT m_rcLastSoftCaret;
+		/// 最近一次文本提交（EN_CHANGE）后的长度：供 TSF 收尾 0..0 误置纠正判定
+		int m_nLastCommitLen;
 	};
 
 
-	CEditWnd::CEditWnd() : m_pOwner(NULL), m_hBkBrush(NULL), m_dwBrushColor(0), m_bInit(false), m_bDrawCaret(false)
+	CEditWnd::CEditWnd() : m_pOwner(NULL), m_hBkBrush(NULL), m_dwBrushColor(0), m_bInit(false), m_bDrawCaret(false),
+		m_nLastCommitLen(0)
 	{
 		::SetRectEmpty(&m_rcLastSoftCaret);
 	}
@@ -405,6 +456,14 @@ namespace DuiLib
 		else {
 			m_bDrawCaret = false;
 		}
+		// ---- 原生窗(重)建完成打点（低频：建窗/重建才打一次；保留。含 OwnerTag/DumpSel）----
+		if( CDuiLog::IsEnabled() ) {
+			wchar_t tag[96] = { 0 };
+			OwnerTag(m_pOwner, tag, _countof(tag));
+			DUILOG(_T("CEditWnd::Init done autoselall=%d <%s>"), m_pOwner->IsAutoSelAll() ? 1 : 0, tag);
+			DumpSel(m_hWnd, L"after Init");
+		}
+		// ---- 原生窗(重)建完成打点结束（保留）----
 	}
 
 	RECT CEditWnd::CalPos()
@@ -485,6 +544,70 @@ namespace DuiLib
 
 	LRESULT CEditWnd::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		// ---- TSF 收尾光标误置纠正（正式修复，不依赖日志开关）：微软 TSF(textinputframework/msctf) 在
+		// 组字会话终结时对 legacy EDIT 补发一条 EM_SETSEL 光标定位，把刚 commit 的光标误置走——实证有
+		// 两种形态：整句 commit 后发 (0,0) 跳回开头（15:26 日志栈=msctf+textinputframework）；连续单字
+		// commit 后发 (21,21) 回拨 2 位（15:39 日志 '...正常了吗哈' len=23 被置 21）。判定条件：
+		// ① 光标定位型 wParam==lParam（等值空选择）；② 目标位置 != 当前文本末尾；③ 文本长度 == 最近
+		// commit 长度（刚上屏完，无 Esc 回退/删除/外部改动）；④ 帧栈含 TSF 模块 → 改置末尾。
+		// Ctrl+Home/鼠标点击/方向键的定位栈内无 TSF 帧不受影响；空文本/未 commit/原生窗未初始化不拦。----
+		if( uMsg == EM_SETSEL && wParam == lParam && m_bInit && m_pOwner != NULL ) {
+			int nCur = ::GetWindowTextLength(m_hWnd);
+			if( nCur > 0 && (int)wParam != nCur && nCur == m_nLastCommitLen ) {
+				void* frames[10] = { 0 };
+				USHORT nF = ::RtlCaptureStackBackTrace(0, 10, frames, NULL);
+				if( StackHasModule(frames, nF, L"msctf.dll")
+					|| StackHasModule(frames, nF, L"textinputframework.dll") ) {
+					int nOld = (int)wParam;
+					wParam = (WPARAM)nCur;
+					lParam = (WPARAM)nCur;
+					if( CDuiLog::IsEnabled() )
+						DUILOG(_T("[tsf-fix] TSF EM_SETSEL %d..%d -> sel %d..%d"), nOld, nOld, nCur, nCur);
+				}
+			}
+		}
+		// ---- TSF 纠正结束 ----
+
+		// ---- 临时诊断区说明：跳头已定案 = TSF 收尾光标误置（修复段在上方无条件执行）。
+		//      本段（EM_SETSEL/WM_SETTEXT/IME 组字/焦点消息全链）每字符输入都打，高频，已注释。
+		//      若复发需看完整 IME/sel 时序，删掉本块注释起始与结束标记即可恢复。----
+		/*
+		if( CDuiLog::IsEnabled() ) {
+			wchar_t tag[96] = { 0 };
+			OwnerTag(m_pOwner, tag, _countof(tag));
+			if( uMsg == EM_SETSEL ) {
+				DUILOG(_T("EM_SETSEL %d..%d <%s> focused=%d winSelf=%d autosel=%d"),
+					(int)wParam, (int)lParam, tag,
+					(m_pOwner != NULL && m_pOwner->IsFocused()) ? 1 : 0,
+					(m_pOwner != NULL && m_pOwner->m_pWindow == this) ? 1 : 0,
+					(m_pOwner != NULL && m_pOwner->m_bAutoSelAll) ? 1 : 0);
+			}
+			else if( uMsg == WM_SETTEXT ) {
+				DUILOG(_T("WM_SETTEXT len=%d '%s' <%s>"), lParam ? (int)wcslen((const wchar_t*)lParam) : 0,
+					lParam ? (const wchar_t*)lParam : L"", tag);
+			}
+			else if( uMsg == WM_IME_STARTCOMPOSITION ) {
+				DUILOG(_T("IME_STARTCOMPOSITION <%s>"), tag);
+			}
+			else if( uMsg == WM_IME_COMPOSITION ) {
+				if( lParam & GCS_RESULTSTR ) {
+					DUILOG(_T("IME_COMPOSITION commit(resultstr) <%s>"), tag);
+					DumpSel(m_hWnd, L"after commit");
+				}
+			}
+			else if( uMsg == WM_IME_ENDCOMPOSITION ) {
+				DUILOG(_T("IME_ENDCOMPOSITION <%s>"), tag);
+				DumpSel(m_hWnd, L"after IME_END");
+			}
+			else if( uMsg == WM_SETFOCUS ) {
+				DUILOG(_T("native WM_SETFOCUS <%s>"), tag);
+			}
+			else if( uMsg == WM_KILLFOCUS ) {
+				DUILOG(_T("native WM_KILLFOCUS <%s>"), tag);
+			}
+		}
+		*/
+
 		LRESULT lRes = 0;
 		BOOL bHandled = TRUE;
 		if( uMsg == WM_CREATE ) {
@@ -690,6 +813,15 @@ namespace DuiLib
 		ASSERT(pstr);
 		if( pstr == NULL ) return 0;
 		::GetWindowText(m_hWnd, pstr, cchLen);
+		// ---- EN_CHANGE 内容/sel 快照（高频：每字符都打；已注释。复发看时序时删块注释标记恢复。
+		//      m_nLastCommitLen 更新是正式逻辑，保留在下方）----
+		/*
+		if( CDuiLog::IsEnabled() ) {
+			DUILOG(_T("EN_CHANGE len=%d '%s'"), cchLen - 1, pstr);
+			DumpSel(m_hWnd, L"after EN_CHANGE");
+		}
+		*/
+		m_nLastCommitLen = cchLen - 1;   // 记录最近一次文本提交长度（TSF 收尾光标误置纠正判定用）
 		m_pOwner->m_sText = pstr;
 		m_pOwner->OnNativeEditChanged();
 		if( m_pOwner->GetManager()->IsLayered() ) m_pOwner->Invalidate();
@@ -784,6 +916,14 @@ namespace DuiLib
 			return;
 		}
 
+		// ---- 鼠标按下类事件打点（保留：点击才打，用于区分真实点击 vs 程序化事件路径）----
+		if( CDuiLog::IsEnabled() && (event.Type == UIEVENT_BUTTONDOWN || event.Type == UIEVENT_DBLCLICK
+			|| event.Type == UIEVENT_RBUTTONDOWN) ) {
+				DUILOG(_T("CEditUI::DoEvent type=%d pt=(%d,%d) focused=%d win=%d autosel=%d"),
+				(int)event.Type, event.ptMouse.x, event.ptMouse.y, IsFocused() ? 1 : 0,
+				m_pWindow != NULL ? 1 : 0, m_bAutoSelAll ? 1 : 0);
+		}
+		// ---- 鼠标按下类事件打点结束（保留）----
 		if( event.Type == UIEVENT_SETCURSOR && IsEnabled() )
 		{
 			::SetCursor(::LoadCursor(NULL, IDC_IBEAM));
@@ -843,6 +983,12 @@ namespace DuiLib
 				else if( m_pWindow != NULL )
 				{
 					if (!m_bAutoSelAll) {
+						// ---- 已聚焦框点击定位打点（保留：点击才打，区分鼠标定位 vs TSF 补刀）----
+						if( CDuiLog::IsEnabled() )
+							DUILOG(_T("[927-hit] type=%d pt=(%d,%d) rcItem=(%d,%d,%d,%d)"),
+								(int)event.Type, event.ptMouse.x, event.ptMouse.y,
+								m_rcItem.left, m_rcItem.top, m_rcItem.right, m_rcItem.bottom);
+						// ---- 已聚焦框点击定位打点结束（保留）----
 						RECT rcPad = GetPadding();
 						RECT rcTextPadding = GetTextPadding();
 						POINT pt = event.ptMouse;
@@ -1111,6 +1257,10 @@ namespace DuiLib
 
 	void CEditUI::SetSel(long nStartChar, long nEndChar)
 	{
+		// ---- 公共 SetSel 调用打点（保留：几乎不打，用于识别观澜/外部对 search 的 sel 干预）----
+		if( CDuiLog::IsEnabled() && m_pWindow != NULL )
+			DUILOG(_T("CEditUI::SetSel %d..%d"), (int)nStartChar, (int)nEndChar);
+		// ---- 公共 SetSel 打点结束（保留）----
 		if( m_pWindow != NULL ) Edit_SetSel(*m_pWindow, nStartChar,nEndChar);
 	}
 
