@@ -64,6 +64,11 @@ namespace DuiLib
 		void SetHostMode(LPCTSTR mode);
 		LPCTSTR GetHostMode() const;
 
+		/// 引擎默认右键菜单（WebView2 AreDefaultContextMenusEnabled / IE DocHost）；默认 true。
+		/// 皮肤：`default-context-menus="false"`（勿与控件 `contextmenu` 混淆）
+		void SetDefaultContextMenusEnabled(bool bEnable);
+		bool IsDefaultContextMenusEnabled() const;
+
 		void SetHostEvents(CWebBrowserHostEvents* pEvents);
 		void SetWebBrowserEventHandler(CWebBrowserEventHandler* pEventHandler);
 
@@ -113,6 +118,7 @@ namespace DuiLib
 		bool m_bAutoNavi;
 		bool m_bFallback;
 		bool m_bForceEngine;
+		bool m_bDefaultContextMenusEnabled;
 		CWebBrowserHostEvents* m_pHostEvents;
 		CWebBrowserEventHandler* m_pWebBrowserEventHandler;
 		CDuiString m_sPendingUrl;

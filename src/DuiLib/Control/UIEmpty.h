@@ -33,11 +33,14 @@ namespace DuiLib
 	protected:
 		int ScaleValue(int v) const;
 		void EnsureBuilt();
+		void SyncDescriptionColorFromTheme();
 		void PaintDefaultIllustration(IRenderContext& ctx, const RECT& rc);
 
 	protected:
 		bool m_bBuilt;
 		bool m_bShowImage;
+		/// true：描述色跟随 `color-text-secondary`；显式 color / description-color 后为 false
+		bool m_bDescColorAuto;
 		CDuiString m_sDescription;
 		DWORD m_dwDescColor;
 		CDuiString m_sImage;

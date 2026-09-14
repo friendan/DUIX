@@ -22,7 +22,8 @@ enum LoadingType
 	LoadingDog,        // Lucide/Tabler dog 蹦跳
 	LoadingFish,       // IconPark fish-one 游动
 	LoadingPulse,      // 脉冲圆
-	LoadingChase       // 圆周追逐点
+	LoadingChase,      // 圆周追逐点
+	LoadingWait        // 字符转圈 |/-\\ + 可选「等待中 / 已等待 Ns」
 };
 
 class UILIB_API CLoadingUI : public CControlUI
@@ -52,6 +53,27 @@ public:
 	void SetManager(CPaintManagerUI* pManager, CControlUI* pParent, bool bInit = true) override;
 	void SetVisible(bool bVisible = true) override;
 	void SetInternVisible(bool bVisible = true) override;
+
+	/// wait：是否显示文案（默认 true）；false 时仅字符转圈
+	void SetWaitTextVisible(bool bVisible);
+	bool IsWaitTextVisible() const { return m_bWaitTextVisible; }
+	/// wait：满多少秒后从「等待中」切到「已等待 Ns」（默认 2）
+	void SetWaitTextThresholdSec(int nSec);
+	int GetWaitTextThresholdSec() const { return m_nWaitTextThresholdSec; }
+	void SetWaitPendingText(LPCTSTR pstrText);
+	LPCTSTR GetWaitPendingText() const { return m_sWaitPendingText.GetData(); }
+	/// 已等待文案格式，需含一个 %d（默认「已等待 %ds」）
+	void SetWaitElapsedFormat(LPCTSTR pstrFormat);
+	LPCTSTR GetWaitElapsedFormat() const { return m_sWaitElapsedFormat.GetData(); }
+	/// 转圈字符序列，每字符一帧；默认 `|/-\\`，可设 `ABCD` / `3210` 等
+	void SetWaitFrames(LPCTSTR pstrFrames);
+	LPCTSTR GetWaitFrames() const { return m_sWaitFrames.GetData(); }
+	/// 自 Start/ResetWaitClock 起已经过的秒数
+	int GetWaitElapsedSec() const;
+	/// 当前完整展示串（含转圈字符与可选文案）
+	CDuiString GetWaitDisplayText() const;
+	/// 重置等待计时（不停止动画）
+	void ResetWaitClock();
 
 protected:
 	void PaintBackgroundImage(IRenderContext& ctx) override;
@@ -86,6 +108,11 @@ protected:
 	void RestartTimer();
 	void StartQueueTimer();
 	void StopQueueTimer();
+	void PaintWait(IRenderContext& ctx);
+	CDuiString BuildWaitBodyText() const;
+	DWORD WaitTextColorDui() const;
+	int WaitFrameCount() const;
+	TCHAR WaitFrameChar() const;
 
 	BYTE ColorA() const;
 	Gdiplus::Color MakeColor(BYTE a) const;
@@ -116,6 +143,15 @@ protected:
 	LoadingType m_eBmpType;
 	bool m_bMorphType; // dots/wave/bars/drop/drip/…：每帧重画
 	HANDLE m_hQueueTimer; // CreateTimerQueueTimer（绕开 Shadow 子类化下 WM_TIMER 丢失）
+
+	// wait
+	bool m_bWaitTextVisible;
+	int m_nWaitTextThresholdSec;
+	int m_nWaitFrame;
+	ULONGLONG m_ullWaitStart;
+	CDuiString m_sWaitPendingText;
+	CDuiString m_sWaitElapsedFormat;
+	CDuiString m_sWaitFrames;
 };
 
 /// UIManager 处理 UIMSG_LOADING_TICK 时调用（避免 Core 依赖 Control 头文件）

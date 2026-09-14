@@ -79,6 +79,9 @@ namespace DuiLib
 		/// WebView2: "window" | "composition"；外接 CEF OSR 可用 "osr" / "offscreen"
 		virtual void SetHostMode(LPCTSTR /*mode*/) {}
 		virtual LPCTSTR GetHostMode() const { return _T("window"); }
+		/// 浏览器引擎默认右键菜单（WebView2 / IE）；默认 true
+		virtual void SetDefaultContextMenusEnabled(bool /*bEnable*/) {}
+		virtual bool IsDefaultContextMenusEnabled() const { return true; }
 
 		/// 离屏：无子 HWND，由 PaintOffScreen 画进 DuiLib；帧就绪后对 pOwner->Invalidate()
 		virtual bool IsOffScreen() const { return false; }

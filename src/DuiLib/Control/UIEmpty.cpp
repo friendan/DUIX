@@ -5,11 +5,26 @@ namespace DuiLib
 {
 	IMPLEMENT_DUICONTROL(CEmptyUI)
 
+	namespace {
+
+	DWORD EmptyDescColorFromTheme(DWORD fallback)
+	{
+		CThemeManager* tm = CThemeManager::GetInstance();
+		if( tm == NULL || !tm->IsEnabled() ) return fallback;
+		CTheme* th = tm->GetCurrentTheme();
+		if( th == NULL ) th = tm->FindTheme(tm->GetDefaultThemeId());
+		if( th == NULL ) return fallback;
+		return th->GetToken(_T("color-text-secondary"), fallback);
+	}
+
+	} // namespace
+
 	CEmptyUI::CEmptyUI()
 		: m_bBuilt(false)
 		, m_bShowImage(true)
+		, m_bDescColorAuto(true)
 		, m_sDescription(_T("暂无数据"))
-		, m_dwDescColor(0x00000073)
+		, m_dwDescColor(0x000000A6)
 		, m_pImageHost(NULL)
 		, m_pDesc(NULL)
 		, m_pExtra(NULL)
@@ -20,6 +35,7 @@ namespace DuiLib
 		SetAlignItems(DT_CENTER);
 		SetGap(12);
 		SetPadding(CDuiBox(16, 16, 16, 16));
+		m_dwDescColor = EmptyDescColorFromTheme(m_dwDescColor);
 	}
 
 	CEmptyUI::~CEmptyUI()
@@ -84,9 +100,17 @@ namespace DuiLib
 
 	void CEmptyUI::SetDescriptionColor(DWORD dwColor)
 	{
+		m_bDescColorAuto = false;
 		m_dwDescColor = dwColor;
 		if( m_pDesc ) m_pDesc->SetColor(dwColor);
 		Invalidate();
+	}
+
+	void CEmptyUI::SyncDescriptionColorFromTheme()
+	{
+		if( !m_bDescColorAuto ) return;
+		m_dwDescColor = EmptyDescColorFromTheme(m_dwDescColor);
+		if( m_pDesc ) m_pDesc->SetColor(m_dwDescColor);
 	}
 
 	void CEmptyUI::EnsureBuilt()
@@ -121,6 +145,9 @@ namespace DuiLib
 			}
 			Add(m_pImageHost);
 		}
+
+		if( m_bDescColorAuto )
+			m_dwDescColor = EmptyDescColorFromTheme(m_dwDescColor);
 
 		m_pDesc = new CLabelUI();
 		m_pDesc->SetText(m_sDescription.GetData());
@@ -187,6 +214,7 @@ namespace DuiLib
 
 	bool CEmptyUI::DoPaint(IRenderContext& ctx, const RECT& rcPaint, CControlUI* pStopControl)
 	{
+		SyncDescriptionColorFromTheme();
 		bool b = CVerticalLayoutUI::DoPaint(ctx, rcPaint, pStopControl);
 		if( m_pImageHost != NULL && m_sImage.IsEmpty() && m_bShowImage ) {
 			RECT rc = m_pImageHost->GetPos();
@@ -199,6 +227,7 @@ namespace DuiLib
 	{
 		CVerticalLayoutUI::DoInit();
 		EnsureBuilt();
+		SyncDescriptionColorFromTheme();
 	}
 
 	void CEmptyUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
@@ -222,6 +251,12 @@ namespace DuiLib
 			SetShowImage(_tcsicmp(pstrValue, _T("true")) == 0);
 		}
 		else if( _tcsicmp(pstrName, _T("description-color")) == 0 || _tcsicmp(pstrName, _T("color")) == 0 ) {
+			if( pstrValue != NULL && _tcsnicmp(pstrValue, _T("var("), 4) == 0 ) {
+				CDuiString key;
+				key.Format(_T("_tvar:%s"), pstrName);
+				AddCustomAttribute(key.GetData(), pstrValue);
+				m_bDescColorAuto = false;
+			}
 			DWORD clr = 0;
 			if( ParseColorString(pstrValue, clr) ) SetDescriptionColor(clr);
 		}

@@ -378,6 +378,8 @@ namespace DuiLib
 	// IDocHostUIHandler
 	STDMETHODIMP CWebBrowserIeHost::ShowContextMenu( DWORD dwID, POINT* pptPosition, IUnknown* pCommandTarget, IDispatch* pDispatchObjectHit )
 	{
+		if( m_pFacade != NULL && !m_pFacade->IsDefaultContextMenusEnabled() )
+			return S_OK;
 		if (m_pWebBrowserEventHandler)
 		{
 			return m_pWebBrowserEventHandler->ShowContextMenu(m_pFacade, dwID,pptPosition,pCommandTarget,pDispatchObjectHit);

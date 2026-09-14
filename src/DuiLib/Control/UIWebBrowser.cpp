@@ -199,6 +199,7 @@ namespace DuiLib
 		, m_bAutoNavi(false)
 		, m_bFallback(true)
 		, m_bForceEngine(false)
+		, m_bDefaultContextMenusEnabled(true)
 		, m_pHostEvents(NULL)
 		, m_pWebBrowserEventHandler(NULL)
 		, m_hResizeOverlay(NULL)
@@ -321,6 +322,19 @@ namespace DuiLib
 	LPCTSTR CWebBrowserUI::GetHostMode() const
 	{
 		return m_sHostMode.IsEmpty() ? _T("window") : m_sHostMode.GetData();
+	}
+
+	void CWebBrowserUI::SetDefaultContextMenusEnabled(bool bEnable)
+	{
+		if( m_bDefaultContextMenusEnabled == bEnable ) return;
+		m_bDefaultContextMenusEnabled = bEnable;
+		if( m_pEngine )
+			m_pEngine->SetDefaultContextMenusEnabled(bEnable);
+	}
+
+	bool CWebBrowserUI::IsDefaultContextMenusEnabled() const
+	{
+		return m_bDefaultContextMenusEnabled;
 	}
 
 	bool CWebBrowserUI::IsOffScreenHost() const
@@ -616,6 +630,7 @@ namespace DuiLib
 		if( !m_sUserDataFolder.IsEmpty() )
 			pEng->SetUserDataFolder(m_sUserDataFolder.GetData());
 		pEng->SetHostMode(GetHostMode());
+		pEng->SetDefaultContextMenusEnabled(m_bDefaultContextMenusEnabled);
 		pEng->SetHostEvents(m_pHostEvents);
 
 		RECT rc = m_rcItem;
@@ -775,6 +790,12 @@ namespace DuiLib
 		}
 		else if( _tcsicmp(pstrName, _T("host")) == 0 || _tcsicmp(pstrName, _T("host-mode")) == 0 ) {
 			SetHostMode(pstrValue);
+		}
+		else if( _tcsicmp(pstrName, _T("default-context-menus")) == 0
+			|| _tcsicmp(pstrName, _T("default-context-menu")) == 0
+			|| _tcsicmp(pstrName, _T("browser-context-menu")) == 0 ) {
+			SetDefaultContextMenusEnabled(
+				_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
 		}
 		else if( _tcsicmp(pstrName, _T("native-window-resize")) == 0 ) {
 			SetNativeWindowResizeEnabled(_tcsicmp(pstrValue, _T("true")) == 0);

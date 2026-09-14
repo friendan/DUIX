@@ -116,6 +116,7 @@ namespace DuiLib
 		, m_bCompositionActive(false)
 		, m_bOwnDComp(false)
 		, m_bTrackingMouse(false)
+		, m_bDefaultContextMenusEnabled(true)
 		, m_sHostMode(_T("window"))
 		, m_sEffectiveHost(_T("window"))
 		, m_pController(NULL)
@@ -170,6 +171,27 @@ namespace DuiLib
 	LPCTSTR CWebView2Engine::GetHostMode() const
 	{
 		return m_sEffectiveHost.IsEmpty() ? m_sHostMode.GetData() : m_sEffectiveHost.GetData();
+	}
+
+	void CWebView2Engine::SetDefaultContextMenusEnabled(bool bEnable)
+	{
+		if( m_bDefaultContextMenusEnabled == bEnable ) return;
+		m_bDefaultContextMenusEnabled = bEnable;
+		ApplyDefaultContextMenusSetting();
+	}
+
+	bool CWebView2Engine::IsDefaultContextMenusEnabled() const
+	{
+		return m_bDefaultContextMenusEnabled;
+	}
+
+	void CWebView2Engine::ApplyDefaultContextMenusSetting()
+	{
+		if( m_pWebView == NULL ) return;
+		ICoreWebView2Settings* settings = NULL;
+		if( FAILED(m_pWebView->get_Settings(&settings)) || settings == NULL ) return;
+		settings->put_AreDefaultContextMenusEnabled(m_bDefaultContextMenusEnabled ? TRUE : FALSE);
+		settings->Release();
 	}
 
 	bool CWebView2Engine::WantComposition() const
@@ -345,8 +367,18 @@ namespace DuiLib
 	{
 		m_bReady = true;
 		ApplyBounds();
-		if( m_pController )
+		if( m_pController ) {
 			m_pController->put_IsVisible(m_bVisible ? TRUE : FALSE);
+			// 默认白底会在 NavigateToString / about:blank 前闪一下；透明让宿主控件底色透出
+			ComPtr<ICoreWebView2Controller2> c2;
+			if( SUCCEEDED(m_pController->QueryInterface(IID_PPV_ARGS(&c2))) && c2 ) {
+				COREWEBVIEW2_COLOR bg = {};
+				bg.A = 0;
+				c2->put_DefaultBackgroundColor(bg);
+			}
+		}
+		if( m_pWebView )
+			ApplyDefaultContextMenusSetting();
 		if( m_hCompHost )
 			::ShowWindow(m_hCompHost, m_bVisible ? SW_SHOW : SW_HIDE);
 		AttachHandlers();
@@ -609,10 +641,17 @@ namespace DuiLib
 					if( self->m_pHostEvents == NULL || self->m_pFacade == NULL || args == NULL )
 						return S_OK;
 					LPWSTR msg = NULL;
-					if( FAILED(args->TryGetWebMessageAsString(&msg)) || msg == NULL )
+					if( SUCCEEDED(args->TryGetWebMessageAsString(&msg)) && msg != NULL ) {
+						self->m_pHostEvents->OnScriptMessage(self->m_pFacade, msg);
+						CoTaskMemFree(msg);
 						return S_OK;
-					self->m_pHostEvents->OnScriptMessage(self->m_pFacade, msg);
-					CoTaskMemFree(msg);
+					}
+					// 页面若 postMessage(object)，只能走 JSON
+					LPWSTR json = NULL;
+					if( FAILED(args->get_WebMessageAsJson(&json)) || json == NULL )
+						return S_OK;
+					self->m_pHostEvents->OnScriptMessage(self->m_pFacade, json);
+					CoTaskMemFree(json);
 					return S_OK;
 				}).Get(), &m_tokWebMessage);
 	}
@@ -946,6 +985,19 @@ namespace DuiLib
 	LRESULT CWebView2Engine::HandleCompHostMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch( uMsg ) {
+		case WM_SETFOCUS:
+			// 历史区只读展示：无按键拖选时若 WebView 异步抢走焦点，立刻还回父窗，
+			// 避免聊天输入框假焦点、按键进 WebView。
+			if( (::GetKeyState(VK_LBUTTON) & 0x8000) == 0
+				&& (::GetKeyState(VK_RBUTTON) & 0x8000) == 0
+				&& (::GetKeyState(VK_MBUTTON) & 0x8000) == 0 ) {
+				HWND hParent = ::GetParent(hWnd);
+				if( hParent != NULL && ::GetFocus() == hWnd ) {
+					::SetFocus(hParent);
+					return 0;
+				}
+			}
+			break;
 		case WM_NCHITTEST:
 			if( m_pFacade != NULL ) {
 				POINT pt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
@@ -990,9 +1042,17 @@ namespace DuiLib
 		case WM_XBUTTONUP:
 		case WM_MOUSEWHEEL:
 		case WM_MOUSEHWHEEL:
+			// 按下：允许 CompHost 获焦以便 WebView 拖选；抬起：立刻把键盘焦点还回父窗，
+			// 否则拖选结束后按键进 WebView，聊天 RichEdit 假焦点却输不进字。
 			if( uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN || uMsg == WM_MBUTTONDOWN )
 				::SetFocus(hWnd);
 			ForwardMouse(uMsg, wParam, lParam);
+			if( uMsg == WM_LBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_MBUTTONUP
+				|| uMsg == WM_XBUTTONUP ) {
+				HWND hParent = ::GetParent(hWnd);
+				if( hParent != NULL )
+					::SetFocus(hParent);
+			}
 			return 0;
 		case WM_ERASEBKGND:
 			return 1;

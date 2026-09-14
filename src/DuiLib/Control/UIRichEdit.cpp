@@ -590,12 +590,13 @@ namespace DuiLib {
 
 	HIMC CTxtWinHost::TxImmGetContext(void)
 	{
+		// 无窗 RichEdit：返回 ImmGetContext(paint) 会导致 Text Services 走 IMM 路径后
+		// WM_CHAR 被吃掉（数字/英文也输不进）。保持 NULL，由 MessageHandler 钉候选窗。
 		return NULL;
 	}
 
-	void CTxtWinHost::TxImmReleaseContext(HIMC himc)
+	void CTxtWinHost::TxImmReleaseContext(HIMC /*himc*/)
 	{
-		//::ImmReleaseContext( hwnd, himc );
 	}
 
 	//////////////////////////// ITextHost Interface  ////////////////////////////
@@ -2383,6 +2384,12 @@ namespace DuiLib {
 				m_pTwh->GetTextServices()->TxSendMessage(WM_SETFOCUS, 0, 0, 0);
 			}
 			m_bFocused = true;
+			// 仅保证 HWND 焦点在 paint（WebView CompHost 拖选后常抢走键盘焦点）
+			if( m_pManager != NULL ) {
+				HWND hPaint = m_pManager->GetPaintWindow();
+				if( hPaint != NULL && ::GetFocus() != hPaint )
+					::SetFocus(hPaint);
+			}
 			if( !IsReadOnly() )
 				StartCaretBlinkTimer();
 			else {

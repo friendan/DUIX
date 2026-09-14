@@ -966,7 +966,7 @@
                       </VBox>
                     </AccordionItem>
                     <AccordionItem title="Loading" active="false" header-align="left">
-                      <VBox height="390" gap="10" padding="8,12,8,12">
+                      <VBox height="460" gap="10" padding="8,12,8,12">
                         <HBox height="100" gap="10" align-items="vcenter">
                           <VBox width="100" height="96" align-items="center" gap="4">
                             <Loading name="loading_demo" type="css" width="56" height="56"
@@ -1044,10 +1044,33 @@
                           </VBox>
                           <Label text="Ring：位图旋转（旧式）；其余为自绘 Loading" theme="secondary" />
                         </HBox>
+                        <HBox height="56" gap="16" align-items="vcenter">
+                          <VBox width="160" height="52" gap="4">
+                            <Loading name="loading_wait" type="wait" height="22" width="150"
+                                time="120" wait-text="true" />
+                            <Label text="wait（有文案）" theme="secondary" height="18" />
+                          </VBox>
+                          <VBox width="80" height="52" gap="4">
+                            <Loading name="loading_wait_spin" type="wait" height="22" width="28"
+                                time="120" wait-text="false" />
+                            <Label text="wait 纯转圈" theme="secondary" height="18" />
+                          </VBox>
+                          <VBox width="80" height="52" gap="4">
+                            <Loading type="wait" height="22" width="40"
+                                time="120" wait-text="false" wait-frames="ABCD" />
+                            <Label text="frames=ABCD" theme="secondary" height="18" />
+                          </VBox>
+                          <VBox width="80" height="52" gap="4">
+                            <Loading type="wait" height="22" width="40"
+                                time="120" wait-text="false" wait-frames="3210" />
+                            <Label text="frames=3210" theme="secondary" height="18" />
+                          </VBox>
+                          <Label text="wait-frames：每字符一帧" theme="secondary" />
+                        </HBox>
                         <HBox height="36" gap="8" align-items="vcenter">
                           <Button name="btn_loading_start" text="Start" kind="primary" width="80" height="32" />
                           <Button name="btn_loading_stop" text="Stop" kind="default" width="80" height="32" />
-                          <Label text="← Start/Stop 控制 css" theme="secondary" />
+                          <Label text="← Start/Stop 控制 css / wait" theme="secondary" />
                         </HBox>
                       </VBox>
                     </AccordionItem>

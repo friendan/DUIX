@@ -44,6 +44,8 @@ namespace DuiLib
 		virtual void SetUserDataFolder(LPCTSTR path);
 		virtual void SetHostMode(LPCTSTR mode);
 		virtual LPCTSTR GetHostMode() const;
+		virtual void SetDefaultContextMenusEnabled(bool bEnable);
+		virtual bool IsDefaultContextMenusEnabled() const;
 
 		LRESULT HandleCompHostMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -59,6 +61,7 @@ namespace DuiLib
 		void FlushPendingNavigate();
 		void AttachHandlers();
 		void OnControllerReady(bool composition);
+		void ApplyDefaultContextMenusSetting();
 		void RequestFavicon();
 		HRESULT StartWindowController(ICoreWebView2Environment* env);
 		HRESULT StartCompositionController(ICoreWebView2Environment* env);
@@ -77,6 +80,7 @@ namespace DuiLib
 		bool m_bCompositionActive;
 		bool m_bOwnDComp;
 		bool m_bTrackingMouse;
+		bool m_bDefaultContextMenusEnabled;
 		CDuiString m_sUserDataFolder;
 		CDuiString m_sHostMode;
 		CDuiString m_sPendingUrl;

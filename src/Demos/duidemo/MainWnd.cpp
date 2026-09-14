@@ -975,10 +975,18 @@ void CMainWnd::OnLClick(CControlUI *pControl)
 	{
 		CLoadingUI* p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_demo")));
 		if( p ) p->Start();
+		p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_wait")));
+		if( p ) p->Start();
+		p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_wait_spin")));
+		if( p ) p->Start();
 	}
 	else if(sName.CompareNoCase(_T("btn_loading_stop")) == 0)
 	{
 		CLoadingUI* p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_demo")));
+		if( p ) p->Stop();
+		p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_wait")));
+		if( p ) p->Stop();
+		p = static_cast<CLoadingUI*>(m_pm.FindControl(_T("loading_wait_spin")));
 		if( p ) p->Stop();
 	}
 	else if(sName.CompareNoCase(_T("btn_icon_loading")) == 0)

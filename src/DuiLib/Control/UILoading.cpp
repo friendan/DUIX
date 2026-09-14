@@ -122,6 +122,13 @@ CLoadingUI::CLoadingUI()
 	, m_eBmpType(LoadingSpoke)
 	, m_bMorphType(false)
 	, m_hQueueTimer(NULL)
+	, m_bWaitTextVisible(true)
+	, m_nWaitTextThresholdSec(2)
+	, m_nWaitFrame(0)
+	, m_ullWaitStart(0)
+	, m_sWaitPendingText(_T("等待中"))
+	, m_sWaitElapsedFormat(_T("已等待 %ds"))
+	, m_sWaitFrames(_T("|/-\\"))
 {
 	m_CenterPoint = PointF(0, 0);
 	// 默认跟当前主题 primary；无主题时中性灰，避免首帧钉死 #1677FF
@@ -166,9 +173,12 @@ void CLoadingUI::SetLoadingType(LoadingType t)
 	if( m_eType == t ) return;
 	m_eType = t;
 	m_fAngle = 0.0f;
+	m_nWaitFrame = 0;
 	m_bMorphType = IsMorphType(t);
 	DestroySpinBmps();
 	if( m_eType == LoadingSpoke ) EnsureSpokeData();
+	if( m_eType == LoadingWait && m_nTime <= 16 )
+		m_nTime = 120;
 	Invalidate();
 }
 
@@ -984,8 +994,27 @@ void CLoadingUI::SetAttribute(LPCTSTR pstrName, LPCTSTR pstrValue)
 			SetLoadingType(LoadingPulse);
 		else if( _tcsicmp(pstrValue, _T("chase")) == 0 )
 			SetLoadingType(LoadingChase);
+		else if( _tcsicmp(pstrValue, _T("wait")) == 0 || _tcsicmp(pstrValue, _T("status")) == 0
+			|| _tcsicmp(pstrValue, _T("ascii")) == 0 )
+			SetLoadingType(LoadingWait);
 		else
 			SetLoadingType(LoadingSpoke);
+	}
+	else if( _tcsicmp(pstrName, _T("wait-text")) == 0 || _tcsicmp(pstrName, _T("show-text")) == 0 ) {
+		SetWaitTextVisible(_tcsicmp(pstrValue, _T("true")) == 0 || _tcscmp(pstrValue, _T("1")) == 0);
+	}
+	else if( _tcsicmp(pstrName, _T("wait-threshold")) == 0 ) {
+		SetWaitTextThresholdSec(_ttoi(pstrValue));
+	}
+	else if( _tcsicmp(pstrName, _T("wait-pending")) == 0 ) {
+		SetWaitPendingText(pstrValue);
+	}
+	else if( _tcsicmp(pstrName, _T("wait-elapsed")) == 0 || _tcsicmp(pstrName, _T("wait-format")) == 0 ) {
+		SetWaitElapsedFormat(pstrValue);
+	}
+	else if( _tcsicmp(pstrName, _T("wait-frames")) == 0 || _tcsicmp(pstrName, _T("wait-spin")) == 0
+		|| _tcsicmp(pstrName, _T("frames")) == 0 ) {
+		SetWaitFrames(pstrValue);
 	}
 	else if( _tcsicmp(pstrName, _T("style")) == 0 ) {
 		if( _tcsicmp(pstrValue, _T("macosx")) == 0 || _tcscmp(pstrValue, _T("1")) == 0 ) {
@@ -1059,6 +1088,11 @@ void CLoadingUI::PaintBackgroundImage(IRenderContext& ctx)
 	if( w <= 0 || h <= 0 )
 		return;
 
+	if( m_eType == LoadingWait ) {
+		PaintWait(ctx);
+		return;
+	}
+
 	EnsureSpinBmps(w, h);
 	if( m_pSpinBmp == NULL )
 		return;
@@ -1072,9 +1106,122 @@ void CLoadingUI::PaintBackgroundImage(IRenderContext& ctx)
 		ctx.DrawGdiplusImageRotated(m_pSpinBmp, m_rcItem, m_fAngle);
 }
 
+void CLoadingUI::SetWaitTextVisible(bool bVisible)
+{
+	if( m_bWaitTextVisible == bVisible ) return;
+	m_bWaitTextVisible = bVisible;
+	Invalidate();
+}
+
+void CLoadingUI::SetWaitTextThresholdSec(int nSec)
+{
+	if( nSec < 0 ) nSec = 0;
+	if( m_nWaitTextThresholdSec == nSec ) return;
+	m_nWaitTextThresholdSec = nSec;
+	Invalidate();
+}
+
+void CLoadingUI::SetWaitPendingText(LPCTSTR pstrText)
+{
+	m_sWaitPendingText = pstrText ? pstrText : _T("");
+	Invalidate();
+}
+
+void CLoadingUI::SetWaitElapsedFormat(LPCTSTR pstrFormat)
+{
+	m_sWaitElapsedFormat = (pstrFormat && *pstrFormat) ? pstrFormat : _T("已等待 %ds");
+	Invalidate();
+}
+
+void CLoadingUI::SetWaitFrames(LPCTSTR pstrFrames)
+{
+	if( pstrFrames == NULL || *pstrFrames == _T('\0') )
+		m_sWaitFrames = _T("|/-\\");
+	else
+		m_sWaitFrames = pstrFrames;
+	m_nWaitFrame = 0;
+	Invalidate();
+}
+
+int CLoadingUI::WaitFrameCount() const
+{
+	const int n = m_sWaitFrames.GetLength();
+	return n > 0 ? n : 4;
+}
+
+TCHAR CLoadingUI::WaitFrameChar() const
+{
+	const int n = WaitFrameCount();
+	int idx = m_nWaitFrame % n;
+	if( idx < 0 ) idx += n;
+	if( !m_sWaitFrames.IsEmpty() )
+		return m_sWaitFrames.GetAt(idx);
+	static const TCHAR kDef[] = { _T('|'), _T('/'), _T('-'), _T('\\') };
+	return kDef[idx & 3];
+}
+
+int CLoadingUI::GetWaitElapsedSec() const
+{
+	if( m_ullWaitStart == 0 ) return 0;
+	const ULONGLONG now = ::GetTickCount64();
+	if( now < m_ullWaitStart ) return 0;
+	return (int)((now - m_ullWaitStart) / 1000ULL);
+}
+
+CDuiString CLoadingUI::BuildWaitBodyText() const
+{
+	if( !m_bWaitTextVisible ) return CDuiString();
+	const int sec = GetWaitElapsedSec();
+	if( sec < m_nWaitTextThresholdSec )
+		return m_sWaitPendingText;
+	CDuiString s;
+	s.Format(m_sWaitElapsedFormat.GetData(), sec);
+	return s;
+}
+
+CDuiString CLoadingUI::GetWaitDisplayText() const
+{
+	CDuiString out;
+	out += WaitFrameChar();
+	const CDuiString body = BuildWaitBodyText();
+	if( !body.IsEmpty() ) {
+		out += _T(" ");
+		out += body;
+	}
+	return out;
+}
+
+void CLoadingUI::ResetWaitClock()
+{
+	m_ullWaitStart = ::GetTickCount64();
+	m_nWaitFrame = 0;
+	Invalidate();
+}
+
+DWORD CLoadingUI::WaitTextColorDui() const
+{
+	BYTE a = ColorA();
+	return DuiColorFromRGB(m_Color.GetR(), m_Color.GetG(), m_Color.GetB(), a);
+}
+
+void CLoadingUI::PaintWait(IRenderContext& ctx)
+{
+	CDuiString text = GetWaitDisplayText();
+	if( text.IsEmpty() ) return;
+	RECT rc = m_rcItem;
+	ctx.DrawText(rc, text.GetData(), WaitTextColorDui(), -1,
+		DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+}
+
 void CLoadingUI::TickFrame()
 {
 	if( m_bStop ) return;
+	if( m_eType == LoadingWait ) {
+		const int n = WaitFrameCount();
+		m_nWaitFrame = (m_nWaitFrame + 1) % n;
+		Invalidate();
+		return;
+	}
 	if( m_nDuration < 200 ) m_nDuration = 200;
 	float delta = 360.0f * (float)m_nTime / (float)m_nDuration;
 	m_fAngle = WrapDeg(m_fAngle + delta);
@@ -1089,6 +1236,8 @@ void CLoadingUI::OnAnimTick()
 void CLoadingUI::Start()
 {
 	m_bStop = false;
+	if( m_eType == LoadingWait )
+		ResetWaitClock();
 	StartQueueTimer();
 }
 
