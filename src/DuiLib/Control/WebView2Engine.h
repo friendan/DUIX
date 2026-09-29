@@ -46,6 +46,8 @@ namespace DuiLib
 		virtual LPCTSTR GetHostMode() const;
 		virtual void SetDefaultContextMenusEnabled(bool bEnable);
 		virtual bool IsDefaultContextMenusEnabled() const;
+		virtual void SetAllowKeyboardFocus(bool bAllow);
+		virtual bool IsAllowKeyboardFocus() const;
 
 		LRESULT HandleCompHostMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -81,6 +83,7 @@ namespace DuiLib
 		bool m_bOwnDComp;
 		bool m_bTrackingMouse;
 		bool m_bDefaultContextMenusEnabled;
+		bool m_bAllowKeyboardFocus;
 		CDuiString m_sUserDataFolder;
 		CDuiString m_sHostMode;
 		CDuiString m_sPendingUrl;

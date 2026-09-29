@@ -337,6 +337,26 @@ namespace DuiLib
 		return m_bDefaultContextMenusEnabled;
 	}
 
+	void CWebBrowserUI::SetAllowKeyboardFocus(bool bAllow)
+	{
+		if( m_pEngine )
+			m_pEngine->SetAllowKeyboardFocus(bAllow);
+	}
+
+	bool CWebBrowserUI::IsAllowKeyboardFocus() const
+	{
+		return m_pEngine ? m_pEngine->IsAllowKeyboardFocus() : false;
+	}
+
+	bool CWebBrowserUI::FocusHostWindow()
+	{
+		if( m_pEngine == NULL ) return false;
+		HWND h = m_pEngine->GetHostWindow();
+		if( h == NULL || !::IsWindow(h) ) return false;
+		::SetFocus(h);
+		return ::GetFocus() == h;
+	}
+
 	bool CWebBrowserUI::IsOffScreenHost() const
 	{
 		if( m_pEngine != NULL && m_pEngine->IsOffScreen() ) return true;

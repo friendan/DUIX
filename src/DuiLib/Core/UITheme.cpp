@@ -900,8 +900,10 @@ namespace DuiLib {
 				else if (bForm) {
 					CRichEditUI* pRichForm = bRichEdit
 						? static_cast<CRichEditUI*>(pControl->GetInterface(DUI_CTR_RICHEDIT)) : NULL;
-					// 透明只读 RichEdit（聊天气泡正文）：勿铺表单底/边，勿强行正文色
-					const bool bBubbleRich = (pRichForm != NULL && pRichForm->IsTransparent());
+					// 透明只读 RichEdit（聊天气泡正文）：勿铺表单底/边，勿强行正文色。
+					// 可编辑透明输入框仍要跟主题底/字色（靠控件背景绘制；TxDraw 保持透明，避免系统白底）。
+					const bool bBubbleRich = (pRichForm != NULL && pRichForm->IsTransparent()
+						&& pRichForm->IsReadOnly());
 					if( !bBubbleRich ) {
 						pControl->SetBackgroundColor(ctrlBg);
 						pControl->SetBorderColor(ctrlBd);

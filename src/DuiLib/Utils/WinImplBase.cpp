@@ -776,6 +776,8 @@ namespace DuiLib
 
 			if (m_pm.IsValid() && wParam == SIZE_RESTORED) {
 				SyncMaxRestoreButtons(m_pm, false);
+				// 还原矩形若在任务栏外（如 Create 在 0,0）：居中到工作区，避免贴边/钻任务栏
+				CenterWindowIfOutsideWorkArea();
 			}
 		}
 		// SyncOwner*：最小化/还原与 Owner 联动（几何同步仍跳过 iconic/zoomed 矩形）
@@ -814,6 +816,9 @@ namespace DuiLib
 			}
 		}
 #if defined(WIN32) && !defined(UNDER_CE)
+		// 最大化前：纠正工作区外 / 跨屏（Create 在主屏 0,0，用户在副屏启动）
+		if( (wParam & 0xFFF0) == SC_MAXIMIZE && !::IsZoomed(*this) )
+			PrepareWindowForMaximize();
 		BOOL bZoomed = ::IsZoomed(*this);
 		LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
 		if( ::IsZoomed(*this) != bZoomed ) {

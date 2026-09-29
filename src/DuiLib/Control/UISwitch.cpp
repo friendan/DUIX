@@ -36,6 +36,8 @@ namespace DuiLib
 		m_dwSelectedColor = 0;
 		SetCursor(DUI_HAND);
 		SetAutoCalcWidth(true);
+		// 轨道与标签间距用 track-gap；不要继承 Option 的左右 padding（否则测宽不含 padding、绘制却扣掉，文字被裁切）
+		SetPadding(CDuiBox(0));
 	}
 
 	LPCTSTR CSwitchUI::GetClass() const
@@ -237,6 +239,8 @@ namespace DuiLib
 				RECT rcPad = GetTextPadding();
 				sz.cx += rcPad.left + rcPad.right;
 			}
+			RECT rcPadding = GetPadding();
+			sz.cx += rcPadding.left + rcPadding.right;
 		}
 		return sz;
 	}

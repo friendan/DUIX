@@ -82,6 +82,10 @@ namespace DuiLib
 		/// 浏览器引擎默认右键菜单（WebView2 / IE）；默认 true
 		virtual void SetDefaultContextMenusEnabled(bool /*bEnable*/) {}
 		virtual bool IsDefaultContextMenusEnabled() const { return true; }
+		/// composition CompHost：默认 false（历史只读区不抢键盘，焦点留给聊天 RichEdit）；
+		/// 为 true 时允许 CompHost 持有键盘焦点（页内 input/textarea 可输入）
+		virtual void SetAllowKeyboardFocus(bool /*bAllow*/) {}
+		virtual bool IsAllowKeyboardFocus() const { return false; }
 
 		/// 离屏：无子 HWND，由 PaintOffScreen 画进 DuiLib；帧就绪后对 pOwner->Invalidate()
 		virtual bool IsOffScreen() const { return false; }

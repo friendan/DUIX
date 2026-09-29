@@ -117,6 +117,7 @@ namespace DuiLib
 		, m_bOwnDComp(false)
 		, m_bTrackingMouse(false)
 		, m_bDefaultContextMenusEnabled(true)
+		, m_bAllowKeyboardFocus(false)
 		, m_sHostMode(_T("window"))
 		, m_sEffectiveHost(_T("window"))
 		, m_pController(NULL)
@@ -183,6 +184,16 @@ namespace DuiLib
 	bool CWebView2Engine::IsDefaultContextMenusEnabled() const
 	{
 		return m_bDefaultContextMenusEnabled;
+	}
+
+	void CWebView2Engine::SetAllowKeyboardFocus(bool bAllow)
+	{
+		m_bAllowKeyboardFocus = bAllow;
+	}
+
+	bool CWebView2Engine::IsAllowKeyboardFocus() const
+	{
+		return m_bAllowKeyboardFocus;
 	}
 
 	void CWebView2Engine::ApplyDefaultContextMenusSetting()
@@ -988,7 +999,9 @@ namespace DuiLib
 		case WM_SETFOCUS:
 			// 历史区只读展示：无按键拖选时若 WebView 异步抢走焦点，立刻还回父窗，
 			// 避免聊天输入框假焦点、按键进 WebView。
-			if( (::GetKeyState(VK_LBUTTON) & 0x8000) == 0
+			// 询问卡等需要页内输入时：SetAllowKeyboardFocus(true) 后允许 CompHost 持焦。
+			if( !m_bAllowKeyboardFocus
+				&& (::GetKeyState(VK_LBUTTON) & 0x8000) == 0
 				&& (::GetKeyState(VK_RBUTTON) & 0x8000) == 0
 				&& (::GetKeyState(VK_MBUTTON) & 0x8000) == 0 ) {
 				HWND hParent = ::GetParent(hWnd);
@@ -1042,13 +1055,15 @@ namespace DuiLib
 		case WM_XBUTTONUP:
 		case WM_MOUSEWHEEL:
 		case WM_MOUSEHWHEEL:
-			// 按下：允许 CompHost 获焦以便 WebView 拖选；抬起：立刻把键盘焦点还回父窗，
+			// 按下：允许 CompHost 获焦以便 WebView 拖选；抬起：默认把键盘焦点还回父窗，
 			// 否则拖选结束后按键进 WebView，聊天 RichEdit 假焦点却输不进字。
+			// SetAllowKeyboardFocus(true) 时保留 CompHost 焦点（页内 textarea 可输入）。
 			if( uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN || uMsg == WM_MBUTTONDOWN )
 				::SetFocus(hWnd);
 			ForwardMouse(uMsg, wParam, lParam);
-			if( uMsg == WM_LBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_MBUTTONUP
-				|| uMsg == WM_XBUTTONUP ) {
+			if( !m_bAllowKeyboardFocus
+				&& (uMsg == WM_LBUTTONUP || uMsg == WM_RBUTTONUP || uMsg == WM_MBUTTONUP
+					|| uMsg == WM_XBUTTONUP) ) {
 				HWND hParent = ::GetParent(hWnd);
 				if( hParent != NULL )
 					::SetFocus(hParent);

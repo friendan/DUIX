@@ -405,6 +405,75 @@ void CWindowWnd::CenterWindow()
 	::SetWindowPos(m_hWnd, NULL, xLeft, yTop, -1, -1, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
+void CWindowWnd::EnsureWindowInWorkArea()
+{
+	ASSERT(::IsWindow(m_hWnd));
+	if( !::IsWindow(m_hWnd) ) return;
+	if( (GetWindowStyle(m_hWnd) & WS_CHILD) != 0 ) return;
+	if( ::IsZoomed(m_hWnd) || ::IsIconic(m_hWnd) ) return;
+
+	RECT rc = {};
+	::GetWindowRect(m_hWnd, &rc);
+	MONITORINFO mi = {};
+	mi.cbSize = sizeof(mi);
+	HMONITOR hMon = ::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+	if( hMon == NULL || !::GetMonitorInfo(hMon, &mi) ) return;
+
+	const RECT& work = mi.rcWork;
+	const int cx = rc.right - rc.left;
+	const int cy = rc.bottom - rc.top;
+	int x = rc.left;
+	int y = rc.top;
+	if( y < work.top ) y = work.top;
+	if( x < work.left ) x = work.left;
+	if( x + cx > work.right ) x = work.right - cx;
+	if( y + cy > work.bottom ) y = work.bottom - cy;
+	if( x < work.left ) x = work.left;
+	if( y < work.top ) y = work.top;
+	if( x == rc.left && y == rc.top ) return;
+	::SetWindowPos(m_hWnd, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+bool CWindowWnd::IsOutsideWorkArea() const
+{
+	if( !::IsWindow(m_hWnd) ) return false;
+	if( (GetWindowStyle(m_hWnd) & WS_CHILD) != 0 ) return false;
+	if( ::IsZoomed(m_hWnd) || ::IsIconic(m_hWnd) ) return false;
+
+	RECT rc = {};
+	::GetWindowRect(m_hWnd, &rc);
+	MONITORINFO mi = {};
+	mi.cbSize = sizeof(mi);
+	HMONITOR hMon = ::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+	if( hMon == NULL || !::GetMonitorInfo(hMon, &mi) ) return false;
+
+	const RECT& work = mi.rcWork;
+	return rc.left < work.left || rc.top < work.top
+		|| rc.right > work.right || rc.bottom > work.bottom;
+}
+
+void CWindowWnd::CenterWindowIfOutsideWorkArea()
+{
+	if( IsOutsideWorkArea() )
+		CenterWindow();
+}
+
+void CWindowWnd::PrepareWindowForMaximize()
+{
+	if( !::IsWindow(m_hWnd) ) return;
+	if( (GetWindowStyle(m_hWnd) & WS_CHILD) != 0 ) return;
+	if( ::IsZoomed(m_hWnd) || ::IsIconic(m_hWnd) ) return;
+
+	// Create(0,0) 落在主屏时，即使用户在副屏启动，窗口仍可能完全落在主屏工作区内；
+	// 仅靠 IsOutsideWorkArea 不会纠正，需与鼠标所在显示器比较。
+	POINT pt = {};
+	::GetCursorPos(&pt);
+	HMONITOR hCursor = ::MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+	HMONITOR hWndMon = ::MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
+	if( IsOutsideWorkArea() || (hCursor != NULL && hWndMon != NULL && hCursor != hWndMon) )
+		CenterWindow();
+}
+
 void CWindowWnd::SetIcon(UINT nRes)
 {
 	HICON hIcon = (HICON)::LoadImage(CPaintManagerUI::GetInstance(), MAKEINTRESOURCE(nRes), IMAGE_ICON,

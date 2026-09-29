@@ -83,6 +83,14 @@ namespace DuiLib {
     	void ShowModalFake();
 		void Close(UINT nRet = IDOK);
 		void CenterWindow();	// 居中：无 Owner 按鼠标所在屏；有 Owner 相对 Owner / 其屏
+		/// 将窗口位置钳入当前显示器工作区（避开任务栏；最大化/最小化时不动作）
+		void EnsureWindowInWorkArea();
+		/// 是否有任意边落在工作区外（任务栏区域等；最大化/最小化视为不在外）
+		bool IsOutsideWorkArea() const;
+		/// 若在工作区外则居中到工作区（用于还原后纠偏）
+		void CenterWindowIfOutsideWorkArea();
+		/// 最大化前：工作区外，或窗口与鼠标不在同一显示器时，居中到鼠标所在屏
+		void PrepareWindowForMaximize();
 		void SetIcon(UINT nRes);
 
 		LRESULT SendMessage(UINT uMsg, WPARAM wParam = 0, LPARAM lParam = 0L);

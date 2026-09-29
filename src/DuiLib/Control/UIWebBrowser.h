@@ -68,6 +68,11 @@ namespace DuiLib
 		/// 皮肤：`default-context-menus="false"`（勿与控件 `contextmenu` 混淆）
 		void SetDefaultContextMenusEnabled(bool bEnable);
 		bool IsDefaultContextMenusEnabled() const;
+		/// composition：允许 CompHost 持有键盘焦点（页内输入）；默认 false
+		void SetAllowKeyboardFocus(bool bAllow);
+		bool IsAllowKeyboardFocus() const;
+		/// 把键盘焦点落到引擎宿主 HWND（composition=CompHost）
+		bool FocusHostWindow();
 
 		void SetHostEvents(CWebBrowserHostEvents* pEvents);
 		void SetWebBrowserEventHandler(CWebBrowserEventHandler* pEventHandler);
