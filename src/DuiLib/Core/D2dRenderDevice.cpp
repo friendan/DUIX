@@ -1009,6 +1009,45 @@ namespace DuiLib {
 		return (pstrText != NULL && _tcschr(pstrText, _T('<')) != NULL);
 	}
 
+	void CD2dRenderContext::ApplyPixelAlignedText()
+	{
+		if( m_pRT == NULL || m_pDWrite == NULL ) return;
+		m_pRT->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+
+		static IDWriteFactory* sFactory = NULL;
+		static IDWriteRenderingParams* sParams = NULL;
+		if( sFactory != m_pDWrite ) {
+			if( sParams != NULL ) {
+				sParams->Release();
+				sParams = NULL;
+			}
+			sFactory = m_pDWrite;
+			IDWriteRenderingParams* pDefault = NULL;
+			if( SUCCEEDED(m_pDWrite->CreateRenderingParams(&pDefault)) && pDefault != NULL ) {
+				m_pDWrite->CreateCustomRenderingParams(
+					pDefault->GetGamma(),
+					pDefault->GetEnhancedContrast(),
+					0.0f,
+					pDefault->GetPixelGeometry(),
+					DWRITE_RENDERING_MODE_GDI_CLASSIC,
+					&sParams);
+				pDefault->Release();
+			}
+		}
+		if( sParams != NULL )
+			m_pRT->SetTextRenderingParams(sParams);
+	}
+
+	HRESULT CD2dRenderContext::CreateUiTextLayout(const WCHAR* pText, UINT32 len, IDWriteTextFormat* pFormat, FLOAT maxW, FLOAT maxH, IDWriteTextLayout** ppLayout) const
+	{
+		if( ppLayout == NULL ) return E_POINTER;
+		*ppLayout = NULL;
+		if( m_pDWrite == NULL || pText == NULL || pFormat == NULL ) return E_INVALIDARG;
+		// 字号和矩形已经是设备像素，pixelsPerDip 用 1，避免再乘一次 DPI。
+		return m_pDWrite->CreateGdiCompatibleTextLayout(
+			pText, len, pFormat, maxW, maxH, 1.0f, NULL, FALSE, ppLayout);
+	}
+
 	bool CD2dRenderContext::MeasureTextDWrite(RECT& rc, LPCTSTR pstrText, IDWriteTextFormat* pFormat, UINT uStyle) const
 	{
 		if( pstrText == NULL || pFormat == NULL || m_pDWrite == NULL ) return false;
@@ -1020,7 +1059,7 @@ namespace DuiLib {
 		FLOAT maxH = 16384.0f;
 		IDWriteTextLayout* pLayout = NULL;
 		UINT32 len = (UINT32)_tcslen(pstrText);
-		if( FAILED(m_pDWrite->CreateTextLayout(pstrText, len, pFormat, maxW, maxH, &pLayout)) || pLayout == NULL )
+		if( FAILED(CreateUiTextLayout(pstrText, len, pFormat, maxW, maxH, &pLayout)) || pLayout == NULL )
 			return false;
 
 		DWRITE_TEXT_METRICS metrics = { 0 };
@@ -1071,9 +1110,10 @@ namespace DuiLib {
 		D2D1_DRAW_TEXT_OPTIONS opts = ((uStyle & DT_NOCLIP) != 0)
 			? D2D1_DRAW_TEXT_OPTIONS_NONE
 			: D2D1_DRAW_TEXT_OPTIONS_CLIP;
+		ApplyPixelAlignedText();
 		m_pRT->DrawText(
 			pstrText, len, pFormat, ToRectF(rc), pBrush,
-			opts, DWRITE_MEASURING_MODE_NATURAL);
+			opts, DWRITE_MEASURING_MODE_GDI_CLASSIC);
 		pFormat->Release();
 	}
 
@@ -1467,10 +1507,21 @@ namespace DuiLib {
 		pBaseFormat->SetParagraphAlignment(ToDWriteParagraphAlign(uStyle));
 		pBaseFormat->SetWordWrapping((uStyle & DT_SINGLELINE) ? DWRITE_WORD_WRAPPING_NO_WRAP : DWRITE_WORD_WRAPPING_WRAP);
 
-		FLOAT maxW = (uStyle & DT_SINGLELINE) ? 16384.0f : (FLOAT)((rc.right - rc.left > 1) ? (rc.right - rc.left) : 1);
+		const bool bMeasure = (uStyle & DT_CALCRECT) != 0;
+		FLOAT maxW = 16384.0f;
+		FLOAT maxH = 16384.0f;
+		if( !bMeasure ) {
+			if( rc.right > rc.left ) maxW = (FLOAT)(rc.right - rc.left);
+			if( rc.bottom > rc.top ) maxH = (FLOAT)(rc.bottom - rc.top);
+		}
+		else if( (uStyle & DT_SINGLELINE) == 0 && rc.right > rc.left ) {
+			maxW = (FLOAT)(rc.right - rc.left);
+		}
+		if( maxW < 1.0f ) maxW = 1.0f;
+		if( maxH < 1.0f ) maxH = 1.0f;
 		IDWriteTextLayout* pLayout = NULL;
 		UINT32 len = (UINT32)sPlain.GetLength();
-		if( FAILED(m_pDWrite->CreateTextLayout(sPlain.GetData(), len, pBaseFormat, maxW, 16384.0f, &pLayout)) || pLayout == NULL ) {
+		if( FAILED(CreateUiTextLayout(sPlain.GetData(), len, pBaseFormat, maxW, maxH, &pLayout)) || pLayout == NULL ) {
 			pBaseFormat->Release();
 			FreeAll();
 			return false;
@@ -1566,8 +1617,10 @@ namespace DuiLib {
 				}
 			}
 			ID2D1SolidColorBrush* pDefBrush = GetBrush(dwColor);
-			if( pDefBrush != NULL )
+			if( pDefBrush != NULL ) {
+				ApplyPixelAlignedText();
 				m_pRT->DrawTextLayout(D2D1::Point2F((FLOAT)rc.left, (FLOAT)rc.top), pLayout, pDefBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+			}
 		}
 
 		int nOutLinks = 0;

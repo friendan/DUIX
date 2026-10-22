@@ -10,6 +10,7 @@ struct ID2D1Factory;
 struct ID2D1Factory1;
 struct IDWriteFactory;
 struct IDWriteTextFormat;
+struct IDWriteTextLayout;
 struct ID2D1RenderTarget;
 struct ID2D1DCRenderTarget;
 struct ID2D1BitmapRenderTarget;
@@ -119,6 +120,9 @@ namespace DuiLib {
 		bool DrawImageD2d(ID2D1Bitmap* pBitmap, const RECT& rc, const RECT& rcPaint, const RECT& rcBmpPart, const RECT& rcCorners, UINT uFade, bool hole, bool xtiled, bool ytiled);
 		bool MeasureTextDWrite(RECT& rc, LPCTSTR pstrText, IDWriteTextFormat* pFormat, UINT uStyle) const;
 		IDWriteTextFormat* CreateTextFormat(int iFont) const;
+		// 灰度 + GDI 像素对齐。预乘画布上不用 ClearType，否则发灰发糊。
+		void ApplyPixelAlignedText();
+		HRESULT CreateUiTextLayout(const WCHAR* pText, UINT32 len, IDWriteTextFormat* pFormat, FLOAT maxW, FLOAT maxH, IDWriteTextLayout** ppLayout) const;
 		static bool TextLooksLikeHtml(LPCTSTR pstrText);
 		bool DrawHtmlTextDWrite(RECT& rc, LPCTSTR pstrText, DWORD dwColor, RECT* pLinks, CDuiString* sLinks, int& nLinkRects, int iFont, UINT uStyle);
 
