@@ -3363,7 +3363,13 @@ namespace
 	void CPaintManagerUI::SetFocus(CControlUI* pControl)
 	{
 		// Already has focus?
-		if( pControl == m_pFocus ) return;
+		if( pControl == m_pFocus ) {
+			// 逻辑焦点未变时仍要拉回 paint HWND。WebView2 CompHost 常抢走 OS 焦点，
+			// 若此处直接 return，无窗 RichEdit 的 IME 状态栏/候选框会间歇性不出现。
+			if( pControl != NULL && m_hWndPaint != NULL && ::GetFocus() != m_hWndPaint )
+				::SetFocus(m_hWndPaint);
+			return;
+		}
 
 		// 先清空 m_pFocus，再发 KillFocus / 同步 HWND 焦点。
 		// 否则原生 Edit DestroyWindow → paint 收到 WM_SETFOCUS 时仍指向旧控件，
